@@ -13,11 +13,13 @@ failed on that drift; keep them green.
 from __future__ import annotations
 
 import json
+from importlib import import_module
 from importlib.metadata import entry_points
 from pathlib import Path
 
 import pytest
 import yaml
+from langchain_core.runnables import Runnable
 
 import decepticon
 from decepticon.graph_registry import BUILTIN_GRAPHS, STANDARD_GRAPHS
@@ -73,6 +75,21 @@ def test_langgraph_manifest_covers_standard_graphs():
     extra = sorted(served - expected)
     assert not missing, f"standard graphs absent from langgraph.json: {missing}"
     assert not extra, f"langgraph.json lists graphs not in STANDARD_GRAPHS: {extra}"
+
+
+@pytest.mark.parametrize("graph_name", STANDARD_GRAPHS)
+def test_langgraph_manifest_exports_runnable(graph_name: str) -> None:
+    manifest = json.loads(_find_repo_file("langgraph.json").read_text(encoding="utf-8"))
+    module_path, export_name = manifest["graphs"][graph_name].rsplit(":", 1)
+    module_name = (
+        Path(module_path)
+        .relative_to("packages/decepticon")
+        .with_suffix("")
+        .as_posix()
+        .replace("/", ".")
+    )
+    exported_graph = getattr(import_module(module_name), export_name)
+    assert isinstance(exported_graph, Runnable)
 
 
 @pytest.mark.parametrize(
