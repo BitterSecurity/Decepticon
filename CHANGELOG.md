@@ -8,7 +8,7 @@ design spec, §13.4).
 
 ## [1.1.44] — 2026-09-19
 
-Released as v1.1.44 by maintainer decision. This release includes the cumulative
+Version v1.1.44 was selected by the maintainer. This release includes the cumulative
 changes since the last public release, v1.1.40. Versions v1.1.41–v1.1.43
 remained unpublished GitHub drafts.
 
