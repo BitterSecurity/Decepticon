@@ -18,7 +18,7 @@ jobs:
   #
   # PyPI side requires a Trusted Publisher config per project on
   # pypi.org before the first successful publish:
-  #   - decepticon-core  -> repo PurpleAILAB/Decepticon, workflow release.yml
+  #   - decepticon-core  -> repo BitterSecurity/Decepticon, workflow release.yml
   #   - decepticon       -> same
   #   - decepticon-sdk   -> same
   # See: https://docs.pypi.org/trusted-publishers/
@@ -155,7 +155,7 @@ jobs:
           # so multi-arch under QEMU is cheap like cli/langgraph. The compose
           # `skillogy` service has no `profiles:`, so it is ALWAYS started by
           # `decepticon start` — it MUST be published or every start fails to
-          # pull ghcr.io/purpleailab/decepticon-skillogy:<version>.
+          # pull ghcr.io/bittersecurity/decepticon-skillogy:<version>.
           - image: decepticon-skillogy
             dockerfile: containers/skillogy.Dockerfile
             platforms: linux/amd64,linux/arm64
@@ -206,7 +206,7 @@ jobs:
           # publish-release job AFTER every image has been verified on GHCR,
           # so a half-finished release never updates the moving tag.
           tags: |
-            ghcr.io/purpleailab/${{ matrix.image }}:${{ steps.version.outputs.version }}
+            ghcr.io/bittersecurity/${{ matrix.image }}:${{ steps.version.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -216,12 +216,12 @@ jobs:
           DIGEST: ${{ steps.build.outputs.digest }}
         run: |
           cosign sign --yes \
-            "ghcr.io/purpleailab/${{ matrix.image }}@${DIGEST}"
+            "ghcr.io/bittersecurity/${{ matrix.image }}@${DIGEST}"
 
       - name: Generate CycloneDX SBOM
         uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
         with:
-          image: ghcr.io/purpleailab/${{ matrix.image }}:${{ steps.version.outputs.version }}
+          image: ghcr.io/bittersecurity/${{ matrix.image }}:${{ steps.version.outputs.version }}
           format: cyclonedx-json
           output-file: sbom-${{ matrix.image }}.cdx.json
 
@@ -247,7 +247,7 @@ jobs:
           DIGEST: ${{ steps.build.outputs.digest }}
         run: |
           set -uo pipefail
-          target="ghcr.io/purpleailab/${{ matrix.image }}@${DIGEST}"
+          target="ghcr.io/bittersecurity/${{ matrix.image }}@${DIGEST}"
           predicate="sbom-${{ matrix.image }}.cdx.json"
           extra=()
           if [ "${{ matrix.image }}" = "decepticon-sandbox" ]; then
@@ -332,7 +332,7 @@ jobs:
           platforms: linux/${{ matrix.platform }}
           provenance: mode=max
           sbom: ${{ matrix.image != 'decepticon-sandbox' }}
-          outputs: type=image,name=ghcr.io/purpleailab/${{ matrix.image }},push-by-digest=true,name-canonical=true,push=true
+          outputs: type=image,name=ghcr.io/bittersecurity/${{ matrix.image }},push-by-digest=true,name-canonical=true,push=true
           cache-from: type=gha,scope=${{ matrix.image }}-${{ matrix.platform }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}-${{ matrix.platform }}
 
@@ -394,10 +394,10 @@ jobs:
         run: |
           # shellcheck disable=SC2046  # intentional word-split: one image ref arg per digest file
           docker buildx imagetools create \
-            --tag ghcr.io/purpleailab/${{ matrix.image }}:${{ steps.version.outputs.version }} \
-            $(printf 'ghcr.io/purpleailab/${{ matrix.image }}@sha256:%s ' *)
+            --tag ghcr.io/bittersecurity/${{ matrix.image }}:${{ steps.version.outputs.version }} \
+            $(printf 'ghcr.io/bittersecurity/${{ matrix.image }}@sha256:%s ' *)
           digest=$(docker buildx imagetools inspect \
-            ghcr.io/purpleailab/${{ matrix.image }}:${{ steps.version.outputs.version }} \
+            ghcr.io/bittersecurity/${{ matrix.image }}:${{ steps.version.outputs.version }} \
             --format '{{json .Manifest}}' | jq -r '.digest')
           echo "digest=$digest" >> "$GITHUB_OUTPUT"
 
@@ -407,12 +407,12 @@ jobs:
           DIGEST: ${{ steps.manifest.outputs.digest }}
         run: |
           cosign sign --yes \
-            "ghcr.io/purpleailab/${{ matrix.image }}@${DIGEST}"
+            "ghcr.io/bittersecurity/${{ matrix.image }}@${DIGEST}"
 
       - name: Generate CycloneDX SBOM
         uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
         with:
-          image: ghcr.io/purpleailab/${{ matrix.image }}:${{ steps.version.outputs.version }}
+          image: ghcr.io/bittersecurity/${{ matrix.image }}:${{ steps.version.outputs.version }}
           format: cyclonedx-json
           output-file: sbom-${{ matrix.image }}.cdx.json
 
@@ -422,7 +422,7 @@ jobs:
           DIGEST: ${{ steps.manifest.outputs.digest }}
         run: |
           set -uo pipefail
-          target="ghcr.io/purpleailab/${{ matrix.image }}@${DIGEST}"
+          target="ghcr.io/bittersecurity/${{ matrix.image }}@${DIGEST}"
           predicate="sbom-${{ matrix.image }}.cdx.json"
           extra=()
           if [ "${{ matrix.image }}" = "decepticon-sandbox" ]; then
@@ -497,7 +497,7 @@ jobs:
           # time (web image embeds clients/cli for the terminal-server PTY).
           build-args: |
             VERSION=${{ steps.version.outputs.version }}
-          outputs: type=image,name=ghcr.io/purpleailab/decepticon-web,push-by-digest=true,name-canonical=true,push=true
+          outputs: type=image,name=ghcr.io/bittersecurity/decepticon-web,push-by-digest=true,name-canonical=true,push=true
           cache-from: type=gha,scope=web-${{ matrix.platform }}
           cache-to: type=gha,mode=max,scope=web-${{ matrix.platform }}
 
@@ -553,10 +553,10 @@ jobs:
           # `:latest` is promoted by publish-release after verification.
           # shellcheck disable=SC2046  # intentional word-split: one image ref arg per digest file
           docker buildx imagetools create \
-            --tag ghcr.io/purpleailab/decepticon-web:${{ steps.version.outputs.version }} \
-            $(printf 'ghcr.io/purpleailab/decepticon-web@sha256:%s ' *)
+            --tag ghcr.io/bittersecurity/decepticon-web:${{ steps.version.outputs.version }} \
+            $(printf 'ghcr.io/bittersecurity/decepticon-web@sha256:%s ' *)
           digest=$(docker buildx imagetools inspect \
-            ghcr.io/purpleailab/decepticon-web:${{ steps.version.outputs.version }} \
+            ghcr.io/bittersecurity/decepticon-web:${{ steps.version.outputs.version }} \
             --format '{{json .Manifest}}' | jq -r '.digest')
           echo "digest=$digest" >> "$GITHUB_OUTPUT"
 
@@ -566,12 +566,12 @@ jobs:
           DIGEST: ${{ steps.manifest.outputs.digest }}
         run: |
           cosign sign --yes \
-            "ghcr.io/purpleailab/decepticon-web@${DIGEST}"
+            "ghcr.io/bittersecurity/decepticon-web@${DIGEST}"
 
       - name: Generate CycloneDX SBOM
         uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
         with:
-          image: ghcr.io/purpleailab/decepticon-web:${{ steps.version.outputs.version }}
+          image: ghcr.io/bittersecurity/decepticon-web:${{ steps.version.outputs.version }}
           format: cyclonedx-json
           output-file: sbom-decepticon-web.cdx.json
 
@@ -582,7 +582,7 @@ jobs:
           DIGEST: ${{ steps.manifest.outputs.digest }}
         run: |
           set -uo pipefail
-          target="ghcr.io/purpleailab/decepticon-web@${DIGEST}"
+          target="ghcr.io/bittersecurity/decepticon-web@${DIGEST}"
           predicate="sbom-decepticon-web.cdx.json"
           for attempt in 1 2 3 4 5; do
             echo "Attestation attempt ${attempt}/5 for ${target}"
@@ -658,7 +658,7 @@ jobs:
             decepticon-web
           )
           for img in "${images[@]}"; do
-            ref="ghcr.io/purpleailab/${img}:${VERSION}"
+            ref="ghcr.io/bittersecurity/${img}:${VERSION}"
             echo "Verifying ${ref}"
             docker buildx imagetools inspect "${ref}" >/dev/null
           done
@@ -687,8 +687,8 @@ jobs:
             decepticon-web
           )
           for img in "${images[@]}"; do
-            src="ghcr.io/purpleailab/${img}:${VERSION}"
-            dst="ghcr.io/purpleailab/${img}:latest"
+            src="ghcr.io/bittersecurity/${img}:${VERSION}"
+            dst="ghcr.io/bittersecurity/${img}:latest"
             echo "Promoting ${src} → ${dst}"
             docker buildx imagetools create --tag "${dst}" "${src}"
           done

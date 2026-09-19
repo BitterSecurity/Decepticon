@@ -18,7 +18,7 @@
 set -euo pipefail
 
 # ── Constants ─────────────────────────────────────────────────────
-REPO="PurpleAILAB/Decepticon"
+REPO="BitterSecurity/Decepticon"
 BRANCH="${BRANCH:-main}"
 
 # Update channel (Claude-Code-style soak model; both are final-only):
