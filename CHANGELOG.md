@@ -45,7 +45,9 @@ remained unpublished GitHub drafts.
 ### Security and operational changes
 
 - Update Python dependencies to address security advisories. (#797)
-- Reject default launcher credentials and make telemetry opt-in by default.
+- Reject default launcher credentials and disable telemetry in `.env.example`.
+  The onboarding wizard still preselects telemetry sharing; select
+  "No, keep it off" or set `DECEPTICON_TELEMETRY=off` to disable it.
   Add a release image-digest manifest workflow for immutable image pinning.
   Existing installations using default credentials or missing secrets must
   update their configuration before starting. (#802, #804)
