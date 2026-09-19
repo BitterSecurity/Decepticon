@@ -88,13 +88,13 @@ verified, so a half-finished release never moves the `:latest` tag.
 ## Digest pinning
 
 `pin-digests.yml` runs on every published release and uploads
-`image-digests.txt` — one line per image, `ghcr.io/purpleailab/<image>:<version>@sha256:<digest>` —
+`image-digests.txt` — one line per image, `ghcr.io/bittersecurity/<image>:<version>@sha256:<digest>` —
 as a release asset. Operators who want immutable, tamper-evident deploys pin
 their compose stack to the digest form instead of the moving `:stable` /
 `:latest` channel tags:
 
 ```yaml
-image: ghcr.io/purpleailab/decepticon-litellm@sha256:<digest>
+image: ghcr.io/bittersecurity/decepticon-litellm@sha256:<digest>
 ```
 
 The digest is the manifest-list digest, so it covers all published platforms.
