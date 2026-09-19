@@ -23,9 +23,9 @@ remained unpublished GitHub drafts.
   dispatch plumbing and pinned MITRE STIX bootstrapping. (#811)
 - **Provider support:** default AWS Bedrock routes and native Kimi for Coding
   support, including launcher onboarding. (#796, #803)
-- **Evidence controls:** local API ingestion, dependency reachability evidence,
-  severity ceilings and explicit identity scoping for provider requests and
-  dynamic workload teardown. (#801)
+- **Evidence controls:** local API ingestion, dependency reachability evidence
+  and severity ceilings. Provider calls gain extra-header and streaming
+  controls; dynamic workload teardown is scoped by engagement and run. (#801)
 - Typed finding-location guidance in the skill catalog. (#810)
 
 ### Fixed
