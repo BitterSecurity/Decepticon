@@ -44,6 +44,10 @@ remained unpublished GitHub drafts.
 
 ### Security and operational changes
 
+- Update Next.js and its ESLint configuration to 16.3.5, addressing the
+  critical AVIF image-optimization advisory and other Next.js advisories.
+  Update CLI Vitest to 3.2.7 to remove its critical advisory. Other npm
+  dependency advisories remain; this is a targeted security update.
 - Update Python dependencies to address security advisories. (#797)
 - Reject default launcher credentials and disable telemetry in `.env.example`.
   The onboarding wizard still preselects telemetry sharing; select
