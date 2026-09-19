@@ -41,6 +41,8 @@ remained unpublished GitHub drafts.
 - Support Python package metadata 2.5 in release publishing. (#805)
 - Disable the oversized, duplicate per-platform BuildKit sandbox SBOM while
   retaining provenance and the merged-manifest CycloneDX/signing path. (#806)
+- Use the canonical `BitterSecurity` repository and container registry paths
+  for release publishing, image pulls, installation and launcher updates.
 
 ### Security and operational changes
 
