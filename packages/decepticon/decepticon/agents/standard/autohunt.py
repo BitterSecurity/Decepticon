@@ -73,4 +73,4 @@ def create_autohunt_agent(
 
 
 if is_bundle_enabled("standard"):
-    _unused_graph = create_autohunt_agent()
+    graph = create_autohunt_agent()
