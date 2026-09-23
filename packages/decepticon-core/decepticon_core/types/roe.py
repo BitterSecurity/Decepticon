@@ -46,6 +46,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import StrEnum
 from typing import Any, Iterable
+from urllib.parse import urlsplit
 
 
 class EnforcementMode(StrEnum):
@@ -218,7 +219,26 @@ def _glob_match(pattern: str, candidate: str) -> bool:
 
 
 def _matches_rule(rule: ScopeRule, target: str) -> bool:
-    kind = rule.resolved_kind()
+    pattern = rule.pattern
+    if pattern.lower().startswith(("http://", "https://")):
+        try:
+            parsed = urlsplit(pattern)
+            default_port = 443 if parsed.scheme.lower() == "https" else 80
+            if (
+                rule.kind not in ("auto", "host")
+                or not parsed.hostname
+                or parsed.username
+                or parsed.password
+                or parsed.path not in ("", "/")
+                or parsed.query
+                or parsed.fragment
+                or parsed.port not in (None, default_port)
+            ):
+                return False
+        except ValueError:
+            return False
+        pattern = parsed.hostname
+    kind = rule.resolved_kind() if pattern == rule.pattern else "host"
     # A trailing dot is DNS-equivalent ("host." resolves identically to
     # "host"), so strip it on BOTH the rule pattern and the target before
     # matching. Without this, the FQDN form (``metadata.google.internal.`` or
@@ -229,13 +249,13 @@ def _matches_rule(rule: ScopeRule, target: str) -> bool:
     norm_target = target.rstrip(".")
     if kind == "cidr":
         try:
-            network = ipaddress.ip_network(rule.pattern, strict=False)
+            network = ipaddress.ip_network(pattern, strict=False)
             return ipaddress.ip_address(norm_target) in network
         except ValueError:
             return False
     if kind == "domain-glob":
-        return _glob_match(rule.pattern.rstrip("."), norm_target)
-    return rule.pattern.rstrip(".").lower() == norm_target.lower()
+        return _glob_match(pattern.rstrip("."), norm_target)
+    return pattern.rstrip(".").lower() == norm_target.lower()
 
 
 def _sensitive_tld_match(target: str, tlds: tuple[str, ...]) -> str | None:

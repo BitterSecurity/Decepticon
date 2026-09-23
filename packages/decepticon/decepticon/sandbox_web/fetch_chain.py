@@ -486,7 +486,7 @@ def _fetch_core(
             profile_used=None,
             trace=trace,
             summary="ROE_REFUSED: target host not in engagement scope",
-            stop_reason="auth_required",
+            stop_reason="roe_refused",
         )
 
     # -------- Phase 0: official public-API router (R5; site-aware, sanctioned) --
