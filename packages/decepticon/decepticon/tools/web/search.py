@@ -132,7 +132,9 @@ async def web_fetch(
             data.get("summary", ""),
         ]
         if stop == "roe_refused":
-            msg.append("RoE refused this target. Check the signed engagement scope before continuing.")
+            msg.append(
+                "RoE refused this target. Check the signed engagement scope before continuing."
+            )
         elif stop in ("auth_required", "not_found"):
             msg.append(
                 "TERMINAL (login/paywall/404) — record it and move on; retrying will not help."

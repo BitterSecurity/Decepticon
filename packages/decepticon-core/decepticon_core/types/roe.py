@@ -218,7 +218,7 @@ def _glob_match(pattern: str, candidate: str) -> bool:
     return re.match(regex, candidate, re.IGNORECASE) is not None
 
 
-def _matches_rule(rule: ScopeRule, target: str) -> bool:
+def network_scope_pattern(rule: ScopeRule, *, deny: bool = False) -> str | None:
     pattern = rule.pattern
     if pattern.lower().startswith(("http://", "https://")):
         try:
@@ -229,15 +229,22 @@ def _matches_rule(rule: ScopeRule, target: str) -> bool:
                 or not parsed.hostname
                 or parsed.username
                 or parsed.password
-                or parsed.path not in ("", "/")
-                or parsed.query
-                or parsed.fragment
-                or parsed.port not in (None, default_port)
+                or (not deny and parsed.path not in ("", "/"))
+                or (not deny and parsed.query)
+                or (not deny and parsed.fragment)
+                or (not deny and parsed.port not in (None, default_port))
             ):
-                return False
+                return None
         except ValueError:
-            return False
+            return None
         pattern = parsed.hostname
+    return pattern
+
+
+def _matches_rule(rule: ScopeRule, target: str, *, deny: bool = False) -> bool:
+    pattern = network_scope_pattern(rule, deny=deny)
+    if pattern is None:
+        return False
     kind = rule.resolved_kind() if pattern == rule.pattern else "host"
     # A trailing dot is DNS-equivalent ("host." resolves identically to
     # "host"), so strip it on BOTH the rule pattern and the target before
@@ -308,7 +315,7 @@ def evaluate_target(
             )
 
     for rule in rules.out_of_scope:
-        if _matches_rule(rule, target):
+        if _matches_rule(rule, target, deny=True):
             return Decision.refuse(
                 code="OUT_OF_SCOPE",
                 detail=f"{target!r} matches out-of-scope entry {rule.pattern!r}",

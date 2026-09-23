@@ -90,8 +90,12 @@ async def test_web_fetch_failure_verdict(monkeypatch: pytest.MonkeyPatch) -> Non
     assert "challenge" in out
 
 
-async def test_web_fetch_scope_refusal_is_not_reported_as_login(monkeypatch: pytest.MonkeyPatch) -> None:
-    payload = json.dumps({"ok": False, "verdict": "blocked", "stop_reason": "roe_refused", "summary": "ROE_REFUSED"})
+async def test_web_fetch_scope_refusal_is_not_reported_as_login(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    payload = json.dumps(
+        {"ok": False, "verdict": "blocked", "stop_reason": "roe_refused", "summary": "ROE_REFUSED"}
+    )
     _patch_sandbox(monkeypatch, payload)
     out = await search.web_fetch.ainvoke({"url": "https://outside.test/"})
 

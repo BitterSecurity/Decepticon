@@ -50,7 +50,10 @@ def test_root_url_rule_matches_its_host_without_allowing_lookalikes() -> None:
 
 def test_path_specific_url_cannot_become_host_wide_scope() -> None:
     rules = MachineEnforcement.from_dict(
-        {"mode": "enforce", "in_scope": [{"target": "https://decepticon.red/admin", "type": "auto"}]}
+        {
+            "mode": "enforce",
+            "in_scope": [{"target": "https://decepticon.red/admin", "type": "auto"}],
+        }
     )
 
     assert not evaluate_target("decepticon.red", rules).allow
@@ -61,6 +64,17 @@ def test_root_url_exclusion_overrides_host_allow_rule() -> None:
         {
             "in_scope": [{"target": "decepticon.red", "type": "host"}],
             "out_of_scope": [{"target": "https://decepticon.red/", "type": "auto"}],
+        }
+    )
+
+    assert evaluate_target("decepticon.red", rules).reason_code == "OUT_OF_SCOPE"
+
+
+def test_path_url_exclusion_denies_whole_host() -> None:
+    rules = MachineEnforcement.from_dict(
+        {
+            "in_scope": ["decepticon.red"],
+            "out_of_scope": [{"target": "https://decepticon.red/admin", "type": "auto"}],
         }
     )
 
