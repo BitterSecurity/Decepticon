@@ -17,6 +17,7 @@ Covered here:
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any
 
 import pytest
@@ -125,6 +126,9 @@ class TestTranscriptInReturnedState:
         # Every persisted entry is tagged with this invocation's session_id.
         session_ids = {e["session_id"] for e in transcript}
         assert len(session_ids) == 1
+        assert all(
+            datetime.fromisoformat(e["created_at"]).tzinfo == timezone.utc for e in transcript
+        )
 
     @pytest.mark.asyncio
     async def test_ainvoke_returns_transcript_with_expected_event_types(
@@ -140,6 +144,9 @@ class TestTranscriptInReturnedState:
         assert types[0] == "subagent_start"
         assert types[-1] == "subagent_end"
         assert "subagent_tool_result" in types
+        assert all(
+            datetime.fromisoformat(e["created_at"]).tzinfo == timezone.utc for e in transcript
+        )
 
     def test_persisted_tool_result_is_capped_while_stream_stays_full(
         self, writer_renderer: None, monkeypatch: pytest.MonkeyPatch

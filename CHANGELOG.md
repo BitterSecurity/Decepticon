@@ -6,6 +6,67 @@ follows [Semantic Versioning](https://semver.org/) from `1.0.0`
 onward (the `0.x` cycle is pre-stable per the core/framework/sdk split
 design spec, §13.4).
 
+## [1.1.45] — 2026-09-24
+
+### Added
+
+- Persist UTC creation times on streamed sub-agent start, message, tool, and end events so Run transcripts retain their original times after a reload. Previously stored events remain compatible and undated. (#821)
+
+## [1.1.44] — 2026-09-19
+
+Version v1.1.44 was selected by the maintainer. This release includes the cumulative
+changes since the last public release, v1.1.40. Versions v1.1.41–v1.1.43
+remained unpublished GitHub drafts.
+
+### Added
+
+- **Autohunt autonomous planning:** a separate bootstrap planning lane accepts
+  an explicitly authorized target and validates planning documents and scope
+  before marking the engagement ready. Soundwave remains the default
+  interview-first planner. (#813)
+- **Specialist validation contracts:** executable capability contracts,
+  evidence validation, lane scorecards, held-out evaluation fixtures, CVE-Bench
+  dispatch plumbing and pinned MITRE STIX bootstrapping. (#811)
+- **Provider support:** default AWS Bedrock routes and native Kimi for Coding
+  support, including launcher onboarding. (#796, #803)
+- **Evidence controls:** local API ingestion, dependency reachability evidence
+  and severity ceilings. Provider calls gain extra-header and streaming
+  controls; dynamic workload teardown is scoped by engagement and run. (#801)
+- Typed finding-location guidance in the skill catalog. (#810)
+
+### Fixed
+
+- Restore missing OPPLAN workspaces before filesystem bootstrap and preserve
+  native Ollama tool calls by buffering tool-bound requests. (#807)
+- Match recursive domain wildcards in Rules of Engagement. (#800)
+- Fall back correctly when provider status is malformed. (#794)
+- Preserve the release JSON payload used by the installer's stable-version
+  resolver. (#795)
+- Restore OSS installation readiness with the Neo4j pin and stricter handling
+  of missing installation secrets and legacy salt fallback. (#804)
+- Support Python package metadata 2.5 in release publishing. (#805)
+- Disable the oversized, duplicate per-platform BuildKit sandbox SBOM while
+  retaining provenance and the merged-manifest CycloneDX/signing path. (#806)
+- Use the canonical `BitterSecurity` repository and container registry paths
+  for release publishing, image pulls, installation and launcher updates.
+
+### Security and operational changes
+
+- Update Next.js and its ESLint configuration to 16.3.5, addressing the
+  critical AVIF image-optimization advisory and other Next.js advisories.
+  Update CLI Vitest to 3.2.7 to remove its critical advisory. Other npm
+  dependency advisories remain; this is a targeted security update.
+- Update Python dependencies to address security advisories. (#797)
+- Reject default launcher credentials and disable telemetry in `.env.example`.
+  The onboarding wizard still preselects telemetry sharing; select
+  "No, keep it off" or set `DECEPTICON_TELEMETRY=off` to disable it.
+  Add a release image-digest manifest workflow for immutable image pinning.
+  Existing installations using default credentials or missing secrets must
+  update their configuration before starting. (#802, #804)
+- An Electron dashboard shell and cloud-session support were added, then
+  marked deprecated. The web dashboard and CLI remain the supported paths.
+  (#730, #798, #802)
+
 ## [1.1.40] — 2026-07-27
 
 ### Fixed

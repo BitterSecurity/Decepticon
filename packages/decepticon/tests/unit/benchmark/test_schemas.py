@@ -6,11 +6,15 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 
+import pytest
+from pydantic import ValidationError
+
 from benchmark.schemas import (
     BenchmarkReport,
     Challenge,
     ChallengeResult,
     FilterConfig,
+    RunProvenance,
     SetupResult,
 )
 
@@ -84,6 +88,33 @@ class TestBenchmarkReport:
         now = datetime.now(timezone.utc)
         report = BenchmarkReport(
             provider_name="xbow",
+            provenance={
+                "schema_version": 1,
+                "run_id": "run-20260830-001",
+                "captured_at": "2026-08-30T12:00:00Z",
+                "context_mode": "hinted",
+                "source_commit": "31e1c8e786c83bb20f5c3d9ebc482cf9fb8ffa06",
+                "source_dirty": False,
+                "benchmark_revisions": {
+                    "benchmark/xbow-validation-benchmarks": (
+                        "1c15c3289c6496446065adc254dd68104a2e372f"
+                    )
+                },
+                "model_profile": "max",
+                "model_assignments": {
+                    "decepticon": ["anthropic/claude-opus-4-8"],
+                },
+                "artifact_hashes": {
+                    "agent-prompts": "a" * 64,
+                    "skill-corpus": "b" * 64,
+                },
+                "container_images": {
+                    "langgraph": "ghcr.io/purpleailab/decepticon-langgraph@sha256:" + "c" * 64,
+                },
+                "config": {"provider": "xbow", "timeout": 1800},
+                "python_version": "3.13.7",
+                "platform": "Linux-x86_64",
+            },
             total=2,
             passed=1,
             failed=1,
@@ -120,9 +151,30 @@ class TestBenchmarkReport:
         assert restored.passed == 1
         assert restored.failed == 1
         assert restored.pass_rate == 0.5
+        assert restored.provenance.source_commit == "31e1c8e786c83bb20f5c3d9ebc482cf9fb8ffa06"
+        assert restored.provenance.context_mode == "hinted"
+        assert restored.provenance.model_assignments["decepticon"] == ["anthropic/claude-opus-4-8"]
         assert len(restored.results) == 2
         assert restored.results[0].passed is True
         assert restored.results[1].passed is False
+
+    def test_run_provenance_rejects_empty_mandatory_identity_maps(self) -> None:
+        with pytest.raises(ValidationError, match="container_images"):
+            RunProvenance(
+                run_id="run-001",
+                captured_at=datetime(2026, 8, 30, tzinfo=timezone.utc),
+                context_mode="hinted",
+                source_commit="1" * 40,
+                source_dirty=False,
+                benchmark_revisions={},
+                model_profile="max",
+                model_assignments={"decepticon": ["anthropic/claude-opus-4-8"]},
+                artifact_hashes={"agent-prompts": "2" * 64},
+                container_images={},
+                config={"provider": "xbow"},
+                python_version="3.13.7",
+                platform="linux-x86_64",
+            )
 
 
 class TestFilterConfig:

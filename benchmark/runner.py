@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -9,6 +10,11 @@ import typer
 
 from benchmark.config import BenchmarkConfig
 from benchmark.harness import Harness
+from benchmark.provenance import (
+    capture_container_images,
+    capture_declared_model_assignments,
+    capture_run_provenance,
+)
 from benchmark.providers.base import BaseBenchmarkProvider
 from benchmark.providers.cybench import CybenchProvider
 from benchmark.providers.cybergym import CyberGymProvider
@@ -16,7 +22,7 @@ from benchmark.providers.exploitbench import ExploitBenchProvider
 from benchmark.providers.mhbench import MHBenchProvider
 from benchmark.providers.xbow import XBOWProvider
 from benchmark.reporter import Reporter
-from benchmark.schemas import Challenge, ChallengeResult, FilterConfig
+from benchmark.schemas import Challenge, ChallengeResult, FilterConfig, RunProvenance
 from benchmark.scorer import Scorer
 
 # --provider literal — extend here when adding new providers. Kept narrow
@@ -25,6 +31,57 @@ _PROVIDER_CHOICES = ("xbow", "exploitbench", "mhbench", "cybench", "cybergym")
 
 log = logging.getLogger(__name__)
 app = typer.Typer(name="benchmark", help="Decepticon Benchmark Runner")
+
+
+def _build_run_provenance(
+    *,
+    config: BenchmarkConfig,
+    filters: FilterConfig,
+    parallel: int,
+    challenges: list[Challenge],
+    repo_root: Path,
+) -> RunProvenance:
+    model_profile, model_assignments = capture_declared_model_assignments()
+    compose_dirs = [challenge.compose_dir for challenge in challenges if challenge.compose_dir]
+    config_snapshot = config.model_dump(mode="json")
+    config_snapshot["filters"] = filters.model_dump(mode="json")
+    config_snapshot["parallel"] = parallel
+    artifact_paths = {
+        "agent-prompts": repo_root / "packages/decepticon/decepticon/agents/prompts",
+        "skill-corpus": repo_root / "packages/decepticon/decepticon/skills",
+        "litellm-config": repo_root / "config/litellm.yaml",
+        "compose-config": repo_root / "docker-compose.yml",
+    }
+    if compose_dirs:
+        artifact_paths["provider-definition"] = Path(
+            os.path.commonpath([str(path.resolve()) for path in compose_dirs])
+        )
+    provider_config = next(
+        (
+            path
+            for path in (
+                config.exploitbench_config_path,
+                config.mhbench_config_path,
+                config.cybench_benchmarks_dir,
+                config.cybergym_config_path,
+            )
+            if path is not None
+        ),
+        None,
+    )
+    if provider_config is not None:
+        artifact_paths["provider-config"] = (
+            provider_config if provider_config.is_absolute() else repo_root / provider_config
+        )
+    return capture_run_provenance(
+        repo_root=repo_root,
+        config=config_snapshot,
+        model_profile=model_profile,
+        model_assignments=model_assignments,
+        container_images=capture_container_images([]),
+        artifact_paths=artifact_paths,
+        context_mode="hinted",
+    )
 
 
 def _build_provider(config: BenchmarkConfig) -> BaseBenchmarkProvider:
@@ -151,6 +208,13 @@ def run(
             for cid, err in build_failures.items():
                 typer.echo(f"  {cid}: {err[:100]}")
 
+    provenance = _build_run_provenance(
+        config=config,
+        filters=filters,
+        parallel=parallel,
+        challenges=challenges,
+        repo_root=Path(__file__).resolve().parents[1],
+    )
     harness = Harness(provider, config)
     started_at = datetime.now(timezone.utc)
 
@@ -161,7 +225,14 @@ def run(
 
     completed_at = datetime.now(timezone.utc)
 
-    report = Scorer.score(results, provider.name, started_at, completed_at)
+    provenance.container_images.update(harness.container_images)
+    report = Scorer.score(
+        results,
+        provider.name,
+        started_at,
+        completed_at,
+        provenance=provenance,
+    )
     reporter = Reporter(config.results_dir)
     json_path = reporter.write_json(report)
     md_path = reporter.write_markdown(report)

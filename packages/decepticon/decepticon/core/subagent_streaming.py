@@ -36,6 +36,7 @@ import logging
 import os
 import time
 import uuid
+from datetime import UTC, datetime
 from typing import Any, Callable
 
 from langchain_core.messages import AIMessage
@@ -291,6 +292,7 @@ class StreamingRunnable(RunnableBinding):
         # byte-identical to the streamed event.
         event = {
             "type": "subagent_start",
+            "created_at": datetime.now(UTC).isoformat(),
             "agent": self._name,
             "prompt": prompt,
             # Invocation-unique id so consumers (CLI / Web) can
@@ -322,6 +324,7 @@ class StreamingRunnable(RunnableBinding):
             renderer.on_subagent_end(self._name, elapsed, cancelled=cancelled, error=error)
         event = {
             "type": "subagent_end",
+            "created_at": datetime.now(UTC).isoformat(),
             "agent": self._name,
             "elapsed": elapsed,
             "cancelled": cancelled,
@@ -371,6 +374,7 @@ class StreamingRunnable(RunnableBinding):
                             renderer.on_subagent_message(self._name, text)
                         event = {
                             "type": "subagent_message",
+                            "created_at": datetime.now(UTC).isoformat(),
                             "agent": self._name,
                             "text": text,
                             "session_id": session_id,
@@ -405,6 +409,7 @@ class StreamingRunnable(RunnableBinding):
                             renderer.on_subagent_tool_call(self._name, tc["name"], tc["args"])
                         event = {
                             "type": "subagent_tool_call",
+                            "created_at": datetime.now(UTC).isoformat(),
                             "agent": self._name,
                             "tool": tc["name"],
                             "args": tc_args,
@@ -437,6 +442,7 @@ class StreamingRunnable(RunnableBinding):
                     renderer.on_subagent_tool_result(self._name, tool_name, tool_args, content)
                 event = {
                     "type": "subagent_tool_result",
+                    "created_at": datetime.now(UTC).isoformat(),
                     "agent": self._name,
                     "tool": tool_name,
                     "args": tc_args,

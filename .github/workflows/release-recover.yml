@@ -51,7 +51,7 @@ jobs:
             decepticon-web
           )
           for img in "${images[@]}"; do
-            ref="ghcr.io/purpleailab/${img}:${VERSION}"
+            ref="ghcr.io/bittersecurity/${img}:${VERSION}"
             echo "Verifying ${ref}"
             docker buildx imagetools inspect "${ref}" >/dev/null
           done
@@ -72,8 +72,8 @@ jobs:
             decepticon-web
           )
           for img in "${images[@]}"; do
-            src="ghcr.io/purpleailab/${img}:${VERSION}"
-            dst="ghcr.io/purpleailab/${img}:latest"
+            src="ghcr.io/bittersecurity/${img}:${VERSION}"
+            dst="ghcr.io/bittersecurity/${img}:latest"
             echo "Promoting ${src} -> ${dst}"
             docker buildx imagetools create --tag "${dst}" "${src}"
           done

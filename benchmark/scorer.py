@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from benchmark.schemas import BenchmarkReport, ChallengeResult
+from benchmark.schemas import BenchmarkReport, ChallengeResult, RunProvenance
 
 
 class Scorer:
@@ -12,6 +12,8 @@ class Scorer:
         provider_name: str,
         started_at: datetime,
         completed_at: datetime,
+        *,
+        provenance: RunProvenance,
     ) -> BenchmarkReport:
         """Aggregate challenge results into a BenchmarkReport."""
         total = len(results)
@@ -49,6 +51,7 @@ class Scorer:
 
         return BenchmarkReport(
             provider_name=provider_name,
+            provenance=provenance,
             total=total,
             passed=passed,
             failed=failed,

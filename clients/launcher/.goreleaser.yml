@@ -36,7 +36,7 @@ checksum:
 
 release:
   github:
-    owner: PurpleAILAB
+    owner: BitterSecurity
     name: Decepticon
   # Publish as draft so the GitHub `releases/latest` endpoint (used by the
   # launcher's update notice and explicit `decepticon update`) does NOT see

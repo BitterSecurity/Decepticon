@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from benchmark.schemas import ChallengeResult
+from benchmark.schemas import ChallengeResult, RunProvenance
 from benchmark.scorer import Scorer
 
 
@@ -23,6 +23,24 @@ def _make_result(
     )
 
 
+def _provenance() -> RunProvenance:
+    return RunProvenance(
+        run_id="run-001",
+        captured_at=datetime(2026, 8, 30, tzinfo=timezone.utc),
+        context_mode="hinted",
+        source_commit="1" * 40,
+        source_dirty=False,
+        benchmark_revisions={},
+        model_profile="test",
+        model_assignments={"decepticon": ["openai/gpt-5-nano"]},
+        artifact_hashes={"agent-prompts": "2" * 64},
+        container_images={"langgraph": "sha256:" + "3" * 64},
+        config={"provider": "test"},
+        python_version="3.13.7",
+        platform="linux-x86_64",
+    )
+
+
 class TestScorer:
     def _times(self) -> tuple[datetime, datetime]:
         start = datetime(2026, 1, 1, tzinfo=timezone.utc)
@@ -38,12 +56,14 @@ class TestScorer:
             _make_result("C-003", 2, ["xss"], True),
         ]
 
-        report = Scorer.score(results, "test", start, end)
+        provenance = _provenance()
+        report = Scorer.score(results, "test", start, end, provenance=provenance)
 
         assert report.total == 3
         assert report.passed == 2
         assert report.failed == 1
         assert report.pass_rate == 2 / 3
+        assert report.provenance is provenance
 
     def test_score_by_level(self) -> None:
         """Verify by_level breakdown is computed correctly."""
@@ -55,7 +75,7 @@ class TestScorer:
             _make_result("C-004", 2, ["idor"], True),
         ]
 
-        report = Scorer.score(results, "test", start, end)
+        report = Scorer.score(results, "test", start, end, provenance=_provenance())
 
         assert report.by_level[1]["total"] == 3
         assert report.by_level[1]["passed"] == 2
@@ -72,7 +92,7 @@ class TestScorer:
             _make_result("C-002", 1, ["sqli", "web"], False),
         ]
 
-        report = Scorer.score(results, "test", start, end)
+        report = Scorer.score(results, "test", start, end, provenance=_provenance())
 
         assert report.by_tag["xss"]["total"] == 1
         assert report.by_tag["xss"]["passed"] == 1
@@ -87,7 +107,7 @@ class TestScorer:
     def test_score_empty_results(self) -> None:
         """Empty list produces report with total=0, pass_rate=0.0."""
         start, end = self._times()
-        report = Scorer.score([], "test", start, end)
+        report = Scorer.score([], "test", start, end, provenance=_provenance())
 
         assert report.total == 0
         assert report.passed == 0
@@ -104,7 +124,7 @@ class TestScorer:
             _make_result("C-002", 2, ["sqli"], True),
         ]
 
-        report = Scorer.score(results, "test", start, end)
+        report = Scorer.score(results, "test", start, end, provenance=_provenance())
 
         assert report.pass_rate == 1.0
         assert report.passed == 2
@@ -118,7 +138,7 @@ class TestScorer:
             _make_result("C-002", 2, ["sqli"], False),
         ]
 
-        report = Scorer.score(results, "test", start, end)
+        report = Scorer.score(results, "test", start, end, provenance=_provenance())
 
         assert report.pass_rate == 0.0
         assert report.passed == 0
@@ -131,7 +151,7 @@ class TestScorer:
         a.cost_usd = 0.123
         b = _make_result("C-002", 1, ["sqli"], False)
         b.cost_usd = 0.001
-        report = Scorer.score([a, b], "test", start, end)
+        report = Scorer.score([a, b], "test", start, end, provenance=_provenance())
         assert report.total_cost_usd is not None
         assert abs(report.total_cost_usd - 0.124) < 1e-9
 
@@ -141,7 +161,7 @@ class TestScorer:
         a = _make_result("C-001", 1, ["xss"], True)
         a.cost_usd = 0.05
         b = _make_result("C-002", 1, ["sqli"], False)  # cost_usd stays None
-        report = Scorer.score([a, b], "test", start, end)
+        report = Scorer.score([a, b], "test", start, end, provenance=_provenance())
         assert report.total_cost_usd == 0.05
 
     def test_total_cost_none_when_all_missing(self) -> None:
@@ -151,5 +171,5 @@ class TestScorer:
             _make_result("C-001", 1, ["xss"], True),
             _make_result("C-002", 1, ["sqli"], False),
         ]
-        report = Scorer.score(results, "test", start, end)
+        report = Scorer.score(results, "test", start, end, provenance=_provenance())
         assert report.total_cost_usd is None

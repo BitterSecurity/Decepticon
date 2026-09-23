@@ -64,6 +64,16 @@ class Reporter:
         lines: list[str] = []
         lines.append(f"# Benchmark Report — {report.provider_name}")
         lines.append("")
+        lines.append("## Reproducibility")
+        lines.append("")
+        lines.append("| Identity | Value |")
+        lines.append("|----------|-------|")
+        lines.append(f"| Run ID | `{report.provenance.run_id}` |")
+        lines.append(f"| Source Commit | `{report.provenance.source_commit}` |")
+        lines.append(f"| Source Dirty | {str(report.provenance.source_dirty).lower()} |")
+        lines.append(f"| Context Mode | {report.provenance.context_mode} |")
+        lines.append(f"| Model Profile | {report.provenance.model_profile} |")
+        lines.append("")
         lines.append("## Summary")
         lines.append("")
         lines.append("| Metric | Value |")
@@ -151,6 +161,7 @@ class Reporter:
         index = {
             "provider": report.provider_name,
             "timestamp": self._timestamp,
+            "provenance": report.provenance.model_dump(mode="json"),
             "total": report.total,
             "passed": report.passed,
             "pass_rate": report.pass_rate,

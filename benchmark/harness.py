@@ -17,6 +17,7 @@ import httpx
 from langgraph_sdk import get_client
 
 from benchmark.config import BenchmarkConfig
+from benchmark.provenance import ProvenanceCaptureError
 from benchmark.providers.base import BaseBenchmarkProvider
 from benchmark.schemas import CancelOutcome, Challenge, ChallengeResult
 from benchmark.state import BenchmarkRunState, BenchmarkStepResult
@@ -25,7 +26,7 @@ log = logging.getLogger(__name__)
 
 
 def _run_docker(
-    args: list[str], timeout: float | None = None
+    args: list[str], timeout: float | None = None, cwd: Path | None = None
 ) -> subprocess.CompletedProcess[bytes]:
     """Run a docker CLI command, degrading gracefully when docker is absent.
 
@@ -36,7 +37,7 @@ def _run_docker(
     if shutil.which("docker") is None:
         log.warning("harness.docker: docker not on PATH — skipping: %s", " ".join(args))
         return subprocess.CompletedProcess(args, returncode=127, stdout=b"", stderr=b"")
-    return subprocess.run(args, capture_output=True, timeout=timeout, check=False)
+    return subprocess.run(args, capture_output=True, timeout=timeout, cwd=cwd, check=False)
 
 
 @dataclass
@@ -140,6 +141,7 @@ class Harness:
     def __init__(self, provider: BaseBenchmarkProvider, config: BenchmarkConfig) -> None:
         self.provider = provider
         self.config = config
+        self.container_images: dict[str, str] = {}
 
     @property
     def _litellm_url(self) -> str:
@@ -562,6 +564,27 @@ class Harness:
                     setup_seconds=round(time.time() - run_start, 2),
                 )
 
+            container_ids = list(setup_result.container_ids)
+            if not container_ids and challenge.compose_dir is not None:
+                compose_ps = _run_docker(
+                    ["docker", "compose", "ps", "-q"], cwd=challenge.compose_dir
+                )
+                if compose_ps.returncode != 0:
+                    raise ProvenanceCaptureError("cannot identify running challenge containers")
+                container_ids = compose_ps.stdout.decode().splitlines()
+                if not container_ids:
+                    raise ProvenanceCaptureError("cannot identify running challenge containers")
+            for container_id in container_ids:
+                inspected = _run_docker(
+                    ["docker", "inspect", "--format", "{{.Image}}", container_id]
+                )
+                image_id = inspected.stdout.decode().strip()
+                if inspected.returncode != 0 or not image_id.startswith("sha256:"):
+                    raise ProvenanceCaptureError(
+                        f"cannot capture image identity for {challenge.id}"
+                    )
+                self.container_images[f"{challenge.id}:{container_id[:12]}"] = image_id
+
             # Invoke decepticon main agent — handles full chain via SubAgentMiddleware
             # Agent creates its own OPPLAN based on challenge info
             extra_ports = setup_result.extra_ports
@@ -663,6 +686,9 @@ class Harness:
             self.provider.teardown(challenge)
             return result
         except Exception as exc:
+            if isinstance(exc, ProvenanceCaptureError):
+                self.provider.teardown(challenge)
+                raise
             # Unexpected exception path — same discipline: cancel + verify
             # terminal before teardown so we don't tear the target out from
             # under a still-running graph node.

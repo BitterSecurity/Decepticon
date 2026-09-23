@@ -17,7 +17,7 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$Repo        = 'PurpleAILAB/Decepticon'
+$Repo        = 'BitterSecurity/Decepticon'
 $Branch      = if ($env:BRANCH) { $env:BRANCH } else { 'main' }
 $RawBase     = "https://raw.githubusercontent.com/$Repo/$Branch"
 $ReleaseBase = "https://github.com/$Repo/releases/download"
