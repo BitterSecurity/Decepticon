@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import os
 
+from decepticon.middleware.egress import compile_egress_policy
 from decepticon.sandbox_kernel.egress import (
     EgressPolicy,
     apply_egress,
@@ -18,6 +19,7 @@ from decepticon.sandbox_kernel.egress import (
     render_nftables,
     resolve_hosts,
 )
+from decepticon_core.types.roe import MachineEnforcement
 
 # A real ``/proc/net/route`` (little-endian hex): a default route via a
 # gateway (skipped) + the on-link 172.19.0.0/16 subnet (kept). This is the
@@ -210,6 +212,102 @@ def test_apply_resolves_allowed_hosts_into_nft_allow():
     )
     assert result.applied is True
     assert "203.0.113.20" in seen["stdin"]
+
+
+def test_denied_host_wins_over_allowed_host_and_cidr():
+    policy = EgressPolicy(
+        enforce=True,
+        default_drop=True,
+        allowed_hosts=("victim.example",),
+        allowed_cidrs=("203.0.113.0/24",),
+        denied_hosts=("victim.example",),
+    )
+    resolved_for: list[tuple[str, ...]] = []
+
+    def resolver(hosts):
+        resolved_for.append(tuple(hosts))
+        return ("203.0.113.20",)
+
+    result = apply_egress(
+        policy,
+        enabled=True,
+        runner=lambda argv, stdin: _OkProc(),
+        management_cidrs=[],
+        resolver_addrs=[],
+        host_resolver=resolver,
+    )
+    assert result.applied is True
+    assert result.dns_allowlist == ()
+    assert resolved_for == [("victim.example",)]
+    assert result.nft_ruleset.index("203.0.113.20 } drop") < result.nft_ruleset.index(
+        "203.0.113.0/24 } accept"
+    )
+
+
+def test_wildcard_denied_host_fails_closed_without_dns_firewall():
+    policy = EgressPolicy(
+        enforce=True,
+        default_drop=False,
+        allowed_cidrs=("203.0.113.0/24",),
+        denied_hosts=("*.blocked.example",),
+    )
+    result = apply_egress(
+        policy,
+        enabled=True,
+        runner=lambda argv, stdin: _OkProc(),
+        management_cidrs=[],
+        resolver_addrs=[],
+        host_resolver=lambda hosts: (),
+    )
+    assert result.applied is True
+    assert "policy drop" in result.nft_ruleset
+    assert "203.0.113.0/24 } accept" not in result.nft_ruleset
+
+
+def test_unresolved_denied_host_fails_closed():
+    policy = EgressPolicy(
+        enforce=True,
+        default_drop=True,
+        allowed_cidrs=("203.0.113.0/24",),
+        denied_hosts=("blocked.example",),
+    )
+    result = apply_egress(
+        policy,
+        enabled=True,
+        runner=lambda argv, stdin: _OkProc(),
+        management_cidrs=[],
+        resolver_addrs=[],
+        host_resolver=lambda hosts: (),
+    )
+    assert result.applied is True
+    assert "203.0.113.0/24 } accept" not in result.nft_ruleset
+
+
+def test_unresolved_cloud_metadata_alias_keeps_signed_target_reachable():
+    policy = compile_egress_policy(
+        MachineEnforcement.from_dict(
+            {
+                "mode": "enforce",
+                "in_scope": [{"target": "https://decepticon.red/", "type": "auto"}],
+            }
+        )
+    )
+
+    def resolver(hosts):
+        return ("203.0.113.20",) if "decepticon.red" in hosts else ()
+
+    result = apply_egress(
+        policy,
+        enabled=True,
+        runner=lambda argv, stdin: _OkProc(),
+        management_cidrs=[],
+        resolver_addrs=[],
+        host_resolver=resolver,
+    )
+    assert result.applied is True
+    assert "169.254.169.254" in result.nft_ruleset
+    assert "drop" in result.nft_ruleset
+    assert "203.0.113.20 } accept" in result.nft_ruleset
 
 
 def test_render_matches_apply_disabled_ruleset():

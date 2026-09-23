@@ -75,6 +75,7 @@ def test_input_url_out_of_scope_is_refused(monkeypatch: pytest.MonkeyPatch) -> N
     assert called["n"] == 0  # never hit the network
     assert r.trace[0].executor == "scope_gate"
     assert r.trace[0].reasons == ["roe_out_of_scope"]
+    assert r.stop_reason == "roe_refused"
 
 
 def test_challenge_then_grid_success(monkeypatch: pytest.MonkeyPatch) -> None:

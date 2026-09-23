@@ -46,7 +46,12 @@ from decepticon.sandbox_kernel.egress import (
     render_dns_allowlist,
     render_nftables,
 )
-from decepticon_core.types.roe import EnforcementMode, MachineEnforcement, ScopeRule
+from decepticon_core.types.roe import (
+    EnforcementMode,
+    MachineEnforcement,
+    ScopeRule,
+    network_scope_pattern,
+)
 
 
 def _is_ip_or_cidr(token: str) -> bool:
@@ -66,8 +71,10 @@ def _classify(patterns: Iterable[str]) -> tuple[tuple[str, ...], tuple[str, ...]
     return tuple(cidrs), tuple(hosts)
 
 
-def _rule_patterns(rules: Iterable[ScopeRule]) -> list[str]:
-    return [r.pattern for r in rules]
+def _rule_patterns(rules: Iterable[ScopeRule], *, deny: bool = False) -> list[str]:
+    return [
+        pattern for rule in rules if (pattern := network_scope_pattern(rule, deny=deny)) is not None
+    ]
 
 
 def _norm(addrs: Iterable[str]) -> tuple[str, ...]:
@@ -106,10 +113,10 @@ def compile_egress_policy(rules: MachineEnforcement) -> EgressPolicy:
 
     allowed_cidrs, allowed_hosts = _classify(_rule_patterns(rules.in_scope))
     denied_cidrs, denied_hosts = _classify(
-        [*_rule_patterns(rules.out_of_scope), *rules.effective_forbidden_destinations()]
+        [*_rule_patterns(rules.out_of_scope, deny=True), *rules.effective_forbidden_destinations()]
     )
 
-    default_drop = enforce and bool(allowed_cidrs or allowed_hosts)
+    default_drop = enforce and bool(rules.in_scope)
 
     # Always allow the OSINT search providers so target-exempt web_search reaches
     # them under an enforcing in-scope allowlist. (No effect when default_drop is

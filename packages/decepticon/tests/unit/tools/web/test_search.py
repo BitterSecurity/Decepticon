@@ -90,6 +90,19 @@ async def test_web_fetch_failure_verdict(monkeypatch: pytest.MonkeyPatch) -> Non
     assert "challenge" in out
 
 
+async def test_web_fetch_scope_refusal_is_not_reported_as_login(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    payload = json.dumps(
+        {"ok": False, "verdict": "blocked", "stop_reason": "roe_refused", "summary": "ROE_REFUSED"}
+    )
+    _patch_sandbox(monkeypatch, payload)
+    out = await search.web_fetch.ainvoke({"url": "https://outside.test/"})
+
+    assert "Check the signed engagement scope" in out
+    assert "TERMINAL (login/paywall/404)" not in out
+
+
 async def test_web_fetch_no_sandbox(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(search, "get_sandbox", lambda: None)
     monkeypatch.setattr(search, "_workspace_path_from_config", lambda _c: "/workspace/eng1")
