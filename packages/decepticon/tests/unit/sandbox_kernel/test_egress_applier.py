@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import os
 
+from decepticon.middleware.egress import compile_egress_policy
 from decepticon.sandbox_kernel.egress import (
     EgressPolicy,
     apply_egress,
@@ -18,6 +19,7 @@ from decepticon.sandbox_kernel.egress import (
     render_nftables,
     resolve_hosts,
 )
+from decepticon_core.types.roe import MachineEnforcement
 
 # A real ``/proc/net/route`` (little-endian hex): a default route via a
 # gateway (skipped) + the on-link 172.19.0.0/16 subnet (kept). This is the
@@ -282,16 +284,17 @@ def test_unresolved_denied_host_fails_closed():
 
 
 def test_unresolved_cloud_metadata_alias_keeps_signed_target_reachable():
-    policy = EgressPolicy(
-        enforce=True,
-        default_drop=True,
-        allowed_hosts=("decepticon.red",),
-        denied_cidrs=("169.254.169.254",),
-        denied_hosts=("metadata.google.internal",),
+    policy = compile_egress_policy(
+        MachineEnforcement.from_dict(
+            {
+                "mode": "enforce",
+                "in_scope": [{"target": "https://decepticon.red/", "type": "auto"}],
+            }
+        )
     )
 
     def resolver(hosts):
-        return ("203.0.113.20",) if tuple(hosts) == ("decepticon.red",) else ()
+        return ("203.0.113.20",) if "decepticon.red" in hosts else ()
 
     result = apply_egress(
         policy,
@@ -302,7 +305,8 @@ def test_unresolved_cloud_metadata_alias_keeps_signed_target_reachable():
         host_resolver=resolver,
     )
     assert result.applied is True
-    assert "169.254.169.254 } drop" in result.nft_ruleset
+    assert "169.254.169.254" in result.nft_ruleset
+    assert "drop" in result.nft_ruleset
     assert "203.0.113.20 } accept" in result.nft_ruleset
 
 

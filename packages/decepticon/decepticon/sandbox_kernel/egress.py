@@ -37,7 +37,7 @@ from fnmatch import fnmatchcase
 log = logging.getLogger("decepticon.sandbox_kernel.egress")
 
 _NFT_TABLE = "inet decepticon_egress"
-_METADATA_HOST = "metadata.google.internal"
+_METADATA_HOSTS = frozenset({"metadata.google.internal", "metadata.azure.com"})
 _METADATA_IP = "169.254.169.254"
 
 # Injection seam so the applier is unit-testable without a live ``nft``.
@@ -381,7 +381,7 @@ def apply_egress(
                 unresolved_deny = True
                 continue
             ips = resolve((host,))
-            if not ips and not (host == _METADATA_HOST and _METADATA_IP in policy.denied_cidrs):
+            if not ips and not (host in _METADATA_HOSTS and _METADATA_IP in policy.denied_cidrs):
                 unresolved_deny = True
             denied_ips.update(ips)
     denied = _norm(denied_ips)
