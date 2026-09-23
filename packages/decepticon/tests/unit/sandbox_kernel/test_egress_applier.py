@@ -242,6 +242,45 @@ def test_denied_host_wins_over_allowed_host_and_cidr():
     )
 
 
+def test_wildcard_denied_host_fails_closed_without_dns_firewall():
+    policy = EgressPolicy(
+        enforce=True,
+        default_drop=False,
+        allowed_cidrs=("203.0.113.0/24",),
+        denied_hosts=("*.blocked.example",),
+    )
+    result = apply_egress(
+        policy,
+        enabled=True,
+        runner=lambda argv, stdin: _OkProc(),
+        management_cidrs=[],
+        resolver_addrs=[],
+        host_resolver=lambda hosts: (),
+    )
+    assert result.applied is True
+    assert "policy drop" in result.nft_ruleset
+    assert "203.0.113.0/24 } accept" not in result.nft_ruleset
+
+
+def test_unresolved_denied_host_fails_closed():
+    policy = EgressPolicy(
+        enforce=True,
+        default_drop=True,
+        allowed_cidrs=("203.0.113.0/24",),
+        denied_hosts=("blocked.example",),
+    )
+    result = apply_egress(
+        policy,
+        enabled=True,
+        runner=lambda argv, stdin: _OkProc(),
+        management_cidrs=[],
+        resolver_addrs=[],
+        host_resolver=lambda hosts: (),
+    )
+    assert result.applied is True
+    assert "203.0.113.0/24 } accept" not in result.nft_ruleset
+
+
 def test_render_matches_apply_disabled_ruleset():
     pol = _enforce_policy()
     direct = render_nftables(pol, management_cidrs=["172.20.0.0/16"], resolver_addrs=["127.0.0.11"])

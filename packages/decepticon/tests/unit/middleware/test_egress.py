@@ -157,7 +157,7 @@ def test_render_enforce_emits_drop_policy_and_management_allow():
     pol = compile_egress_policy(_rules(mode="enforce", in_scope=["10.0.0.0/24"]))
     script = render_nftables(pol, management_cidrs=["172.20.0.0/16"])
     assert "policy drop" in script
-    assert "ct state established,related accept" in script
+    assert "ct state established,related accept" not in script
     assert 'oif "lo" accept' in script
     assert "172.20.0.0/16" in script  # management plane (neo4j/daemon) stays reachable
     assert "10.0.0.0/24" in script  # in-scope target allowed

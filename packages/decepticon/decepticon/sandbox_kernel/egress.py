@@ -126,6 +126,10 @@ def _daddr_rules(addrs: Iterable[str], verb: str) -> list[str]:
     return lines
 
 
+def _wildcard_host(host: str) -> bool:
+    return any(char in host for char in "*?[]")
+
+
 def render_nftables(
     policy: EgressPolicy,
     *,
@@ -133,6 +137,7 @@ def render_nftables(
     resolver_addrs: Iterable[str] = (),
     resolved_host_ips: Iterable[str] = (),
     resolved_denied_host_ips: Iterable[str] = (),
+    deny_all_external: bool = False,
 ) -> str:
     """Render an ``nft -f`` ruleset for ``policy``.
 
@@ -153,7 +158,10 @@ def render_nftables(
         resolved_denied_host_ips: IPs resolved from literal denied hosts;
             these drop before broader CIDR and host allows.
     """
-    policy_verb = "drop" if policy.default_drop else "accept"
+    deny_all_external = policy.enforce and (
+        deny_all_external or any(_wildcard_host(host) for host in policy.denied_hosts)
+    )
+    policy_verb = "drop" if policy.default_drop or deny_all_external else "accept"
     lines = [
         "#!/usr/sbin/nft -f",
         "# Decepticon RoE egress guardrail — generated; do not hand-edit.",
@@ -166,16 +174,16 @@ def render_nftables(
         f"    type filter hook output priority 0; policy {policy_verb};",
     ]
     if policy.enforce:
-        lines.append("    ct state established,related accept")
         lines.append('    oif "lo" accept')
         # Management plane + resolver: always reachable, before any deny.
         lines += _daddr_rules(_norm(management_cidrs), "accept")
         lines += _daddr_rules(_norm(resolver_addrs), "accept")
         # Denylist precedence: out-of-scope / forbidden ranges drop first,
         # so an out-of-scope subnet inside an in-scope supernet is blocked.
-        lines += _daddr_rules(_norm((*policy.denied_cidrs, *resolved_denied_host_ips)), "drop")
-        # Scope allowlist (literal CIDRs + applier-resolved host IPs).
-        lines += _daddr_rules(_norm((*policy.allowed_cidrs, *resolved_host_ips)), "accept")
+        if not deny_all_external:
+            lines += _daddr_rules(_norm((*policy.denied_cidrs, *resolved_denied_host_ips)), "drop")
+            # Scope allowlist (literal CIDRs + applier-resolved host IPs).
+            lines += _daddr_rules(_norm((*policy.allowed_cidrs, *resolved_host_ips)), "accept")
     lines.append("  }")
     lines.append("}")
     return "\n".join(lines) + "\n"
@@ -363,7 +371,18 @@ def apply_egress(
     resolve = host_resolver or resolve_hosts
     allowed_hosts = render_dns_allowlist(policy)
     resolved = resolve(allowed_hosts) if policy.enforce and allowed_hosts else ()
-    denied = resolve(policy.denied_hosts) if policy.enforce and policy.denied_hosts else ()
+    denied_ips: set[str] = set()
+    unresolved_deny = False
+    if policy.enforce:
+        for host in policy.denied_hosts:
+            if _wildcard_host(host):
+                unresolved_deny = True
+                continue
+            ips = resolve((host,))
+            if not ips:
+                unresolved_deny = True
+            denied_ips.update(ips)
+    denied = _norm(denied_ips)
 
     ruleset = render_nftables(
         policy,
@@ -371,6 +390,7 @@ def apply_egress(
         resolver_addrs=resolvers,
         resolved_host_ips=resolved,
         resolved_denied_host_ips=denied,
+        deny_all_external=unresolved_deny,
     )
     dns = tuple(render_dns_allowlist(policy))
 
