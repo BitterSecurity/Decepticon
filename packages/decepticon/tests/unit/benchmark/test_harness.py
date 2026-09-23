@@ -9,6 +9,7 @@ main coverage lane runs the full set so coverage stays honest.
 from __future__ import annotations
 
 import asyncio
+import subprocess
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -16,6 +17,7 @@ import pytest
 
 from benchmark.config import BenchmarkConfig
 from benchmark.harness import AgentResponse, Harness, _ActiveRun
+from benchmark.provenance import ProvenanceCaptureError
 from benchmark.schemas import Challenge, ChallengeResult, SetupResult
 
 pytestmark = pytest.mark.slow
@@ -32,6 +34,15 @@ def _isolate_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     under ``pytest -n auto``.
     """
     monkeypatch.setattr(Path, "home", lambda *_args, **_kwargs: tmp_path)
+
+    def fake_docker(args, timeout=None, cwd=None):
+        if args[:2] == ["docker", "compose"]:
+            return subprocess.CompletedProcess(args, 0, stdout=b"fixture-container\n", stderr=b"")
+        if args[:2] == ["docker", "inspect"]:
+            return subprocess.CompletedProcess(args, 0, stdout=b"sha256:" + b"f" * 64, stderr=b"")
+        return subprocess.CompletedProcess(args, 0, stdout=b"", stderr=b"")
+
+    monkeypatch.setattr("benchmark.harness._run_docker", fake_docker)
 
 
 def _make_challenge(tmp_path: Path) -> Challenge:
@@ -69,6 +80,49 @@ def _make_provider() -> MagicMock:
 
 
 class TestHarness:
+    @pytest.mark.asyncio
+    async def test_captures_running_image_identity_before_teardown(self, tmp_path: Path) -> None:
+        provider = _make_provider()
+        provider.setup.return_value.container_ids = ["container-123"]
+        events: list[str] = []
+        provider.teardown.side_effect = lambda _challenge: events.append("teardown")
+        harness = Harness(provider=provider, config=BenchmarkConfig(cleanup_workspaces=True))
+        harness._invoke_agent = AsyncMock(return_value=AgentResponse(text="done"))
+
+        def run_docker(args, timeout=None, cwd=None):
+            if args[:2] == ["docker", "inspect"]:
+                events.append("inspect")
+                return subprocess.CompletedProcess(
+                    args, 0, stdout=b"sha256:" + b"a" * 64, stderr=b""
+                )
+            return subprocess.CompletedProcess(args, 0, stdout=b"", stderr=b"")
+
+        with patch("benchmark.harness._run_docker", side_effect=run_docker):
+            await harness.run_challenge(_make_challenge(tmp_path))
+
+        assert harness.container_images == {"XBEN-001-24:container-12": "sha256:" + "a" * 64}
+        assert events == ["inspect", "teardown"]
+
+    @pytest.mark.asyncio
+    async def test_fails_closed_when_running_challenge_image_cannot_be_identified(
+        self, tmp_path: Path
+    ) -> None:
+        provider = _make_provider()
+        harness = Harness(provider=provider, config=BenchmarkConfig(cleanup_workspaces=True))
+        harness._invoke_agent = AsyncMock(return_value=AgentResponse(text="must not run"))
+
+        with (
+            patch(
+                "benchmark.harness._run_docker",
+                return_value=subprocess.CompletedProcess([], 0, stdout=b"", stderr=b""),
+            ),
+            pytest.raises(ProvenanceCaptureError, match="running challenge containers"),
+        ):
+            await harness.run_challenge(_make_challenge(tmp_path))
+
+        harness._invoke_agent.assert_not_awaited()
+        provider.teardown.assert_called_once()
+
     @pytest.mark.asyncio
     async def test_workspace_creation(self, tmp_path: Path) -> None:
         """Verify harness creates workspace directory at correct path."""

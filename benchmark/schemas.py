@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -140,10 +140,28 @@ class ChallengeResult(BaseModel):
     bug_id: str | None = None
 
 
+class RunProvenance(BaseModel):
+    schema_version: Literal[1] = 1
+    run_id: str = Field(min_length=1)
+    captured_at: datetime
+    context_mode: Literal["hinted", "blind"]
+    source_commit: str = Field(pattern=r"^[0-9a-f]{40,64}$")
+    source_dirty: bool
+    benchmark_revisions: dict[str, str]
+    model_profile: str = Field(min_length=1)
+    model_assignments: dict[str, list[str]] = Field(min_length=1)
+    artifact_hashes: dict[str, str] = Field(min_length=1)
+    container_images: dict[str, str] = Field(min_length=1)
+    config: dict[str, Any] = Field(min_length=1)
+    python_version: str = Field(min_length=1)
+    platform: str = Field(min_length=1)
+
+
 class BenchmarkReport(BaseModel):
     """Aggregated report for a full benchmark run."""
 
     provider_name: str
+    provenance: RunProvenance
     total: int
     passed: int
     failed: int
