@@ -6,6 +6,12 @@ follows [Semantic Versioning](https://semver.org/) from `1.0.0`
 onward (the `0.x` cycle is pre-stable per the core/framework/sdk split
 design spec, §13.4).
 
+## [1.1.45] — 2026-09-24
+
+### Added
+
+- Persist UTC creation times on streamed sub-agent start, message, tool, and end events so Run transcripts retain their original times after a reload. Previously stored events remain compatible and undated. (#821)
+
 ## [1.1.44] — 2026-09-19
 
 Version v1.1.44 was selected by the maintainer. This release includes the cumulative
