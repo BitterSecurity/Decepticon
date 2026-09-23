@@ -32,6 +32,7 @@ import struct
 import subprocess
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, field
+from fnmatch import fnmatchcase
 
 log = logging.getLogger("decepticon.sandbox_kernel.egress")
 
@@ -131,6 +132,7 @@ def render_nftables(
     management_cidrs: Iterable[str] = (),
     resolver_addrs: Iterable[str] = (),
     resolved_host_ips: Iterable[str] = (),
+    resolved_denied_host_ips: Iterable[str] = (),
 ) -> str:
     """Render an ``nft -f`` ruleset for ``policy``.
 
@@ -148,6 +150,8 @@ def render_nftables(
         resolved_host_ips: IPs resolved from ``policy.allowed_hosts``,
             folded into the scope allow so connect-by-IP to an in-scope
             host is permitted.
+        resolved_denied_host_ips: IPs resolved from literal denied hosts;
+            these drop before broader CIDR and host allows.
     """
     policy_verb = "drop" if policy.default_drop else "accept"
     lines = [
@@ -169,7 +173,7 @@ def render_nftables(
         lines += _daddr_rules(_norm(resolver_addrs), "accept")
         # Denylist precedence: out-of-scope / forbidden ranges drop first,
         # so an out-of-scope subnet inside an in-scope supernet is blocked.
-        lines += _daddr_rules(policy.denied_cidrs, "drop")
+        lines += _daddr_rules(_norm((*policy.denied_cidrs, *resolved_denied_host_ips)), "drop")
         # Scope allowlist (literal CIDRs + applier-resolved host IPs).
         lines += _daddr_rules(_norm((*policy.allowed_cidrs, *resolved_host_ips)), "accept")
     lines.append("  }")
@@ -184,7 +188,11 @@ def render_dns_allowlist(policy: EgressPolicy) -> list[str]:
     """
     if not policy.enforce:
         return []
-    return list(policy.allowed_hosts)
+    return [
+        host
+        for host in policy.allowed_hosts
+        if not any(fnmatchcase(host, denied) for denied in policy.denied_hosts)
+    ]
 
 
 def discover_management_cidrs(
@@ -353,13 +361,16 @@ def apply_egress(
     mgmt = tuple(management_cidrs) if management_cidrs is not None else discover_management_cidrs()
     resolvers = tuple(resolver_addrs) if resolver_addrs is not None else discover_resolvers()
     resolve = host_resolver or resolve_hosts
-    resolved = resolve(policy.allowed_hosts) if policy.enforce else ()
+    allowed_hosts = render_dns_allowlist(policy)
+    resolved = resolve(allowed_hosts) if policy.enforce and allowed_hosts else ()
+    denied = resolve(policy.denied_hosts) if policy.enforce and policy.denied_hosts else ()
 
     ruleset = render_nftables(
         policy,
         management_cidrs=mgmt,
         resolver_addrs=resolvers,
         resolved_host_ips=resolved,
+        resolved_denied_host_ips=denied,
     )
     dns = tuple(render_dns_allowlist(policy))
 

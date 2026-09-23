@@ -212,6 +212,36 @@ def test_apply_resolves_allowed_hosts_into_nft_allow():
     assert "203.0.113.20" in seen["stdin"]
 
 
+def test_denied_host_wins_over_allowed_host_and_cidr():
+    policy = EgressPolicy(
+        enforce=True,
+        default_drop=True,
+        allowed_hosts=("victim.example",),
+        allowed_cidrs=("203.0.113.0/24",),
+        denied_hosts=("victim.example",),
+    )
+    resolved_for: list[tuple[str, ...]] = []
+
+    def resolver(hosts):
+        resolved_for.append(tuple(hosts))
+        return ("203.0.113.20",)
+
+    result = apply_egress(
+        policy,
+        enabled=True,
+        runner=lambda argv, stdin: _OkProc(),
+        management_cidrs=[],
+        resolver_addrs=[],
+        host_resolver=resolver,
+    )
+    assert result.applied is True
+    assert result.dns_allowlist == ()
+    assert resolved_for == [("victim.example",)]
+    assert result.nft_ruleset.index("203.0.113.20 } drop") < result.nft_ruleset.index(
+        "203.0.113.0/24 } accept"
+    )
+
+
 def test_render_matches_apply_disabled_ruleset():
     pol = _enforce_policy()
     direct = render_nftables(pol, management_cidrs=["172.20.0.0/16"], resolver_addrs=["127.0.0.11"])
