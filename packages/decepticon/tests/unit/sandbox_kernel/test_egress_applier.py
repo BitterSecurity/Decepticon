@@ -281,6 +281,31 @@ def test_unresolved_denied_host_fails_closed():
     assert "203.0.113.0/24 } accept" not in result.nft_ruleset
 
 
+def test_unresolved_cloud_metadata_alias_keeps_signed_target_reachable():
+    policy = EgressPolicy(
+        enforce=True,
+        default_drop=True,
+        allowed_hosts=("decepticon.red",),
+        denied_cidrs=("169.254.169.254",),
+        denied_hosts=("metadata.google.internal",),
+    )
+
+    def resolver(hosts):
+        return ("203.0.113.20",) if tuple(hosts) == ("decepticon.red",) else ()
+
+    result = apply_egress(
+        policy,
+        enabled=True,
+        runner=lambda argv, stdin: _OkProc(),
+        management_cidrs=[],
+        resolver_addrs=[],
+        host_resolver=resolver,
+    )
+    assert result.applied is True
+    assert "169.254.169.254 } drop" in result.nft_ruleset
+    assert "203.0.113.20 } accept" in result.nft_ruleset
+
+
 def test_render_matches_apply_disabled_ruleset():
     pol = _enforce_policy()
     direct = render_nftables(pol, management_cidrs=["172.20.0.0/16"], resolver_addrs=["127.0.0.11"])
