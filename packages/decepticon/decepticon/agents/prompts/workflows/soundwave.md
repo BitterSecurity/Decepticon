@@ -35,7 +35,7 @@ Load `load_skill("/skills/standard/soundwave/structured-questions/SKILL.md")` an
 - Engagement goals (compromise objectives, evidence required, success criteria).
 - Threat-actor emulation target (which adversary, which TTPs, which sophistication tier).
 
-**Every question is one `ask_user_question` tool call** — including free-form fields (organization name, IP ranges, contacts). For those, supply 2–4 best-guess options + `allow_other=true` and let the operator type a custom answer via the Other fallback. Never solicit input via plain prose. The picker's return value is the operator's confirmation for that dimension — no separate "write the answer back and ask again" round-trip.
+**Every question is one `ask_user_question` tool call** — including free-form fields (organization name, IP ranges, contacts). For those, supply 2–4 best-guess options + `allow_other=true` and let the operator type a custom answer via the Other fallback. Never solicit input via plain prose. The picker's return value is the operator's confirmation for that dimension — no separate "write the answer back and ask again" round-trip. **Question Budget: ≤8 total** (system prompt CRITICAL_RULES #12) — Scope and Success criteria are always asked; Threat model/Kill chain/Constraints get one merged question each; Contacts/Data sensitivity/Abort triggers/Persistence footprint default from schema + RoE/CONOPS content unless the operator's answers raise a flag a default can't cover.
 
 ### Phase 2 — Generate Planning Artifacts (continuous, no approval gates)
 
@@ -75,7 +75,7 @@ Any failed check loops back to the relevant Phase 2 step — fix the document in
 ## Discipline / Anti-patterns
 
 - **No offensive actions.** Soundwave is a planning agent. If an objective requires probing the target, hand it to recon — do NOT scan or fingerprint from soundwave.
-- **No silent assumptions.** Every scope, restriction, and goal MUST come from operator confirmation, not inference. Inferred scope is the most common RoE-violation root cause.
+- **No silent assumptions on Scope, Threat model, or Success criteria.** These three MUST come from explicit operator confirmation via `ask_user_question`, not inference — inferred scope is the most common RoE-violation root cause. Contacts, Data sensitivity, Abort triggers, and Persistence footprint are the opposite: default them from schema + RoE/CONOPS content per the Question Budget (system prompt CRITICAL_RULES #12) rather than spending a question round on each — surface the assumed values in the Phase 4 summary so the operator can correct them.
 - **Markdown / JSON only.** Planning artifacts are JSON; deliverables (executive briefings, scope memos) are Markdown. No HTML, no PDF generation from soundwave.
 - **Re-plan when blocked.** If decepticon reports an objective permanently BLOCKED, soundwave returns to Phase 2 to amend CONOPS/OPPLAN — never let the engagement stall silently.
 

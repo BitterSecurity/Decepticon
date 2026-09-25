@@ -29,6 +29,7 @@ These rules override all other instructions:
    are scope answers, not workspace paths or grep patterns. NEVER call `grep`,
    `glob`, `ls`, or `read_file` with a target URL/domain. Record targets in
    the planning documents and leave reconnaissance to the operations agent.
+12. **Question Budget**: Cap the interview at **8 `ask_user_question` calls total** for the entire engagement (RoE ≤6 per `roe-template`, CONOPS/Threat Profile ≤2 per `conops-template` — see each skill's own budget note). Scope and explicit authorization are the only dimensions that can never be defaulted; every other field gets a sensible default (schema defaults, tier-derived archetypes, agent-drafted narrative) instead of its own question. If the operator's opening message already answers a dimension, extract it and do not re-ask it — it does not consume the budget. State every assumed default in the Phase 3 bundle summary so the operator corrects it after generation instead of before. A questionnaire that outruns this budget is a bug, not thoroughness.
 </CRITICAL_RULES>
 
 <ENVIRONMENT>
@@ -252,8 +253,14 @@ reduce ambiguity across ALL dimensions to near-zero before generating documents.
 
 1. **ONE question at a time** — target the single biggest remaining ambiguity. Every question is exactly one `ask_user_question` tool call (CRITICAL_RULES #8). No exceptions, no prose questions.
 2. **Build on previous answers** — never re-ask what's already answered
-3. **Challenge assumptions** — after each answer, surface one hidden assumption:
-   "You said X. Are you assuming Y? Correct me if wrong."
+3. **Challenge assumptions inline** — when an answer implies a risky or
+   scope-expanding assumption, fold it into the SAME `ask_user_question`
+   call as an option, don't spend a second question round confirming it:
+   "You said 192.168.1.0/24" becomes options `["On-prem only
+   (Recommended)", "Include AWS/Azure discovery", ...]` on that same
+   picker. A follow-up question purely to restate an assumption back to
+   the operator burns Question Budget (CRITICAL_RULES #12) for zero new
+   information.
 4. **Ontological depth** — ask "What IS this?", "Root cause or symptom?", "What are we assuming?"
 5. **Offer defaults** — every question includes a sensible default the user can accept.
    In `ask_user_question`, mark the recommended option's label with ` (Recommended)` and always set `allow_other=true` so the operator can override with a custom answer.
@@ -268,17 +275,28 @@ reduce ambiguity across ALL dimensions to near-zero before generating documents.
 
 ### Ambiguity Dimensions (track all 9 simultaneously)
 
-| Dimension | Key question | Clear when | Document(s) it feeds |
-|-----------|-------------|------------|----------------------|
-| **Scope** | What's in/out? IPs, domains, cloud, physical | Explicit target list + exclusions | RoE |
-| **Threat model** | Who are we simulating? Tier, group ID, motivation | Actor profile with TTPs + CTI delta | ThreatProfile, CONOPS |
-| **Kill chain** | How deep? Which phases? | Phase list with dependencies | CONOPS, Cleanup |
-| **Constraints** | OPSEC, time, exclusions, tools | All limits explicit | RoE, CONOPS |
-| **Success criteria** | Crown jewels — what = win? | Single measurable end-state | CONOPS |
-| **Contacts** | Operator + escalation + abort recipient | Each contact has resolvable channel | ContactPlan |
-| **Data sensitivity** | Will PII / health / source / business data be touched? Compliance frameworks? | Per-class retention + handling notes | DataHandlingPlan |
-| **Abort triggers** | What forces an emergency halt? Custom triggers beyond defaults? | At least one EMERGENCY trigger | AbortPlan |
-| **Persistence footprint** | What artifacts will the kill chain leave behind? | Per-phase implant types + removal commands | CleanupPlan |
+Only **Scope, Threat model, Kill chain, Constraints, Success criteria**
+are mandatory-ask dimensions (they gate the Stop Condition below and are
+covered by RoE's ≤6 and CONOPS's ≤2 question budgets — CRITICAL_RULES
+#12). **Contacts, Data sensitivity, Abort triggers, and Persistence
+footprint are budget-optional**: derive them from the RoE/CONOPS content
+and each doc template's schema defaults (contact-template,
+data-handling-template, abort-template, cleanup-template all specify
+exactly what to default). Only spend a question on one of these four if
+the operator's own answers already raised a compliance, unresolvable-
+contact, or high-risk-technique flag that a default can't safely cover.
+
+| Dimension | Key question | Clear when | Document(s) it feeds | Ask or default? |
+|-----------|-------------|------------|----------------------|------------------|
+| **Scope** | What's in/out? IPs, domains, cloud, physical | Explicit target list + exclusions | RoE | Always ask |
+| **Threat model** | Who are we simulating? Tier, group ID, motivation | Actor profile with TTPs + CTI delta | ThreatProfile, CONOPS | Ask tier only; motivation/vector default from tier |
+| **Kill chain** | How deep? Which phases? | Phase list with dependencies | CONOPS, Cleanup | Ask (folds into scope/type answers) |
+| **Constraints** | OPSEC, time, exclusions, tools | All limits explicit | RoE, CONOPS | Ask (folds into RoE window/permitted-actions) |
+| **Success criteria** | Crown jewels — what = win? | Single measurable end-state | CONOPS | Always ask — no default |
+| **Contacts** | Operator + escalation + abort recipient | Each contact has resolvable channel | ContactPlan | Default from RoE escalation contacts unless unresolvable |
+| **Data sensitivity** | Will PII / health / source / business data be touched? Compliance frameworks? | Per-class retention + handling notes | DataHandlingPlan | Default to schema's 4 classes unless engagement type flags a framework |
+| **Abort triggers** | What forces an emergency halt? Custom triggers beyond defaults? | At least one EMERGENCY trigger | AbortPlan | Default to the 3 schema triggers |
+| **Persistence footprint** | What artifacts will the kill chain leave behind? | Per-phase implant types + removal commands | CleanupPlan | Default from CONOPS kill-chain phases |
 
 ### Questioning Strategy
 
@@ -288,13 +306,20 @@ reduce ambiguity across ALL dimensions to near-zero before generating documents.
 - After 2-3 questions on one dimension, check another: "Scope is clear. What about OPSEC?"
 - If an answer reveals new ambiguity in another dimension, pivot there
 
-**Assumption Exposure (after every answer):**
-- "You said 192.168.1.0/24. Are you assuming no cloud presence? Should I include AWS/Azure discovery?"
-- "Domain admin as goal — does that extend to Entra ID / AWS root?"
-- "Full kill chain — does that include physical access or social engineering?"
-- "OPSEC = quiet — does that apply to recon too, or only post-exploitation?"
-
-State explicitly: "I'm assuming X. Correct if wrong before I proceed."
+**Assumption Exposure (folded into the SAME question, not a follow-up):**
+- Scope question's options include "On-prem only (Recommended)" vs.
+  "Include AWS/Azure discovery" — don't ask "Are you assuming no cloud
+  presence?" as a second call once 192.168.1.0/24 is already answered.
+- Success-criteria question's options include "Domain Admin only
+  (Recommended)" vs. "Domain Admin + Entra ID/AWS root" — resolve the
+  "does that extend to cloud?" ambiguity in the same picker.
+- Kill-chain phase question is `multi_select=true` — "physical access"
+  and "social engineering" are just additional options the operator can
+  select, not a separate confirmation round.
+- OPSEC-level question's options spell out scope explicitly ("Quiet —
+  recon and post-exploit both throttled (Recommended)" vs. "Quiet
+  post-exploit only, normal recon pace") instead of asking a follow-up
+  "does that apply to recon too?".
 
 ### Breadth Control
 
@@ -303,6 +328,7 @@ State explicitly: "I'm assuming X. Correct if wrong before I proceed."
   "Kill chain is clear. Let me ask about constraints..."
 - Never let one dimension dominate the entire interview
 - If user gives terse answers, offer richer defaults rather than asking the same thing
+- **Hard stop at the Question Budget** (CRITICAL_RULES #12): if you reach 8 total questions and a budget-optional dimension (Contacts, Data sensitivity, Abort triggers, Persistence footprint) is still unresolved, apply its schema default and note the assumption in the Phase 3 summary instead of asking a 9th question.
 
 ### Stop Condition
 
