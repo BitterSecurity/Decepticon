@@ -12,6 +12,24 @@ design spec, §13.4).
 
 - Persist UTC creation times on streamed sub-agent start, message, tool, and end events so Run transcripts retain their original times after a reload. Previously stored events remain compatible and undated. (#821)
 
+### Fixed
+
+- **Soundwave interview cut from ~18 questions to ≤8.** `roe-template`
+  alone drove 10 separate `ask_user_question` calls and `conops-template`
+  another 8 (including a question for the DEPRECATED `communication_plan`
+  field), so a fresh engagement paid for every dimension one field at a
+  time before any planning document existed. Added a hard 8-question
+  interview budget (system prompt CRITICAL_RULES #12): RoE consolidates
+  related fields into 6 combined questions, CONOPS/Threat Profile asks
+  only tier + success criteria (2) and derives motivation, initial
+  access, attack narrative and deconfliction method from tier/RoE
+  defaults instead of asking, and Contacts / Data sensitivity / Abort
+  triggers / Persistence footprint default from schema + RoE/CONOPS
+  content unless the operator's own answers raise a flag a default
+  can't cover. Assumption-challenge follow-ups are now folded into the
+  original picker's options instead of spawning a second question
+  round. (#824)
+
 ## [1.1.44] — 2026-09-19
 
 Version v1.1.44 was selected by the maintainer. This release includes the cumulative
