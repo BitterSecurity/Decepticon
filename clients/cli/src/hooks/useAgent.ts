@@ -790,8 +790,8 @@ export function useAgent({
         const hasConfigurable = Object.keys(configurable).length > 0;
         const streamConfig = hasConfigurable ? { configurable } : undefined;
 
-        try {
-          const stream = client.runs.stream(
+        const openStream = () =>
+          client.runs.stream(
             threadIdRef.current!,
             getAssistantOverride() || assistantIdRef.current,
             {
@@ -803,13 +803,33 @@ export function useAgent({
             },
           );
 
-          await processStream(stream, abortController);
+        try {
+          await processStream(openStream(), abortController);
         } catch (err) {
           // Ignore abort errors — triggered by interrupt() or cancel()
           if (abortController.signal.aborted) return;
           const msg =
             err instanceof Error ? err.message : "Unknown streaming error";
-          setError(msg);
+          // The `langgraph dev` server keeps threads in memory, so a backend
+          // restart leaves the env-seeded thread dead ("Thread or assistant
+          // not found"). Open a fresh thread and retry the submit once.
+          const threadGone =
+            (msg.includes("404") || msg.toLowerCase().includes("not found")) &&
+            !!threadIdRef.current;
+          if (threadGone) {
+            try {
+              const thread = await client.threads.create();
+              threadIdRef.current = thread.thread_id;
+              await saveThread(thread.thread_id, assistantIdRef.current, message);
+              addSystemEvent("Previous session thread was gone — started a fresh thread.");
+              await processStream(openStream(), abortController);
+            } catch (retryErr) {
+              if (abortController.signal.aborted) return;
+              setError(retryErr instanceof Error ? retryErr.message : msg);
+            }
+          } else {
+            setError(msg);
+          }
         }
 
         handleStreamComplete(abortController);

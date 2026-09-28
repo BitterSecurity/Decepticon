@@ -99,6 +99,34 @@ export function WebTerminal({
   const retryListenerRef = useRef<{ dispose: () => void } | null>(null);
   // Track the main onData listener so we can dispose it on reconnect
   const onDataDisposableRef = useRef<{ dispose: () => void } | null>(null);
+  // ── xterm write flow control ──
+  // xterm throws "write data discarded, use flow control to avoid losing data"
+  // when data is pushed into term.write() faster than its VT parser drains it —
+  // e.g. a large scrollback replay on reattach or a burst of CLI output. Queue
+  // inbound chunks and release the next only after xterm's write callback fires,
+  // so its internal buffer holds at most one chunk and never overflows.
+  const writeQueueRef = useRef<string[]>([]);
+  const writingRef = useRef(false);
+
+  // Feed queued output into xterm one chunk at a time, waiting for the parse
+  // callback before releasing the next. This is xterm's recommended flow-control
+  // pattern; our own JS array absorbs the backlog instead of xterm's buffer.
+  const enqueueWrite = useCallback((data: string) => {
+    if (!data) return;
+    writeQueueRef.current.push(data);
+    if (writingRef.current) return;
+    writingRef.current = true;
+    const pump = () => {
+      const term = termRef.current;
+      const chunk = writeQueueRef.current.shift();
+      if (!term || chunk === undefined) {
+        writingRef.current = false;
+        return;
+      }
+      term.write(chunk, pump);
+    };
+    pump();
+  }, []);
 
   const cleanup = useCallback(() => {
     disposedRef.current = true;
@@ -108,6 +136,8 @@ export function WebTerminal({
     retryListenerRef.current = null;
     onDataDisposableRef.current?.dispose();
     onDataDisposableRef.current = null;
+    writeQueueRef.current = [];
+    writingRef.current = false;
     resizeObserverRef.current?.disconnect();
     wsRef.current?.close();
     termRef.current?.dispose();
@@ -178,6 +208,8 @@ export function WebTerminal({
           if (msg.type === "reattached") {
             // Server reattached us to an existing PTY — full reset then
             // scrollback replay arrives as raw text right after this message.
+            // Drop any stale queued output so the replay starts from a clean slate.
+            writeQueueRef.current = [];
             term.reset();
             return;
           }
@@ -185,7 +217,7 @@ export function WebTerminal({
           // Not valid JSON — pass through as terminal output
         }
       }
-      term.write(sanitizeTermBytes(data));
+      enqueueWrite(sanitizeTermBytes(data));
     };
 
     ws.onclose = (ev) => {

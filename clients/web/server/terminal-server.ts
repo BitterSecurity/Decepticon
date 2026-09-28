@@ -117,6 +117,25 @@ async function createThread(engagementId: string, agentId: string): Promise<stri
   }
 }
 
+// The `langgraph dev` server keeps threads in memory, so a backend restart
+// drops them while the browser may still hold the old id. Verify a thread is
+// still live before reusing it — otherwise the CLI, browser, and DB drift onto
+// different threads and the live graph freezes.
+async function threadExists(threadId: string): Promise<boolean> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 5000);
+  try {
+    const res = await fetch(`${LANGGRAPH_API_URL}/threads/${threadId}`, {
+      signal: controller.signal,
+    });
+    return res.ok;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 function sendJson(ws: WebSocket, payload: Record<string, unknown>): void {
   if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(payload));
 }
@@ -191,6 +210,12 @@ wss.on("connection", async (ws: WebSocket, req) => {
 
   // ── Create new session ──
   let threadId = url.searchParams.get("threadId") ?? "";
+  // Discard a stale/dead thread from the browser so a fresh one is created and
+  // persisted below — keeps CLI, browser, and DB on the same live thread.
+  if (threadId && !(await threadExists(threadId))) {
+    console.log(`[terminal-server] Stale thread ${threadId} not found — creating fresh`);
+    threadId = "";
+  }
   if (!threadId) {
     try {
       threadId = await createThread(engagementId, agentId);
@@ -222,7 +247,10 @@ wss.on("connection", async (ws: WebSocket, req) => {
 
   let term: pty.IPty;
   try {
-    term = pty.spawn("node", ["--import", "tsx/esm", CLI_PATH], {
+    // Use the full `tsx` loader (CJS + ESM hooks), not `tsx/esm` alone: the
+    // ESM-only hook mis-transforms `require('*.json')` from CJS deps (e.g.
+    // cli-boxes) into ESM, which then fails JSON.parse on Node >= 24.
+    term = pty.spawn("node", ["--import", "tsx", CLI_PATH], {
       name: "xterm-256color",
       cols: 120,
       rows: 30,

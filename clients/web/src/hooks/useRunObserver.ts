@@ -54,6 +54,7 @@ export function useRunObserver({ threadId }: UseRunObserverOptions): UseRunObser
     if (!threadId) return;
 
     let active = true;
+    let interval: ReturnType<typeof setInterval> | null = null;
     const client = clientRef.current;
 
     // New thread = new session: start from an empty event log. Within a thread
@@ -86,16 +87,27 @@ export function useRunObserver({ threadId }: UseRunObserverOptions): UseRunObser
           setActiveRunId(null);
         }
       } catch (err) {
+        // The `langgraph dev` server keeps threads in memory; after a backend
+        // restart this thread is gone. Retrying every 2s just spams 404s, so
+        // stop polling and let the layout resolve a fresh thread.
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg.includes("404") || msg.toLowerCase().includes("not found")) {
+          active = false;
+          if (interval) clearInterval(interval);
+          setIsRunning(false);
+          setActiveRunId(null);
+          return;
+        }
         console.error("[useRunObserver] Poll error:", err);
       }
     };
 
-    const interval = setInterval(poll, POLL_INTERVAL);
+    interval = setInterval(poll, POLL_INTERVAL);
     poll();
 
     return () => {
       active = false;
-      clearInterval(interval);
+      if (interval) clearInterval(interval);
       abortRef.current?.abort();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps

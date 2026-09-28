@@ -5,6 +5,9 @@
     "clients/*",
     "clients/shared/*"
   ],
+  "engines": {
+    "node": "24.x"
+  },
   "scripts": {
     "dev": "npm run dev --workspace=clients/web",
     "build": "npm run build --workspace=clients/web",
