@@ -35,7 +35,7 @@ class EngagementType(StrEnum):
 
 
 class ObjectivePhase(StrEnum):
-    """Kill chain phases for objective ordering.
+    """Descriptive operation phases; DAG edges determine execution order.
 
     Practical 5-phase model aligned with sub-agent routing:
       recon          → recon agent       (TA0043 Reconnaissance)
@@ -81,6 +81,16 @@ class ObjectiveStatus(StrEnum):
     COMPLETED = "completed"
     BLOCKED = "blocked"
     CANCELLED = "cancelled"
+
+
+class ObjectiveOutcome(StrEnum):
+    FINDING = "finding"
+    NO_FINDING = "no-finding"
+    OBJECTIVE_MET = "objective-met"
+    INCONCLUSIVE = "inconclusive"
+    INFRASTRUCTURE_ERROR = "infrastructure-error"
+    SCOPE_REFUSED = "scope-refused"
+    INVALIDATED = "invalidated"
 
 
 class FindingSeverity(StrEnum):
@@ -427,8 +437,8 @@ class DeconflictionPlan(BaseModel):
 class Objective(BaseModel):
     """A single engagement objective — analogous to ralph's user story.
 
-    Each objective must be completable in ONE agent context window.
-    The ralph loop picks the highest-priority objective whose status is not completed.
+    Each leaf objective must be completable in one agent context window.
+    The dispatcher selects from the prerequisite-ready frontier.
     """
 
     id: str = Field(description="Unique ID, e.g. OBJ-001")
@@ -438,9 +448,7 @@ class Objective(BaseModel):
     acceptance_criteria: list[str] = Field(
         description="Verifiable criteria — each must be checkable"
     )
-    priority: int = Field(
-        description="Execution order (1 = first). Respects kill chain dependencies."
-    )
+    priority: int = Field(description="Scheduling preference among ready objectives (1 = highest).")
     status: ObjectiveStatus = ObjectiveStatus.PENDING
     """pending → in-progress → completed/blocked. blocked → in-progress (retry) or completed (abandon)."""
     mitre: list[str] = Field(
@@ -469,6 +477,22 @@ class Objective(BaseModel):
     blocked_by: list[str] = Field(
         default_factory=list, description="Objective IDs that must complete first"
     )
+    any_of: list[list[str]] = Field(
+        default_factory=list,
+        description="For each group, at least one listed objective must complete first",
+    )
+    required_fact_ids: list[str] = Field(
+        default_factory=list,
+        description="Verified fact IDs required before this objective can start",
+    )
+    outcome: ObjectiveOutcome | None = Field(
+        default=None,
+        description="Observed result, separate from execution status (for example no-finding or inconclusive)",
+    )
+    evidence_refs: list[str] = Field(
+        default_factory=list,
+        description="Workspace evidence paths supporting the observed result",
+    )
     owner: str = Field(default="", description="Sub-agent currently executing this objective")
     parent_id: str | None = Field(
         default=None,
@@ -481,12 +505,19 @@ class Objective(BaseModel):
     )
 
 
+class PlanFact(BaseModel):
+    id: str = Field(min_length=1)
+    producer_id: str = Field(min_length=1)
+    summary: str = Field(min_length=1)
+    evidence_refs: list[str] = Field(default_factory=list)
+    verified: bool = False
+
+
 class OPPLAN(BaseModel):
     """Operations Plan — the tactical task tracker for the ralph loop.
 
-    Direct analogue of ralph's prd.json. The autonomous loop reads this
-    file each iteration, picks the next objective, executes it, and
-    updates the status.
+    The autonomous loop selects a ready leaf from the versioned graph,
+    executes it, records evidence, and advances or revises the plan.
 
     Hierarchical mode: any objective with ``parent_id`` set becomes a
     child of that parent. Trees are arbitrary depth — but real plans
@@ -499,6 +530,8 @@ class OPPLAN(BaseModel):
         description="Short threat actor summary for context injection each iteration"
     )
     objectives: list[Objective] = Field(default_factory=list)
+    revision: int = Field(default=0, ge=0)
+    facts: list[PlanFact] = Field(default_factory=list)
 
     # ── Hierarchy helpers ──────────────────────────────────────────────
 

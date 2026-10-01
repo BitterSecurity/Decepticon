@@ -45,7 +45,16 @@ from decepticon.tools.opplan import (
 )
 
 _PLAN_MUTATION_TOOLS = frozenset(
-    {"add_objective", "update_objective", "objective_expand", "objective_collapse", "load_opplan"}
+    {
+        "add_objective",
+        "update_objective",
+        "objective_expand",
+        "objective_collapse",
+        "load_opplan",
+        "commit_opplan",
+        "record_plan_fact",
+        "revoke_plan_fact",
+    }
 )
 
 
@@ -92,6 +101,9 @@ class OPPLANState(AgentState):
     workspace_path: Annotated[NotRequired[str], OmitFromInput, _reduce_workspace_path]
     """Engagement workspace root path — set by launcher config/load_opplan."""
 
+    plan_revision: Annotated[NotRequired[int], OmitFromInput]
+    plan_facts: Annotated[NotRequired[list[dict]], OmitFromInput]
+
 
 # ── System Prompt ─────────────────────────────────────────────────────
 
@@ -104,8 +116,8 @@ These are always available — no mode switching needed.
 ### Persistence model
 
 The launcher binds the engagement workspace at `/workspace`. Every mutation
-through these tools (`add_objective`, `update_objective`, `objective_expand`,
-`objective_collapse`) is **automatically persisted through the configured
+through these tools (`commit_opplan`, `record_plan_fact`, `revoke_plan_fact`, `update_objective`,
+and legacy objective tools) is **automatically persisted through the configured
 filesystem/sandbox backend to `/workspace/plan/opplan.json`** — there is no
 separate save step and no direct host-filesystem write. The persisted file is
 a stable, sorted, human-readable JSON document with a `schema_version`, a
@@ -113,9 +125,20 @@ a stable, sorted, human-readable JSON document with a `schema_version`, a
 
 ### Objective CRUD Tools
 
-- **`add_objective`** — Add a single objective (auto-ID: OBJ-001, OBJ-002, ...).
-  Each objective MUST be completable in ONE sub-agent context window.
-  Set `engagement_name` and `threat_profile` on the first call to initialize context.
+- **`commit_opplan`** — Create or revise the complete versioned objective DAG in
+  one call. Use stable IDs and `expected_revision`; forward references are valid.
+  `blocked_by` means all predecessors, `any_of` means one per alternative group.
+  Declare expected facts with `facts` and use `required_fact_ids` for evidence gates.
+  Keep active and terminal objectives unchanged during a replan.
+
+- **`record_plan_fact`** — Attach existing workspace evidence to a declared fact
+  after its producer completes. Path existence is checked; content truth is not.
+
+- **`revoke_plan_fact`** — Revoke a fact when its evidence is disproven or lost.
+  Active and completed dependent objectives become blocked transitively.
+
+- **`add_objective`** — Legacy single-objective tool for unversioned plans only.
+  Use `commit_opplan` for new plans and replans.
 
 - **`get_objective`** — Read a single objective's full details.
   ALWAYS call this before `update_objective` (read-before-write, staleness prevention).
@@ -126,15 +149,10 @@ a stable, sorted, human-readable JSON document with a `schema_version`, a
 - **`update_objective`** — Update status, notes, or owner.
   ALWAYS call `get_objective` first.
 
-- **`objective_expand`** — Break a parent objective into N child sub-tasks.
-  Use when an objective is broad or when discovered work reveals sub-tasks —
-  keep each leaf small enough to complete in one sub-agent iteration.
-  This is the Pentesting Task Tree (PTT) pattern. Parents cannot move to
-  COMPLETED until every child is COMPLETED or CANCELLED.
+- **`objective_expand`** — Legacy hierarchy expansion for unversioned plans.
+  In a versioned DAG, revise the complete graph with `commit_opplan` instead.
 
-- **`objective_collapse`** — Cancel every descendant of a parent objective.
-  Use when abandoning a hierarchical task so the parent can then be moved
-  to COMPLETED or CANCELLED itself.
+- **`objective_collapse`** — Legacy hierarchy collapse for unversioned plans.
 
 - **`load_opplan`** — Bind the active workspace and hydrate state from an
   existing `plan/opplan.json`. Call before filesystem bootstrap. A missing file
@@ -150,9 +168,15 @@ before issuing the next. This applies to read tools (`get_objective`,
 
 ### Workflow
 ```
-add_objective(×N, engagement_name=...) → Ralph Loop
+load_opplan → inspect RoE/CONOPS → commit_opplan(complete DAG, expected_revision=0)
           ↓
-objective_expand(parent_id, children=[...])   # split broad work on demand
+select status-ready leaf → verify scope/authorization → task(task_id, plan_revision)
+          ↓
+inspect evidence → update_objective(outcome, evidence_refs) → record_plan_fact
+          ↓
+revoke_plan_fact(fact_id, reason) if evidence is invalidated; reassess blocked work
+          ↓
+commit_opplan(complete DAG, expected_revision=current) when new work is discovered
 ```
 
 ### Status Transitions
@@ -161,18 +185,20 @@ pending → in-progress → completed    (evidence documented)
                        → blocked      (failure reason documented)
                        → cancelled    (abandon cleanly)
 blocked → in-progress                 (retry with different approach)
-        → completed                   (abandon with explanation)
         → cancelled                   (drop from plan)
 ```
 
 ### Rules — NEVER Violate
-- NEVER execute objectives without user-approved OPPLAN
+- NEVER execute objectives without the applicable engagement authorization
 - NEVER call `update_objective` without calling `get_objective` first
 - NEVER call OPPLAN tools in parallel (one tool per model step)
-- ALWAYS include evidence when marking COMPLETED
-- ALWAYS include failure reason and attempts when marking BLOCKED
+- ALWAYS provide a typed outcome and existing evidence paths when marking a
+  versioned objective COMPLETED; `no-finding` is a valid completed result.
+- ALWAYS include a typed failure outcome and reason/attempts in notes when
+  marking a versioned objective BLOCKED.
 - ALWAYS set owner to the sub-agent name before delegating (recon/exploit/postexploit)
-- ALWAYS respect blocked_by dependencies and kill chain phase order
+- ALWAYS respect the validated DAG dependencies; phase is descriptive metadata,
+  not an execution gate.
 - Status-ready candidates are not authorization: check RoE and verify evidence
   before delegation or completion.
 """
@@ -407,10 +433,11 @@ class OPPLANMiddleware(AgentMiddleware):
         injected_blocks: list[dict[str, Any]] = [static_block]
 
         if objectives:
-            inspection = _inspect_objective_rows(objectives)
+            inspection = _inspect_objective_rows(objectives, request.state.get("plan_facts", []))
             dynamic_text = _format_opplan_status(
                 objectives, engagement, threat, inspection.status_ready_ids
             )
+            dynamic_text += f"\nPlan revision: {request.state.get('plan_revision', 0)}"
             if inspection.issues:
                 details = "; ".join(issue.describe() for issue in inspection.issues)
                 dynamic_text += f"\nGraph integrity warnings: {details}"

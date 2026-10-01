@@ -73,8 +73,13 @@ When `load_opplan` loaded objectives:
 When no OPPLAN exists but the planning documents are present:
 
 1. Read CONOPS goals and kill-chain dependencies.
-2. Create one bounded objective per sub-agent context window with
-   `add_objective`.
+2. Create one bounded objective per sub-agent context window. Submit the whole
+   dependency DAG with `commit_opplan(objectives=[...], facts=[...],
+   expected_revision=0)`. A missing plan starts at revision 0. Declare future
+   facts with a producer objective and `verified=false`; use `blocked_by` for
+   all-of predecessors, `any_of` for alternatives, and `required_fact_ids` for
+   evidence gates. Do not impose phase order unless the actual dependencies
+   require it.
 3. Present the complete OPPLAN. If the engagement approval policy requires a plan decision, ask before dispatch; otherwise an activated run may proceed within signed scope.
 4. Enter the execution loop after the applicable authorization. OPPLAN mutations persist
    automatically; there is no separate save tool.

@@ -30,7 +30,9 @@ Follow the live `task` tool schema. The OSS dispatcher accepts `description` and
 and `model` and may accept `task_id`. Put the full handoff in `description` for
 OSS, or split the task goal into `description` and the supporting facts into
 `context` for the hosted dispatcher. Select `model` from its assignment manifest.
-The optional `task_id` is a trace label, not proof of objective readiness.
+In the hosted dynamic dispatcher, `task_id` must be the OPPLAN objective ID
+and `plan_revision` must match the current plan. These fields are checked at
+dispatch; neither substitutes for RoE authorization.
 
 ```
 task(
@@ -72,8 +74,11 @@ task(
 Independent objectives may be ready at the same time, but the hosted dynamic
 dispatcher serializes specialist calls per engagement. Dispatch one, inspect
 its result, then dispatch the next. Never dispatch an objective whose
-`blocked_by` predecessor is unresolved. Separate OPPLAN mutations and `task()`
+`blocked_by`, `any_of`, or verified-fact prerequisite is unresolved. Separate OPPLAN mutations and `task()`
 calls into different model responses. Check RoE for each actual action.
+If recorded evidence is disproven or lost, call `revoke_plan_fact` with the
+fact ID and reason before dispatching another objective. Reassess every
+objective it blocks, including work that had previously completed.
 
 ## State Management
 
@@ -121,7 +126,8 @@ Review these questions after every recon task() completes.
 3. RECON_BUDGET_EXHAUSTED with zero confirmed vulns?
    ├── Unvisited surface remains? → focused second recon turn on that surface
    └── No unvisited surface → update_objective(objective_id="<id>",
-                               status="blocked", notes="recon exhausted: <evidence and attempts>")
+                               status="completed", outcome="no-finding",
+                               evidence_refs=["/workspace/recon/SUMMARY.md"])
 ```
 
 The OPPLAN dependency state does not authorize a new probe. Recheck the signed
@@ -154,7 +160,7 @@ different ready objective when:
 - New findings reveal a faster path to the same goal
 - An objective is temporarily blocked and others are actionable
 
-Never bypass an unresolved `blocked_by` link; document selection or re-planning
+Never bypass an unresolved DAG prerequisite; document selection or re-planning
 decisions in objective notes and lessons_learned.md.
 
 ## Response Format
