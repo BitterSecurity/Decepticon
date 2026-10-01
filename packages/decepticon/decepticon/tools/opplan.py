@@ -13,6 +13,7 @@ from langchain_core.tools import InjectedToolCallId, tool
 from langgraph.prebuilt import InjectedState
 from langgraph.types import Command
 
+from decepticon.tools.opplan_graph import PlanInspection, inspect_plan
 from decepticon_core.types.engagement import (
     OPPLAN,
     C2Tier,
@@ -50,6 +51,25 @@ _VALID_TRANSITIONS: dict[str, set[str]] = {
     # completed is terminal
     # cancelled is terminal
 }
+
+
+def _inspect_objective_rows(objectives: list[dict[str, Any]]) -> PlanInspection:
+    return inspect_plan([Objective.model_validate(row) for row in objectives])
+
+
+def _graph_rejection(inspection: PlanInspection, tool_call_id: str) -> Command[Any]:
+    details = "; ".join(issue.describe() for issue in inspection.issues)
+    return Command(
+        update={
+            "messages": [
+                ToolMessage(
+                    content=f"Invalid OPPLAN graph: {details}",
+                    tool_call_id=tool_call_id,
+                    status="error",
+                )
+            ]
+        }
+    )
 
 
 def _build_opplan_payload(opplan: OPPLAN) -> dict[str, Any]:
@@ -255,6 +275,7 @@ def _format_opplan_for_agent(
     objectives: list[dict],
     engagement_name: str,
     threat_profile: str,
+    status_ready_ids: tuple[str, ...] | None = None,
 ) -> str:
     """Format OPPLAN for list_objectives response (detailed overview).
 
@@ -325,7 +346,15 @@ def _format_opplan_for_agent(
         lines.append("")
 
     # Next objective recommendation
-    actionable = [o for o in objectives if o.get("status") in ("pending", "in-progress")]
+    actionable = [
+        o
+        for o in objectives
+        if (
+            o.get("id") in status_ready_ids
+            if status_ready_ids is not None
+            else o.get("status") in ("pending", "in-progress")
+        )
+    ]
     actionable.sort(key=lambda o: o.get("priority", 999))
     if actionable:
         nxt = actionable[0]
@@ -405,6 +434,26 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
                         ],
                     }
                 )
+            parent = next(
+                objective
+                for objective in state.get("objectives", [])
+                if objective.get("id") == parent_id
+            )
+            if parent.get("status") in {"completed", "cancelled"}:
+                return Command(
+                    update={
+                        "messages": [
+                            ToolMessage(
+                                content=(
+                                    f"Cannot add a child to completed or cancelled "
+                                    f"parent {parent_id}."
+                                ),
+                                tool_call_id=tool_call_id,
+                                status="error",
+                            )
+                        ]
+                    }
+                )
 
         obj_dict = {
             "id": obj_id,
@@ -443,6 +492,9 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
 
         objectives = list(state.get("objectives", []))
         objectives.append(obj_dict)
+        inspection = _inspect_objective_rows(objectives)
+        if inspection.issues:
+            return _graph_rejection(inspection, tool_call_id)
 
         # Ground-truth telemetry: which kill-chain phase the engagement is
         # working — no objective text/target. No-op unless telemetry is on.
@@ -600,7 +652,16 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
                 }
             )
 
-        content = _format_opplan_for_agent(objectives, engagement, threat)
+        inspection = _inspect_objective_rows(objectives)
+        content = _format_opplan_for_agent(
+            objectives, engagement, threat, inspection.status_ready_ids
+        )
+        if inspection.issues:
+            details = "; ".join(issue.describe() for issue in inspection.issues)
+            content += f"\nGraph integrity warnings: {details}"
+        else:
+            ready = ", ".join(inspection.status_ready_ids) or "none"
+            content += f"\nStatus-ready candidates: {ready} (RoE and evidence not checked)"
         return Command(
             update={
                 "messages": [ToolMessage(content=content, tool_call_id=tool_call_id)],
@@ -685,32 +746,6 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
                     }
                 )
 
-            # Check blocked_by dependencies when starting execution
-            if status == "in-progress":
-                blocked_by_ids = target.get("blocked_by", [])
-                unresolved = [
-                    bid
-                    for bid in blocked_by_ids
-                    if any(
-                        o.get("id") == bid and o.get("status") != "completed" for o in objectives
-                    )
-                ]
-                if unresolved:
-                    return Command(
-                        update={
-                            "messages": [
-                                ToolMessage(
-                                    content=(
-                                        f"Cannot start {objective_id}: "
-                                        f"blocked by unresolved objectives: {', '.join(unresolved)}"
-                                    ),
-                                    tool_call_id=tool_call_id,
-                                    status="error",
-                                )
-                            ],
-                        }
-                    )
-
             # Parents cannot complete until every child is done.
             if status == "completed":
                 children = [o for o in objectives if o.get("parent_id") == objective_id]
@@ -740,21 +775,6 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
 
             target["status"] = status
             updated_fields.append(f"status → {status}")
-
-            # Ground-truth telemetry: the objective's OUTCOME. Recording only
-            # the creation of an objective (add_objective, always "pending")
-            # answers what was attempted but never what completed or stalled —
-            # the whole point of the phase signal. No objective text/target.
-            try:
-                from decepticon.telemetry.sink import get_sink, session_id_for
-
-                get_sink().record_phase(
-                    str(target.get("phase", "")),
-                    status,
-                    session_id=session_id_for(state.get("engagement_name", "")),
-                )
-            except Exception:  # noqa: BLE001 — telemetry must never break the tool
-                pass
 
         # ── Notes ─────────────────────────────────────────────────────
         if notes is not None:
@@ -788,6 +808,35 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
             target["blocked_by"] = sorted(existing_blocked)
             updated_fields.append("blocked_by")
 
+        inspection = _inspect_objective_rows(objectives)
+        if inspection.issues:
+            return _graph_rejection(inspection, tool_call_id)
+
+        if target.get("status") in {"in-progress", "completed"}:
+            unresolved = [
+                predecessor
+                for predecessor in target.get("blocked_by", [])
+                if next(
+                    objective for objective in objectives if objective["id"] == predecessor
+                ).get("status")
+                != "completed"
+            ]
+            if unresolved:
+                return Command(
+                    update={
+                        "messages": [
+                            ToolMessage(
+                                content=(
+                                    f"Cannot set {objective_id} to {target['status']}: blocked by unresolved "
+                                    f"objectives: {', '.join(unresolved)}"
+                                ),
+                                tool_call_id=tool_call_id,
+                                status="error",
+                            )
+                        ]
+                    }
+                )
+
         if not updated_fields:
             return Command(
                 update={
@@ -799,6 +848,18 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
                     ],
                 }
             )
+
+        if status is not None:
+            try:
+                from decepticon.telemetry.sink import get_sink, session_id_for
+
+                get_sink().record_phase(
+                    str(target.get("phase", "")),
+                    status,
+                    session_id=session_id_for(state.get("engagement_name", "")),
+                )
+            except Exception:  # noqa: BLE001 — telemetry must never break the tool
+                pass
 
         total = len(objectives)
         completed_count = sum(1 for o in objectives if o.get("status") == "completed")
@@ -963,6 +1024,10 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
                 )
             objectives.append(child_dict)
             created_ids.append(obj_id)
+
+        inspection = _inspect_objective_rows(objectives)
+        if inspection.issues:
+            return _graph_rejection(inspection, tool_call_id)
 
         _persist_opplan_to_backend(
             backend,
@@ -1139,6 +1204,13 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
             )
 
         objectives_raw = [o.model_dump() for o in opplan.objectives]
+        inspection = inspect_plan(opplan.objectives)
+        graph_diagnostics = (
+            " Graph integrity warnings: "
+            + "; ".join(issue.describe() for issue in inspection.issues)
+            if inspection.issues
+            else ""
+        )
 
         # Derive counter from highest existing ID so new objectives don't collide
         counter = 0
@@ -1163,6 +1235,7 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
                             f"Loaded {len(objectives_raw)} objectives from {OPPLAN_VIRTUAL_PATH}. "
                             f"Engagement: {opplan.engagement_name} | "
                             f"Counter at OBJ-{counter:03d}"
+                            f"{graph_diagnostics}"
                         ),
                         tool_call_id=tool_call_id,
                     )
