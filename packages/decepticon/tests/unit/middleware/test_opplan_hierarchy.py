@@ -472,6 +472,214 @@ class TestListWithTree:
         # Indented child marker
         assert "↳" in msg or "- [" in msg
 
+    def test_next_objective_uses_ready_frontier(self, bag: _ToolBag, initial_state: dict) -> None:
+        state = _add(
+            bag,
+            initial_state,
+            title="Prerequisite",
+            phase=ObjectivePhase.RECON,
+            description="Inspect scoped service",
+            acceptance_criteria=["Observation recorded"],
+            priority=2,
+        )
+        state = _add(
+            bag,
+            state,
+            title="Dependent",
+            phase=ObjectivePhase.RECON,
+            description="Test permission boundary",
+            acceptance_criteria=["Boundary tested"],
+            priority=1,
+            blocked_by=["OBJ-001"],
+        )
+
+        cmd = _call_tool(bag.list, {}, state)
+
+        assert "Next: OBJ-001" in _last_message(cmd)
+        assert "Status-ready candidates: OBJ-001" in _last_message(cmd)
+
+
+class TestObjectiveGraphGuards:
+    def test_add_rejects_child_of_completed_parent(
+        self, bag: _ToolBag, initial_state: dict
+    ) -> None:
+        state = _add(
+            bag,
+            initial_state,
+            title="Parent",
+            phase=ObjectivePhase.RECON,
+            description="Inspect surface",
+            acceptance_criteria=["Observation recorded"],
+            priority=1,
+        )
+        state["objectives"][0]["status"] = "completed"
+
+        cmd = _call_tool(
+            bag.add,
+            {
+                "title": "Child",
+                "phase": ObjectivePhase.RECON,
+                "description": "Inspect child surface",
+                "acceptance_criteria": ["Observation recorded"],
+                "priority": 2,
+                "parent_id": "OBJ-001",
+            },
+            state,
+        )
+
+        assert "Cannot add a child to completed" in _last_message(cmd)
+        assert "objectives" not in cmd.update
+
+    def test_add_rejects_missing_dependency(self, bag: _ToolBag, initial_state: dict) -> None:
+        cmd = _call_tool(
+            bag.add,
+            {
+                "title": "Recon",
+                "phase": ObjectivePhase.RECON,
+                "description": "Inspect service",
+                "acceptance_criteria": ["Observation recorded"],
+                "priority": 1,
+                "blocked_by": ["OBJ-999"],
+            },
+            initial_state,
+        )
+
+        assert "missing_dependency" in _last_message(cmd)
+        assert "objectives" not in cmd.update
+
+    def test_update_rejects_start_and_new_unresolved_dependency_together(
+        self, bag: _ToolBag, initial_state: dict
+    ) -> None:
+        state = _add(
+            bag,
+            initial_state,
+            title="First",
+            phase=ObjectivePhase.RECON,
+            description="Inspect first surface",
+            acceptance_criteria=["Observation recorded"],
+            priority=1,
+        )
+        state = _add(
+            bag,
+            state,
+            title="Second",
+            phase=ObjectivePhase.RECON,
+            description="Inspect second surface",
+            acceptance_criteria=["Observation recorded"],
+            priority=2,
+        )
+        cmd = _call_tool(
+            bag.update,
+            {
+                "objective_id": "OBJ-001",
+                "status": "in-progress",
+                "add_blocked_by": ["OBJ-002"],
+            },
+            state,
+        )
+
+        assert "blocked by unresolved objectives: OBJ-002" in _last_message(cmd)
+        assert "objectives" not in cmd.update
+
+    def test_update_rejects_new_dependency_on_running_objective(
+        self, bag: _ToolBag, initial_state: dict
+    ) -> None:
+        state = _add(
+            bag,
+            initial_state,
+            title="First",
+            phase=ObjectivePhase.RECON,
+            description="Inspect first surface",
+            acceptance_criteria=["Observation recorded"],
+            priority=1,
+        )
+        state = _add(
+            bag,
+            state,
+            title="Second",
+            phase=ObjectivePhase.RECON,
+            description="Inspect second surface",
+            acceptance_criteria=["Observation recorded"],
+            priority=2,
+        )
+        state = _state_from(
+            _call_tool(
+                bag.update,
+                {"objective_id": "OBJ-001", "status": "in-progress"},
+                state,
+            ),
+            state,
+        )
+
+        cmd = _call_tool(
+            bag.update,
+            {"objective_id": "OBJ-001", "add_blocked_by": ["OBJ-002"]},
+            state,
+        )
+
+        assert "blocked by unresolved objectives: OBJ-002" in _last_message(cmd)
+        assert "objectives" not in cmd.update
+
+    def test_update_rejects_cycle_before_persisting(
+        self, bag: _ToolBag, initial_state: dict
+    ) -> None:
+        state = _add(
+            bag,
+            initial_state,
+            title="First",
+            phase=ObjectivePhase.RECON,
+            description="Inspect first surface",
+            acceptance_criteria=["Observation recorded"],
+            priority=1,
+        )
+        state = _add(
+            bag,
+            state,
+            title="Second",
+            phase=ObjectivePhase.RECON,
+            description="Inspect second surface",
+            acceptance_criteria=["Observation recorded"],
+            priority=2,
+            blocked_by=["OBJ-001"],
+        )
+        cmd = _call_tool(
+            bag.update,
+            {"objective_id": "OBJ-001", "add_blocked_by": ["OBJ-002"]},
+            state,
+        )
+
+        assert "dependency_cycle" in _last_message(cmd)
+        assert "objectives" not in cmd.update
+
+    def test_expand_rejects_unknown_child_dependency(
+        self, bag: _ToolBag, initial_state: dict
+    ) -> None:
+        state = _add(
+            bag,
+            initial_state,
+            title="Root",
+            phase=ObjectivePhase.RECON,
+            description="Inspect surface",
+            acceptance_criteria=["Observation recorded"],
+            priority=1,
+        )
+        _, cmd = _expand(
+            bag,
+            state,
+            parent_id="OBJ-001",
+            children=[
+                {
+                    "title": "Child",
+                    "description": "Inspect child surface",
+                    "acceptance_criteria": ["Observation recorded"],
+                    "blocked_by": ["OBJ-999"],
+                }
+            ],
+        )
+
+        assert "missing_dependency" in _last_message(cmd)
+        assert "objectives" not in cmd.update
+
 
 # Suppress unused imports
 _ = json

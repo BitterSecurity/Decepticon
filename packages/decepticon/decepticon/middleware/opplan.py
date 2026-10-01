@@ -38,7 +38,15 @@ from langchain.agents.middleware import AgentMiddleware
 from langchain.agents.middleware.types import OmitFromInput
 from langchain_core.messages import AIMessage, SystemMessage, ToolMessage
 
-from decepticon.tools.opplan import OPPLAN_TOOL_NAMES, build_opplan_tools
+from decepticon.tools.opplan import (
+    OPPLAN_TOOL_NAMES,
+    _inspect_objective_rows,
+    build_opplan_tools,
+)
+
+_PLAN_MUTATION_TOOLS = frozenset(
+    {"add_objective", "update_objective", "objective_expand", "objective_collapse", "load_opplan"}
+)
 
 
 def _reduce_engagement_name(current: str | None, update: str | None) -> str | None:
@@ -165,6 +173,8 @@ blocked → in-progress                 (retry with different approach)
 - ALWAYS include failure reason and attempts when marking BLOCKED
 - ALWAYS set owner to the sub-agent name before delegating (recon/exploit/postexploit)
 - ALWAYS respect blocked_by dependencies and kill chain phase order
+- Status-ready candidates are not authorization: check RoE and verify evidence
+  before delegation or completion.
 """
 
 
@@ -196,6 +206,7 @@ def _format_opplan_status(
     objectives: list[dict],
     engagement_name: str,
     threat_profile: str,
+    status_ready_ids: tuple[str, ...] | None = None,
 ) -> str:
     """Format OPPLAN for system prompt injection (concise battle tracker).
 
@@ -224,7 +235,15 @@ def _format_opplan_status(
         elif status == "cancelled":
             cancelled += 1
 
-    actionable = [o for o in objectives if o.get("status") in ("pending", "in-progress")]
+    actionable = [
+        o
+        for o in objectives
+        if (
+            o.get("id") in status_ready_ids
+            if status_ready_ids is not None
+            else o.get("status") in ("pending", "in-progress")
+        )
+    ]
     actionable.sort(key=lambda o: o.get("priority", 999))
     next_obj = actionable[0] if actionable else None
 
@@ -240,6 +259,15 @@ def _format_opplan_status(
         f"Engagement: {engagement_name}",
         f"Threat Profile: {threat_profile}",
         progress_line,
+        *(
+            [
+                "Status-ready candidates: "
+                f"{', '.join(status_ready_ids) or 'none'} "
+                "(RoE and evidence not checked)"
+            ]
+            if status_ready_ids is not None
+            else []
+        ),
         "",
         "| ID | Phase | Title | Status | Priority | Owner |",
         "|---|---|---|---|---|---|",
@@ -379,7 +407,13 @@ class OPPLANMiddleware(AgentMiddleware):
         injected_blocks: list[dict[str, Any]] = [static_block]
 
         if objectives:
-            dynamic_text = _format_opplan_status(objectives, engagement, threat)
+            inspection = _inspect_objective_rows(objectives)
+            dynamic_text = _format_opplan_status(
+                objectives, engagement, threat, inspection.status_ready_ids
+            )
+            if inspection.issues:
+                details = "; ".join(issue.describe() for issue in inspection.issues)
+                dynamic_text += f"\nGraph integrity warnings: {details}"
             injected_blocks.append({"type": "text", "text": f"\n\n{dynamic_text}"})
 
         if request.system_message is not None:
@@ -418,13 +452,11 @@ class OPPLANMiddleware(AgentMiddleware):
             return None
 
         opplan_calls = [tc for tc in last_ai.tool_calls if tc["name"] in OPPLAN_TOOL_NAMES]
+        rejected: list[ToolMessage] = []
         if len(opplan_calls) > 1:
-            # Allow the first OPPLAN call to execute normally; reject
-            # only the 2nd+ parallel calls so the model re-issues them
-            # sequentially after observing the first result.
             names = ", ".join(sorted({tc["name"] for tc in opplan_calls[1:]}))
-            return {
-                "messages": [
+            rejected.extend(
+                [
                     ToolMessage(
                         content=(
                             f"Error: parallel OPPLAN calls ({names}) rejected — "
@@ -435,9 +467,23 @@ class OPPLANMiddleware(AgentMiddleware):
                     )
                     for tc in opplan_calls[1:]
                 ]
-            }
+            )
 
-        return None
+        if any(tc["name"] in _PLAN_MUTATION_TOOLS for tc in opplan_calls):
+            rejected.extend(
+                ToolMessage(
+                    content=(
+                        "Error: task() cannot run in the same model step as an "
+                        "OPPLAN mutation. Re-issue task() after the plan tool completes."
+                    ),
+                    tool_call_id=tc["id"],
+                    status="error",
+                )
+                for tc in last_ai.tool_calls
+                if tc["name"] == "task"
+            )
+
+        return {"messages": rejected} if rejected else None
 
     @override
     async def aafter_model(self, state, runtime):
