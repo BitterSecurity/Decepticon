@@ -377,7 +377,8 @@ def test_versioned_completion_requires_real_evidence_and_separates_no_finding(
     )
     assert missing.update["messages"][0].status == "error"
     scoped = EngagementFilesystemBackend(backend, "/workspace")
-    assert scoped.write("/workspace/recon/SUMMARY.md", "No confirmed vulnerabilities").error is None
+    write_result = scoped.write("/workspace/recon/SUMMARY.md", "No confirmed vulnerabilities")
+    assert write_result.error is None
     completed = _call(
         "update_objective",
         {
@@ -463,7 +464,8 @@ def test_recorded_fact_unlocks_dependent_objective(tmp_path: Path) -> None:
     )
     assert waiting.update["messages"][0].status == "error"
     scoped = EngagementFilesystemBackend(backend, "/workspace")
-    assert scoped.write("/workspace/recon/SUMMARY.md", "Observed service").error is None
+    write_result = scoped.write("/workspace/recon/SUMMARY.md", "Observed service")
+    assert write_result.error is None
     started = _call(
         "update_objective",
         {"objective_id": "OBJ-001", "status": "in-progress"},
@@ -506,7 +508,8 @@ def test_revoked_fact_blocks_completed_dependents_transitively(tmp_path: Path) -
     backend = _backend(tmp_path)
     path = "/workspace/recon/SUMMARY.md"
     scoped = EngagementFilesystemBackend(backend, "/workspace")
-    assert scoped.write(path, "Observed service").error is None
+    write_result = scoped.write(path, "Observed service")
+    assert write_result.error is None
     rows = [
         _obj_dict("OBJ-001"),
         _obj_dict("OBJ-002", required_fact_ids=["FACT-001"]),

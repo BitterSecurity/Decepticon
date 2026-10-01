@@ -684,7 +684,6 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
         while True:
             changed = False
             by_id = {objective.id: objective for objective in objectives}
-            facts_by_id = {fact.id: fact for fact in facts}
             for index, fact in enumerate(facts):
                 if fact.verified and by_id[fact.producer_id].status != ObjectiveStatus.COMPLETED:
                     facts[index] = fact.model_copy(update={"verified": False})
