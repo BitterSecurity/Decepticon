@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import posixpath
 from datetime import datetime, timezone
 from typing import Annotated, Any
 
@@ -13,20 +14,23 @@ from langchain_core.tools import InjectedToolCallId, tool
 from langgraph.prebuilt import InjectedState
 from langgraph.types import Command
 
-from decepticon.tools.opplan_graph import PlanInspection, inspect_plan
+from decepticon.tools.opplan_graph import PlanInspection, inspect_plan, unmet_prerequisites
 from decepticon_core.types.engagement import (
     OPPLAN,
     C2Tier,
     Objective,
+    ObjectiveOutcome,
     ObjectivePhase,
     ObjectiveStatus,
     OpsecLevel,
+    PlanFact,
 )
 
 log = logging.getLogger(__name__)
 
-OPPLAN_FILE_SCHEMA_VERSION = "1"
+OPPLAN_FILE_SCHEMA_VERSION = "2"
 OPPLAN_VIRTUAL_PATH = "/workspace/plan/opplan.json"
+_UNSET = object()
 
 # All OPPLAN tools — used by ``OPPLANMiddleware.after_model`` to enforce
 # strictly sequential calls (one OPPLAN tool per LLM step). Parallel calls
@@ -41,6 +45,9 @@ OPPLAN_TOOL_NAMES: frozenset[str] = frozenset(
         "objective_expand",
         "objective_collapse",
         "load_opplan",
+        "commit_opplan",
+        "record_plan_fact",
+        "revoke_plan_fact",
     }
 )
 
@@ -53,8 +60,13 @@ _VALID_TRANSITIONS: dict[str, set[str]] = {
 }
 
 
-def _inspect_objective_rows(objectives: list[dict[str, Any]]) -> PlanInspection:
-    return inspect_plan([Objective.model_validate(row) for row in objectives])
+def _inspect_objective_rows(
+    objectives: list[dict[str, Any]], facts: list[dict[str, Any]] | None = None
+) -> PlanInspection:
+    return inspect_plan(
+        [Objective.model_validate(row) for row in objectives],
+        [PlanFact.model_validate(row) for row in (facts or [])],
+    )
 
 
 def _graph_rejection(inspection: PlanInspection, tool_call_id: str) -> Command[Any]:
@@ -72,16 +84,45 @@ def _graph_rejection(inspection: PlanInspection, tool_call_id: str) -> Command[A
     )
 
 
+def _tool_error(tool_call_id: str, content: str) -> Command[Any]:
+    return Command(
+        update={
+            "messages": [ToolMessage(content=content, tool_call_id=tool_call_id, status="error")]
+        }
+    )
+
+
+def _evidence_error(
+    backend: BackendProtocol | None, workspace_path: str | None, refs: list[str]
+) -> str | None:
+    scoped = _scoped_opplan_backend(backend, workspace_path)
+    if scoped is None:
+        return "No engagement workspace backend is configured"
+    for ref in refs:
+        path = posixpath.normpath(ref)
+        if not ref.startswith("/workspace/") or not path.startswith("/workspace/"):
+            return f"Evidence path must be under /workspace: {ref}"
+        try:
+            result = scoped.read(path, offset=0, limit=1)
+        except Exception as exc:
+            return f"Cannot read evidence {path}: {exc}"
+        if result.error:
+            return f"Cannot read evidence {path}: {result.error}"
+    return None
+
+
 def _build_opplan_payload(opplan: OPPLAN) -> dict[str, Any]:
     """Render an OPPLAN as a stable, human-readable JSON document.
 
-    Format ``v1``::
+    Format ``v2``::
 
         {
-          "schema_version": "1",
+          "schema_version": "2",
           "saved_at": "2026-05-09T09:30:00+00:00",
           "engagement_name": "<slug>",
           "threat_profile": "<text>",
+          "revision": 1,
+          "facts": [],
           "summary": {
               "total": 5,
               "completed": 2,
@@ -118,6 +159,8 @@ def _build_opplan_payload(opplan: OPPLAN) -> dict[str, Any]:
         "saved_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "engagement_name": opplan.engagement_name,
         "threat_profile": opplan.threat_profile,
+        "revision": opplan.revision,
+        "facts": [fact.model_dump(mode="json") for fact in opplan.facts],
         "summary": summary,
         "objectives": objectives_json,
     }
@@ -211,9 +254,19 @@ def _read_text_from_backend(
     return content, None
 
 
-def _write_text_to_backend(backend: BackendProtocol, file_path: str, content: str) -> str | None:
+def _write_text_to_backend(
+    backend: BackendProtocol,
+    file_path: str,
+    content: str,
+    expected_content: str | None | object = _UNSET,
+) -> str | None:
     """Create or overwrite a text file through the configured backend."""
-    old_content, read_error = _read_text_from_backend(backend, file_path)
+    if expected_content is _UNSET:
+        old_content, read_error = _read_text_from_backend(backend, file_path)
+    elif expected_content is None or isinstance(expected_content, str):
+        old_content, read_error = expected_content, None
+    else:
+        return "Invalid expected OPPLAN content"
     if old_content is None:
         write_result = backend.write(file_path, content)
         if write_result.error:
@@ -237,7 +290,11 @@ def _persist_opplan_to_backend(
     objectives: list[dict],
     engagement_name: str,
     threat_profile: str,
-) -> None:
+    revision: int = 0,
+    facts: list[dict] | None = None,
+    strict: bool = False,
+    expected_revision: int | None = None,
+) -> str | None:
     """Write the current OPPLAN to ``/workspace/plan/opplan.json`` via backend.
 
     Best-effort: a missing backend/workspace_path (e.g. a unit-level tool
@@ -253,22 +310,44 @@ def _persist_opplan_to_backend(
     scoped_backend = _scoped_opplan_backend(backend, workspace_path)
     if scoped_backend is None:
         log.debug("OPPLAN persistence skipped: backend or workspace_path missing")
-        return
+        return "No engagement workspace backend is configured" if strict else None
     try:
+        current_text: str | None | object = _UNSET
+        if expected_revision is not None:
+            current_text, read_error = _read_text_from_backend(scoped_backend, OPPLAN_VIRTUAL_PATH)
+            if current_text is None:
+                if expected_revision or not (
+                    "file_not_found" in (read_error or "")
+                    or "not found" in (read_error or "").lower()
+                ):
+                    return f"Cannot compare OPPLAN revision: {read_error}"
+            else:
+                disk_revision = int(json.loads(current_text).get("revision", 0))
+                if disk_revision != expected_revision:
+                    return (
+                        f"OPPLAN changed on disk: expected revision {expected_revision}, "
+                        f"found {disk_revision}"
+                    )
         opplan = OPPLAN(
             engagement_name=engagement_name or "",
             threat_profile=threat_profile or "",
             objectives=[Objective(**o) for o in objectives],
+            revision=revision,
+            facts=[PlanFact.model_validate(fact) for fact in (facts or [])],
         )
         error = _write_text_to_backend(
             scoped_backend,
             OPPLAN_VIRTUAL_PATH,
             json.dumps(_build_opplan_payload(opplan), indent=2, ensure_ascii=False),
+            current_text,
         )
         if error:
             log.warning("OPPLAN persistence failed for workspace=%s: %s", workspace_path, error)
+            return error
     except Exception as e:  # noqa: BLE001 — best-effort persistence
         log.warning("OPPLAN persistence failed for workspace=%s: %s", workspace_path, e)
+        return str(e)
+    return None
 
 
 def _format_opplan_for_agent(
@@ -385,6 +464,300 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
 
     @tool(
         description=(
+            "Commit the complete OPPLAN objective DAG. Supply the graph with stable "
+            "objective IDs, including forward dependencies. expected_revision must match the "
+            "current plan. Running and terminal objectives cannot be rewritten or removed. "
+            "Use this to create or replan a DAG, then dispatch only ready objectives."
+        )
+    )
+    def commit_opplan(
+        objectives: list[dict[str, Any]],
+        expected_revision: int,
+        state: Annotated[dict, InjectedState],
+        facts: list[dict[str, Any]] | None = None,
+        engagement_name: str | None = None,
+        threat_profile: str | None = None,
+        tool_call_id: Annotated[str, InjectedToolCallId] = "",
+    ) -> Command[Any]:
+        current_revision = int(state.get("plan_revision", 0))
+        if expected_revision != current_revision:
+            return _tool_error(
+                tool_call_id,
+                f"Stale OPPLAN revision: expected {current_revision}, got {expected_revision}.",
+            )
+        try:
+            proposed = [Objective.model_validate(row) for row in objectives]
+            proposed_facts = [
+                PlanFact.model_validate(row)
+                for row in (facts if facts is not None else state.get("plan_facts", []))
+            ]
+            inspection = inspect_plan(proposed, proposed_facts)
+        except Exception as exc:
+            return _tool_error(tool_call_id, f"Invalid OPPLAN payload: {exc}")
+        if inspection.issues:
+            return _graph_rejection(inspection, tool_call_id)
+        if not proposed:
+            return _tool_error(tool_call_id, "OPPLAN must contain at least one objective.")
+        old = {row["id"]: Objective.model_validate(row) for row in state.get("objectives", [])}
+        new = {objective.id: objective for objective in proposed}
+        for objective_id, objective in old.items():
+            if objective_id in new and new[objective_id].status != objective.status:
+                return _tool_error(
+                    tool_call_id,
+                    f"Use update_objective to change status of {objective_id}.",
+                )
+            if (
+                objective.status
+                in {
+                    ObjectiveStatus.IN_PROGRESS,
+                    ObjectiveStatus.COMPLETED,
+                    ObjectiveStatus.CANCELLED,
+                }
+                and new.get(objective_id) != objective
+            ):
+                return _tool_error(
+                    tool_call_id,
+                    f"Cannot rewrite or remove active/terminal objective {objective_id}.",
+                )
+        for objective in proposed:
+            if objective.id not in old and objective.status != ObjectiveStatus.PENDING:
+                return _tool_error(
+                    tool_call_id,
+                    f"New objective {objective.id} must start pending.",
+                )
+        old_facts = {row["id"]: PlanFact.model_validate(row) for row in state.get("plan_facts", [])}
+        new_facts = {fact.id: fact for fact in proposed_facts}
+        for fact_id, fact in old_facts.items():
+            if fact.verified and new_facts.get(fact_id) != fact:
+                return _tool_error(tool_call_id, f"Cannot rewrite verified fact {fact_id}.")
+        for fact in proposed_facts:
+            if fact.verified and (fact.id not in old_facts or not old_facts[fact.id].verified):
+                return _tool_error(
+                    tool_call_id, f"Use record_plan_fact to record evidence for {fact.id}."
+                )
+        name = engagement_name or state.get("engagement_name", "")
+        profile = threat_profile or state.get("threat_profile", "")
+        next_revision = current_revision + 1
+        rows = [objective.model_dump(mode="json") for objective in proposed]
+        error = _persist_opplan_to_backend(
+            backend,
+            state.get("workspace_path"),
+            rows,
+            name,
+            profile,
+            revision=next_revision,
+            facts=[fact.model_dump(mode="json") for fact in proposed_facts],
+            strict=True,
+            expected_revision=current_revision,
+        )
+        if error:
+            return _tool_error(tool_call_id, f"OPPLAN was not committed: {error}")
+        counter = max(
+            (
+                int(item.id[4:])
+                for item in proposed
+                if item.id.startswith("OBJ-") and item.id[4:].isdigit()
+            ),
+            default=0,
+        )
+        return Command(
+            update={
+                "objectives": rows,
+                "plan_revision": next_revision,
+                "plan_facts": [fact.model_dump(mode="json") for fact in proposed_facts],
+                "objective_counter": counter,
+                "engagement_name": name,
+                "threat_profile": profile,
+                "messages": [
+                    ToolMessage(
+                        content=(
+                            f"Committed OPPLAN revision {next_revision} with {len(rows)} objectives. "
+                            f"Status-ready: {', '.join(inspection.status_ready_ids) or 'none'}. "
+                            "Recheck RoE and evidence before dispatch."
+                        ),
+                        tool_call_id=tool_call_id,
+                    )
+                ],
+            }
+        )
+
+    @tool(
+        description=(
+            "Attach workspace evidence to a declared plan fact after its producer objective "
+            "completes. This checks evidence path existence, not the truth of its contents."
+        )
+    )
+    def record_plan_fact(
+        fact_id: str,
+        evidence_refs: list[str],
+        state: Annotated[dict, InjectedState],
+        tool_call_id: Annotated[str, InjectedToolCallId] = "",
+    ) -> Command[Any]:
+        if not state.get("plan_revision", 0):
+            return _tool_error(tool_call_id, "Create a versioned DAG before recording facts.")
+        facts = [PlanFact.model_validate(row) for row in state.get("plan_facts", [])]
+        fact = next((item for item in facts if item.id == fact_id), None)
+        if fact is None:
+            return _tool_error(tool_call_id, f"Fact {fact_id} is not declared in OPPLAN.")
+        if fact.verified:
+            return _tool_error(tool_call_id, f"Fact {fact_id} already has evidence.")
+        producer = next(
+            (row for row in state.get("objectives", []) if row.get("id") == fact.producer_id),
+            None,
+        )
+        if producer is None or producer.get("status") != "completed":
+            return _tool_error(tool_call_id, f"Producer {fact.producer_id} must complete first.")
+        if not evidence_refs:
+            return _tool_error(tool_call_id, "A fact requires at least one evidence path.")
+        evidence_error = _evidence_error(backend, state.get("workspace_path"), evidence_refs)
+        if evidence_error:
+            return _tool_error(tool_call_id, evidence_error)
+        updated_facts = [
+            item.model_copy(update={"evidence_refs": evidence_refs, "verified": True})
+            if item.id == fact_id
+            else item
+            for item in facts
+        ]
+        inspection = inspect_plan(
+            [Objective.model_validate(row) for row in state.get("objectives", [])],
+            updated_facts,
+        )
+        if inspection.issues:
+            return _graph_rejection(inspection, tool_call_id)
+        error = _persist_opplan_to_backend(
+            backend,
+            state.get("workspace_path"),
+            state.get("objectives", []),
+            state.get("engagement_name", ""),
+            state.get("threat_profile", ""),
+            revision=int(state["plan_revision"]) + 1,
+            facts=[item.model_dump(mode="json") for item in updated_facts],
+            strict=True,
+            expected_revision=int(state["plan_revision"]),
+        )
+        if error:
+            return _tool_error(tool_call_id, f"Fact was not saved: {error}")
+        return Command(
+            update={
+                "plan_facts": [item.model_dump(mode="json") for item in updated_facts],
+                "plan_revision": int(state["plan_revision"]) + 1,
+                "messages": [
+                    ToolMessage(
+                        content=f"Recorded evidence for {fact_id}. The artifact exists; review its contents before relying on its claim.",
+                        tool_call_id=tool_call_id,
+                    )
+                ],
+            }
+        )
+
+    @tool(
+        description=(
+            "Revoke a verified plan fact when its evidence is invalidated. This blocks active "
+            "and completed dependent objectives transitively, while preserving the audit trail."
+        )
+    )
+    def revoke_plan_fact(
+        fact_id: str,
+        reason: str,
+        state: Annotated[dict, InjectedState],
+        tool_call_id: Annotated[str, InjectedToolCallId] = "",
+    ) -> Command[Any]:
+        revision = int(state.get("plan_revision", 0))
+        if not revision:
+            return _tool_error(tool_call_id, "Create a versioned DAG before revoking facts.")
+        if not reason.strip():
+            return _tool_error(tool_call_id, "A fact revocation requires a reason.")
+        objectives = [Objective.model_validate(row) for row in state.get("objectives", [])]
+        facts = [PlanFact.model_validate(row) for row in state.get("plan_facts", [])]
+        inspection = inspect_plan(objectives, facts)
+        if inspection.issues:
+            return _graph_rejection(inspection, tool_call_id)
+        target = next((fact for fact in facts if fact.id == fact_id), None)
+        if target is None or not target.verified:
+            return _tool_error(tool_call_id, f"Fact {fact_id} is not verified in OPPLAN.")
+
+        facts = [
+            fact.model_copy(update={"verified": False}) if fact.id == fact_id else fact
+            for fact in facts
+        ]
+        affected: set[str] = set()
+        while True:
+            changed = False
+            by_id = {objective.id: objective for objective in objectives}
+            facts_by_id = {fact.id: fact for fact in facts}
+            for index, fact in enumerate(facts):
+                if fact.verified and by_id[fact.producer_id].status != ObjectiveStatus.COMPLETED:
+                    facts[index] = fact.model_copy(update={"verified": False})
+                    changed = True
+            facts_by_id = {fact.id: fact for fact in facts}
+            for index, objective in enumerate(objectives):
+                if objective.status not in {ObjectiveStatus.IN_PROGRESS, ObjectiveStatus.COMPLETED}:
+                    continue
+                unmet = unmet_prerequisites(objective, by_id, facts_by_id)
+                incomplete_children = any(
+                    child.parent_id == objective.id
+                    and child.status not in {ObjectiveStatus.COMPLETED, ObjectiveStatus.CANCELLED}
+                    for child in objectives
+                )
+                if not unmet and not incomplete_children:
+                    continue
+                objectives[index] = objective.model_copy(
+                    update={
+                        "status": ObjectiveStatus.BLOCKED,
+                        "outcome": ObjectiveOutcome.INVALIDATED,
+                        "owner": "",
+                        "notes": "\n".join(
+                            part
+                            for part in (
+                                objective.notes,
+                                f"Invalidated by {fact_id}: {reason.strip()}",
+                            )
+                            if part
+                        ),
+                    }
+                )
+                affected.add(objective.id)
+                changed = True
+            if not changed:
+                break
+
+        final_inspection = inspect_plan(objectives, facts)
+        if final_inspection.issues:
+            return _graph_rejection(final_inspection, tool_call_id)
+        rows = [objective.model_dump(mode="json") for objective in objectives]
+        fact_rows = [fact.model_dump(mode="json") for fact in facts]
+        error = _persist_opplan_to_backend(
+            backend,
+            state.get("workspace_path"),
+            rows,
+            state.get("engagement_name", ""),
+            state.get("threat_profile", ""),
+            revision=revision + 1,
+            facts=fact_rows,
+            strict=True,
+            expected_revision=revision,
+        )
+        if error:
+            return _tool_error(tool_call_id, f"Fact revocation was not saved: {error}")
+        return Command(
+            update={
+                "objectives": rows,
+                "plan_facts": fact_rows,
+                "plan_revision": revision + 1,
+                "messages": [
+                    ToolMessage(
+                        content=(
+                            f"Revoked {fact_id}. Blocked dependent objectives: "
+                            f"{', '.join(sorted(affected)) or 'none'}. Reassess the evidence before retry."
+                        ),
+                        tool_call_id=tool_call_id,
+                    )
+                ],
+            }
+        )
+
+    @tool(
+        description=(
             "Add a single objective to the OPPLAN. Auto-generates an ID "
             "(OBJ-001, OBJ-002, ...). Each objective must be completable in "
             "ONE sub-agent context window. Use blocked_by to set kill chain dependencies. "
@@ -413,6 +786,8 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
         tool_call_id: Annotated[str, InjectedToolCallId] = "",
     ) -> Command[Any]:
         """Add one objective with auto-ID generation."""
+        if state.get("plan_revision", 0):
+            return _tool_error(tool_call_id, "Use commit_opplan to revise a versioned DAG.")
         counter = state.get("objective_counter", 0) + 1
         obj_id = f"OBJ-{counter:03d}"
 
@@ -645,14 +1020,14 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
                 update={
                     "messages": [
                         ToolMessage(
-                            content="No objectives defined yet. Use `add_objective` to create objectives.",
+                            content="No objectives defined yet. Use `commit_opplan` to create a versioned DAG.",
                             tool_call_id=tool_call_id,
                         )
                     ],
                 }
             )
 
-        inspection = _inspect_objective_rows(objectives)
+        inspection = _inspect_objective_rows(objectives, state.get("plan_facts", []))
         content = _format_opplan_for_agent(
             objectives, engagement, threat, inspection.status_ready_ids
         )
@@ -687,6 +1062,8 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
         notes: str | None = None,
         owner: str | None = None,
         add_blocked_by: list[str] | None = None,
+        outcome: str | None = None,
+        evidence_refs: list[str] | None = None,
         tool_call_id: Annotated[str, InjectedToolCallId] = "",
     ) -> Command[Any]:
         """Update one objective with state transition validation."""
@@ -707,6 +1084,74 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
                     ],
                 }
             )
+
+        versioned = bool(state.get("plan_revision", 0))
+        if versioned and add_blocked_by:
+            return _tool_error(tool_call_id, "Use commit_opplan to revise DAG dependencies.")
+        if versioned and status == "blocked":
+            if (outcome or target.get("outcome")) not in {
+                "inconclusive",
+                "infrastructure-error",
+                "scope-refused",
+                "invalidated",
+            }:
+                return _tool_error(
+                    tool_call_id,
+                    "Blocked objectives require inconclusive, infrastructure-error, scope-refused, or invalidated outcome.",
+                )
+            if not (notes or target.get("notes")):
+                return _tool_error(tool_call_id, "Blocked objectives require a reason in notes.")
+        if versioned and status in {"in-progress", "completed"}:
+            by_id = {row["id"]: row for row in objectives}
+            facts = {row["id"]: row for row in state.get("plan_facts", [])}
+            unmet = [
+                dependency
+                for dependency in target.get("blocked_by", [])
+                if by_id.get(dependency, {}).get("status") != "completed"
+            ]
+            unmet.extend(
+                "one of " + ", ".join(group)
+                for group in target.get("any_of", [])
+                if not any(by_id.get(item, {}).get("status") == "completed" for item in group)
+            )
+            unmet.extend(
+                "fact " + fact_id
+                for fact_id in target.get("required_fact_ids", [])
+                if not (
+                    facts.get(fact_id, {}).get("verified")
+                    and facts.get(fact_id, {}).get("evidence_refs")
+                    and by_id.get(facts.get(fact_id, {}).get("producer_id"), {}).get("status")
+                    == "completed"
+                )
+            )
+            if unmet:
+                return _tool_error(
+                    tool_call_id,
+                    f"Objective {objective_id} prerequisites are unmet: {', '.join(unmet)}.",
+                )
+        if versioned and status == "completed":
+            if target.get("status") == "blocked":
+                return _tool_error(tool_call_id, "Retry the blocked objective before completion.")
+            if not (outcome or target.get("outcome")):
+                return _tool_error(
+                    tool_call_id, "Completed objectives require an explicit outcome."
+                )
+            if not (evidence_refs or target.get("evidence_refs")):
+                return _tool_error(
+                    tool_call_id, "Completed objectives require evidence references."
+                )
+            if (outcome or target.get("outcome")) not in {"finding", "no-finding", "objective-met"}:
+                return _tool_error(
+                    tool_call_id,
+                    "Completion outcome must be finding, no-finding, or objective-met.",
+                )
+            evidence_error = _evidence_error(
+                backend,
+                state.get("workspace_path"),
+                evidence_refs or target.get("evidence_refs", []),
+            )
+            if evidence_error:
+                return _tool_error(tool_call_id, evidence_error)
 
         updated_fields: list[str] = []
 
@@ -780,6 +1225,12 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
         if notes is not None:
             target["notes"] = notes
             updated_fields.append("notes")
+        if outcome is not None:
+            target["outcome"] = outcome
+            updated_fields.append("outcome")
+        if evidence_refs is not None:
+            target["evidence_refs"] = evidence_refs
+            updated_fields.append("evidence_refs")
 
         # ── Owner (which sub-agent is executing) ─────────────────────
         if owner is not None:
@@ -808,10 +1259,6 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
             target["blocked_by"] = sorted(existing_blocked)
             updated_fields.append("blocked_by")
 
-        inspection = _inspect_objective_rows(objectives)
-        if inspection.issues:
-            return _graph_rejection(inspection, tool_call_id)
-
         if target.get("status") in {"in-progress", "completed"}:
             unresolved = [
                 predecessor
@@ -836,6 +1283,10 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
                         ]
                     }
                 )
+
+        inspection = _inspect_objective_rows(objectives, state.get("plan_facts", []))
+        if inspection.issues:
+            return _graph_rejection(inspection, tool_call_id)
 
         if not updated_fields:
             return Command(
@@ -864,17 +1315,24 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
         total = len(objectives)
         completed_count = sum(1 for o in objectives if o.get("status") == "completed")
 
-        _persist_opplan_to_backend(
+        persistence_error = _persist_opplan_to_backend(
             backend,
             state.get("workspace_path"),
             objectives,
             state.get("engagement_name", ""),
             state.get("threat_profile", ""),
+            revision=int(state.get("plan_revision", 0)) + (1 if versioned else 0),
+            facts=state.get("plan_facts", []),
+            strict=versioned,
+            expected_revision=int(state["plan_revision"]) if versioned else None,
         )
+        if versioned and persistence_error:
+            return _tool_error(tool_call_id, f"OPPLAN update was not saved: {persistence_error}")
 
         return Command(
             update={
                 "objectives": objectives,
+                **({"plan_revision": int(state["plan_revision"]) + 1} if versioned else {}),
                 "messages": [
                     ToolMessage(
                         content=(
@@ -915,6 +1373,8 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
         ``priority`` (int, default parent.priority + N), ``mitre``,
         ``blocked_by``.
         """
+        if state.get("plan_revision", 0):
+            return _tool_error(tool_call_id, "Use commit_opplan to revise a versioned DAG.")
         objectives = [dict(o) for o in state.get("objectives", [])]
         parent = next((o for o in objectives if o.get("id") == parent_id), None)
         if parent is None:
@@ -1071,6 +1531,8 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
         tool_call_id: Annotated[str, InjectedToolCallId] = "",
     ) -> Command[Any]:
         """Mark every descendant of ``parent_id`` as cancelled."""
+        if state.get("plan_revision", 0):
+            return _tool_error(tool_call_id, "Use commit_opplan to revise a versioned DAG.")
         objectives = [dict(o) for o in state.get("objectives", [])]
         if not any(o.get("id") == parent_id for o in objectives):
             return Command(
@@ -1204,13 +1666,9 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
             )
 
         objectives_raw = [o.model_dump() for o in opplan.objectives]
-        inspection = inspect_plan(opplan.objectives)
-        graph_diagnostics = (
-            " Graph integrity warnings: "
-            + "; ".join(issue.describe() for issue in inspection.issues)
-            if inspection.issues
-            else ""
-        )
+        inspection = inspect_plan(opplan.objectives, opplan.facts)
+        if inspection.issues:
+            return _graph_rejection(inspection, tool_call_id)
 
         # Derive counter from highest existing ID so new objectives don't collide
         counter = 0
@@ -1228,14 +1686,15 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
                 "engagement_name": opplan.engagement_name,
                 "threat_profile": opplan.threat_profile,
                 "objective_counter": counter,
+                "plan_revision": opplan.revision,
+                "plan_facts": [fact.model_dump(mode="json") for fact in opplan.facts],
                 "workspace_path": workspace_path,
                 "messages": [
                     ToolMessage(
                         content=(
                             f"Loaded {len(objectives_raw)} objectives from {OPPLAN_VIRTUAL_PATH}. "
                             f"Engagement: {opplan.engagement_name} | "
-                            f"Counter at OBJ-{counter:03d}"
-                            f"{graph_diagnostics}"
+                            f"Counter at OBJ-{counter:03d} | revision {opplan.revision}"
                         ),
                         tool_call_id=tool_call_id,
                     )
@@ -1244,6 +1703,9 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
         )
 
     return [
+        commit_opplan,
+        record_plan_fact,
+        revoke_plan_fact,
         add_objective,
         get_objective,
         list_objectives,

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from decepticon.tools.opplan_graph import inspect_plan
-from decepticon_core.types.engagement import Objective, ObjectivePhase, ObjectiveStatus
+from decepticon_core.types.engagement import Objective, ObjectivePhase, ObjectiveStatus, PlanFact
 
 
 def _objective(
@@ -96,3 +96,35 @@ def test_ready_frontier_contains_only_pending_leaves_with_completed_predecessors
 
     assert inspection.issues == ()
     assert inspection.status_ready_ids == ("OBJ-003", "OBJ-002", "OBJ-006")
+
+
+def test_alternative_and_fact_gates_control_ready_frontier() -> None:
+    target = _objective("OBJ-004")
+    target.any_of = [["OBJ-001", "OBJ-002"]]
+    target.required_fact_ids = ["FACT-001"]
+    producer = _objective("OBJ-003", status=ObjectiveStatus.COMPLETED)
+    facts = [
+        PlanFact(
+            id="FACT-001",
+            producer_id="OBJ-003",
+            summary="Observed in-scope service",
+            evidence_refs=["/workspace/recon/SUMMARY.md"],
+            verified=False,
+        )
+    ]
+    objectives = [
+        _objective("OBJ-001", status=ObjectiveStatus.COMPLETED),
+        _objective("OBJ-002"),
+        producer,
+        target,
+    ]
+    assert "OBJ-004" not in inspect_plan(objectives, facts).status_ready_ids
+    facts[0].verified = True
+    assert "OBJ-004" in inspect_plan(objectives, facts).status_ready_ids
+
+
+def test_fact_producer_cycle_is_rejected() -> None:
+    target = _objective("OBJ-001")
+    target.required_fact_ids = ["FACT-001"]
+    facts = [PlanFact(id="FACT-001", producer_id="OBJ-001", summary="Self evidence")]
+    assert "dependency_cycle" in {issue.code for issue in inspect_plan([target], facts).issues}
