@@ -389,12 +389,18 @@ def _completed_payload(resp: httpx.Response) -> dict[str, Any]:
             item = event.get("item") or {}
             if isinstance(item, dict) and item.get("type") == "function_call":
                 item_id = item.get("id") or item.get("call_id") or "tool_call"
-                function_calls[item_id] = {
-                    "type": "function_call",
-                    "call_id": item.get("call_id") or item_id,
-                    "name": item.get("name") or "",
-                    "arguments": item.get("arguments") or "",
-                }
+                entry = function_calls.setdefault(
+                    item_id,
+                    {
+                        "type": "function_call",
+                        "call_id": item_id,
+                        "name": "",
+                        "arguments": "",
+                    },
+                )
+                entry["call_id"] = item.get("call_id") or entry["call_id"]
+                entry["name"] = item.get("name") or entry["name"]
+                entry["arguments"] = entry["arguments"] or item.get("arguments") or ""
         elif event_type == "response.function_call_arguments.delta":
             item_id = event.get("item_id") or event.get("call_id") or "tool_call"
             entry = function_calls.setdefault(
@@ -584,11 +590,12 @@ class _CodexSseAccumulator:
             item = event.get("item") or {}
             if isinstance(item, dict) and item.get("type") == "function_call":
                 item_id = item.get("id") or item.get("call_id") or "tool_call"
-                self._calls[item_id] = {
-                    "call_id": item.get("call_id") or item_id,
-                    "name": item.get("name") or "",
-                    "arguments": item.get("arguments") or "",
-                }
+                entry = self._calls.setdefault(
+                    item_id, {"call_id": item_id, "name": "", "arguments": ""}
+                )
+                entry["call_id"] = item.get("call_id") or entry["call_id"]
+                entry["name"] = item.get("name") or entry["name"]
+                entry["arguments"] = entry["arguments"] or item.get("arguments") or ""
             return []
 
         if kind == "response.function_call_arguments.delta":
