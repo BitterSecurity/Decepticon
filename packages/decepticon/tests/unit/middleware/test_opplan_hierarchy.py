@@ -620,6 +620,45 @@ class TestObjectiveGraphGuards:
         assert "blocked by unresolved objectives: OBJ-002" in _last_message(cmd)
         assert "objectives" not in cmd.update
 
+    def test_update_rejects_completion_with_unresolved_dependency(
+        self, bag: _ToolBag, initial_state: dict
+    ) -> None:
+        state = _add(
+            bag,
+            initial_state,
+            title="First",
+            phase=ObjectivePhase.RECON,
+            description="Inspect first surface",
+            acceptance_criteria=["Observation recorded"],
+            priority=1,
+        )
+        state = _add(
+            bag,
+            state,
+            title="Second",
+            phase=ObjectivePhase.RECON,
+            description="Inspect second surface",
+            acceptance_criteria=["Observation recorded"],
+            priority=2,
+        )
+        state["objectives"][0]["status"] = "blocked"
+
+        cmd = _call_tool(
+            bag.update,
+            {
+                "objective_id": "OBJ-001",
+                "status": "completed",
+                "add_blocked_by": ["OBJ-002"],
+            },
+            state,
+        )
+
+        assert (
+            "Cannot set OBJ-001 to completed: blocked by unresolved objectives: OBJ-002"
+            in _last_message(cmd)
+        )
+        assert "objectives" not in cmd.update
+
     def test_update_rejects_cycle_before_persisting(
         self, bag: _ToolBag, initial_state: dict
     ) -> None:

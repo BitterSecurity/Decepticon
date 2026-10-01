@@ -812,7 +812,7 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
         if inspection.issues:
             return _graph_rejection(inspection, tool_call_id)
 
-        if target.get("status") == "in-progress":
+        if target.get("status") in {"in-progress", "completed"}:
             unresolved = [
                 predecessor
                 for predecessor in target.get("blocked_by", [])
@@ -827,7 +827,7 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
                         "messages": [
                             ToolMessage(
                                 content=(
-                                    f"Cannot start {objective_id}: blocked by unresolved "
+                                    f"Cannot set {objective_id} to {target['status']}: blocked by unresolved "
                                     f"objectives: {', '.join(unresolved)}"
                                 ),
                                 tool_call_id=tool_call_id,
