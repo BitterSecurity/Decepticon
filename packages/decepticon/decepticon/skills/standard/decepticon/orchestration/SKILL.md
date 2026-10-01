@@ -4,7 +4,7 @@ description: "Decepticon orchestrator patterns — delegation, state management,
 allowed-tools: Read
 metadata:
   subdomain: orchestration
-  when_to_use: "delegate, orchestrate, next objective, blocked, re-plan, hand off, engagement state, status update, parallel execution"
+  when_to_use: "delegate, orchestrate, next objective, blocked, re-plan, hand off, engagement state, status update"
   tags: orchestration, delegation, state-management, re-planning, context-handoff
   upstream_ref: "Decepticon orchestrator delegation / re-planning patterns — multi-agent control plane, no direct attack technique"
 ---
@@ -24,6 +24,14 @@ Every `task()` delegation MUST include:
 6. **Output Location** — Where to save results (e.g. `recon/`, `exploit/`)
 
 ### Delegation Template
+
+Follow the live `task` tool schema. The OSS dispatcher accepts `description` and
+`subagent_type`; the hosted dynamic dispatcher additionally requires `context`
+and `model` and may accept `task_id`. Put the full handoff in `description` for
+OSS, or split the task goal into `description` and the supporting facts into
+`context` for the hosted dispatcher. Select `model` from its assignment manifest.
+The optional `task_id` is a trace label, not proof of objective readiness.
+
 ```
 task(
   description="""
@@ -59,17 +67,13 @@ task(
 | Exploitation | `exploit` | Initial access: SQLi, SSTI, AD attacks, credential exploitation |
 | Post-Exploitation | `postexploit` | After foothold: cred dump, privesc, lateral movement, C2 |
 
-### Parallel Execution
-Delegate independent tasks simultaneously for efficiency:
-```
-# Independent targets — run in parallel
-task(description="Recon subnet 10.0.0.0/24...", subagent_type="recon")
-task(description="Recon subnet 10.0.1.0/24...", subagent_type="recon")
+### Independent Objectives
 
-# DO NOT parallelize dependent tasks:
-# ✗ Exploit before recon completes
-# ✗ PostExploit before foothold established
-```
+Independent objectives may be ready at the same time, but the hosted dynamic
+dispatcher serializes specialist calls per engagement. Dispatch one, inspect
+its result, then dispatch the next. Never dispatch an objective whose
+`blocked_by` predecessor is unresolved. Separate OPPLAN mutations and `task()`
+calls into different model responses. Check RoE for each actual action.
 
 ## State Management
 
@@ -87,7 +91,7 @@ task(description="Recon subnet 10.0.1.0/24...", subagent_type="recon")
 ```
 
 ### State Update Protocol (After Each Sub-Agent Returns)
-1. **Parse result** — Did the sub-agent report COMPLETED or BLOCKED?
+1. **Parse result** — What did the sub-agent actually observe, and where is its evidence? A returned task is not automatically a completed objective.
 2. **Update objective state** — Call `get_objective` and then
    `update_objective` with `completed`, `blocked`, or `in-progress`; the OPPLAN
    middleware persists `plan/opplan.json` automatically.
@@ -102,25 +106,26 @@ task(description="Recon subnet 10.0.1.0/24...", subagent_type="recon")
 
 ## After Recon Returns — Decision Tree
 
-Execute this IN ORDER after every recon task() completes. No exceptions.
+Review these questions after every recon task() completes.
 
 ```
 1. Read recon/SUMMARY.md
    ├── Missing or empty? → Rule 13 crash protocol (retry once, then BLOCKED)
    └── Present → continue
 
-2. Contains RECON_HANDOFF / CRITICAL/HIGH finding / captured session?
-   ├── YES → dispatch task("exploit", ...) IMMEDIATELY (Rule 19)
-   │         Pass: exact vector, URL, param, session tokens, challenge tags
-   └── NO (RECON_BUDGET_EXHAUSTED / LOW/INFO only) → continue
+2. Contains a credible in-scope path for exploitation?
+   ├── YES → create or select an objective whose dependencies are satisfied,
+   │         then dispatch a focused exploit task with the exact evidence.
+   └── NO → record why, then consider a bounded follow-up or another ready objective.
 
 3. RECON_BUDGET_EXHAUSTED with zero confirmed vulns?
    ├── Unvisited surface remains? → focused second recon turn on that surface
-   └── No unvisited surface → update_objective(status="blocked",
-                               reason="recon exhausted: no confirmed vuln class")
+   └── No unvisited surface → update_objective(objective_id="<id>",
+                               status="blocked", notes="recon exhausted: <evidence and attempts>")
 ```
 
-**Rule**: Step 2 YES has NO exceptions. Do not do "one more recon probe" first.
+The OPPLAN dependency state does not authorize a new probe. Recheck the signed
+RoE and any required operator approval before each delegation.
 
 ## Adaptive Re-planning
 
@@ -138,17 +143,19 @@ Execute this IN ORDER after every recon task() completes. No exceptions.
 
 3. Decision:
    IF alternative exists → delegate new task with adjusted approach
-   IF prerequisite missing → re-order objectives (e.g., need more recon)
+   IF prerequisite missing → add or update dependency links through OPPLAN tools
    IF no path forward → mark BLOCKED with explanation, move to next objective
 ```
 
 ### Re-ordering Objectives
-The OPPLAN defines priority order, but you may deviate when:
+The OPPLAN defines priority order among ready objectives. You may choose a
+different ready objective when:
 - A higher-priority objective depends on a lower-priority one
 - New findings reveal a faster path to the same goal
 - An objective is temporarily blocked and others are actionable
 
-Always document re-ordering decisions in lessons_learned.md.
+Never bypass an unresolved `blocked_by` link; document selection or re-planning
+decisions in objective notes and lessons_learned.md.
 
 ## Response Format
 
@@ -169,7 +176,7 @@ Before each delegation, briefly state:
 Maintain running status after each iteration:
 ```
 Engagement: {name}
-Progress: {passed}/{total} objectives
+Progress: {completed}/{total} objectives
 Current: OBJ-003 (Exploit phase)
 Blocked: OBJ-002 (WAF blocking SQLi — will retry after credential access)
 Next: OBJ-004 (PostExploit — pending OBJ-003 completion)

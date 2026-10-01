@@ -225,6 +225,27 @@ def test_load_opplan_reads_through_backend(tmp_path: Path) -> None:
     assert OPPLAN_VIRTUAL_PATH in cmd.update["messages"][0].content
 
 
+def test_load_opplan_keeps_legacy_plan_with_graph_diagnostics(tmp_path: Path) -> None:
+    backend = _backend(tmp_path)
+    _persist_opplan_to_backend(
+        backend,
+        "/workspace",
+        [_obj_dict("OBJ-001", blocked_by=["OBJ-999"])],
+        engagement_name="demo",
+        threat_profile="apt-x",
+    )
+
+    cmd = _call(
+        "load_opplan",
+        {"workspace_path": "/workspace"},
+        state={},
+        backend=backend,
+    )
+
+    assert cmd.update["objectives"][0]["id"] == "OBJ-001"
+    assert "Graph integrity warnings: missing_dependency" in cmd.update["messages"][0].content
+
+
 def test_load_opplan_binds_workspace_when_plan_is_missing(tmp_path: Path) -> None:
     backend = _backend(tmp_path)
 
@@ -414,6 +435,24 @@ def test_after_model_allows_opplan_alongside_non_opplan_tool() -> None:
         ],
     )
     assert middleware.after_model({"messages": [last_ai]}, runtime=None) is None
+
+
+def test_after_model_rejects_task_parallel_with_plan_mutation() -> None:
+    middleware = OPPLANMiddleware()
+    last_ai = AIMessage(
+        content="",
+        tool_calls=[
+            {"id": "tc-plan", "name": "update_objective", "args": {}, "type": "tool_call"},
+            {"id": "tc-task", "name": "task", "args": {}, "type": "tool_call"},
+        ],
+    )
+
+    update = middleware.after_model({"messages": [last_ai]}, runtime=None)
+
+    assert update is not None
+    assert len(update["messages"]) == 1
+    assert update["messages"][0].tool_call_id == "tc-task"
+    assert update["messages"][0].status == "error"
 
 
 def test_opplan_tool_names_constant_matches_registered_tools() -> None:

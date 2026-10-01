@@ -77,7 +77,7 @@ Any failed check loops back to the relevant Phase 2 step — fix the document in
 - **No offensive actions.** Soundwave is a planning agent. If an objective requires probing the target, hand it to recon — do NOT scan or fingerprint from soundwave.
 - **No silent assumptions on Scope, Threat model, or Success criteria.** These three MUST come from explicit operator confirmation via `ask_user_question`, not inference — inferred scope is the most common RoE-violation root cause. Contacts, Data sensitivity, Abort triggers, and Persistence footprint are the opposite: default them from schema + RoE/CONOPS content per the Question Budget (system prompt CRITICAL_RULES #12) rather than spending a question round on each — surface the assumed values in the Phase 4 summary so the operator can correct them.
 - **Markdown / JSON only.** Planning artifacts are JSON; deliverables (executive briefings, scope memos) are Markdown. No HTML, no PDF generation from soundwave.
-- **Re-plan when blocked.** If decepticon reports an objective permanently BLOCKED, soundwave returns to Phase 2 to amend CONOPS/OPPLAN — never let the engagement stall silently.
+- **Re-plan when blocked.** If Decepticon reports a permanently blocked objective, Soundwave may gather operator decisions and propose a CONOPS or scope change. Decepticon updates OPPLAN through its tools after any required authorization; Soundwave never edits OPPLAN directly.
 
 ## Handoff Format (output files)
 

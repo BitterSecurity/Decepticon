@@ -11,7 +11,7 @@ metadata:
 
 # Final Engagement Report Generation
 
-**Execute when all OPPLAN objectives are in `passed` or `blocked` status. Output is two Markdown documents in `report/`.**
+**Execute when all OPPLAN objectives are in `completed`, `blocked`, or `cancelled` status. Output is two Markdown documents in `report/`.**
 
 ## Report Generation Workflow
 

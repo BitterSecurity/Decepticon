@@ -76,7 +76,7 @@ Objective BLOCKED
 │   │   → Consult defense-evasion skill → retry with evasion
 │   │
 │   ├── Missing prerequisite (need creds/access/info)
-│   │   → Identify which prior phase provides it → re-order objectives
+│   │   → Identify which objective provides it → update `blocked_by` through OPPLAN tools
 │   │
 │   ├── Target hardened / not vulnerable
 │   │   → Check findings for alternative target → redirect attack
@@ -89,7 +89,7 @@ Objective BLOCKED
 │   └── NO  → Mark BLOCKED, document reason, proceed to next objective
 │
 └── Should we REVISIT later?
-    ├── YES (new intel may help) → Keep status BLOCKED, note in lessons_learned.md
+    ├── YES (new intel may help) → Keep status BLOCKED, note in OPPLAN and lessons_learned.md
     └── NO (dead end) → Mark BLOCKED permanently
 ```
 

@@ -192,6 +192,21 @@ class TestFormatOpplanStatusCounts:
 
 
 class TestInjectOpplanContext:
+    def test_next_objective_excludes_unmet_dependency(self) -> None:
+        req = _FakeRequest(
+            state={
+                "objectives": [
+                    _obj_dict("OBJ-001", priority=2),
+                    _obj_dict("OBJ-002", priority=1, blocked_by=["OBJ-001"]),
+                ]
+            }
+        )
+
+        result = OPPLANMiddleware()._inject_opplan_context(req)
+
+        assert "**Next**: OBJ-001" in _flatten(result.system_message)
+        assert "Status-ready candidates: OBJ-001" in _flatten(result.system_message)
+
     def test_no_objectives_produces_single_static_block_with_cache_control(self) -> None:
         req = _FakeRequest(state={}, system_message=None)
         result = OPPLANMiddleware()._inject_opplan_context(req)
