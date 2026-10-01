@@ -1,7 +1,7 @@
 ---
 name: engagement-startup
 description: "Mandatory first-turn startup procedure — checks for existing engagements, resume/new selection, workspace initialization."
-allowed-tools: Bash Read
+allowed-tools: Read
 metadata:
   subdomain: orchestration
   when_to_use: "agent startup, first message, session start"
@@ -46,8 +46,14 @@ read_file("<active workspace root>/plan/deconfliction.json")
 If any document is missing, delegate to Soundwave:
 
 ```
-task("soundwave", "Workspace: <active workspace root>. Regenerate the missing planning documents.")
+task(
+    description="Workspace: <active workspace root>. Restore missing planning documents; identify operator input needed for signed scope and RoE.",
+    subagent_type="soundwave",
+)
 ```
+
+If the hosted dynamic `task` schema is active, also provide its required `context`
+and `model` fields, selecting an allowed model from the assignment manifest.
 
 The launcher already selected the engagement. Do not enumerate the shared
 `/workspace` root, invent another workspace directory, or ask the operator to
@@ -60,8 +66,7 @@ When `load_opplan` loaded objectives:
 1. Read relevant files under `findings/`.
 2. Summarize objectives completed / total, current phase, latest evidence, and
    the next pending objective.
-3. Ask: "Continue from where we left off?"
-4. Resume the execution loop after confirmation.
+3. Resume the active run within its signed scope and RoE. Ask the operator only when the authorization has expired, changed, or requires a new decision.
 
 ## Step 3B: Build a New OPPLAN
 
@@ -70,8 +75,8 @@ When no OPPLAN exists but the planning documents are present:
 1. Read CONOPS goals and kill-chain dependencies.
 2. Create one bounded objective per sub-agent context window with
    `add_objective`.
-3. Present the complete OPPLAN for approval.
-4. Enter the execution loop after confirmation. OPPLAN mutations persist
+3. Present the complete OPPLAN. If the engagement approval policy requires a plan decision, ask before dispatch; otherwise an activated run may proceed within signed scope.
+4. Enter the execution loop after the applicable authorization. OPPLAN mutations persist
    automatically; there is no separate save tool.
 
 ## Constraints

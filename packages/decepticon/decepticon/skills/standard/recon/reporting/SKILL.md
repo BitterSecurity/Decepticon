@@ -447,22 +447,18 @@ Individual findings combine into attack chains. Document these explicitly — th
 
 ## 11. OPPLAN Feedback Loop
 
-After generating the report, update `plan/opplan.json` to reflect actual findings.
+After generating the report, return the objective IDs, evidence paths, and proposed follow-up work to the orchestrator. Do not edit `plan/opplan.json`: the orchestrator owns OPPLAN mutations through `get_objective`, `update_objective`, and `add_objective`.
 
 ### Update Completed Objectives
 
-For each recon objective:
-- Set `"status": "completed"` for finished objectives
-- Add an actual findings summary to a `"results"` field
-- Note any objectives that were blocked or partially completed
+For each recon objective, report whether its acceptance criteria were met, cite the supporting evidence, and explain any blocked or partial work. The orchestrator records the appropriate status and evidence summary with `update_objective` after reviewing the handoff.
 
 ### Create Follow-Up Objectives
 
 When the report reveals new targets or attack paths not in the original OPPLAN:
-1. Create new objectives following the `OBJ-{PHASE}-{NUMBER}` convention
-2. Assign priorities based on finding severity (CRITICAL findings → highest priority)
-3. Ensure new objectives have scope check, OPSEC check, and output persistence criteria
-4. Use `opplan-converter` skill's `references/objective-rules.md` for validation
+1. Propose follow-up objectives to the orchestrator; do not assign IDs or insert them into the plan yourself.
+2. Include the finding ID, target, suggested priority, scope and OPSEC checks, and evidence-based acceptance criteria.
+3. Identify prerequisite objective IDs separately from finding IDs. The orchestrator validates scope and adds authorized work with `add_objective(blocked_by=[...])`.
 
 ### Report → OPPLAN Mapping
 
@@ -491,5 +487,5 @@ Before concluding reconnaissance and handing off to the exploitation phase:
 - [ ] Raw scan data preserved in `recon/` directory
 - [ ] Attack chains documented in consolidated report
 - [ ] Consolidated recon report saved to `recon/report_<target>.md`
-- [ ] `opplan.json` updated with completed objectives and findings
-- [ ] New follow-up objectives created for next phase (if authorized)
+- [ ] Objective IDs, results, evidence paths, and follow-up proposals returned to the orchestrator
+- [ ] No direct OPPLAN file edits made by the specialist
