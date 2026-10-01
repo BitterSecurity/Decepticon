@@ -6,6 +6,20 @@ follows [Semantic Versioning](https://semver.org/) from `1.0.0`
 onward (the `0.x` cycle is pre-stable per the core/framework/sdk split
 design spec, §13.4).
 
+## [1.2.0] — 2026-10-01
+
+### Added
+
+- **Dependency-aware OPPLAN:** validate the objective DAG before plan mutations,
+  reject cycles and unresolved prerequisites, and prevent completion while a
+  required objective remains incomplete. The orchestrator's startup, planning,
+  delegation, and specialist skills now use the same OPPLAN contract. (#829, #830)
+
+### Fixed
+
+- Preserve streamed Codex function-call arguments when an SSE argument delta
+  arrives before the corresponding output-item metadata. (#828)
+
 ## [1.1.47] — 2026-09-26
 
 ### Fixed
