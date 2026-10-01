@@ -152,6 +152,48 @@ def test_function_call_arguments_are_reassembled_before_release() -> None:
     assert chunks[-1]["finish_reason"] == "tool_calls"
 
 
+def test_arguments_survive_added_event_after_first_delta() -> None:
+    events = [
+        {"type": "response.function_call_arguments.delta", "item_id": "item_1", "delta": '{"city"'},
+        {
+            "type": "response.output_item.added",
+            "item": {
+                "type": "function_call",
+                "id": "item_1",
+                "call_id": "call_abc",
+                "name": "get_weather",
+            },
+        },
+        {
+            "type": "response.function_call_arguments.delta",
+            "item_id": "item_1",
+            "delta": ':"Seoul"}',
+        },
+        {
+            "type": "response.output_item.done",
+            "item": {
+                "type": "function_call",
+                "id": "item_1",
+                "call_id": "call_abc",
+                "name": "get_weather",
+            },
+        },
+        {"type": "response.completed", "response": {"output": []}},
+    ]
+
+    chunks = _drive(*events)
+    tool = next(chunk["tool_use"] for chunk in chunks if chunk["tool_use"])
+    assert tool["id"] == "call_abc"
+    assert json.loads(tool["function"]["arguments"]) == {"city": "Seoul"}
+
+    response = types.SimpleNamespace(
+        status_code=200,
+        text="\n".join(f"data: {json.dumps(event)}" for event in events),
+    )
+    payload = _module._completed_payload(response)
+    assert json.loads(payload["output"][0]["arguments"]) == {"city": "Seoul"}
+
+
 def test_name_is_backfilled_when_only_the_done_event_carries_it() -> None:
     # Some upstream variants skip `output_item.added`; `done` is authoritative.
     chunks = _drive(
