@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import json
 import os
+from pathlib import Path
 from typing import Any
 
 from langchain_core.tools import tool
 
+from decepticon.tools.bash.bash import _current_workspace_path
 from decepticon.tools.web.graphql import GraphQLSchema
 from decepticon.tools.web.http import HTTPSession
 from decepticon.tools.web.jwt import (
@@ -156,6 +158,50 @@ def cookie_audit(
 
 _session: HTTPSession | None = None
 
+_COOKIE_JAR_RELPATH = "exploit/creds/http_session.json"
+
+
+def _host_of(value: str) -> str:
+    """Best-effort host extraction from a target URL or bare host string."""
+    import httpx
+
+    candidate = value if "://" in value else f"http://{value}"
+    try:
+        return (httpx.URL(candidate).host or "").lower()
+    except (ValueError, TypeError):
+        return ""
+
+
+def _cookie_jar_path(workspace: str) -> Path:
+    return Path(workspace.rstrip("/") or workspace) / _COOKIE_JAR_RELPATH
+
+
+def _seed_session_from_workspace(session: HTTPSession, workspace: str) -> None:
+    """Seed the session's auth headers/cookies from ``plan/credentials.json``.
+
+    Host-scoped: each credential's headers and cookies are bound to the host
+    named by its ``target`` (falling back to ``login_url``). A credential with
+    neither cannot be host-scoped and is skipped here — the agent still sees it
+    in the injected context block and can authenticate manually.
+    """
+    cred_path = Path(workspace.rstrip("/") or workspace) / "plan" / "credentials.json"
+    try:
+        data = json.loads(cred_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return
+    if not isinstance(data, dict):
+        return
+    for entry in data.get("credentials", []):
+        if not isinstance(entry, dict):
+            continue
+        host = _host_of(str(entry.get("target") or entry.get("login_url") or ""))
+        if not host:
+            continue
+        headers = entry.get("headers") if isinstance(entry.get("headers"), dict) else None
+        cookies = entry.get("cookies") if isinstance(entry.get("cookies"), dict) else None
+        if headers or cookies:
+            session.seed_credential(host=host, headers=headers, cookies=cookies)
+
 
 def _get_session() -> HTTPSession:
     global _session
@@ -163,6 +209,10 @@ def _get_session() -> HTTPSession:
         verify_env = os.environ.get("DECEPTICON_HTTP_VERIFY_TLS", "").strip().lower()
         verify_tls = verify_env in {"1", "true", "yes", "on"}
         _session = HTTPSession(verify=verify_tls)
+        workspace = _current_workspace_path.get()
+        if workspace and workspace != "/workspace":
+            _seed_session_from_workspace(_session, workspace)
+            _session.load_cookies(_cookie_jar_path(workspace))
     return _session
 
 
@@ -175,6 +225,12 @@ async def http_request(
     tag: str = "",
 ) -> str:
     """Send an HTTP request and return the response.
+
+    The session is shared across calls: cookies set by a login response carry
+    into later requests automatically. When the engagement provides credentials
+    (`plan/credentials.json`), any operator-supplied auth headers/cookies are
+    pre-seeded for the matching host, so authenticated requests need no manual
+    header. Per-call ``headers_json`` overrides a seeded header.
 
     Args:
         method: HTTP method (GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS)
@@ -204,6 +260,13 @@ async def http_request(
             body=body.encode() if body else None,
             tag=tag,
         )
+        # Persist the jar so a login performed in one agent's process is
+        # rehydrated by the next agent via load_cookies in _get_session.
+        workspace = _current_workspace_path.get()
+        if workspace and workspace != "/workspace":
+            jar_path = _cookie_jar_path(workspace)
+            jar_path.parent.mkdir(parents=True, exist_ok=True)
+            session.save_cookies(jar_path)
         return _json(
             {
                 "status": resp.status,

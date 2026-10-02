@@ -322,6 +322,82 @@ def _build_deconfliction_injection(data: dict[str, Any]) -> str:
     )
 
 
+# Cache of parsed credentials.json keyed by path -> (mtime, value). Same
+# mtime-keyed memoization as the deconfliction cache above: the injector runs
+# on every model call, and an operator who edits the file mid-engagement sees
+# the new credentials on the next turn.
+_CREDENTIALS_CACHE: dict[str, tuple[float, dict[str, Any] | None]] = {}
+
+
+def _load_credentials(workspace: str) -> dict[str, Any] | None:
+    root = workspace.rstrip("/") or workspace
+    path = Path(root) / "plan" / "credentials.json"
+    key = str(path)
+    try:
+        mtime = path.stat().st_mtime
+    except OSError:
+        # Absent (or unstattable): drop any stale entry and skip the block.
+        _CREDENTIALS_CACHE.pop(key, None)
+        return None
+    cached = _CREDENTIALS_CACHE.get(key)
+    if cached is not None and cached[0] == mtime:
+        return cached[1]
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        # Do NOT cache read/parse failures: a transient error (mid-write file,
+        # brief I/O hiccup) must not be pinned as "no credentials" for the
+        # lifetime of this mtime. Drop any stale entry and retry next call.
+        log.warning("engagement: failed to read %s: %s; skipping block", path, exc)
+        _CREDENTIALS_CACHE.pop(key, None)
+        return None
+    result = data if isinstance(data, dict) else None
+    _CREDENTIALS_CACHE[key] = (mtime, result)
+    return result
+
+
+def _build_credentials_injection(data: dict[str, Any]) -> str:
+    raw_credentials = data.get("credentials")
+    credentials = raw_credentials if isinstance(raw_credentials, list) else []
+
+    blocks: list[str] = []
+    for entry in credentials:
+        if not isinstance(entry, dict):
+            continue
+        cred_id = entry.get("id")
+        if not (isinstance(cred_id, str) and cred_id):
+            continue
+        fields: list[str] = [f"- id: {cred_id}"]
+        for field_name in ("label", "target", "login_method", "login_url", "username"):
+            value = entry.get(field_name)
+            if isinstance(value, str) and value:
+                fields.append(f"  {field_name}: {value}")
+        if entry.get("password"):
+            fields.append(f"  password: {entry['password']}")
+        headers = entry.get("headers")
+        if isinstance(headers, dict) and headers:
+            rendered = ", ".join(f"{k}: {v}" for k, v in headers.items())
+            fields.append(f"  headers: {rendered}")
+        cookies = entry.get("cookies")
+        if isinstance(cookies, dict) and cookies:
+            rendered = "; ".join(f"{k}={v}" for k, v in cookies.items())
+            fields.append(f"  cookies: {rendered}")
+        notes = entry.get("notes")
+        if isinstance(notes, str) and notes:
+            fields.append(f"  notes: {notes}")
+        blocks.append("\n".join(fields))
+
+    if not blocks:
+        return ""
+
+    return (
+        "\n\n[Target credentials — provided by operator]\n"
+        "The operator supplied these logins for the target. Authenticate with "
+        "them FIRST, before unauthenticated probing, and operate as that user. "
+        "Re-login if the session expires:\n" + "\n".join(blocks)
+    )
+
+
 def _format_extra_services(target_url: str, extra_ports: dict[int, int]) -> str:
     if not extra_ports:
         return ""
@@ -366,6 +442,22 @@ def _build_benchmark_injection(
     return "".join(sections)
 
 
+# Tool calls scoped to the engagement workspace via the bash_workspace
+# contextvar. The bash family needs it for sandbox routing; the web HTTP tools
+# need it to seed operator credentials and persist the session cookie jar under
+# the workspace (see tools/web/tools.py).
+_WORKSPACE_SCOPED_TOOLS = frozenset(
+    {
+        "bash",
+        "bash_output",
+        "bash_kill",
+        "bash_status",
+        "http_request",
+        "http_history",
+    }
+)
+
+
 class EngagementContextMiddleware(AgentMiddleware):
     """Inject engagement and per-challenge context into every model call.
 
@@ -401,12 +493,7 @@ class EngagementContextMiddleware(AgentMiddleware):
 
     @override
     def wrap_tool_call(self, request, handler) -> ToolMessage | Command:
-        if request.tool and request.tool.name in {
-            "bash",
-            "bash_output",
-            "bash_kill",
-            "bash_status",
-        }:
+        if request.tool and request.tool.name in _WORKSPACE_SCOPED_TOOLS:
             workspace = _resolve_workspace_path(request.state)
             with bash_workspace(workspace):
                 return handler(request)
@@ -414,12 +501,7 @@ class EngagementContextMiddleware(AgentMiddleware):
 
     @override
     async def awrap_tool_call(self, request, handler) -> ToolMessage | Command:
-        if request.tool and request.tool.name in {
-            "bash",
-            "bash_output",
-            "bash_kill",
-            "bash_status",
-        }:
+        if request.tool and request.tool.name in _WORKSPACE_SCOPED_TOOLS:
             workspace = _resolve_workspace_path(request.state)
             with bash_workspace(workspace):
                 return await handler(request)
@@ -442,6 +524,11 @@ class EngagementContextMiddleware(AgentMiddleware):
             deconfliction = _load_deconfliction(workspace)
             if deconfliction is not None:
                 block = _build_deconfliction_injection(deconfliction)
+                if block:
+                    sections.append(block)
+            credentials = _load_credentials(workspace)
+            if credentials is not None:
+                block = _build_credentials_injection(credentials)
                 if block:
                     sections.append(block)
         if target_value:

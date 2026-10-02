@@ -773,3 +773,195 @@ def test_build_language_policy_helper_handles_aliases_and_no_op_cases() -> None:
     # Wenyan special mode
     policy_wenyan = build_language_policy("wenyan")
     assert policy_wenyan is not None and "文言文" in policy_wenyan
+
+
+# ── Provided-credentials injection (greybox) ────────────────────────────
+
+
+def _write_credentials(workspace: Path, payload: dict[str, Any]) -> None:
+    plan_dir = workspace / "plan"
+    plan_dir.mkdir(parents=True, exist_ok=True)
+    (plan_dir / "credentials.json").write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
+
+
+def test_credentials_form_login_appears_in_injection(
+    tmp_path: Path,
+    middleware: EngagementContextMiddleware,
+) -> None:
+    _write_credentials(
+        tmp_path,
+        {
+            "credentials": [
+                {
+                    "id": "admin",
+                    "label": "admin account",
+                    "target": "http://app.example.com",
+                    "login_method": "form",
+                    "login_url": "http://app.example.com/login",
+                    "username": "alice",
+                    "password": "s3cret",
+                }
+            ]
+        },
+    )
+    req = _FakeRequest(
+        state={"engagement_name": "blue-falcon", "workspace_path": str(tmp_path)},
+    )
+    result = middleware._inject(req)
+    text = _flatten(result.system_message)
+
+    assert "[Target credentials — provided by operator]" in text
+    assert "id: admin" in text
+    assert "login_url: http://app.example.com/login" in text
+    assert "username: alice" in text
+    assert "password: s3cret" in text
+    assert text.index("Workspace slug:") < text.index("id: admin")
+
+
+def test_credentials_token_only_renders_headers(
+    tmp_path: Path,
+    middleware: EngagementContextMiddleware,
+) -> None:
+    _write_credentials(
+        tmp_path,
+        {
+            "credentials": [
+                {
+                    "id": "api",
+                    "login_method": "bearer",
+                    "headers": {"Authorization": "Bearer deadbeef"},
+                }
+            ]
+        },
+    )
+    req = _FakeRequest(
+        state={"engagement_name": "blue-falcon", "workspace_path": str(tmp_path)},
+    )
+    result = middleware._inject(req)
+    text = _flatten(result.system_message)
+
+    assert "id: api" in text
+    assert "headers: Authorization: Bearer deadbeef" in text
+
+
+def test_credentials_absent_degrades_cleanly(
+    tmp_path: Path,
+    middleware: EngagementContextMiddleware,
+) -> None:
+    req = _FakeRequest(
+        state={"engagement_name": "blue-falcon", "workspace_path": str(tmp_path)},
+    )
+    result = middleware._inject(req)
+    text = _flatten(result.system_message)
+
+    assert "Workspace slug: blue-falcon" in text
+    assert "Target credentials" not in text
+
+
+def test_credentials_malformed_json_degrades_cleanly(
+    tmp_path: Path,
+    middleware: EngagementContextMiddleware,
+) -> None:
+    plan_dir = tmp_path / "plan"
+    plan_dir.mkdir(parents=True, exist_ok=True)
+    (plan_dir / "credentials.json").write_text("{not valid json", encoding="utf-8")
+
+    req = _FakeRequest(
+        state={"engagement_name": "blue-falcon", "workspace_path": str(tmp_path)},
+    )
+    result = middleware._inject(req)
+    text = _flatten(result.system_message)
+
+    assert "Workspace slug: blue-falcon" in text
+    assert "Target credentials" not in text
+
+
+def test_credentials_empty_list_emits_no_block(
+    tmp_path: Path,
+    middleware: EngagementContextMiddleware,
+) -> None:
+    _write_credentials(tmp_path, {"credentials": []})
+    req = _FakeRequest(
+        state={"engagement_name": "blue-falcon", "workspace_path": str(tmp_path)},
+    )
+    result = middleware._inject(req)
+    text = _flatten(result.system_message)
+
+    assert "Workspace slug: blue-falcon" in text
+    assert "Target credentials" not in text
+
+
+def test_credentials_entry_without_id_skipped(
+    tmp_path: Path,
+    middleware: EngagementContextMiddleware,
+) -> None:
+    _write_credentials(
+        tmp_path,
+        {"credentials": [{"username": "nobody"}, {"id": "real", "username": "bob"}]},
+    )
+    req = _FakeRequest(
+        state={"engagement_name": "blue-falcon", "workspace_path": str(tmp_path)},
+    )
+    result = middleware._inject(req)
+    text = _flatten(result.system_message)
+
+    assert "id: real" in text
+    assert "username: bob" in text
+    assert "username: nobody" not in text
+
+
+def test_credentials_skipped_without_engagement_slug(
+    tmp_path: Path,
+    middleware: EngagementContextMiddleware,
+) -> None:
+    _write_credentials(tmp_path, {"credentials": [{"id": "admin"}]})
+    req = _FakeRequest(state={"workspace_path": str(tmp_path)})
+    result = middleware._inject(req)
+
+    assert result is req
+
+
+def test_credentials_and_deconfliction_coexist(
+    tmp_path: Path,
+    middleware: EngagementContextMiddleware,
+) -> None:
+    _write_deconfliction(
+        tmp_path,
+        {"engagement_name": "blue-falcon", "deconfliction_code": "ECHO-9"},
+    )
+    _write_credentials(tmp_path, {"credentials": [{"id": "admin", "username": "alice"}]})
+    req = _FakeRequest(
+        state={"engagement_name": "blue-falcon", "workspace_path": str(tmp_path)},
+    )
+    result = middleware._inject(req)
+    text = _flatten(result.system_message)
+
+    assert "Deconfliction code: ECHO-9" in text
+    assert "id: admin" in text
+    assert text.index("Deconfliction code: ECHO-9") < text.index("id: admin")
+
+
+def test_credentials_mtime_refresh_picks_up_edit(
+    tmp_path: Path,
+    middleware: EngagementContextMiddleware,
+) -> None:
+    _write_credentials(tmp_path, {"credentials": [{"id": "admin"}]})
+    req = _FakeRequest(
+        state={"engagement_name": "blue-falcon", "workspace_path": str(tmp_path)},
+    )
+    first = _flatten(middleware._inject(req).system_message)
+    assert "id: admin" in first and "id: editor" not in first
+
+    # Bump mtime past the cached entry so the loader re-reads the file.
+    import os
+    import time
+
+    path = tmp_path / "plan" / "credentials.json"
+    _write_credentials(tmp_path, {"credentials": [{"id": "editor"}]})
+    future = time.time() + 10
+    os.utime(path, (future, future))
+
+    second = _flatten(middleware._inject(req).system_message)
+    assert "id: editor" in second

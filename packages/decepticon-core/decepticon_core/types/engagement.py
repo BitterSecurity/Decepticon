@@ -1032,6 +1032,59 @@ class DataHandlingPlan(BaseModel):
     last_updated: str = Field(default_factory=lambda: datetime.now().isoformat())
 
 
+# ── Provided Credentials (greybox) ───────────────────────────────────
+#
+# Operator-supplied logins for a greybox engagement (``plan/credentials.json``).
+# Distinct from credentials the agents discover mid-run (``exploit/creds/``):
+# these are handed in up front so the agents authenticate before probing
+# instead of treating the target as pure black-box. The auth mechanism is
+# unknowable in advance, so every field is optional. Token auth fills
+# ``headers``, form login fills ``username``/``password``/``login_url``,
+# cookie reuse fills ``cookies``.
+# ─────────────────────────────────────────────────────────────────────
+
+
+class ProvidedCredential(BaseModel):
+    """A single operator-supplied login for the target."""
+
+    id: str = Field(description="Stable handle, e.g. 'admin' or 'low-priv-user'")
+    label: str = Field(default="", description="Human-readable name, e.g. 'admin account'")
+    target: str = Field(
+        default="", description="Which in-scope host/URL this credential applies to"
+    )
+    login_method: str = Field(
+        default="",
+        description="Free-form hint for the agent: form | bearer | cookie | basic | header",
+    )
+    login_url: str = Field(default="", description="Login endpoint for form-based auth")
+    username: str = Field(default="")
+    password: str = Field(default="")
+    headers: dict[str, str] = Field(
+        default_factory=dict,
+        description="Static auth headers to send, e.g. {'Authorization': 'Bearer ...'}",
+    )
+    cookies: dict[str, str] = Field(
+        default_factory=dict, description="Pre-authenticated cookies to reuse"
+    )
+    notes: str = Field(
+        default="",
+        description="Free-form hints, e.g. 'CSRF token in hidden _token field on the login form'",
+    )
+
+
+class CredentialBundle(BaseModel):
+    """Operator-provided credentials for a greybox engagement (``plan/credentials.json``).
+
+    Optional: a black-box engagement provides none. When present, the
+    engagement middleware surfaces it to every agent so the agents
+    authenticate before unauthenticated probing.
+    """
+
+    credentials: list[ProvidedCredential] = Field(default_factory=list)
+    version: str = "1.0"
+    last_updated: str = Field(default_factory=lambda: datetime.now().isoformat())
+
+
 # ── Engagement Bundle ─────────────────────────────────────────────────
 
 
