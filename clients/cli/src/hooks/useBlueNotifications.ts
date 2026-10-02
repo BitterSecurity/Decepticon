@@ -2,17 +2,21 @@ import { useEffect } from "react";
 
 interface BlueNotification {
   seq: number;
-  kind: "detected" | "assessment" | "analysis_error";
+  kind: "detected" | "assessment" | "analysis_error" | "watch_alert" | "watch_error";
   payload: {
     id: string;
     rule_id?: string;
     severity?: string;
     analysis?: string;
+    start_seq?: number;
+    end_seq?: number;
+    error?: string;
     evidence?: {
       method?: string;
       uri?: string;
       status?: number;
       message_excerpt?: string;
+      event_seqs?: number[];
     };
   };
 }
@@ -25,6 +29,16 @@ interface NotificationPage {
 
 export function formatBlueNotification(notification: BlueNotification): string {
   const { payload } = notification;
+  if (notification.kind === "watch_alert") {
+    const sequences = payload.evidence?.event_seqs?.join(", ") ?? "?";
+    return `[Blue Cell] ${(payload.severity ?? "unknown").toUpperCase()} 상주 감시 알림. ` +
+      `${(payload.analysis ?? "조사 결과가 없습니다.").slice(0, 4000)} ` +
+      `근거 이벤트 ${sequences}, 사건 ${payload.id}.`;
+  }
+  if (notification.kind === "watch_error") {
+    return `[Blue Cell] 이벤트 ${payload.start_seq ?? "?"}–${payload.end_seq ?? "?"} 구간의 ` +
+      `AI 감시에 실패했습니다. ${payload.error ?? "감시 상태를 확인하세요."}`;
+  }
   if (notification.kind === "assessment") {
     return `[Blue Cell 조사] 사건 ${payload.id}\n${(payload.analysis ?? "조사 결과가 없습니다.").slice(0, 4000)}`;
   }

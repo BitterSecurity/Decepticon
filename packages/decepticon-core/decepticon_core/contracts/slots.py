@@ -203,6 +203,9 @@ SLOTS_PER_ROLE: dict[str, frozenset[MiddlewareSlot]] = {
             MiddlewareSlot.PROXY_KEY_OVERRIDE,
             MiddlewareSlot.BUDGET,
             MiddlewareSlot.MODEL_OVERRIDE,
+            MiddlewareSlot.SUMMARIZATION,
+            MiddlewareSlot.PROMPT_CACHING,
+            MiddlewareSlot.PATCH_TOOL_CALLS,
         }
     ),
     # ── Standard bash-executing specialists ──
