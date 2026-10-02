@@ -442,6 +442,22 @@ def _build_benchmark_injection(
     return "".join(sections)
 
 
+# Tool calls scoped to the engagement workspace via the bash_workspace
+# contextvar. The bash family needs it for sandbox routing; the web HTTP tools
+# need it to seed operator credentials and persist the session cookie jar under
+# the workspace (see tools/web/tools.py).
+_WORKSPACE_SCOPED_TOOLS = frozenset(
+    {
+        "bash",
+        "bash_output",
+        "bash_kill",
+        "bash_status",
+        "http_request",
+        "http_history",
+    }
+)
+
+
 class EngagementContextMiddleware(AgentMiddleware):
     """Inject engagement and per-challenge context into every model call.
 
@@ -477,12 +493,7 @@ class EngagementContextMiddleware(AgentMiddleware):
 
     @override
     def wrap_tool_call(self, request, handler) -> ToolMessage | Command:
-        if request.tool and request.tool.name in {
-            "bash",
-            "bash_output",
-            "bash_kill",
-            "bash_status",
-        }:
+        if request.tool and request.tool.name in _WORKSPACE_SCOPED_TOOLS:
             workspace = _resolve_workspace_path(request.state)
             with bash_workspace(workspace):
                 return handler(request)
@@ -490,12 +501,7 @@ class EngagementContextMiddleware(AgentMiddleware):
 
     @override
     async def awrap_tool_call(self, request, handler) -> ToolMessage | Command:
-        if request.tool and request.tool.name in {
-            "bash",
-            "bash_output",
-            "bash_kill",
-            "bash_status",
-        }:
+        if request.tool and request.tool.name in _WORKSPACE_SCOPED_TOOLS:
             workspace = _resolve_workspace_path(request.state)
             with bash_workspace(workspace):
                 return await handler(request)

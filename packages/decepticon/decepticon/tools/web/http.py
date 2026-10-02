@@ -22,6 +22,7 @@ import time
 import uuid
 from collections import deque
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Iterable, Iterator
 
 import httpx
@@ -201,6 +202,63 @@ class HTTPSession:
             timeout=30.0,
         )
         self.history = history or HTTPHistory()
+        # Operator-seeded auth headers, keyed by lowercase host. Headers are
+        # NOT set as httpx client defaults: this tool runs host-side, outside
+        # the sandbox egress edge, and follows redirects, so a global default
+        # Authorization would be sent to every host the agent touches
+        # (redirect targets included). Scoping to the host the credential names
+        # keeps a Bearer token from leaking cross-origin. Cookies need no such
+        # table: httpx's jar is already domain-scoped.
+        self._seeded_headers: dict[str, dict[str, str]] = {}
+
+    def seed_credential(
+        self,
+        *,
+        host: str,
+        headers: dict[str, str] | None = None,
+        cookies: dict[str, str] | None = None,
+    ) -> None:
+        """Seed operator-provided auth for one host.
+
+        ``headers`` are sent only on requests to ``host``. ``cookies`` are
+        loaded into the httpx jar scoped to ``host``.
+        """
+        key = host.strip().lower()
+        if not key:
+            return
+        if headers:
+            self._seeded_headers.setdefault(key, {}).update(headers)
+        for name, value in (cookies or {}).items():
+            self._client.cookies.set(name, value, domain=key, path="/")
+
+    def save_cookies(self, path: str | Path) -> None:
+        """Persist the current cookie jar to JSON for cross-agent reuse."""
+        jar = [
+            {"name": c.name, "value": c.value, "domain": c.domain, "path": c.path}
+            for c in self._client.cookies.jar
+        ]
+        Path(path).write_text(json.dumps(jar, indent=2), encoding="utf-8")
+
+    def load_cookies(self, path: str | Path) -> None:
+        """Restore a cookie jar previously written by :meth:`save_cookies`."""
+        try:
+            raw = Path(path).read_text(encoding="utf-8")
+        except OSError:
+            return
+        try:
+            entries = json.loads(raw)
+        except json.JSONDecodeError:
+            return
+        if not isinstance(entries, list):
+            return
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            name = entry.get("name")
+            value = entry.get("value")
+            domain = entry.get("domain") or ""
+            if isinstance(name, str) and isinstance(value, str) and name:
+                self._client.cookies.set(name, value, domain=domain, path=entry.get("path") or "/")
 
     async def request(
         self,
@@ -215,6 +273,11 @@ class HTTPSession:
         timeout_ms: int | None = None,
     ) -> HTTPResponse:
         full_url = url if url.startswith(("http://", "https://")) else f"{self.base_url}{url}"
+        host = httpx.URL(full_url).host.lower()
+        seeded = self._seeded_headers.get(host)
+        if seeded:
+            # Per-call headers win over seeded ones so the agent can override.
+            headers = {**seeded, **(headers or {})}
         req_body: bytes = b""
         if json_body is not None:
             req_body = json.dumps(json_body).encode("utf-8")
