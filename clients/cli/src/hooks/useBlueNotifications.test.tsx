@@ -13,7 +13,6 @@ describe("Blue Cell chat notifications", () => {
   it("inserts detection and later agent assessment into the active chat", async () => {
     vi.useFakeTimers();
     vi.stubEnv("BLUE_MONITOR_URL", "http://blue-monitor:8085");
-    delete process.env.DECEPTICON_HOME;
     const events: string[] = [];
     const fetchMock = vi.fn(async (url: string) => {
       const after = new URL(url).searchParams.get("after");

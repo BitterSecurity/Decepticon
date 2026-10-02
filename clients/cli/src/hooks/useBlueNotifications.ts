@@ -1,6 +1,4 @@
 import { useEffect } from "react";
-import { readFile, writeFile } from "node:fs/promises";
-import { join } from "node:path";
 
 interface BlueNotification {
   seq: number;
@@ -47,9 +45,6 @@ export function formatBlueNotification(notification: BlueNotification): string {
 export function useBlueNotifications(addSystemEvent: (message: string) => void): void {
   useEffect(() => {
     const url = (process.env.BLUE_MONITOR_URL ?? "http://127.0.0.1:18085").replace(/\/$/, "");
-    const statePath = process.env.DECEPTICON_HOME
-      ? join(process.env.DECEPTICON_HOME, "blue-notifications.json")
-      : null;
     let after = 0;
     let stopped = false;
     let polling = false;
@@ -69,9 +64,6 @@ export function useBlueNotifications(addSystemEvent: (message: string) => void):
             addSystemEvent(formatBlueNotification(notification));
             after = notification.seq;
           }
-          if (statePath && page.notifications.length) {
-            await writeFile(statePath, JSON.stringify({ after }), "utf8");
-          }
           if (!page.has_more) break;
         }
       } catch {
@@ -81,21 +73,7 @@ export function useBlueNotifications(addSystemEvent: (message: string) => void):
       }
     }
 
-    async function start(): Promise<void> {
-      if (statePath) {
-        try {
-          const saved = JSON.parse(await readFile(statePath, "utf8")) as { after?: unknown };
-          if (typeof saved.after === "number" && Number.isSafeInteger(saved.after) && saved.after >= 0) {
-            after = saved.after;
-          }
-        } catch {
-          after = 0;
-        }
-      }
-      await poll();
-    }
-
-    void start();
+    void poll();
     const timer = setInterval(() => { void poll(); }, 1000);
     return () => { stopped = true; clearInterval(timer); };
   }, [addSystemEvent]);

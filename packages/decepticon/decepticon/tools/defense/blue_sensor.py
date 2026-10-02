@@ -24,13 +24,18 @@ def blue_sensor_scan(limit: int = 50) -> str:
             metrics = client.get(f"{sensor}/metrics")
             metrics.raise_for_status()
             latest = int(metrics.json()["latest_seq"])
-            events = client.get(f"{sensor}/events", params={"after": max(0, latest - limit), "limit": limit})
+            events = client.get(
+                f"{sensor}/events", params={"after": max(0, latest - limit), "limit": limit}
+            )
             events.raise_for_status()
             incidents = client.get(f"{monitor}/incidents", params={"limit": limit})
             incidents.raise_for_status()
             return json.dumps(
-                {"sensor_metrics": metrics.json(), "events": events.json()["events"],
-                 "incidents": incidents.json()["incidents"]},
+                {
+                    "sensor_metrics": metrics.json(),
+                    "events": events.json()["events"],
+                    "incidents": incidents.json()["incidents"],
+                },
                 separators=(",", ":"),
             )
     except (httpx.HTTPError, KeyError, ValueError) as error:
@@ -59,8 +64,13 @@ def blue_sensor_body(ref: str, max_bytes: int = 65536) -> str:
                         break
         raw = b"".join(chunks)
         return json.dumps(
-            {"ref": ref, "total_bytes": total, "preview_bytes": len(raw),
-             "preview_utf8": raw.decode("utf-8", "replace"), "preview_limited": total > len(raw)},
+            {
+                "ref": ref,
+                "total_bytes": total,
+                "preview_bytes": len(raw),
+                "preview_utf8": raw.decode("utf-8", "replace"),
+                "preview_limited": total > len(raw),
+            },
             separators=(",", ":"),
         )
     except (httpx.HTTPError, ValueError) as error:

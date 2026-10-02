@@ -22,14 +22,32 @@ NOTIFICATION_MAX_ROWS = int(os.environ.get("BLUE_NOTIFICATION_MAX_ROWS", "20000"
 MONITOR_TTL_SECONDS = int(os.environ.get("BLUE_MONITOR_TTL_SECONDS", str(7 * 86400)))
 
 RULES = (
-    ("path_traversal", "high", re.compile(rb"(?:\.\./|\.\.\\|/etc/passwd|/windows/win\.ini)", re.I)),
-    ("sql_injection", "high", re.compile(rb"(?:\bunion\s+(?:all\s+)?select\b|\bor\s+['\"0-9]+\s*=\s*['\"0-9]+|\bsleep\s*\()", re.I)),
-    ("command_injection", "critical", re.compile(rb"(?:;\s*(?:curl|wget|sh|bash)\b|\$\([^\r\n]{1,100}\)|\|\s*(?:sh|bash)\b)", re.I)),
+    (
+        "path_traversal",
+        "high",
+        re.compile(rb"(?:\.\./|\.\.\\|/etc/passwd|/windows/win\.ini)", re.I),
+    ),
+    (
+        "sql_injection",
+        "high",
+        re.compile(
+            rb"(?:\bunion\s+(?:all\s+)?select\b|\bor\s+['\"0-9]+\s*=\s*['\"0-9]+|\bsleep\s*\()",
+            re.I,
+        ),
+    ),
+    (
+        "command_injection",
+        "critical",
+        re.compile(
+            rb"(?:;\s*(?:curl|wget|sh|bash)\b|\$\([^\r\n]{1,100}\)|\|\s*(?:sh|bash)\b)", re.I
+        ),
+    ),
     ("jndi_lookup", "critical", re.compile(rb"\$\{jndi:", re.I)),
 )
 LOG_SIGNAL = re.compile(
     r"(?:\b(?:error|exception|panic|traceback|critical)\b|"
-    r"\b(?:failed login|authentication failed|access denied|permission denied)\b)", re.I
+    r"\b(?:failed login|authentication failed|access denied|permission denied)\b)",
+    re.I,
 )
 
 
@@ -101,22 +119,42 @@ class MonitorStore:
                 }
                 inserted = self.db.execute(
                     "INSERT OR IGNORE INTO incidents VALUES(?,?,?,?,?,?,?,?,?,?)",
-                    (incident_id, seq, rule_id, severity, now(),
-                     json.dumps(evidence, separators=(",", ":")), "incident_opened",
-                     None, "pending" if AGENT_URL else "disabled", "disabled"),
+                    (
+                        incident_id,
+                        seq,
+                        rule_id,
+                        severity,
+                        now(),
+                        json.dumps(evidence, separators=(",", ":")),
+                        "incident_opened",
+                        None,
+                        "pending" if AGENT_URL else "disabled",
+                        "disabled",
+                    ),
                 )
                 if inserted.rowcount:
                     self.db.execute(
                         "INSERT INTO notifications(incident_id,kind,created_at,payload_json) "
                         "VALUES(?,?,?,?)",
-                        (incident_id, "detected", now(), json.dumps({
-                            "id": incident_id, "rule_id": rule_id, "severity": severity,
-                            "evidence": evidence,
-                        }, separators=(",", ":"))),
+                        (
+                            incident_id,
+                            "detected",
+                            now(),
+                            json.dumps(
+                                {
+                                    "id": incident_id,
+                                    "rule_id": rule_id,
+                                    "severity": severity,
+                                    "evidence": evidence,
+                                },
+                                separators=(",", ":"),
+                            ),
+                        ),
                     )
             self.db.execute(
                 "INSERT INTO state(key,value) VALUES('cursor',?) "
-                "ON CONFLICT(key) DO UPDATE SET value=excluded.value", (str(seq),)
+                "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+                (str(seq),),
             )
 
     def incidents(self, limit: int = 50) -> list[dict]:
@@ -124,10 +162,21 @@ class MonitorStore:
             rows = self.db.execute(
                 "SELECT id,event_seq,rule_id,severity,created_at,evidence_json,response,"
                 "analysis,analysis_state,notification_state FROM incidents "
-                "ORDER BY event_seq DESC LIMIT ?", (limit,)
+                "ORDER BY event_seq DESC LIMIT ?",
+                (limit,),
             ).fetchall()
-        names = ("id", "event_seq", "rule_id", "severity", "created_at", "evidence",
-                 "response", "analysis", "analysis_state", "notification_state")
+        names = (
+            "id",
+            "event_seq",
+            "rule_id",
+            "severity",
+            "created_at",
+            "evidence",
+            "response",
+            "analysis",
+            "analysis_state",
+            "notification_state",
+        )
         return [{**dict(zip(names, row)), "evidence": json.loads(row[5])} for row in rows]
 
     def next_work(self, field: str) -> dict | None:
@@ -138,7 +187,11 @@ class MonitorStore:
                 f"SELECT id,evidence_json,rule_id,severity FROM incidents WHERE {field}='pending' "
                 "ORDER BY event_seq LIMIT 1"
             ).fetchone()
-        return {"id": row[0], "evidence": json.loads(row[1]), "rule_id": row[2], "severity": row[3]} if row else None
+        return (
+            {"id": row[0], "evidence": json.loads(row[1]), "rule_id": row[2], "severity": row[3]}
+            if row
+            else None
+        )
 
     def mark(self, incident_id: str, field: str, state: str, analysis: str | None = None) -> None:
         if field not in ("analysis_state", "notification_state"):
@@ -148,28 +201,51 @@ class MonitorStore:
                 f"UPDATE incidents SET {field}=?, analysis=COALESCE(?,analysis) WHERE id=?",
                 (state, analysis, incident_id),
             )
-            if changed.rowcount and field == "analysis_state" and state in ("complete", "failed") and analysis:
+            if (
+                changed.rowcount
+                and field == "analysis_state"
+                and state in ("complete", "failed")
+                and analysis
+            ):
                 self.db.execute(
                     "INSERT INTO notifications(incident_id,kind,created_at,payload_json) "
                     "VALUES(?,?,?,?)",
-                    (incident_id, "assessment" if state == "complete" else "analysis_error", now(), json.dumps({
-                        "id": incident_id, "analysis": analysis,
-                    }, separators=(",", ":"))),
+                    (
+                        incident_id,
+                        "assessment" if state == "complete" else "analysis_error",
+                        now(),
+                        json.dumps(
+                            {
+                                "id": incident_id,
+                                "analysis": analysis,
+                            },
+                            separators=(",", ":"),
+                        ),
+                    ),
                 )
 
     def notifications(self, after: int, limit: int) -> dict:
         with self.lock:
             rows = self.db.execute(
                 "SELECT seq,incident_id,kind,created_at,payload_json FROM notifications "
-                "WHERE seq>? ORDER BY seq LIMIT ?", (after, limit + 1)
+                "WHERE seq>? ORDER BY seq LIMIT ?",
+                (after, limit + 1),
             ).fetchall()
         page = [
-            {"seq": row[0], "incident_id": row[1], "kind": row[2],
-             "created_at": row[3], "payload": json.loads(row[4])}
+            {
+                "seq": row[0],
+                "incident_id": row[1],
+                "kind": row[2],
+                "created_at": row[3],
+                "payload": json.loads(row[4]),
+            }
             for row in rows[:limit]
         ]
-        return {"notifications": page, "next_after": page[-1]["seq"] if page else after,
-                "has_more": len(rows) > limit}
+        return {
+            "notifications": page,
+            "next_after": page[-1]["seq"] if page else after,
+            "has_more": len(rows) > limit,
+        }
 
     def metrics(self) -> dict:
         with self.lock:
@@ -178,8 +254,12 @@ class MonitorStore:
                 "SELECT COUNT(*) FROM incidents WHERE analysis_state='pending'"
             ).fetchone()[0]
             notifications = self.db.execute("SELECT COUNT(*) FROM notifications").fetchone()[0]
-        return {"cursor": self.cursor(), "incidents_total": count,
-                "analysis_pending": pending, "notifications_total": notifications}
+        return {
+            "cursor": self.cursor(),
+            "incidents_total": count,
+            "analysis_pending": pending,
+            "notifications_total": notifications,
+        }
 
     def cleanup(self) -> None:
         if min(INCIDENT_MAX_ROWS, NOTIFICATION_MAX_ROWS, MONITOR_TTL_SECONDS) < 1:
@@ -188,14 +268,17 @@ class MonitorStore:
         with self.lock, self.db:
             self.db.execute("DELETE FROM notifications WHERE created_at < ?", (cutoff,))
             self.db.execute("DELETE FROM incidents WHERE created_at < ?", (cutoff,))
-            for table, maximum in (("notifications", NOTIFICATION_MAX_ROWS),
-                                   ("incidents", INCIDENT_MAX_ROWS)):
+            for table, maximum in (
+                ("notifications", NOTIFICATION_MAX_ROWS),
+                ("incidents", INCIDENT_MAX_ROWS),
+            ):
                 count = self.db.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
                 excess = count - maximum
                 if excess > 0:
                     self.db.execute(
                         f"DELETE FROM {table} WHERE rowid IN "
-                        f"(SELECT rowid FROM {table} ORDER BY rowid LIMIT ?)", (excess,)
+                        f"(SELECT rowid FROM {table} ORDER BY rowid LIMIT ?)",
+                        (excess,),
                     )
 
 
@@ -237,8 +320,8 @@ def detect(event: dict) -> list[tuple[str, str, str]]:
                         if rule_id not in hits and pattern.search(window):
                             hits[rule_id] = (rule_id, severity, "request_body")
                     overlap = window[-256:]
-        except (OSError, urllib.error.HTTPError):
-            pass
+        except (OSError, urllib.error.HTTPError) as error:
+            print(f"blue monitor body unavailable: {error}", flush=True)
     return list(hits.values())
 
 
@@ -291,7 +374,10 @@ def analyze_forever() -> None:
             )
             result = post_json(
                 f"{AGENT_URL}/runs/wait",
-                {"assistant_id": "blue_cell", "input": {"messages": [{"role": "user", "content": prompt}]}},
+                {
+                    "assistant_id": "blue_cell",
+                    "input": {"messages": [{"role": "user", "content": prompt}]},
+                },
                 timeout=180,
             )
             STORE.mark(work["id"], "analysis_state", "complete", extract_agent_text(result))

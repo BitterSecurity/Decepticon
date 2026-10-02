@@ -194,14 +194,16 @@ SLOTS_PER_ROLE: dict[str, frozenset[MiddlewareSlot]] = {
     },
     # ── Standard non-bash agent (planning + interview) ──
     "soundwave": _BASE_SLOTS | {MiddlewareSlot.ENGAGEMENT_CONTEXT},
-    "blue_cell": frozenset({
-        MiddlewareSlot.UNTRUSTED_OUTPUT,
-        MiddlewareSlot.PROMPT_INJECTION_SHIELD,
-        MiddlewareSlot.MODEL_FALLBACK,
-        MiddlewareSlot.PROXY_KEY_OVERRIDE,
-        MiddlewareSlot.BUDGET,
-        MiddlewareSlot.MODEL_OVERRIDE,
-    }),
+    "blue_cell": frozenset(
+        {
+            MiddlewareSlot.UNTRUSTED_OUTPUT,
+            MiddlewareSlot.PROMPT_INJECTION_SHIELD,
+            MiddlewareSlot.MODEL_FALLBACK,
+            MiddlewareSlot.PROXY_KEY_OVERRIDE,
+            MiddlewareSlot.BUDGET,
+            MiddlewareSlot.MODEL_OVERRIDE,
+        }
+    ),
     # ── Standard bash-executing specialists ──
     "recon": _BASH_AGENT_SLOTS,
     "exploit": _BASH_AGENT_SLOTS,

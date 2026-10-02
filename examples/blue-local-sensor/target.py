@@ -25,11 +25,20 @@ class Handler(BaseHTTPRequestHandler):
         parsed = urlsplit(self.path)
         path = parsed.path
         if path == "/":
-            self.respond(200, {"service": "blue-sensor-fixture", "routes": ["/read?name=welcome.txt", "/login", "/admin"]})
+            self.respond(
+                200,
+                {
+                    "service": "blue-sensor-fixture",
+                    "routes": ["/read?name=welcome.txt", "/login", "/admin"],
+                },
+            )
         elif path == "/read":
             name = parse_qs(parsed.query).get("name", ["welcome.txt"])[0]
+            if name != "welcome.txt":
+                self.respond(403, {"error": "forbidden"})
+                return
             try:
-                content = (PUBLIC_DIR / name).read_text(encoding="utf-8")
+                content = (PUBLIC_DIR / "welcome.txt").read_text(encoding="utf-8")
             except (OSError, UnicodeError):
                 self.respond(404, {"error": "not found"})
             else:
@@ -55,7 +64,6 @@ class Handler(BaseHTTPRequestHandler):
 if __name__ == "__main__":
     PUBLIC_DIR.mkdir(parents=True, exist_ok=True)
     (PUBLIC_DIR / "welcome.txt").write_text("Welcome to the Blue Cell fixture.\n", encoding="utf-8")
-    (DATA_DIR / "secret.txt").write_text("blue-cell-test-canary-20261002\n", encoding="utf-8")
     socket_path = os.environ.get("BLUE_TARGET_SOCKET")
     if socket_path:
         path = Path(socket_path)

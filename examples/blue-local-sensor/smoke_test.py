@@ -61,7 +61,15 @@ def await_events(
                 matched[name] = event
                 latency = time.monotonic() - started_at
                 assert latency < MAX_LATENCY_SECONDS, (name, latency)
-                print(json.dumps({"channel": name, "event_id": event["event_id"], "latency_seconds": round(latency, 3)}))
+                print(
+                    json.dumps(
+                        {
+                            "channel": name,
+                            "event_id": event["event_id"],
+                            "latency_seconds": round(latency, 3),
+                        }
+                    )
+                )
     return matched
 
 
@@ -82,8 +90,12 @@ def main() -> None:
             stream,
             started_at,
             {
-                "proxy": lambda event: event.get("event_type") == "http_access" and event.get("path") == path,
-                "process": lambda event: event.get("event_type") == "process_log" and path in event.get("message", ""),
+                "proxy": lambda event: (
+                    event.get("event_type") == "http_access" and event.get("path") == path
+                ),
+                "process": lambda event: (
+                    event.get("event_type") == "process_log" and path in event.get("message", "")
+                ),
             },
         )
         assert pair["proxy"]["status"] == 404
@@ -91,7 +103,11 @@ def main() -> None:
         assert pair["proxy"]["request_headers"]["User-Agent"] == ["blue-sensor-smoke"]
         observed.extend(pair.values())
 
-        for method, path, status in (("GET", "/", 200), ("GET", "/admin", 403), ("POST", "/login", 401)):
+        for method, path, status in (
+            ("GET", "/", 200),
+            ("GET", "/admin", 403),
+            ("POST", "/login", 401),
+        ):
             started_at = time.monotonic()
             body = b'{"username":"demo","password":"never-log-this"}' if method == "POST" else None
             headers = {"Content-Type": "application/json"} if body else {}
@@ -99,7 +115,13 @@ def main() -> None:
             event = await_events(
                 stream,
                 started_at,
-                {"proxy": lambda item: item.get("event_type") == "http_access" and item.get("path") == path and item.get("status") == status},
+                {
+                    "proxy": lambda item: (
+                        item.get("event_type") == "http_access"
+                        and item.get("path") == path
+                        and item.get("status") == status
+                    )
+                },
             )["proxy"]
             assert event["method"] == method
             if method == "POST":
@@ -123,7 +145,11 @@ def main() -> None:
         large_event = await_events(
             stream,
             started_at,
-            {"proxy": lambda event: event.get("event_type") == "http_access" and event.get("path") == large_path},
+            {
+                "proxy": lambda event: (
+                    event.get("event_type") == "http_access" and event.get("path") == large_path
+                )
+            },
         )["proxy"]
         assert large_event["request_body_status"] == "captured"
         assert_body(large_event, large_body)
@@ -136,11 +162,20 @@ def main() -> None:
         path = "/body/" + str(uuid.uuid4())
         with urlopen(BLUE + "/stream", timeout=MAX_LATENCY_SECONDS) as stream:
             started_at = time.monotonic()
-            send(Request(TARGET + path, data=body, headers={"Content-Type": content_type}, method="POST"), 404)
+            send(
+                Request(
+                    TARGET + path, data=body, headers={"Content-Type": content_type}, method="POST"
+                ),
+                404,
+            )
             event = await_events(
                 stream,
                 started_at,
-                {"proxy": lambda item: item.get("event_type") == "http_access" and item.get("path") == path},
+                {
+                    "proxy": lambda item: (
+                        item.get("event_type") == "http_access" and item.get("path") == path
+                    )
+                },
             )["proxy"]
             assert event["request_body_status"] == "captured"
             assert_body(event, body)
@@ -151,9 +186,17 @@ def main() -> None:
     deadline = time.monotonic() + 5
     while time.monotonic() < deadline:
         persisted = all_events()
-        proxy_paths = {event.get("path") for event in persisted if event.get("event_type") == "http_access"}
-        process_messages = [event.get("message", "") for event in persisted if event.get("event_type") == "process_log"]
-        if burst_paths <= proxy_paths and all(any(path in message for message in process_messages) for path in burst_paths):
+        proxy_paths = {
+            event.get("path") for event in persisted if event.get("event_type") == "http_access"
+        }
+        process_messages = [
+            event.get("message", "")
+            for event in persisted
+            if event.get("event_type") == "process_log"
+        ]
+        if burst_paths <= proxy_paths and all(
+            any(path in message for message in process_messages) for path in burst_paths
+        ):
             break
         time.sleep(0.05)
     assert burst_paths <= proxy_paths

@@ -140,7 +140,9 @@ class EventStore:
                 events = [json.loads(line) for line in chunk if line.strip()]
                 self.append(events, [])
 
-    def append(self, events: list[dict[str, object]], rejected: list[tuple[str, str]]) -> tuple[int, int]:
+    def append(
+        self, events: list[dict[str, object]], rejected: list[tuple[str, str]]
+    ) -> tuple[int, int]:
         accepted = 0
         with self.condition:
             with self.db:
@@ -184,7 +186,9 @@ class EventStore:
                 "events_total": int(db.execute("SELECT COUNT(*) FROM events").fetchone()[0]),
                 "events_evicted_total": self.evicted_total,
                 "rejected_total": int(db.execute("SELECT COUNT(*) FROM rejected").fetchone()[0]),
-                "latest_seq": int(db.execute("SELECT COALESCE(MAX(seq),0) FROM events").fetchone()[0]),
+                "latest_seq": int(
+                    db.execute("SELECT COALESCE(MAX(seq),0) FROM events").fetchone()[0]
+                ),
             }
 
     def cleanup(self) -> None:
@@ -327,14 +331,16 @@ class Handler(BaseHTTPRequestHandler):
                     while chunk := body.read(64 * 1024):
                         self.wfile.write(chunk)
                 except (BrokenPipeError, ConnectionResetError):
-                    pass
+                    return
             return
         if parsed.path not in ("/events", "/stream"):
             self.send_json(404, {"error": "not found"})
             return
         try:
             params = parse_qs(parsed.query)
-            default_after = self.headers.get("Last-Event-ID", "0") if parsed.path == "/stream" else "0"
+            default_after = (
+                self.headers.get("Last-Event-ID", "0") if parsed.path == "/stream" else "0"
+            )
             after = int(params.get("after", [default_after])[0])
             limit = int(params.get("limit", ["100"])[0])
             if after < 0 or not 1 <= limit <= MAX_PAGE_SIZE:
@@ -348,7 +354,9 @@ class Handler(BaseHTTPRequestHandler):
                 200,
                 {
                     "events": events[:limit],
-                    "next_after": events[limit - 1]["seq"] if len(events) >= limit else (events[-1]["seq"] if events else after),
+                    "next_after": events[limit - 1]["seq"]
+                    if len(events) >= limit
+                    else (events[-1]["seq"] if events else after),
                     "has_more": len(events) > limit,
                 },
             )
@@ -372,8 +380,12 @@ class Handler(BaseHTTPRequestHandler):
                     continue
                 for event in events:
                     self.wfile.write(
-                        b"id: " + str(event["seq"]).encode() + b"\n" +
-                        b"data: " + json.dumps(event, separators=(",", ":")).encode() + b"\n\n"
+                        b"id: "
+                        + str(event["seq"]).encode()
+                        + b"\n"
+                        + b"data: "
+                        + json.dumps(event, separators=(",", ":")).encode()
+                        + b"\n\n"
                     )
                     after = int(event["seq"])
                 self.wfile.flush()
