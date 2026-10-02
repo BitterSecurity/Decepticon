@@ -196,6 +196,7 @@ SLOTS_PER_ROLE: dict[str, frozenset[MiddlewareSlot]] = {
     "soundwave": _BASE_SLOTS | {MiddlewareSlot.ENGAGEMENT_CONTEXT},
     "blue_cell": frozenset(
         {
+            MiddlewareSlot.ROE_GUARDRAIL,
             MiddlewareSlot.UNTRUSTED_OUTPUT,
             MiddlewareSlot.PROMPT_INJECTION_SHIELD,
             MiddlewareSlot.MODEL_FALLBACK,
