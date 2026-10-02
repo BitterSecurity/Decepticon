@@ -1,0 +1,78 @@
+services:
+  target:
+    profiles: ["fixture"]
+    image: python:3.14.8-alpine
+    command: ["python", "-u", "/app/capture_process.py", "/target-logs/process.jsonl", "python", "-u", "/app/target.py"]
+    environment:
+      BLUE_TARGET_SOCKET: /target-socket/service.sock
+    volumes:
+      - ./target.py:/app/target.py:ro
+      - ./capture_process.py:/app/capture_process.py:ro
+      - target-logs:/target-logs
+      - target-socket:/target-socket
+    networks: [target-net]
+
+  blue-proxy:
+    build:
+      context: .
+      dockerfile: Dockerfile.caddy
+    image: decepticon-blue-caddy:2.11.6
+    environment:
+      BLUE_TARGET_UPSTREAM: ${BLUE_TARGET_UPSTREAM:-unix//target-socket/service.sock}
+      BLUE_BODY_MAX_BYTES: ${BLUE_BODY_MAX_BYTES:-65536}
+      BLUE_ACCESS_ROLL_SIZE: ${BLUE_ACCESS_ROLL_SIZE:-100MiB}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - sensor-logs:/sensor-logs
+      - target-socket:/target-socket
+    network_mode: host
+    restart: unless-stopped
+
+  blue-receiver:
+    image: python:3.14.8-alpine
+    command: ["python", "-u", "/app/blue_receiver.py"]
+    environment:
+      BLUE_EVENT_DB: /blue-data/observations.sqlite3
+      BLUE_TARGET_ID: ${BLUE_TARGET_ID:-local-web}
+    volumes:
+      - ./blue_receiver.py:/app/blue_receiver.py:ro
+      - blue-data:/blue-data
+    ports:
+      - "127.0.0.1:18081:8082"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8082/health')"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+    restart: unless-stopped
+    networks: [blue-net, query-net]
+
+  blue-collector:
+    image: fluent/fluent-bit:5.1.3
+    command: ["-c", "/fluent-bit/etc/fluent-bit.yaml"]
+    volumes:
+      - ./fluent-bit.yaml:/fluent-bit/etc/fluent-bit.yaml:ro
+      - sensor-logs:/sensor-logs:ro
+      - ${BLUE_TARGET_LOG_DIR:-target-logs}:/target-logs:ro
+      - collector-data:/fluent-bit/state
+    ports:
+      - "127.0.0.1:18083:2020"
+    depends_on:
+      blue-receiver:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [blue-net, query-net]
+
+networks:
+  blue-net:
+    internal: true
+  target-net:
+    internal: true
+  query-net:
+
+volumes:
+  sensor-logs:
+  target-logs:
+  target-socket:
+  blue-data:
+  collector-data:

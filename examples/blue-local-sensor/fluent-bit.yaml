@@ -1,0 +1,52 @@
+service:
+  flush: 0.2
+  log_level: warn
+  storage.path: /fluent-bit/state/storage
+  storage.sync: normal
+  http_server: on
+  http_listen: 0.0.0.0
+  http_port: 2020
+
+parsers:
+  - name: proxy_json
+    format: json
+
+pipeline:
+  inputs:
+    - name: tail
+      tag: blue.http
+      path: /sensor-logs/access*
+      parser: proxy_json
+      path_key: sensor_file
+      offset_key: sensor_offset
+      db: /fluent-bit/state/tail.db
+      storage.type: filesystem
+      read_from_head: true
+      inotify_watcher: true
+      refresh_interval: 1
+      buffer_max_size: 12M
+      skip_long_lines: true
+    - name: tail
+      tag: blue.target_logs
+      path: /target-logs/*
+      key: log
+      path_key: sensor_file
+      offset_key: sensor_offset
+      db: /fluent-bit/state/target-logs.db
+      storage.type: filesystem
+      read_from_head: true
+      inotify_watcher: true
+      refresh_interval: 1
+      buffer_max_size: 1M
+      skip_long_lines: true
+  outputs:
+    - name: http
+      match: blue.*
+      host: blue-receiver
+      port: 8081
+      uri: /ingest
+      format: json_lines
+      json_date_key: sensor_read_at
+      json_date_format: iso8601
+      retry_limit: false
+      storage.total_limit_size: 1G
