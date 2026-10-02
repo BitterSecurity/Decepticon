@@ -5,7 +5,10 @@ import pytest
 from decepticon.sandbox_kernel.tmux import TmuxCommandError, TmuxSessionManager
 
 
-def test_first_command_returns_its_output_when_initial_export_is_delayed() -> None:
+@pytest.mark.parametrize("late_setup_prompt", [False, True])
+def test_first_command_returns_its_output_when_initial_export_is_delayed(
+    late_setup_prompt: bool,
+) -> None:
     # Given: a shell processes one queued command per poll, including the export.
     manager = TmuxSessionManager("init-env-regression", "ctn")
     pending: list[str] = []
@@ -15,10 +18,16 @@ def test_first_command_returns_its_output_when_initial_export_is_delayed() -> No
         pending.append(command)
 
     def advance_shell(seconds: float) -> None:
-        nonlocal screen
+        nonlocal screen, late_setup_prompt
+        if late_setup_prompt:
+            screen += "[DCPTN:0:/workspace] "
+            late_setup_prompt = False
+            return
         if pending:
             command = pending.pop(0)
-            output = "first-command-result\n" if command == "run-probe" else ""
+            output = (
+                "first-command-result\n" if command == "run-probe" else f"\n{command.split()[-1]}\n"
+            )
             screen += f"{command}\n{output}[DCPTN:0:/workspace] "
 
     with (

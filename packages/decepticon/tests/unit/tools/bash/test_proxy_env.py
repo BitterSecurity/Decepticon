@@ -161,7 +161,11 @@ def test_sync_passthrough_env_sends_export_into_tmux_when_allowlist_nonempty(
     mgr = TmuxSessionManager(session="s1", container_name="ctn")
     with (
         patch.object(mgr, "_send", side_effect=lambda text, enter=True: sent.append((text, enter))),
-        patch.object(mgr, "_capture", side_effect=["", "[DCPTN:0:/workspace] "]),
+        patch.object(
+            mgr,
+            "_capture",
+            side_effect=lambda: "\n" + sent[0][0].split()[-1] + "\n[DCPTN:0:/workspace] ",
+        ),
     ):
         mgr._sync_passthrough_env()
 
@@ -199,7 +203,6 @@ def test_sync_passthrough_env_swallows_send_errors_without_raising(
     mgr = TmuxSessionManager(session="s3", container_name="ctn")
     with (
         patch.object(mgr, "_send", side_effect=RuntimeError("tmux gone")),
-        patch.object(mgr, "_capture", return_value="[DCPTN:0:/workspace] "),
     ):
         mgr._sync_passthrough_env()
 

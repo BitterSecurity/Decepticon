@@ -28,6 +28,7 @@ import shlex
 import subprocess
 import threading
 import time
+import uuid
 from collections.abc import Callable
 
 log = logging.getLogger("decepticon.sandbox_kernel.tmux")
@@ -411,9 +412,10 @@ class TmuxSessionManager:
         cmd = _shell_export_command(env)
         if not cmd:
             return
-        initial_count = len(PS1_PATTERN.findall(self._capture()))
+        marker = f"__DECEPTICON_ENV_SYNC_{uuid.uuid4().hex}__"
+        completed = re.compile(rf"(?:^|\n){marker}\n{PS1_PATTERN.pattern}")
         try:
-            self._send(cmd, enter=True)
+            self._send(f"{cmd}; printf '\\n%s\\n' {marker}", enter=True)
         except (RuntimeError, OSError, subprocess.TimeoutExpired) as exc:
             log.warning(
                 "Could not sync passthrough env into tmux session '%s': %s",
@@ -423,7 +425,7 @@ class TmuxSessionManager:
             return
 
         deadline = time.monotonic() + 10.0
-        while len(PS1_PATTERN.findall(self._capture())) <= initial_count:
+        while not completed.search(self._capture()):
             if time.monotonic() >= deadline:
                 raise TmuxCommandError(
                     ["capture-pane"], -1, "Timed out waiting for passthrough env export completion"
