@@ -403,14 +403,15 @@ class TmuxSessionManager:
     def _sync_passthrough_env(self) -> None:
         """Inject the allowlisted parent env vars into the live tmux shell.
 
-        No-op when the allowlist is empty so we never send an empty
-        ``export`` line. Errors are logged but never raised — sandbox
-        execution must continue even if the export keystrokes fail.
+        No-op when the allowlist is empty. Send errors are logged; once
+        sent, wait for the export's PS1 marker before execution can capture
+        its baseline. A missing completion marker fails initialization.
         """
         env = _allowed_passthrough_env()
         cmd = _shell_export_command(env)
         if not cmd:
             return
+        initial_count = len(PS1_PATTERN.findall(self._capture()))
         try:
             self._send(cmd, enter=True)
         except (RuntimeError, OSError, subprocess.TimeoutExpired) as exc:
@@ -419,6 +420,15 @@ class TmuxSessionManager:
                 _safe_log(self.session),
                 exc,
             )
+            return
+
+        deadline = time.monotonic() + 10.0
+        while len(PS1_PATTERN.findall(self._capture())) <= initial_count:
+            if time.monotonic() >= deadline:
+                raise TmuxCommandError(
+                    ["capture-pane"], -1, "Timed out waiting for passthrough env export completion"
+                )
+            time.sleep(POLL_INTERVAL)
 
     def _clear_screen(self) -> None:
         target = self._target()
