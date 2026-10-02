@@ -1,0 +1,11 @@
+FROM python:3.14.8-alpine
+RUN addgroup -S -g 10001 blue && \
+    adduser -S -D -H -u 10001 -G blue blue && \
+    mkdir -p /blue-data /body-spool /monitor-data && \
+    chown -R blue:blue /blue-data /body-spool /monitor-data
+COPY blue_receiver.py /app/blue_receiver.py
+COPY blue_monitor.py /app/blue_monitor.py
+USER blue
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8082/health')"
+CMD ["python", "-u", "/app/blue_receiver.py"]

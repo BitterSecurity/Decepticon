@@ -1,10 +1,3 @@
-"""Wiring tests for the Blue Cell standard agent.
-
-Pin the contract PR2 establishes: the role is registered end-to-end (slots,
-tools, langgraph graph, subagent spec) and is READ-ONLY by construction — no
-bash, no SANDBOX_NOTIFICATION slot, no graph-mutating KG tools.
-"""
-
 from __future__ import annotations
 
 import json
@@ -19,19 +12,18 @@ _REPO_ROOT = Path(__file__).resolve().parents[5]
 
 def test_role_registered_as_readonly_base_slots() -> None:
     slots = SLOTS_PER_ROLE["blue_cell"]
-    # Read-only profile: no bash-agent slots.
     assert MiddlewareSlot.SANDBOX_NOTIFICATION not in slots
     assert MiddlewareSlot.HITL_APPROVAL not in slots
-    # Mirrors the detector read-only profile exactly.
-    assert slots == SLOTS_PER_ROLE["detector"]
+    assert MiddlewareSlot.FILESYSTEM not in slots
+    assert MiddlewareSlot.EVENT_LOG not in slots
+    assert MiddlewareSlot.UNTRUSTED_OUTPUT in slots
+    assert MiddlewareSlot.PROMPT_INJECTION_SHIELD in slots
 
 
 def test_standard_tools_are_readonly() -> None:
     names = set(agent_mod._STANDARD_TOOLS)
-    assert "blue_cell_scan" in names
-    assert {"defense_brief", "export_attack_navigator"} <= names  # Defense Brief deliverables
-    assert {"kg_query", "kg_neighbors", "kg_stats"} <= names
-    # No attack surface and no hand-written graph mutation.
+    assert names == {"blue_sensor_scan", "blue_sensor_events", "blue_sensor_body"}
+    assert "blue_cell_scan" not in names
     assert "bash" not in names
     assert "kg_add_node" not in names
     assert "kg_add_edge" not in names
@@ -40,7 +32,8 @@ def test_standard_tools_are_readonly() -> None:
 def test_build_tools_resolves_role_without_attack_tools() -> None:
     tools = build.build_tools(role="blue_cell", standard_tools=agent_mod._STANDARD_TOOLS)
     names = {t.name for t in tools}
-    assert "blue_cell_scan" in names
+    assert "blue_sensor_scan" in names
+    assert "blue_sensor_events" in names
     assert "bash" not in names
 
 
