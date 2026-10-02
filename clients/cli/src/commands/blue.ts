@@ -150,7 +150,14 @@ const blue: Command = {
       }
       if (action === "status") {
         const output = await runCompose(["ps"], process.env);
-        context.addSystemEvent(output.trim() || "Blue sensor is not running. Use /blue up 127.0.0.1:3000.");
+        let watch = "";
+        try {
+          const metrics = await queryMonitor<{ watch_enabled: boolean; watch_backlog: number; watch_failures_total: number; watch_retrying_windows: number }>("/metrics");
+          watch = `\nAI watch: ${metrics.watch_enabled ? "running" : "disabled"}; backlog=${metrics.watch_backlog}; retrying=${metrics.watch_retrying_windows}; failed_windows=${metrics.watch_failures_total}`;
+        } catch {
+          watch = "\nAI watch: unavailable";
+        }
+        context.addSystemEvent((output.trim() || "Blue sensor is not running. Use /blue up 127.0.0.1:3000.") + watch);
         return;
       }
       if (action === "metrics") {

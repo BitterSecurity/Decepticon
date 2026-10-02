@@ -18,6 +18,8 @@ def test_role_registered_as_readonly_base_slots() -> None:
     assert MiddlewareSlot.EVENT_LOG not in slots
     assert MiddlewareSlot.UNTRUSTED_OUTPUT in slots
     assert MiddlewareSlot.PROMPT_INJECTION_SHIELD in slots
+    assert MiddlewareSlot.SUMMARIZATION in slots
+    assert MiddlewareSlot.PATCH_TOOL_CALLS in slots
 
 
 def test_standard_tools_are_readonly() -> None:
