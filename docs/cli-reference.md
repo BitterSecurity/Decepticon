@@ -84,6 +84,8 @@ Available inside the interactive terminal UI:
 | `/agent` | | Show or switch the active orchestrator for this session |
 | `/plugins` | `/plugin` | List or toggle agent plugin bundles |
 | `/web [up\|down\|url]` | `/dashboard` | Start, stop, or print the URL of the web dashboard |
+| `/blue up 127.0.0.1:3000` | | Start the local web sensor for an already running service (Linux Docker) |
+| `/blue status\|events\|incidents\|metrics\|analyze\|stop` | | Inspect live events and automatic incidents, run deeper Blue Cell analysis, or stop monitoring |
 | `/quit` | `/exit` | Exit the CLI |
 
 ---

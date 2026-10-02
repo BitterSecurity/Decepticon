@@ -1,36 +1,24 @@
 services:
-  target:
-    profiles: ["fixture"]
-    image: python:3.14.8-alpine
-    command: ["python", "-u", "/app/capture_process.py", "/target-logs/process.jsonl", "python", "-u", "/app/target.py"]
-    environment:
-      BLUE_TARGET_SOCKET: /target-socket/service.sock
-    volumes:
-      - ./target.py:/app/target.py:ro
-      - ./capture_process.py:/app/capture_process.py:ro
-      - target-logs:/target-logs
-      - target-socket:/target-socket
-    networks: [target-net]
-
   blue-proxy:
     build:
       context: .
       dockerfile: Dockerfile.caddy
     image: decepticon-blue-caddy:2.11.6
     environment:
-      BLUE_TARGET_UPSTREAM: ${BLUE_TARGET_UPSTREAM:-unix//target-socket/service.sock}
+      BLUE_TARGET_UPSTREAM: ${BLUE_TARGET_UPSTREAM:-127.0.0.1:3000}
       BLUE_ACCESS_ROLL_SIZE: ${BLUE_ACCESS_ROLL_SIZE:-100MiB}
       BLUE_HOST_GATEWAY_IP: ${BLUE_HOST_GATEWAY_IP:-172.17.0.1}
     volumes:
       - sensor-logs:/sensor-logs
       - body-spool:/body-spool
-      - target-socket:/target-socket
     network_mode: host
     restart: unless-stopped
 
   blue-receiver:
-    image: python:3.14.8-alpine
-    command: ["python", "-u", "/app/blue_receiver.py"]
+    build:
+      context: .
+      dockerfile: Dockerfile.receiver
+    image: decepticon-blue-receiver:3.14.8
     environment:
       BLUE_EVENT_DB: /blue-data/observations.sqlite3
       BLUE_BODY_DIR: /body-spool
@@ -41,27 +29,26 @@ services:
       BLUE_REJECTED_MAX_ROWS: ${BLUE_REJECTED_MAX_ROWS:-10000}
       BLUE_TARGET_ID: ${BLUE_TARGET_ID:-local-web}
     volumes:
-      - ./blue_receiver.py:/app/blue_receiver.py:ro
       - blue-data:/blue-data
       - body-spool:/body-spool
     ports:
       - "127.0.0.1:18081:8082"
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8082/health')"]
-      interval: 2s
-      timeout: 2s
-      retries: 10
     depends_on:
       blue-proxy:
         condition: service_started
     restart: unless-stopped
-    networks: [blue-net, query-net]
+    networks:
+      blue-net:
+      core-net:
+        aliases: [blue-receiver]
 
   blue-collector:
     image: fluent/fluent-bit:5.1.3
-    command: ["-c", "/fluent-bit/etc/fluent-bit.yaml"]
+    command: ["-c", "/fluent-bit/etc/blue.yaml"]
+    configs:
+      - source: fluent-bit-config
+        target: /fluent-bit/etc/blue.yaml
     volumes:
-      - ./fluent-bit.yaml:/fluent-bit/etc/fluent-bit.yaml:ro
       - sensor-logs:/sensor-logs:ro
       - ${BLUE_TARGET_LOG_DIR:-target-logs}:/target-logs:ro
       - collector-data:/fluent-bit/state
@@ -71,50 +58,100 @@ services:
       blue-receiver:
         condition: service_healthy
     restart: unless-stopped
-    networks: [blue-net, query-net]
+    networks: [blue-net]
 
   blue-monitor:
-    build:
-      context: .
-      dockerfile: Dockerfile.receiver
     image: decepticon-blue-receiver:3.14.8
     command: ["python", "-u", "/app/blue_monitor.py"]
     environment:
       BLUE_SENSOR_URL: http://blue-receiver:8082
-      BLUE_AGENT_URL: ${BLUE_AGENT_URL:-}
+      BLUE_AGENT_URL: ${BLUE_AGENT_URL:-http://langgraph:2024}
       BLUE_MONITOR_DB: /monitor-data/incidents.sqlite3
       BLUE_INCIDENT_MAX_ROWS: ${BLUE_INCIDENT_MAX_ROWS:-10000}
       BLUE_NOTIFICATION_MAX_ROWS: ${BLUE_NOTIFICATION_MAX_ROWS:-20000}
       BLUE_MONITOR_TTL_SECONDS: ${BLUE_MONITOR_TTL_SECONDS:-604800}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     volumes:
       - monitor-data:/monitor-data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "127.0.0.1:18085:8085"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8085/health')"]
-      interval: 2s
-      timeout: 2s
-      retries: 10
+      interval: 10s
+      timeout: 3s
+      retries: 5
     depends_on:
       blue-receiver:
         condition: service_healthy
     restart: unless-stopped
-    networks: [blue-net, query-net]
+    networks: [blue-net, core-net]
 
 networks:
   blue-net:
     internal: true
-  target-net:
-    internal: true
-  query-net:
+  core-net:
+    external: true
+    name: ${DECEPTICON_CORE_NETWORK:-decepticon_decepticon-net}
 
 volumes:
   sensor-logs:
-  target-logs:
-  target-socket:
-  blue-data:
-  collector-data:
   body-spool:
+  blue-data:
+  target-logs:
+  collector-data:
   monitor-data:
+
+configs:
+  fluent-bit-config:
+    content: |
+      service:
+        flush: 0.2
+        log_level: warn
+        storage.path: /fluent-bit/state/storage
+        storage.sync: normal
+        http_server: on
+        http_listen: 0.0.0.0
+        http_port: 2020
+      parsers:
+        - name: proxy_json
+          format: json
+      pipeline:
+        inputs:
+          - name: tail
+            tag: blue.http
+            path: /sensor-logs/access*
+            parser: proxy_json
+            path_key: sensor_file
+            offset_key: sensor_offset
+            db: /fluent-bit/state/tail.db
+            storage.type: filesystem
+            read_from_head: true
+            inotify_watcher: true
+            refresh_interval: 1
+            buffer_max_size: 1M
+            skip_long_lines: true
+          - name: tail
+            tag: blue.target_logs
+            path: /target-logs/*
+            key: log
+            path_key: sensor_file
+            offset_key: sensor_offset
+            db: /fluent-bit/state/target-logs.db
+            storage.type: filesystem
+            read_from_head: true
+            inotify_watcher: true
+            refresh_interval: 1
+            buffer_max_size: 1M
+            skip_long_lines: true
+        outputs:
+          - name: http
+            match: blue.*
+            host: blue-receiver
+            port: 8081
+            uri: /ingest
+            format: json_lines
+            json_date_key: sensor_read_at
+            json_date_format: iso8601
+            retry_limit: false
+            storage.total_limit_size: 1G

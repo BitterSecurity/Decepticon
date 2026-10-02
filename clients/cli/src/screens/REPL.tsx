@@ -14,6 +14,7 @@ import React, {
 } from "react";
 import { Box, Text, Static, useApp } from "ink";
 import { useAgent } from "../hooks/useAgent.js";
+import { useBlueNotifications } from "../hooks/useBlueNotifications.js";
 import { useOpplan } from "../hooks/useOpplan.js";
 import { useSubAgentSessions } from "../hooks/useSubAgentSessions.js";
 import { useGlobalKeybindings } from "../hooks/useGlobalKeybindings.js";
@@ -52,6 +53,7 @@ interface REPLProps {
 export function REPL({ initialMessage, resumeThread }: REPLProps) {
   const { exit } = useApp();
   const agent = useAgent({ resumeThread });
+  useBlueNotifications(agent.addSystemEvent);
   const opplan = useOpplan(agent.events);
   const sessions = useSubAgentSessions(agent.events);
   const screen = useAppState((s) => s.screen);

@@ -2,11 +2,13 @@ package bodytap
 
 import (
 	"crypto/rand"
-	"encoding/base64"
+	"crypto/sha256"
 	"encoding/hex"
+	"hash"
 	"io"
 	"net/http"
-	"strconv"
+	"os"
+	"path/filepath"
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
@@ -15,10 +17,8 @@ import (
 	"go.uber.org/zap"
 )
 
-const defaultMaxBytes = 64 * 1024
-
 type BodyTap struct {
-	MaxBytes int `json:"max_bytes,omitempty"`
+	Directory string `json:"directory,omitempty"`
 }
 
 func init() {
@@ -35,22 +35,66 @@ func (BodyTap) CaddyModule() caddy.ModuleInfo {
 
 type capturedBody struct {
 	io.ReadCloser
-	data  []byte
-	max   int
-	total int64
+	directory string
+	requestID string
+	file      *os.File
+	hash      hash.Hash
+	total     int64
+	stored    int64
+	sawEOF    bool
+	writeErr  error
 }
 
 func (b *capturedBody) Read(p []byte) (int, error) {
 	n, err := b.ReadCloser.Read(p)
 	b.total += int64(n)
-	if len(b.data) <= b.max {
-		remaining := b.max + 1 - len(b.data)
-		if n < remaining {
-			remaining = n
+	if err == io.EOF {
+		b.sawEOF = true
+	}
+	if n == 0 || b.writeErr != nil {
+		return n, err
+	}
+	if b.file == nil {
+		b.file, b.writeErr = os.OpenFile(
+			filepath.Join(b.directory, b.requestID+".part"),
+			os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600,
+		)
+		if b.writeErr != nil {
+			return n, err
 		}
-		b.data = append(b.data, p[:remaining]...)
+		b.hash = sha256.New()
+	}
+	written, writeErr := b.file.Write(p[:n])
+	if written > 0 {
+		_, _ = b.hash.Write(p[:written])
+		b.stored += int64(written)
+	}
+	if writeErr != nil {
+		b.writeErr = writeErr
+	} else if written != n {
+		b.writeErr = io.ErrShortWrite
 	}
 	return n, err
+}
+
+func (b *capturedBody) finish() (string, string) {
+	if b.file == nil {
+		return "", ""
+	}
+	if err := b.file.Close(); err != nil && b.writeErr == nil {
+		b.writeErr = err
+	}
+	part := filepath.Join(b.directory, b.requestID+".part")
+	if b.writeErr != nil {
+		_ = os.Remove(part)
+		return "", ""
+	}
+	if err := os.Rename(part, filepath.Join(b.directory, b.requestID+".body")); err != nil {
+		b.writeErr = err
+		_ = os.Remove(part)
+		return "", ""
+	}
+	return b.requestID, hex.EncodeToString(b.hash.Sum(nil))
 }
 
 func (m BodyTap) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp.Handler) error {
@@ -60,25 +104,26 @@ func (m BodyTap) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhtt
 	}
 	requestID := hex.EncodeToString(requestIDBytes)
 	r.Header.Set("X-Blue-Request-ID", requestID)
-	maxBytes := m.MaxBytes
-	if maxBytes == 0 {
-		maxBytes = defaultMaxBytes
+	body := &capturedBody{
+		ReadCloser: r.Body,
+		directory:  m.Directory,
+		requestID:  requestID,
 	}
-	body := &capturedBody{ReadCloser: r.Body, max: maxBytes}
 	if r.Body != nil {
 		r.Body = body
 	}
 	err := next.ServeHTTP(w, r)
+	ref, digest := body.finish()
 	fields, ok := r.Context().Value(caddyhttp.ExtraLogFieldsCtxKey).(*caddyhttp.ExtraLogFields)
 	if !ok {
 		return err
 	}
 	fields.Set(zap.String("blue_request_id", requestID))
 	status := "none"
-	if body.total > int64(maxBytes) || r.ContentLength > int64(maxBytes) {
-		status = "truncated"
+	if body.writeErr != nil {
+		status = "storage_error"
 	} else if body.total > 0 {
-		if r.ContentLength >= 0 && body.total < r.ContentLength {
+		if r.ContentLength >= 0 && body.total < r.ContentLength || r.ContentLength < 0 && !body.sawEOF {
 			status = "incomplete"
 		} else {
 			status = "captured"
@@ -88,25 +133,17 @@ func (m BodyTap) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhtt
 	}
 	fields.Set(zap.String("blue_body_status", status))
 	fields.Set(zap.Int64("blue_body_bytes_read", body.total))
-	if len(body.data) > 0 {
-		captured := body.data
-		if len(captured) > maxBytes {
-			captured = captured[:maxBytes]
-		}
-		fields.Set(zap.String("blue_request_body_base64", base64.StdEncoding.EncodeToString(captured)))
+	fields.Set(zap.Int64("blue_body_bytes_stored", body.stored))
+	if ref != "" {
+		fields.Set(zap.String("blue_body_ref", ref))
+		fields.Set(zap.String("blue_body_sha256", digest))
 	}
 	return err
 }
 
 func (m *BodyTap) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 	d.Next()
-	if d.NextArg() {
-		value, err := strconv.Atoi(d.Val())
-		if err != nil || value < 1 || value > 8*1024*1024 {
-			return d.Err("blue_body requires a byte limit between 1 and 8388608")
-		}
-		m.MaxBytes = value
-	}
+	m.Directory = "/body-spool"
 	if d.NextArg() {
 		return d.ArgErr()
 	}

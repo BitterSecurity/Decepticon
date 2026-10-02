@@ -195,6 +195,8 @@ services:
   # see decepticon/backends/factory.py for the rationale.
   sandbox:
     image: ghcr.io/bittersecurity/decepticon-sandbox:${DECEPTICON_VERSION:-stable}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     # Multi-arch image — linux/amd64 + linux/arm64. Apple Silicon and
     # Linux arm64 hosts pull the native manifest; no Rosetta needed.
     # On an unusual arch the manifest list won't match — force a
@@ -391,6 +393,8 @@ services:
       # pytest where the skillogy container isn't running.
       - DECEPTICON_USE_SKILLOGY=${DECEPTICON_USE_SKILLOGY:-1}
       - DECEPTICON_SKILLOGY_URL=http://skillogy:9100
+      - BLUE_SENSOR_URL=http://blue-receiver:8082
+      - BLUE_MONITOR_URL=http://blue-monitor:8085
       # Neo4j is the sole KG backend (no DECEPTICON_KG_BACKEND needed)
       # BENCHMARK_MODE flows in via `env_file: .env` above — no need to
       # re-declare it here. Set BENCHMARK_MODE=1 in .env to engage CTF/XBOW
@@ -518,6 +522,8 @@ services:
     # override this service's volumes via a compose overlay.
     environment:
       - DECEPTICON_API_URL=http://langgraph:2024
+      - BLUE_SENSOR_URL=http://blue-receiver:8082
+      - BLUE_MONITOR_URL=http://blue-monitor:8085
       - TERM=xterm-256color
       - COLORTERM=truecolor
       - DECEPTICON_VERSION=${DECEPTICON_VERSION:-}

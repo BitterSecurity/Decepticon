@@ -24,7 +24,7 @@ pipeline:
       read_from_head: true
       inotify_watcher: true
       refresh_interval: 1
-      buffer_max_size: 12M
+      buffer_max_size: 1M
       skip_long_lines: true
     - name: tail
       tag: blue.target_logs

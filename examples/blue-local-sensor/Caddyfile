@@ -3,7 +3,8 @@
 	order blue_body before reverse_proxy
 }
 
-http://127.0.0.1:18080 {
+http://127.0.0.1:18080, http://host.docker.internal:18080 {
+	bind 127.0.0.1 {$BLUE_HOST_GATEWAY_IP}
 	log {
 		output file /sensor-logs/access.jsonl {
 			roll_size {$BLUE_ACCESS_ROLL_SIZE}
@@ -14,6 +15,6 @@ http://127.0.0.1:18080 {
 	}
 
 	log_append path {http.request.uri.path}
-	blue_body {$BLUE_BODY_MAX_BYTES}
+	blue_body
 	reverse_proxy {$BLUE_TARGET_UPSTREAM}
 }

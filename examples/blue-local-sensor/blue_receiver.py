@@ -2,15 +2,22 @@ import hashlib
 import itertools
 import json
 import os
+import re
 import sqlite3
 import threading
+import time
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
-
 DB_PATH = Path(os.environ.get("BLUE_EVENT_DB", "/blue-data/observations.sqlite3"))
+BODY_DIR = Path(os.environ.get("BLUE_BODY_DIR", "/body-spool"))
+BODY_MAX_DISK_BYTES = int(os.environ.get("BLUE_BODY_MAX_DISK_BYTES", str(2 * 1024**3)))
+BODY_TTL_SECONDS = int(os.environ.get("BLUE_BODY_TTL_SECONDS", "86400"))
+EVENT_MAX_ROWS = int(os.environ.get("BLUE_EVENT_MAX_ROWS", "100000"))
+EVENT_TTL_SECONDS = int(os.environ.get("BLUE_EVENT_TTL_SECONDS", str(7 * 86400)))
+REJECTED_MAX_ROWS = int(os.environ.get("BLUE_REJECTED_MAX_ROWS", "10000"))
 TARGET_ID = os.environ.get("BLUE_TARGET_ID", "local-web")
 MAX_BATCH_BYTES = 20 * 1024 * 1024
 MAX_PAGE_SIZE = 1000
@@ -63,6 +70,9 @@ def normalize(raw: object) -> dict[str, object]:
             "response_bytes": raw.get("size"),
             "request_body_status": raw.get("blue_body_status"),
             "request_body_bytes_read": raw.get("blue_body_bytes_read"),
+            "request_body_bytes_stored": raw.get("blue_body_bytes_stored"),
+            "request_body_ref": raw.get("blue_body_ref"),
+            "request_body_sha256": raw.get("blue_body_sha256"),
             "request_body_base64": raw.get("blue_request_body_base64"),
         }
     line = raw.get("log")
@@ -92,8 +102,11 @@ def normalize(raw: object) -> dict[str, object]:
 
 class EventStore:
     def __init__(self) -> None:
+        if min(EVENT_MAX_ROWS, EVENT_TTL_SECONDS, REJECTED_MAX_ROWS) < 1:
+            raise ValueError("event storage limits must be positive")
         DB_PATH.parent.mkdir(parents=True, exist_ok=True)
         self.condition = threading.Condition()
+        self.evicted_total = 0
         self.db = sqlite3.connect(DB_PATH, timeout=10, check_same_thread=False)
         self.db.execute("PRAGMA journal_mode=WAL")
         self.db.execute("PRAGMA synchronous=FULL")
@@ -169,12 +182,106 @@ class EventStore:
         with sqlite3.connect(DB_PATH, timeout=10) as db:
             return {
                 "events_total": int(db.execute("SELECT COUNT(*) FROM events").fetchone()[0]),
+                "events_evicted_total": self.evicted_total,
                 "rejected_total": int(db.execute("SELECT COUNT(*) FROM rejected").fetchone()[0]),
                 "latest_seq": int(db.execute("SELECT COALESCE(MAX(seq),0) FROM events").fetchone()[0]),
             }
 
+    def cleanup(self) -> None:
+        cutoff = datetime.fromtimestamp(time.time() - EVENT_TTL_SECONDS, timezone.utc).isoformat()
+        with self.condition:
+            with self.db:
+                expired = self.db.execute(
+                    "DELETE FROM events WHERE received_at < ?", (cutoff,)
+                ).rowcount
+                count = int(self.db.execute("SELECT COUNT(*) FROM events").fetchone()[0])
+                excess = max(0, count - EVENT_MAX_ROWS)
+                if excess:
+                    boundary = int(
+                        self.db.execute(
+                            "SELECT seq FROM events ORDER BY seq LIMIT 1 OFFSET ?", (excess - 1,)
+                        ).fetchone()[0]
+                    )
+                    self.db.execute("DELETE FROM events WHERE seq <= ?", (boundary,))
+                self.evicted_total += expired + excess
+                self.db.execute("DELETE FROM rejected WHERE received_at < ?", (cutoff,))
+                rejected_count = int(self.db.execute("SELECT COUNT(*) FROM rejected").fetchone()[0])
+                rejected_excess = rejected_count - REJECTED_MAX_ROWS
+                if rejected_excess > 0:
+                    self.db.execute(
+                        "DELETE FROM rejected WHERE id IN "
+                        "(SELECT id FROM rejected ORDER BY id LIMIT ?)",
+                        (rejected_excess,),
+                    )
+
 
 STORE = EventStore()
+
+
+class BodyStore:
+    def __init__(self) -> None:
+        if BODY_MAX_DISK_BYTES < 1 or BODY_TTL_SECONDS < 1:
+            raise ValueError("body storage limits must be positive")
+        BODY_DIR.mkdir(parents=True, exist_ok=True)
+        self.lock = threading.Lock()
+        self.evicted_total = 0
+        self.cleanup_errors_total = 0
+        self.files = 0
+        self.bytes = 0
+        self.cleanup()
+
+    def cleanup(self) -> None:
+        now = time.time()
+        live: list[tuple[float, int, Path]] = []
+        with self.lock:
+            for path in BODY_DIR.iterdir():
+                if path.suffix not in (".body", ".part"):
+                    continue
+                try:
+                    stat = path.stat()
+                    if path.suffix == ".part":
+                        if now - stat.st_mtime > max(BODY_TTL_SECONDS, 86400):
+                            path.unlink()
+                        continue
+                    if now - stat.st_mtime > BODY_TTL_SECONDS:
+                        path.unlink()
+                        self.evicted_total += 1
+                    else:
+                        live.append((stat.st_mtime, stat.st_size, path))
+                except OSError:
+                    self.cleanup_errors_total += 1
+            total = sum(size for _, size, _ in live)
+            for _, size, path in sorted(live):
+                if total <= BODY_MAX_DISK_BYTES:
+                    break
+                try:
+                    path.unlink()
+                    total -= size
+                    self.evicted_total += 1
+                except OSError:
+                    self.cleanup_errors_total += 1
+            self.files = sum(1 for _, _, path in live if path.exists())
+            self.bytes = total
+
+    def metrics(self) -> dict[str, int]:
+        self.cleanup()
+        with self.lock:
+            return {
+                "body_files": self.files,
+                "body_bytes": self.bytes,
+                "body_evicted_total": self.evicted_total,
+                "body_cleanup_errors_total": self.cleanup_errors_total,
+            }
+
+
+BODY_STORE = BodyStore()
+
+
+def clean_bodies_forever() -> None:
+    while True:
+        time.sleep(60)
+        BODY_STORE.cleanup()
+        STORE.cleanup()
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -198,7 +305,29 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(404, {"error": "not found"})
             return
         if parsed.path == "/metrics":
-            self.send_json(200, STORE.metrics())
+            self.send_json(200, {**STORE.metrics(), **BODY_STORE.metrics()})
+            return
+        if parsed.path.startswith("/bodies/"):
+            ref = parsed.path.removeprefix("/bodies/")
+            if not re.fullmatch(r"[0-9a-f]{32}", ref):
+                self.send_json(400, {"error": "invalid body reference"})
+                return
+            try:
+                body = (BODY_DIR / f"{ref}.body").open("rb")
+            except FileNotFoundError:
+                self.send_json(404, {"error": "body not found or expired"})
+                return
+            with body:
+                size = os.fstat(body.fileno()).st_size
+                self.send_response(200)
+                self.send_header("Content-Type", "application/octet-stream")
+                self.send_header("Content-Length", str(size))
+                self.end_headers()
+                try:
+                    while chunk := body.read(64 * 1024):
+                        self.wfile.write(chunk)
+                except (BrokenPipeError, ConnectionResetError):
+                    pass
             return
         if parsed.path not in ("/events", "/stream"):
             self.send_json(404, {"error": "not found"})
@@ -285,6 +414,8 @@ class IngestHandler(Handler):
 
 
 if __name__ == "__main__":
+    STORE.cleanup()
+    threading.Thread(target=clean_bodies_forever, daemon=True).start()
     ingest = ThreadingHTTPServer(("0.0.0.0", 8081), IngestHandler)
     ingest.daemon_threads = True
     threading.Thread(target=ingest.serve_forever, daemon=True).start()

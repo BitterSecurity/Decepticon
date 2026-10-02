@@ -1,4 +1,4 @@
-import base64
+import hashlib
 import json
 import socket
 import time
@@ -6,7 +6,6 @@ import uuid
 from collections.abc import Callable
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
-
 
 TARGET = "http://127.0.0.1:18080"
 BLUE = "http://127.0.0.1:18081"
@@ -21,6 +20,15 @@ def send(request: Request, expected_status: int) -> None:
         status = error.code
         error.close()
     assert status == expected_status, (status, expected_status)
+
+
+def assert_body(event: dict[str, object], expected: bytes) -> None:
+    ref = event["request_body_ref"]
+    assert isinstance(ref, str)
+    assert event["request_body_bytes_stored"] == len(expected)
+    assert event["request_body_sha256"] == hashlib.sha256(expected).hexdigest()
+    with urlopen(BLUE + "/bodies/" + ref, timeout=10) as response:
+        assert response.read() == expected
 
 
 def next_event(stream) -> dict[str, object]:
@@ -96,10 +104,10 @@ def main() -> None:
             assert event["method"] == method
             if method == "POST":
                 assert event["request_body_status"] == "captured"
-                assert base64.b64decode(event["request_body_base64"]) == body
+                assert_body(event, body)
             observed.append(event)
 
-    large_body = json.dumps({"payload": "x" * 80_000}).encode()
+    large_body = json.dumps({"payload": "x" * (9 * 1024 * 1024)}).encode()
     large_path = "/large/" + str(uuid.uuid4())
     with urlopen(BLUE + "/stream", timeout=MAX_LATENCY_SECONDS) as stream:
         started_at = time.monotonic()
@@ -117,8 +125,8 @@ def main() -> None:
             started_at,
             {"proxy": lambda event: event.get("event_type") == "http_access" and event.get("path") == large_path},
         )["proxy"]
-        assert large_event["request_body_status"] == "truncated"
-        assert base64.b64decode(large_event["request_body_base64"]) == large_body[:65536]
+        assert large_event["request_body_status"] == "captured"
+        assert_body(large_event, large_body)
 
     for body, content_type in (
         (b'{"password":"never-log-this"}', "application/x-www-form-urlencoded"),
@@ -135,7 +143,7 @@ def main() -> None:
                 {"proxy": lambda item: item.get("event_type") == "http_access" and item.get("path") == path},
             )["proxy"]
             assert event["request_body_status"] == "captured"
-            assert base64.b64decode(event["request_body_base64"]) == body
+            assert_body(event, body)
 
     burst_paths = {"/burst/" + str(uuid.uuid4()) for _ in range(10)}
     for path in burst_paths:
