@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -75,7 +76,7 @@ func TestLegacyCredentialStateSurvivesInterruptedUpgrade(t *testing.T) {
 		t.Fatal("legacy salt must remain available to decrypt stored provider credentials")
 	}
 	info, err := os.Stat(path)
-	if err != nil || info.Mode().Perm() != 0o600 {
+	if err != nil || runtime.GOOS != "windows" && info.Mode().Perm() != 0o600 {
 		t.Fatalf("migration state must be private: %v", err)
 	}
 }
@@ -201,7 +202,7 @@ func TestBackupLegacyEnvKeepsFirstCopyPrivate(t *testing.T) {
 		t.Fatal("backup was overwritten during retry")
 	}
 	info, err := os.Stat(path + ".before-credential-migration")
-	if err != nil || info.Mode().Perm() != 0o600 {
+	if err != nil || runtime.GOOS != "windows" && info.Mode().Perm() != 0o600 {
 		t.Fatal("backup must be private")
 	}
 }
