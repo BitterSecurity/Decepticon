@@ -577,6 +577,20 @@ def extract_agent_text(result: dict) -> str:
     return json.dumps(result, separators=(",", ":"))[:16000]
 
 
+def parse_tool_events(content: str) -> list[dict]:
+    try:
+        return json.loads(content)["events"]
+    except (json.JSONDecodeError, KeyError, TypeError):
+        match = re.search(
+            r"<untrusted_tool_output>\s*(.*?)\s*</untrusted_tool_output>",
+            content,
+            flags=re.S,
+        )
+        if match is None:
+            raise ValueError("Blue sensor tool output is not JSON") from None
+        return json.loads(match.group(1))["events"]
+
+
 def parse_watch_verdict(result: dict, events: list[dict]) -> dict:
     expected_after = int(events[0]["seq"]) - 1
     expected_limit = len(events)
@@ -613,7 +627,7 @@ def parse_watch_verdict(result: dict, events: list[dict]) -> dict:
                     and tool_message.get("tool_call_id") == call.get("id")
                 ):
                     try:
-                        observed = json.loads(tool_message["content"])["events"]
+                        observed = parse_tool_events(tool_message["content"])
                         verified = [item["seq"] for item in observed] == [
                             item["seq"] for item in events
                         ]
