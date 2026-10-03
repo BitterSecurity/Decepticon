@@ -1,0 +1,17 @@
+FROM caddy:2.11.4-builder AS builder
+ENV GOTOOLCHAIN=auto
+COPY bodytap /src/bodytap
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    xcaddy build v2.11.6 --with decepticon.local/bluebodytap=/src/bodytap
+
+FROM caddy:2.11.4-alpine
+COPY --from=builder /usr/bin/caddy /usr/bin/caddy
+COPY Caddyfile /etc/caddy/Caddyfile
+RUN addgroup -S -g 10001 blue && \
+    adduser -S -D -H -u 10001 -G blue blue && \
+    mkdir -p /sensor-logs /body-spool && \
+    chown -R blue:blue /sensor-logs /body-spool /data /config
+USER blue
+HEALTHCHECK --interval=30s --timeout=3s --start-period=20s \
+    CMD wget -q -O /dev/null http://127.0.0.1:18084/config/ || exit 1

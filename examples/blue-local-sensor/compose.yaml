@@ -1,0 +1,123 @@
+services:
+  target:
+    profiles: ["fixture"]
+    image: python:3.14.8-alpine
+    command: ["python", "-u", "/app/capture_process.py", "/target-logs/process.jsonl", "python", "-u", "/app/target.py"]
+    environment:
+      BLUE_TARGET_SOCKET: /target-socket/service.sock
+    volumes:
+      - ./target.py:/app/target.py:ro
+      - ./capture_process.py:/app/capture_process.py:ro
+      - target-logs:/target-logs
+      - target-socket:/target-socket
+    networks: [target-net]
+
+  blue-proxy:
+    build:
+      context: .
+      dockerfile: Dockerfile.caddy
+    image: decepticon-blue-caddy:2.11.6
+    environment:
+      BLUE_TARGET_UPSTREAM: ${BLUE_TARGET_UPSTREAM:-unix//target-socket/service.sock}
+      BLUE_ACCESS_ROLL_SIZE: ${BLUE_ACCESS_ROLL_SIZE:-100MiB}
+      BLUE_HOST_GATEWAY_IP: ${BLUE_HOST_GATEWAY_IP:-172.17.0.1}
+    volumes:
+      - sensor-logs:/sensor-logs
+      - body-spool:/body-spool
+      - target-socket:/target-socket
+    network_mode: host
+    restart: unless-stopped
+
+  blue-receiver:
+    image: python:3.14.8-alpine
+    command: ["python", "-u", "/app/blue_receiver.py"]
+    environment:
+      BLUE_EVENT_DB: /blue-data/observations.sqlite3
+      BLUE_BODY_DIR: /body-spool
+      BLUE_BODY_MAX_DISK_BYTES: ${BLUE_BODY_MAX_DISK_BYTES:-2147483648}
+      BLUE_BODY_TTL_SECONDS: ${BLUE_BODY_TTL_SECONDS:-86400}
+      BLUE_EVENT_MAX_ROWS: ${BLUE_EVENT_MAX_ROWS:-100000}
+      BLUE_EVENT_TTL_SECONDS: ${BLUE_EVENT_TTL_SECONDS:-604800}
+      BLUE_REJECTED_MAX_ROWS: ${BLUE_REJECTED_MAX_ROWS:-10000}
+      BLUE_TARGET_ID: ${BLUE_TARGET_ID:-local-web}
+    volumes:
+      - ./blue_receiver.py:/app/blue_receiver.py:ro
+      - blue-data:/blue-data
+      - body-spool:/body-spool
+    ports:
+      - "127.0.0.1:18081:8082"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8082/health')"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+    depends_on:
+      blue-proxy:
+        condition: service_started
+    restart: unless-stopped
+    networks: [blue-net, query-net]
+
+  blue-collector:
+    image: fluent/fluent-bit:5.1.3
+    command: ["-c", "/fluent-bit/etc/fluent-bit.yaml"]
+    volumes:
+      - ./fluent-bit.yaml:/fluent-bit/etc/fluent-bit.yaml:ro
+      - sensor-logs:/sensor-logs:ro
+      - ${BLUE_TARGET_LOG_DIR:-target-logs}:/target-logs:ro
+      - collector-data:/fluent-bit/state
+    ports:
+      - "127.0.0.1:18083:2020"
+    depends_on:
+      blue-receiver:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [blue-net, query-net]
+
+  blue-monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile.receiver
+    image: decepticon-blue-receiver:3.14.8
+    command: ["python", "-u", "/app/blue_monitor.py"]
+    environment:
+      BLUE_SENSOR_URL: http://blue-receiver:8082
+      BLUE_AGENT_URL: ${BLUE_AGENT_URL:-}
+      BLUE_MONITOR_DB: /monitor-data/incidents.sqlite3
+      BLUE_INCIDENT_MAX_ROWS: ${BLUE_INCIDENT_MAX_ROWS:-10000}
+      BLUE_NOTIFICATION_MAX_ROWS: ${BLUE_NOTIFICATION_MAX_ROWS:-20000}
+      BLUE_MONITOR_TTL_SECONDS: ${BLUE_MONITOR_TTL_SECONDS:-604800}
+      BLUE_WATCH_INTERVAL_SECONDS: ${BLUE_WATCH_INTERVAL_SECONDS:-15}
+      BLUE_WATCH_BATCH_SIZE: ${BLUE_WATCH_BATCH_SIZE:-25}
+      BLUE_WATCH_MAX_ROWS: ${BLUE_WATCH_MAX_ROWS:-10000}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - monitor-data:/monitor-data
+    ports:
+      - "127.0.0.1:18085:8085"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8085/health')"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+    depends_on:
+      blue-receiver:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [blue-net, query-net]
+
+networks:
+  blue-net:
+    internal: true
+  target-net:
+    internal: true
+  query-net:
+
+volumes:
+  sensor-logs:
+  target-logs:
+  target-socket:
+  blue-data:
+  collector-data:
+  body-spool:
+  monitor-data:

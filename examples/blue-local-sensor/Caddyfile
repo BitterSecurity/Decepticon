@@ -1,0 +1,20 @@
+{
+	admin 127.0.0.1:18084
+	order blue_body before reverse_proxy
+}
+
+http://127.0.0.1:18080, http://host.docker.internal:18080 {
+	bind 127.0.0.1 {$BLUE_HOST_GATEWAY_IP}
+	log {
+		output file /sensor-logs/access.jsonl {
+			roll_size {$BLUE_ACCESS_ROLL_SIZE}
+			roll_keep 10
+			roll_uncompressed
+		}
+		format json
+	}
+
+	log_append path {http.request.uri.path}
+	blue_body
+	reverse_proxy {$BLUE_TARGET_UPSTREAM}
+}
