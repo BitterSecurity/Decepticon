@@ -199,6 +199,9 @@ func runStart(cmd *cobra.Command, args []string) error {
 			ui.Warning("Could not set DECEPTICON_HOME in .env: " + err.Error())
 		}
 	}
+	if err := migrateLegacyCredentials(env); err != nil {
+		return fmt.Errorf("upgrade legacy credentials: %w", err)
+	}
 
 	// 2.6. Set CLAUDE_CREDENTIALS_VOLUME for conditional mount in docker-compose.
 	// When the credentials file exists, mount it into litellm. Otherwise mount
@@ -353,16 +356,12 @@ func runStart(cmd *cobra.Command, args []string) error {
 // are still in effect. A bare docker compose up remains available for dev,
 // while the supported launcher path cannot expose a default-keyed service.
 func checkDefaultCredentials(env map[string]string) error {
-	defaults := map[string][]string{
-		"LITELLM_MASTER_KEY": {"sk-decepticon-master"},
-		"LITELLM_SALT_KEY":   {"sk-decepticon-salt-change-me", "sk-decepticon-salt"},
-		"POSTGRES_PASSWORD":  {"decepticon"},
-		"NEO4J_PASSWORD":     {"decepticon-graph"},
-	}
-	insecure := make([]string, 0, len(defaults))
-	for name, fallbacks := range defaults {
-		value := strings.TrimSpace(config.Get(env, name, ""))
-		if value == "" || slices.Contains(fallbacks, value) {
+	insecure := make([]string, 0, len(legacyCredentialDefaults))
+	for name := range legacyCredentialDefaults {
+		if name == "LITELLM_SALT_KEY" && isLegacyCredential(env, name) && env[legacySaltMarker] == "true" && strings.TrimSpace(env[name]) != "" {
+			continue
+		}
+		if isLegacyCredential(env, name) {
 			insecure = append(insecure, name)
 		}
 	}
