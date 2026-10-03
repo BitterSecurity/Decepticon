@@ -246,6 +246,13 @@ def test_only_allowlisted_services_mount_docker_socket():
     assert not msgs, "\n\n".join(msgs)
 
 
+def test_cli_exposes_host_install_path_separately_from_container_path(monkeypatch):
+    monkeypatch.setenv("DECEPTICON_HOME", "/tmp/decepticon-operator-home")
+    environment = _rendered_compose()["services"]["cli"]["environment"]
+    assert environment["DECEPTICON_HOME"] == "/decepticon-home"
+    assert environment["DECEPTICON_HOST_HOME"] == "/tmp/decepticon-operator-home"
+
+
 def test_published_ports_bind_to_loopback():
     """Every published port must bind to 127.0.0.1, not 0.0.0.0.
 

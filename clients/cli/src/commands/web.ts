@@ -56,10 +56,16 @@ function composeArgs(): string[] {
 }
 
 function startWeb(context: CommandContext): Promise<void> {
+  const hostHome = process.env["DECEPTICON_HOST_HOME"];
+  if (!hostHome) {
+    context.addSystemEvent("❌ Cannot start web: host install path is unavailable. Update the Decepticon CLI stack and retry.");
+    return Promise.resolve();
+  }
   return runDockerCompose(
     context,
-    [...composeArgs(), "--profile", "web", "up", "-d", "--no-build", "web"],
+    [...composeArgs(), "--profile", "web", "up", "-d", "--no-build", "--no-deps", "web"],
     {
+      env: { ...process.env, DECEPTICON_HOME: hostHome },
       pending: "Starting web dashboard…",
       success: () => `✅ Web dashboard up: ${url()}`,
       failure: (code, stderr) => formatComposeFailure("start", code, stderr),
@@ -80,6 +86,7 @@ function stopWeb(context: CommandContext): Promise<void> {
 }
 
 interface RunOptions {
+  env?: NodeJS.ProcessEnv;
   pending: string;
   success: (stdout: string) => string;
   failure: (code: number | null, stderr: string) => string;
@@ -94,6 +101,7 @@ function runDockerCompose(
     context.addSystemEvent(opts.pending);
     const proc = spawn("docker", args, {
       stdio: ["ignore", "pipe", "pipe"],
+      env: opts.env ?? process.env,
     });
     let stdout = "";
     let stderr = "";
