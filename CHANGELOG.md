@@ -6,6 +6,32 @@ follows [Semantic Versioning](https://semver.org/) from `1.0.0`
 onward (the `0.x` cycle is pre-stable per the core/framework/sdk split
 design spec, §13.4).
 
+## [1.2.2] — 2026-10-03
+
+This feature-bearing patch version was selected by the maintainer.
+
+### Added
+
+- **Local Blue Cell sensor and CLI:** observe a local web service through a
+  reverse proxy, capture request bodies and optional target logs, retain bounded
+  events, and show incidents and alerts in the interactive CLI. (#833)
+- **Resident defensive agent:** continuously review live event windows,
+  investigate incidents, persist progress across restarts, and deliver findings
+  to the CLI chat. (#837)
+
+### Fixed
+
+- Parse guarded sensor-tool output safely during resident Blue Cell reviews.
+  (#838)
+- Wait for the initial tmux environment export to finish before capturing the
+  first command's output. (#836)
+
+## [1.2.1] — 2026-10-02
+
+### Added
+
+- Enforce versioned, evidence-backed DAG execution for OPPLAN.
+
 ## [1.2.0] — 2026-10-01
 
 ### Added
@@ -906,3 +932,6 @@ The following legacy import paths keep working but emit a
 - PyPI Trusted Publisher OIDC configuration for the three-wheel
   atomic release.
 - Downstream plugin package lockstep migration.
+
+[1.2.2]: https://github.com/BitterSecurity/Decepticon/compare/v1.2.1...v1.2.2
+[1.2.1]: https://github.com/BitterSecurity/Decepticon/compare/v1.2.0...v1.2.1
