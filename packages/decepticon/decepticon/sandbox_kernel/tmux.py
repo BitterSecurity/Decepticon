@@ -28,6 +28,7 @@ import shlex
 import subprocess
 import threading
 import time
+import uuid
 from collections.abc import Callable
 
 log = logging.getLogger("decepticon.sandbox_kernel.tmux")
@@ -403,22 +404,33 @@ class TmuxSessionManager:
     def _sync_passthrough_env(self) -> None:
         """Inject the allowlisted parent env vars into the live tmux shell.
 
-        No-op when the allowlist is empty so we never send an empty
-        ``export`` line. Errors are logged but never raised — sandbox
-        execution must continue even if the export keystrokes fail.
+        No-op when the allowlist is empty. Send errors are logged; once
+        sent, wait for the export's PS1 marker before execution can capture
+        its baseline. A missing completion marker fails initialization.
         """
         env = _allowed_passthrough_env()
         cmd = _shell_export_command(env)
         if not cmd:
             return
+        marker = f"__DECEPTICON_ENV_SYNC_{uuid.uuid4().hex}__"
+        completed = re.compile(rf"(?:^|\n){marker}\n{PS1_PATTERN.pattern}")
         try:
-            self._send(cmd, enter=True)
+            self._send(f"{cmd}; printf '\\n%s\\n' {marker}", enter=True)
         except (RuntimeError, OSError, subprocess.TimeoutExpired) as exc:
             log.warning(
                 "Could not sync passthrough env into tmux session '%s': %s",
                 _safe_log(self.session),
                 exc,
             )
+            return
+
+        deadline = time.monotonic() + 10.0
+        while not completed.search(self._capture()):
+            if time.monotonic() >= deadline:
+                raise TmuxCommandError(
+                    ["capture-pane"], -1, "Timed out waiting for passthrough env export completion"
+                )
+            time.sleep(POLL_INTERVAL)
 
     def _clear_screen(self) -> None:
         target = self._target()

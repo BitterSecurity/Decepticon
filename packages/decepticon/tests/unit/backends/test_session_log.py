@@ -17,6 +17,7 @@ def test_initialize_does_not_create_root_workspace_sessions_log():
     TmuxSessionManager._initialized.discard("scan-1")
 
     with (
+        patch.object(mgr, "_sync_passthrough_env"),
         patch.object(mgr, "_tmux") as mock_tmux,
         patch("decepticon.sandbox_kernel.base.subprocess.run") as mock_run,
         patch("time.sleep"),
@@ -49,6 +50,7 @@ def test_initialize_pipes_pane_to_engagement_scoped_sessions_log():
     TmuxSessionManager._initialized.discard("dcptn_test-main")
 
     with (
+        patch.object(mgr, "_sync_passthrough_env"),
         patch.object(mgr, "_tmux") as mock_tmux,
         patch("decepticon.sandbox_kernel.base.subprocess.run") as mock_run,
         patch("time.sleep"),
@@ -87,6 +89,7 @@ def test_initialize_creates_sessions_directory_inside_engagement_workspace():
     TmuxSessionManager._initialized.discard("dcptn_test-scan-2")
 
     with (
+        patch.object(mgr, "_sync_passthrough_env"),
         patch.object(mgr, "_tmux") as mock_tmux,
         patch("decepticon.sandbox_kernel.base.subprocess.run") as mock_run,
         patch("time.sleep"),
@@ -130,6 +133,7 @@ def test_initialize_warns_when_mkdir_fails(caplog):
     decepticon_logger.propagate = True
     try:
         with (
+            patch.object(mgr, "_sync_passthrough_env"),
             patch.object(mgr, "_tmux") as mock_tmux,
             patch("decepticon.sandbox_kernel.base.subprocess.run") as mock_run,
             patch("time.sleep"),
@@ -523,6 +527,7 @@ def test_initialize_recreates_stale_cached_pane_without_error_string_matching():
     TmuxSessionManager._initialized.add("stale")
 
     with (
+        patch.object(mgr, "_sync_passthrough_env"),
         patch.object(mgr, "_tmux") as mock_tmux,
         patch("decepticon.sandbox_kernel.base.subprocess.run") as mock_run,
         patch("time.sleep"),
