@@ -508,6 +508,38 @@ func TestSetEnvKey(t *testing.T) {
 	}
 }
 
+func TestSetEnvKeysReplacesCredentialsPrivatelyWithoutLosingOtherSettings(t *testing.T) {
+	path := filepath.Join(t.TempDir(), ".env")
+	seed := "POSTGRES_PASSWORD=decepticon\nNEO4J_PASSWORD=decepticon-graph\n# keep comment\nDECEPTICON_AUTH_PRIORITY=openai_oauth\n"
+	if err := os.WriteFile(path, []byte(seed), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	updates := map[string]string{"POSTGRES_PASSWORD": "new-postgres", "NEO4J_PASSWORD": "new-neo4j", "LITELLM_MASTER_KEY": "sk-new-master"}
+	if err := SetEnvKeys(path, updates); err != nil {
+		t.Fatal(err)
+	}
+	env, err := LoadEnv(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for key, value := range updates {
+		if env[key] != value {
+			t.Fatalf("%s not updated", key)
+		}
+	}
+	if env["DECEPTICON_AUTH_PRIORITY"] != "openai_oauth" {
+		t.Fatal("existing auth method was lost")
+	}
+	data, err := os.ReadFile(path)
+	if err != nil || !strings.Contains(string(data), "# keep comment") {
+		t.Fatal("existing comments were lost")
+	}
+	info, err := os.Stat(path)
+	if err != nil || runtime.GOOS != "windows" && info.Mode().Perm() != 0o600 {
+		t.Fatal("credential file is not private")
+	}
+}
+
 func TestWriteEnv_CommentedOutLines(t *testing.T) {
 	dir := t.TempDir()
 	tmplPath := filepath.Join(dir, ".env.example")
