@@ -6,6 +6,8 @@
     "autohunt": "./packages/decepticon/decepticon/agents/standard/autohunt.py:graph",
     "soundwave": "./packages/decepticon/decepticon/agents/standard/soundwave.py:graph",
     "exploit": "./packages/decepticon/decepticon/agents/standard/exploit.py:graph",
+    "finding_verifier": "./packages/decepticon/decepticon/agents/standard/finding_verifier.py:graph",
+    "finding_reporter": "./packages/decepticon/decepticon/agents/standard/finding_reporter.py:graph",
     "postexploit": "./packages/decepticon/decepticon/agents/standard/postexploit.py:graph",
     "analyst": "./packages/decepticon/decepticon/agents/standard/analyst.py:graph",
     "reverser": "./packages/decepticon/decepticon/agents/standard/reverser.py:graph",

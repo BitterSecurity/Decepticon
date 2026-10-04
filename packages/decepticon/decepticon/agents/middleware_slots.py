@@ -165,8 +165,12 @@ def _make_filesystem(*, backend: Any, role: str, **_: Any):
     return FilesystemMiddleware(backend=backend, plan_only=role == "soundwave")
 
 
-def _make_subagent(*, backend: Any, subagents: list | None = None, **_: Any):
+def _make_subagent(*, backend: Any, subagents: list | None = None, role: str = "", **_: Any):
     m = SubAgentMiddleware(backend=backend, subagents=subagents or [])
+    if role == "decepticon":
+        from decepticon.middleware.opplan_dispatch import planned_task_tool
+
+        m.tools = [planned_task_tool(m.tools[0])]
     # Register the durable sub-agent transcript channel on the ORCHESTRATOR
     # state. ``AgentMiddleware.state_schema`` is the per-instance schema that
     # ``create_agent`` auto-merges into the compiled graph state at build time.

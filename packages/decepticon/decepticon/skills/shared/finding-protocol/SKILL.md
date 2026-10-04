@@ -1,6 +1,6 @@
 ---
 name: finding-protocol
-description: "Operational-tier finding template — minimal fields for sub-agent decision support. Heavyweight deliverable promotion lives in skills/decepticon/final-report."
+description: "Canonical finding template, enriched in place through verification and reporting."
 allowed-tools: Read Write
 metadata:
   subdomain: reporting
@@ -9,13 +9,11 @@ metadata:
   upstream_ref: "Operational-tier finding template — sub-agent decision support output, not an attack technique"
 ---
 
-# Finding Protocol — Operational Tier
+# Finding Protocol — One Canonical File
 
-The operational tier captures the minimum information another agent (or
-the orchestrator) needs to make a decision. It is not the report
-deliverable — the deliverable is generated at engagement end by the
-orchestrator from operational findings + attack-path narrative (see
-`skills/decepticon/final-report/SKILL.md`).
+Start with the evidence another agent needs to decide what to do next. The
+independent verifier then adjudicates the same file, and the reporter completes
+it in place. Engagement summaries link to this canonical finding.
 
 ## File Naming Convention
 
@@ -23,12 +21,12 @@ orchestrator from operational findings + attack-path narrative (see
 
 The file name and the `id` field in YAML frontmatter (FIND-001,
 FIND-002, ...) use the same canonical cross-reference. Determine the
-next ID by counting existing files: `ls findings/*.md | wc -l`.
+next unused sequential ID by inspecting existing `findings/FIND-*.md` names.
 
 Do not create empty scaffold directories or placeholder files before
 there is a real artifact to write.
 
-## Operational Template
+## Initial Template
 
 Every operational finding uses this minimal Markdown structure with
 YAML frontmatter — required fields only:
@@ -37,8 +35,12 @@ YAML frontmatter — required fields only:
 ---
 id: FIND-001
 severity: critical
+severity_rationale: "Why this severity applies to this target and observed impact"
+result_kind: vulnerability # vulnerability | negative_result | observation | hypothesis
+verification_status: unverified # independent verifier updates this
+report_status: draft # reporter sets complete after read-back checks
 title: <one-line summary>
-cwe: CWE-89               # optional at operational tier; REQUIRED at deliverable promotion
+cwe: CWE-89               # optional; only if evidence supports classification
 vrt: server-side-injection/sql-injection/blind   # optional Bugcrowd VRT path (category/sub-category/variant)
 agent: recon | exploit | postexploit | analyst | ...
 objective_id: OBJ-001
@@ -80,17 +82,14 @@ reads it to choose the next dispatch.
 - **LOW**: Hardening recommendation, informational
 - **INFORMATIONAL**: Observation, no direct security impact
 
-CVSS-numeric ranges live in deliverable tier (see final-report skill). When a
-CVSS score is recorded, always store the **vector string** (CVSS v4.0, e.g.
-`CVSS:4.0/AV:N/AC:L/...`) alongside the numeric score — the vector encodes the
-version and makes the score reproducible/auditable (per FIRST CVSS v4.0). A
-bare number is ambiguous between v3.1 and v4.0.
+When a CVSS score is recorded, always store its vector and version alongside
+the numeric score. The reporter uses the deterministic `cvss_score` tool for
+CVSS 3.1; never infer a numeric score from a severity label.
 
 ## Classification fields (CWE + VRT)
 
-- `cwe` — the CWE identifier (e.g. `CWE-89`). Optional at operational tier
-  (recon often cannot determine it; exploit usually can), **required** when the
-  finding is promoted to the deliverable tier.
+- `cwe` — the CWE identifier (e.g. `CWE-89`). Add only when evidence supports
+  the classification; an unknown CWE is more honest than a guessed one.
 - `vrt` — Bugcrowd Vulnerability Rating Taxonomy path
   `category/sub-category/variant` (e.g. `server-side-injection/sql-injection/blind`).
   Optional but recommended; it carries a machine-readable cross-walk to CVSS/CWE
@@ -134,27 +133,13 @@ Use exactly one of these schemes and normalize the value before writing it:
 - ALL agent documents use Markdown format — never write JSON as a deliverable document
 - Do NOT create `findings.md`; each finding lives in its own `findings/FIND-{NNN}.md` file
 
-## Promotion to Deliverable Tier
+## Verification and reporting lifecycle
 
-When the orchestrator runs the final-report skill at engagement end,
-operational findings are promoted to deliverable-tier finding documents under
-`report/` with the heavyweight schema (CVSS score + vector, CWE, VRT, MITRE,
-affected_target, affected_component, confidence, phase, detected,
-remediation_priority, plus full body sections). See
-`skills/decepticon/final-report/SKILL.md` for the deliverable template.
-
-**Two-tier naming — the key vs. the deliverable:**
-
-- **Operational tier** (`findings/FIND-{NNN}.md`) keeps the *stable*
-  `FIND-NNN` key for the whole engagement. Severity and title may change as the
-  exploit confirms impact, but the filename never does — so every cross-
-  reference (`shells.json` / `creds` `finding_id`, `attack-paths/PATH-NNN`
-  `finding_ids`, `timeline.jsonl`, `evidence/FIND-NNN_*.txt`) stays intact.
-- **Deliverable tier** (`report/<severity><NN>-<slug>.md`) is the terminal
-  snapshot generated once at engagement end, when severity is final. It uses a
-  human-readable, severity-sorted name — e.g. `report/critical01-struts-rce.md`,
-  `report/high01-git-config-disclosure.md`. The `<NN>` is a per-severity
-  counter (`critical01`, `critical02`, `high01`, …) so a plain `ls report/`
-  lists findings worst-first. The frontmatter still carries `id: FIND-NNN`, so
-  the readable deliverable remains traceable back to its operational finding and
-  to the attack-path / shell / credential cross-references.
+The first author records observed facts and evidence under the stable
+`findings/FIND-{NNN}.md` name with `report_status: draft`. A distinct verifier
+reproduces the claim and a negative control, then writes
+`verification_status: verified | false_positive | unverified` and
+`verification_rationale` into this same file. The reporter adds supported
+detail, uses `cvss_score` for justified CVSS 3.1 metrics, reads the saved file
+and evidence back, then sets `report_status: complete`. The orchestrator links
+to this file from both engagement summaries. It never copies it into `report/`.
