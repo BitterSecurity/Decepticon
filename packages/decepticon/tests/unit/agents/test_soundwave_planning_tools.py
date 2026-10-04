@@ -1,4 +1,5 @@
 from importlib import import_module
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -44,14 +45,20 @@ def test_interview_rejects_extra_unscoped_filesystem_middleware() -> None:
         )
 
 
-def test_completed_plan_emits_draft_event_without_handoff(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_completed_plan_emits_draft_event_without_handoff(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     module = import_module("decepticon.tools.interaction.complete_planning")
     events: list[dict[str, str]] = []
-    monkeypatch.setattr(module, "_runtime_context", lambda: ("/workspace/example", "", True))
+    monkeypatch.setattr(module, "_runtime_context", lambda: (str(tmp_path), "", True))
     monkeypatch.setattr(module, "validate_planning_bundle", lambda *args, **kwargs: None)
+    monkeypatch.setattr(module, "planning_bundle_digest", lambda *args: "digest")
     monkeypatch.setattr(module, "_safe_writer", lambda: events.append)
+    (tmp_path / ".red-approved").write_text("previous")
 
     response = module.complete_engagement_planning.func(tool_call_id="call-1")
 
     assert events == [{"type": "planning_draft_ready", "agent": "soundwave", "id": "call-1"}]
     assert "Review the documents" in response
+    assert (tmp_path / ".planning-draft-ready").read_text() == "digest"
+    assert not (tmp_path / ".red-approved").exists()

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 from typing import Annotated, Any
@@ -28,6 +29,17 @@ _PLANNING_DOCUMENTS = {
     "abort.json": AbortPlan,
     "cleanup.json": CleanupPlan,
 }
+
+
+def planning_bundle_digest(workspace: str | Path) -> str:
+    digest = hashlib.sha256()
+    root = Path(workspace) / "plan"
+    for filename in _PLANNING_DOCUMENTS:
+        digest.update(filename.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update((root / filename).read_bytes())
+        digest.update(b"\0")
+    return digest.hexdigest()
 
 
 def validate_planning_bundle(
@@ -106,6 +118,12 @@ def complete_engagement_planning(
     )
     if failure:
         return f"Planning draft blocked: {failure}"
+    try:
+        root = Path(workspace)
+        (root / ".planning-draft-ready").write_text(planning_bundle_digest(root), encoding="utf-8")
+        (root / ".red-approved").unlink(missing_ok=True)
+    except OSError as exc:
+        return f"Planning draft could not be saved: {exc}"
     writer = _safe_writer()
     if writer is not None:
         writer(

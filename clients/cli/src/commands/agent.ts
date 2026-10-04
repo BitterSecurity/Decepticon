@@ -22,6 +22,7 @@ import {
   getAssistantOverride,
   setAssistantOverride,
 } from "./assistantOverride.js";
+import { approveRedMode, revokeRedMode } from "./planMode.js";
 
 interface AssistantRow {
   assistant_id: string;
@@ -122,6 +123,8 @@ const agent: Command = {
           );
           return;
         }
+        if (arg === "decepticon") await approveRedMode();
+        if (arg === "soundwave") await revokeRedMode();
         setAssistantOverride(arg);
         ctx.addSystemEvent(
           `Active orchestrator: ${arg}\nNext message routes here. Type /agent clear to revert.`,

@@ -139,6 +139,24 @@ func TestIsReady(t *testing.T) {
 	}
 }
 
+func TestIsRedApprovedRequiresMatchingBundle(t *testing.T) {
+	home := t.TempDir()
+	mkPlan(t, home, "reviewed", planningDocuments...)
+	marker := filepath.Join(home, "workspace", "reviewed", ".red-approved")
+	if err := os.WriteFile(marker, []byte("23bb0ad057e96e5098d6c8ef731ce1afadd9e1957f6adf6b720196ad35409418"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if !isRedApproved(home, "reviewed") {
+		t.Fatal("approved bundle was not selected for Red")
+	}
+	if err := os.WriteFile(filepath.Join(home, "workspace", "reviewed", "plan", "roe.json"), []byte(`{"changed":true}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if isRedApproved(home, "reviewed") {
+		t.Fatal("changed bundle retained Red approval")
+	}
+}
+
 func TestValidateSlug_AcceptsReasonableSlugs(t *testing.T) {
 	home := t.TempDir()
 	for _, slug := range []string{

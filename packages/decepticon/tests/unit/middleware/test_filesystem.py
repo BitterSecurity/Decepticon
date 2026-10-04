@@ -106,16 +106,19 @@ def test_soundwave_filesystem_rejects_paths_outside_plan() -> None:
     backend = RecordingBackend()
     scoped = EngagementFilesystemBackend(backend, "/workspace/test", plan_only=True)
 
-    assert scoped.read("/workspace/plan/../credentials.json").error
-    assert scoped.read("/workspace/credentials.json").error
-    assert scoped.read("/workspace/test/credentials.json").error
-    assert scoped.write("/workspace/exploit/probe.txt", "x").error
-    assert scoped.edit("/workspace/credentials.json", "old", "new").error
-    assert scoped.ls("/workspace/private").error
-    assert scoped.glob("/workspace/private/**/*.json").error
-    assert scoped.glob("../credentials*").error
-    assert scoped.grep("token", glob="../credentials*").error
-    assert scoped.download_files(["/workspace/credentials.json"])[0].error
+    rejected = [
+        scoped.read("/workspace/plan/../credentials.json").error,
+        scoped.read("/workspace/credentials.json").error,
+        scoped.read("/workspace/test/credentials.json").error,
+        scoped.write("/workspace/exploit/probe.txt", "x").error,
+        scoped.edit("/workspace/credentials.json", "old", "new").error,
+        scoped.ls("/workspace/private").error,
+        scoped.glob("/workspace/private/**/*.json").error,
+        scoped.glob("../credentials*").error,
+        scoped.grep("token", glob="../credentials*").error,
+        scoped.download_files(["/workspace/credentials.json"])[0].error,
+    ]
+    assert all(rejected)
     assert not any(call[0] in {"read", "write", "edit", "glob_info"} for call in backend.calls)
 
 

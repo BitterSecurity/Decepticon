@@ -9,6 +9,8 @@
 package engagement
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -30,6 +32,11 @@ const AssistantSoundwave = "soundwave"
 
 // AssistantDecepticon drives kill-chain execution against an existing engagement.
 const AssistantDecepticon = "decepticon"
+
+var planningDocuments = []string{
+	"roe.json", "threat-profile.json", "conops.json", "deconfliction.json",
+	"contact.json", "data-handling.json", "abort.json", "cleanup.json",
+}
 
 // Slug regex: lowercase alphanumeric with internal hyphens, 3-64 chars.
 var slugRe = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$`)
@@ -59,6 +66,26 @@ func isReady(home, slug string) bool {
 		}
 	}
 	return true
+}
+
+func isRedApproved(home, slug string) bool {
+	root := filepath.Join(home, "workspace", slug)
+	marker, err := os.ReadFile(filepath.Join(root, ".red-approved"))
+	if err != nil {
+		return false
+	}
+	digest := sha256.New()
+	for _, filename := range planningDocuments {
+		content, err := os.ReadFile(filepath.Join(root, "plan", filename))
+		if err != nil {
+			return false
+		}
+		_, _ = digest.Write([]byte(filename))
+		_, _ = digest.Write([]byte{0})
+		_, _ = digest.Write(content)
+		_, _ = digest.Write([]byte{0})
+	}
+	return strings.TrimSpace(string(marker)) == hex.EncodeToString(digest.Sum(nil))
 }
 
 // ScanEngagements returns every directory under home/workspace/ regardless
@@ -406,7 +433,7 @@ func Select(home string) (Choice, error) {
 
 	slug := final.chosen.slug
 	assistant := AssistantSoundwave
-	if isReady(home, slug) {
+	if isRedApproved(home, slug) {
 		assistant = AssistantDecepticon
 	}
 	return Choice{
