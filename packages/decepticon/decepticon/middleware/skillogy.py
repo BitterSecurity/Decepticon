@@ -50,6 +50,23 @@ from typing_extensions import override
 log = logging.getLogger(__name__)
 
 
+class SkillogyScopeError(RuntimeError):
+    """A role's Skillogy path allowlist could not be resolved safely."""
+
+
+def _checked_scope(prefixes: list[str], *, role: str | None) -> list[str]:
+    if not prefixes or any(
+        not isinstance(prefix, str)
+        or not prefix.startswith("/skills/")
+        or prefix == "/skills/"
+        or not prefix.endswith("/")
+        or ".." in prefix
+        for prefix in prefixes
+    ):
+        raise SkillogyScopeError(f"Skillogy requires a nonempty restricted scope for {role!r}")
+    return prefixes
+
+
 _DEFAULT_SKILLOGY_URL = "http://skillogy:9100"
 
 # Static graph schema + 3-tool usage policy. This block is identical for
@@ -365,8 +382,10 @@ class SkillogyMiddleware(AgentMiddleware):
         # authorization standpoint. ``None`` keeps the library /
         # standalone-CLI path unrestricted, which is how the underlying
         # backend interprets the kwarg as well.
-        self._allowed_path_prefixes: list[str] | None = (
-            list(allowed_path_prefixes) if allowed_path_prefixes else None
+        self._allowed_path_prefixes = (
+            _checked_scope(list(allowed_path_prefixes), role=None)
+            if allowed_path_prefixes is not None
+            else None
         )
         self.tools = [
             _make_find_skill_tool(self._backend, self._allowed_path_prefixes),
@@ -496,6 +515,8 @@ def maybe_install_skillogy(
         from decepticon.middleware.skills import SkillsMiddleware  # noqa: PLC0415
     except ImportError:
         return middleware_stack
+    if not any(isinstance(mw, SkillsMiddleware) for mw in middleware_stack):
+        return middleware_stack
     phase = _PHASE_FOR_ROLE.get(role) if role else None
     prefixes = _resolve_allowed_path_prefixes(role=role, skill_sources=skill_sources)
     out: list[Any] = []
@@ -529,20 +550,17 @@ def _resolve_allowed_path_prefixes(
     3. Otherwise ``None`` — the ACL stays disabled, matching how the
        backend interprets the kwarg when no role context exists.
     """
-    if skill_sources:
-        return list(skill_sources)
-    if not role:
+    if skill_sources is not None:
+        return _checked_scope(list(skill_sources), role=role)
+    if role is None:
         return None
     try:
         from decepticon.agents.middleware_slots import skills_sources_for  # noqa: PLC0415
-    except ImportError:
-        return None
-    try:
-        return list(skills_sources_for(role))
     except Exception as exc:  # noqa: BLE001
-        log.warning(
-            "skills_sources_for(%r) failed; Skillogy ACL stays disabled: %s",
-            role,
-            exc,
-        )
-        return None
+        raise SkillogyScopeError(f"Skillogy scope resolver unavailable for {role!r}") from exc
+    try:
+        return _checked_scope(list(skills_sources_for(role)), role=role)
+    except SkillogyScopeError:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        raise SkillogyScopeError(f"Skillogy scope resolution failed for {role!r}") from exc

@@ -154,8 +154,12 @@ def test_semantic_search_waits_for_backfill(monkeypatch) -> None:
     semantic.assert_not_called()
 
 
-def test_vector_index_and_property_follow_configured_dimension() -> None:
+def test_vector_index_and_property_follow_configured_dimension(monkeypatch) -> None:
     from decepticon.skillogy.server.neo4j_backend import Neo4jBackend
+
+    monkeypatch.setattr(
+        "decepticon.skillogy.server.neo4j_backend._runtime_query", lambda cypher: cypher
+    )
 
     be = Neo4jBackend.__new__(Neo4jBackend)
     be._database = "neo4j"
@@ -233,6 +237,9 @@ def test_filtered_search_limits_after_acl_and_structured_filters(monkeypatch) ->
     neo4j_exceptions = ModuleType("neo4j.exceptions")
     neo4j_exceptions.ClientError = type("ClientError", (Exception,), {})
     monkeypatch.setitem(sys.modules, "neo4j.exceptions", neo4j_exceptions)
+    monkeypatch.setattr(
+        "decepticon.skillogy.server.neo4j_backend._runtime_query", lambda cypher: cypher
+    )
 
     be = Neo4jBackend.__new__(Neo4jBackend)
     be._fulltext_ready = True
