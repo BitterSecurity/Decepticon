@@ -147,9 +147,7 @@ def test_soundwave_role_binds_plan_only_filesystem_without_execute() -> None:
     scoped.read("/workspace/plan/roe.json")
     assert backend.calls[-1] == ("read", ("/workspace/test/plan/roe.json", 0, 2000))
     assert scoped.read("/workspace/audit/log.json").error
-    assert not any(
-        call[0] == "read" and call[1][0].endswith("/audit/log.json") for call in backend.calls
-    )
+    assert len(backend.calls) == 1
 
 
 def test_soundwave_next_run_draft_reads_existing_document_from_nested_workspace() -> None:

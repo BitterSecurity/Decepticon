@@ -160,6 +160,11 @@ export function useAgent({
     loadThreadByIndex(0).then((saved) => {
       if (saved) {
         threadIdRef.current = saved.threadId;
+        if (saved.assistantId) {
+          assistantIdRef.current = saved.assistantId;
+          threadAssistantRef.current = saved.assistantId;
+          setAssistantId(saved.assistantId);
+        }
       }
     }).catch(() => {});
   }, []);
@@ -286,7 +291,7 @@ export function useAgent({
               subagent: data.agent,
               status: data.error ? "error" : "success",
             });
-            setActiveAgent("decepticon");
+            setActiveAgent(threadAssistantRef.current);
             setPendingTool(null);
             break;
 
@@ -757,7 +762,7 @@ export function useAgent({
 
         setRunState("streaming");
         setPendingTool(null);
-        setActiveAgent("decepticon");
+        setActiveAgent(selectedAssistant);
         setStreamStats({ startTime: Date.now(), totalTokens: 0, promptTokens: 0, completionTokens: 0 });
 
         // Engagement context and the /model override flow as runnable
@@ -844,7 +849,7 @@ export function useAgent({
       addEvent({
         type: "ask_user_answer",
         content: display,
-        subagent: assistantIdRef.current,
+        subagent: threadAssistantRef.current,
         sourceId: current.sourceId,
       });
       setActiveQuestion(null);
@@ -882,7 +887,7 @@ export function useAgent({
         try {
           const stream = client.runs.stream(
             threadIdRef.current!,
-            getAssistantOverride() || assistantIdRef.current,
+            threadAssistantRef.current,
             {
               command: { resume: value },
               ...STREAM_OPTIONS,
@@ -938,13 +943,13 @@ export function useAgent({
 
           setRunState("streaming");
           setPendingTool(null);
-          setActiveAgent("decepticon");
+          setActiveAgent(threadAssistantRef.current);
           setStreamStats({ startTime: Date.now(), totalTokens: 0, promptTokens: 0, completionTokens: 0 });
 
           try {
             const stream = client.runs.stream(
               threadIdRef.current!,
-              getAssistantOverride() || assistantIdRef.current,
+              threadAssistantRef.current,
               {
                 command: { resume: value ?? true },
                 ...STREAM_OPTIONS,
