@@ -154,6 +154,32 @@ def test_search_uses_fallback_until_fulltext_index_is_ready(monkeypatch) -> None
     fallback.assert_called_once()
 
 
+def test_filtered_search_limits_after_acl_and_structured_filters() -> None:
+    pytest.importorskip("neo4j")
+    from decepticon.skillogy.server.neo4j_backend import Neo4jBackend
+
+    be = Neo4jBackend.__new__(Neo4jBackend)
+    be._fulltext_ready = True
+    be._database = "neo4j"
+    be._driver = MagicMock()
+    session = be._driver.session.return_value.__enter__.return_value
+    session.run.return_value = []
+
+    be._find_lexical(
+        "credential",
+        ["s.subdomain = $subdomain"],
+        "ANY(p IN $allowed_path_prefixes WHERE s.path STARTS WITH p)",
+        {"subdomain": "post-exploit", "allowed_path_prefixes": ["/skills/standard/"]},
+        20,
+    )
+
+    cypher = session.run.call_args.args[0]
+    assert "queryNodes($index_name, $lucene)" in cypher
+    assert "WHERE s.subdomain = $subdomain AND ANY(" in cypher
+    assert cypher.index("WHERE") < cypher.index("LIMIT $cand_n")
+    assert "limit: $k" not in cypher
+
+
 def test_fulltext_analyzer_rejects_unsafe_configuration(monkeypatch) -> None:
     from decepticon.skillogy.server.neo4j_backend import Neo4jBackend
 

@@ -637,13 +637,10 @@ class Neo4jBackend:
         post_filters = list(structured)
         if acl_clause:
             post_filters.append(acl_clause)
-        # Widen the fetch when filters will drop rows, same rationale as the
-        # vector leg. Bounded by the corpus size in practice.
-        k = min(cand_n * 5, 500) if post_filters else cand_n
-        params.update({"index_name": self.FULLTEXT_INDEX_NAME, "lucene": lucene, "k": k})
+        params.update({"index_name": self.FULLTEXT_INDEX_NAME, "lucene": lucene})
         where = f"WHERE {' AND '.join(post_filters)} " if post_filters else ""
         cypher = (
-            "CALL db.index.fulltext.queryNodes($index_name, $lucene, {limit: $k}) "
+            "CALL db.index.fulltext.queryNodes($index_name, $lucene) "
             "YIELD node AS s, score "
             f"{where}"
             f"{self._ENRICH_TAIL}"
