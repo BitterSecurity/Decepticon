@@ -345,7 +345,7 @@ for review. The operator remains in Interview mode.
 
 The tool:
 - Takes no arguments (the launcher already established the engagement slug)
-- Emits an `engagement_ready` custom event that the client consumes to
+- Emits a `planning_draft_ready` custom event that the client consumes to
   capture the current draft
 - Returns immediately; you do NOT need to await any further
   acknowledgement before printing your closing prose

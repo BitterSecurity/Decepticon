@@ -129,16 +129,27 @@ def test_soundwave_root_and_glob_resolve_to_plan_directory() -> None:
     assert backend.calls[-1] == ("glob_info", ("**/*.json", "/workspace/test/plan"))
 
 
+def test_soundwave_drops_backend_results_outside_plan() -> None:
+    scoped = EngagementFilesystemBackend(RecordingBackend(), "/workspace/test", plan_only=True)
+
+    assert scoped._virtual("/workspace/test/private/secret.json") is None
+    assert scoped._virtual("/workspace/test/plan/roe.json") == "/workspace/plan/roe.json"
+
+
 def test_soundwave_role_binds_plan_only_filesystem_without_execute() -> None:
     backend = RecordingBackend()
     middleware = _make_filesystem(backend=backend, role="soundwave")
-    scoped = middleware._get_backend(SimpleNamespace(state={"workspace_path": "/workspace/test"}, config={}))
+    scoped = middleware._get_backend(
+        SimpleNamespace(state={"workspace_path": "/workspace/test"}, config={})
+    )
 
     assert "execute" not in {tool.name for tool in middleware.tools}
     scoped.read("/workspace/plan/roe.json")
     assert backend.calls[-1] == ("read", ("/workspace/test/plan/roe.json", 0, 2000))
     assert scoped.read("/workspace/audit/log.json").error
-    assert not any(call[0] == "read" and call[1][0].endswith("/audit/log.json") for call in backend.calls)
+    assert not any(
+        call[0] == "read" and call[1][0].endswith("/audit/log.json") for call in backend.calls
+    )
 
 
 def test_soundwave_next_run_draft_reads_existing_document_from_nested_workspace() -> None:

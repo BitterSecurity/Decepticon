@@ -1,5 +1,3 @@
-"""complete_engagement_planning — validate and signal the planning handoff."""
-
 from __future__ import annotations
 
 import json
@@ -40,7 +38,7 @@ def validate_planning_bundle(
 ) -> str | None:
     """Return a failure reason unless the eight-document planner bundle is ready."""
     if authorization_confirmed is False:
-        return "Authorization is not confirmed; do not hand off the engagement."
+        return "Authorization is not confirmed; do not mark the draft ready."
 
     root = Path(workspace)
     documents: dict[str, Any] = {}
@@ -60,13 +58,13 @@ def validate_planning_bundle(
 
     roe = documents["roe.json"]
     if not roe.authorization_reference.strip():
-        return "RoE must contain an explicit authorization_reference before handoff."
+        return "RoE must contain an explicit authorization_reference before the draft is ready."
     if target_value and target_value not in {entry.target for entry in roe.in_scope}:
         return "RoE in_scope must contain the exact launcher-declared target."
     return None
 
 
-def _runtime_context() -> tuple[str, str, bool | None, bool]:
+def _runtime_context() -> tuple[str, str, bool | None]:
     try:
         configurable = get_config().get("configurable", {})
     except RuntimeError:
@@ -76,12 +74,10 @@ def _runtime_context() -> tuple[str, str, bool | None, bool]:
     workspace = configurable.get("workspace_path")
     target = configurable.get("target_value")
     confirmed = configurable.get("authorization_confirmed")
-    planning_draft = configurable.get("planning_draft") is True
     return (
         workspace if isinstance(workspace, str) and workspace else "/workspace",
         target if isinstance(target, str) else "",
         confirmed if isinstance(confirmed, bool) else None,
-        planning_draft,
     )
 
 
@@ -96,29 +92,27 @@ def _safe_writer():
 def complete_engagement_planning(
     tool_call_id: Annotated[str, InjectedToolCallId] = "",
 ) -> Any:
-    """Validate the full planner bundle and hand the engagement to Decepticon.
+    """Validate the full planner bundle and announce a reviewable draft.
 
     The event is emitted only after every Soundwave-owned document validates,
     the bundle shares an engagement name, the RoE records authorization, and
     any launcher-declared target appears exactly in RoE scope.
     """
-    workspace, target_value, authorization_confirmed, planning_draft = _runtime_context()
+    workspace, target_value, authorization_confirmed = _runtime_context()
     failure = validate_planning_bundle(
         workspace,
         target_value=target_value,
         authorization_confirmed=authorization_confirmed,
     )
     if failure:
-        return f"Planning handoff blocked: {failure}"
+        return f"Planning draft blocked: {failure}"
     writer = _safe_writer()
     if writer is not None:
         writer(
             {
-                "type": "engagement_ready",
+                "type": "planning_draft_ready",
                 "agent": "soundwave",
                 "id": tool_call_id,
             }
         )
-    if planning_draft:
-        return "Next-run planning draft saved. The current Red authorization is unchanged."
-    return "Planning complete. Review and approve the documents, then select Red to launch."
+    return "Planning draft ready. Review the documents in Interview mode; select Red explicitly after approval."

@@ -106,11 +106,6 @@ interface UseAgentReturn {
 // - "soundwave" for new engagements (interview lane)
 // - "decepticon" for resuming an existing engagement
 // Defaults to "decepticon" when launched directly (legacy / dev workflows).
-//
-// When soundwave finishes its interview and emits the `engagement_ready`
-// custom event, the active assistant is flipped in-flight to "decepticon"
-// and the next operator message starts a fresh thread on that assistant —
-// no CLI restart needed.
 const INITIAL_ASSISTANT_ID =
   process.env.DECEPTICON_ASSISTANT_ID || "decepticon";
 let _nextEventId = 0;
@@ -151,14 +146,8 @@ export function useAgent({
   // emission LangGraph fires when the ToolNode re-executes the tool body
   // after Command(resume=...).
   const askedQuestionIds = useRef<Set<string>>(new Set());
-  // Active LangGraph assistant. Soundwave's complete_engagement_planning
-  // tool flips this to "decepticon" mid-flight; the next submit() then opens
-  // a fresh thread on the new assistant.
   const assistantIdRef = useRef<string>(INITIAL_ASSISTANT_ID);
-  // Boolean handoff signal — set when soundwave emits engagement_ready; consumed
-  // in handleStreamComplete to drop the soundwave thread before the auto-submit
-  // opens a fresh decepticon thread. Carries no slug; the launcher is the single
-  // source of truth and reaches the agent via config.configurable.
+  const threadAssistantRef = useRef<string>(INITIAL_ASSISTANT_ID);
   const pendingHandoffRef = useRef<boolean>(false);
 
   // Derived for backward compatibility
@@ -322,6 +311,15 @@ export function useAgent({
               elapsed: data.elapsed,
               status,
               subagent: data.agent,
+            });
+            break;
+          }
+
+          case "planning_draft_ready": {
+            addEvent({
+              type: "system",
+              content:
+                "Planning draft ready for review. Interview remains active; use /agent decepticon after approving the plan.",
             });
             break;
           }
@@ -597,10 +595,6 @@ export function useAgent({
       runIdRef.current = null;
       resetStreamState();
 
-      // Engagement handoff: soundwave's complete_engagement_planning tool
-      // flipped assistantIdRef to "decepticon" during this run. Drop the
-      // soundwave thread so the next submit opens a fresh decepticon
-      // thread. Reset askedQuestionIds since they were per-thread.
       if (pendingHandoffRef.current) {
         threadIdRef.current = null;
         lastCountRef.current = 0;
@@ -694,6 +688,15 @@ export function useAgent({
       // If streaming/connecting, callers should use enqueue() instead
       if (abortRef.current) return;
 
+      const selectedAssistant = getAssistantOverride() || assistantIdRef.current;
+      if (threadIdRef.current && selectedAssistant !== threadAssistantRef.current) {
+        threadIdRef.current = null;
+        lastCountRef.current = 0;
+        askedQuestionIds.current.clear();
+      }
+      threadAssistantRef.current = selectedAssistant;
+      setAssistantId(selectedAssistant);
+
       // If paused, cancel the paused run gracefully. Use "interrupt"
       // strategy to preserve thread state so the follow-up message
       // can see prior tool results and context (#617).
@@ -729,7 +732,7 @@ export function useAgent({
             try {
               const thread = await client.threads.create();
               threadIdRef.current = thread.thread_id;
-              await saveThread(thread.thread_id, assistantIdRef.current, message);
+              await saveThread(thread.thread_id, selectedAssistant, message);
               break;
             } catch (err) {
               if (attempt === maxRetries) {
@@ -793,7 +796,7 @@ export function useAgent({
         try {
           const stream = client.runs.stream(
             threadIdRef.current!,
-            getAssistantOverride() || assistantIdRef.current,
+            selectedAssistant,
             {
               input,
               ...(streamConfig ? { config: streamConfig } : {}),

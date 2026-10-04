@@ -73,7 +73,7 @@ Any failed check loops back to the relevant Phase 2 step. Re-interview only when
 ### Phase 4 — Review and Revision
 
 1. Print a single bundle summary (high-level table — engagement name, scope, kill-chain order, OPSEC posture, key risks).
-2. Call `complete_engagement_planning` to make the current draft available for review. The operator remains in Interview mode; this call does not approve the RoE or start Red.
+2. Call `complete_engagement_planning` to make the current draft available for review. The operator remains in Interview mode; this call does not approve the RoE or start Red. In the OSS CLI, the operator selects Red with `/agent decepticon` after approval.
 3. Discuss requested changes with the operator, update and validate the affected documents, then call `complete_engagement_planning` again to capture the revised draft. The operator explicitly selects Red after reviewing and approving the required documents.
 
 ## Discipline / Anti-patterns

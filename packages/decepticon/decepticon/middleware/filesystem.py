@@ -63,7 +63,9 @@ def _normalize_engagement_workspace(workspace_path: str | None) -> str | None:
 class EngagementFilesystemBackend(BackendProtocol):
     """Map virtual /workspace paths to /workspace/<engagement> internally."""
 
-    def __init__(self, backend: BackendProtocol, workspace_path: str | None, *, plan_only: bool = False) -> None:
+    def __init__(
+        self, backend: BackendProtocol, workspace_path: str | None, *, plan_only: bool = False
+    ) -> None:
         self._backend = backend
         self._root = _normalize_engagement_workspace(workspace_path)
         self._plan_only = plan_only
@@ -109,7 +111,11 @@ class EngagementFilesystemBackend(BackendProtocol):
         else:
             rel = virtual.removeprefix(f"{WORKSPACE}/").lstrip("/")
             real = f"{self._root}/{rel}" if rel else self._root
-        if self._plan_only and real != f"{self._root}/plan" and not real.startswith(f"{self._root}/plan/"):
+        if (
+            self._plan_only
+            and real != f"{self._root}/plan"
+            and not real.startswith(f"{self._root}/plan/")
+        ):
             raise ValueError(PLAN_ONLY_ERROR)
         return real
 
@@ -119,6 +125,12 @@ class EngagementFilesystemBackend(BackendProtocol):
         normalized = path.replace("\\", "/").rstrip("/")
         if normalized and not normalized.startswith("/"):
             normalized = f"{self._root}/{normalized}"
+        if (
+            self._plan_only
+            and normalized != f"{self._root}/plan"
+            and not normalized.startswith(f"{self._root}/plan/")
+        ):
+            return None
         if normalized == self._root:
             return WORKSPACE
         if normalized.startswith(f"{self._root}/"):

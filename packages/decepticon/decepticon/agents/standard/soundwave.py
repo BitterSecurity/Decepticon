@@ -65,24 +65,28 @@ _STANDARD_TOOLS: dict[str, Any] = {
 
 _ROLE = "soundwave"
 _RECURSION_LIMIT = 200
-_ALLOWED_TOOL_NAMES = frozenset({
-    "ask_user_question",
-    "complete_engagement_planning",
-    "load_skill",
-    "find_skill",
-    "traverse",
-    "ls",
-    "read_file",
-    "write_file",
-    "edit_file",
-    "glob",
-    "grep",
-})
+_ALLOWED_TOOL_NAMES = frozenset(
+    {
+        "ask_user_question",
+        "complete_engagement_planning",
+        "load_skill",
+        "find_skill",
+        "traverse",
+        "ls",
+        "read_file",
+        "write_file",
+        "edit_file",
+        "glob",
+        "grep",
+    }
+)
 _FILESYSTEM_TOOL_NAMES = frozenset({"ls", "read_file", "write_file", "edit_file", "glob", "grep"})
 
 
 def _assert_planning_tools(tools: list[Any], middleware: list[Any]) -> None:
-    if not any(isinstance(layer, FilesystemMiddleware) and layer._plan_only for layer in middleware):
+    if not any(
+        isinstance(layer, FilesystemMiddleware) and layer._plan_only for layer in middleware
+    ):
         raise ValueError("Soundwave requires a plan-scoped filesystem in Interview mode")
     for tool in [*tools, *(item for layer in middleware for item in getattr(layer, "tools", []))]:
         name = getattr(tool, "name", getattr(tool, "__name__", ""))
@@ -92,7 +96,10 @@ def _assert_planning_tools(tools: list[Any], middleware: list[Any]) -> None:
         if getattr(tool, "name", getattr(tool, "__name__", "")) in _FILESYSTEM_TOOL_NAMES:
             raise ValueError("Soundwave filesystem tools must use the plan-scoped middleware")
     for layer in middleware:
-        if any(getattr(tool, "name", "") in _FILESYSTEM_TOOL_NAMES for tool in getattr(layer, "tools", [])):
+        if any(
+            getattr(tool, "name", "") in _FILESYSTEM_TOOL_NAMES
+            for tool in getattr(layer, "tools", [])
+        ):
             if not isinstance(layer, FilesystemMiddleware) or not layer._plan_only:
                 raise ValueError("Soundwave filesystem tools must use the plan-scoped middleware")
 

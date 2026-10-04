@@ -205,6 +205,12 @@ function EventRow({ event, relativeTime }: EventRowProps) {
       rowClass = "bg-violet-500/5";
       break;
     }
+    case "planning_draft_ready": {
+      icon = <Rocket className="h-3.5 w-3.5 shrink-0 text-violet-400" />;
+      detail = <span className="text-violet-300">Planning draft ready for review in Interview</span>;
+      rowClass = "bg-violet-500/5";
+      break;
+    }
     default: {
       icon = <Bot className="h-3.5 w-3.5 shrink-0 text-zinc-600" />;
       detail = <span className="text-zinc-500">{name}: {event.type}</span>;

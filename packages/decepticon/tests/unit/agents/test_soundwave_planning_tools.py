@@ -1,3 +1,4 @@
+from importlib import import_module
 from types import SimpleNamespace
 
 import pytest
@@ -12,7 +13,10 @@ def planning_filesystem() -> FilesystemMiddleware:
 
 def test_interview_accepts_only_planning_and_filesystem_tools() -> None:
     _assert_planning_tools(
-        [SimpleNamespace(name="ask_user_question"), SimpleNamespace(name="complete_engagement_planning")],
+        [
+            SimpleNamespace(name="ask_user_question"),
+            SimpleNamespace(name="complete_engagement_planning"),
+        ],
         [planning_filesystem()],
     )
 
@@ -35,4 +39,19 @@ def test_interview_rejects_unscoped_filesystem_middleware() -> None:
 
 def test_interview_rejects_extra_unscoped_filesystem_middleware() -> None:
     with pytest.raises(ValueError, match="plan-scoped middleware"):
-        _assert_planning_tools([], [planning_filesystem(), FilesystemMiddleware(backend=SimpleNamespace())])
+        _assert_planning_tools(
+            [], [planning_filesystem(), FilesystemMiddleware(backend=SimpleNamespace())]
+        )
+
+
+def test_completed_plan_emits_draft_event_without_handoff(monkeypatch: pytest.MonkeyPatch) -> None:
+    module = import_module("decepticon.tools.interaction.complete_planning")
+    events: list[dict[str, str]] = []
+    monkeypatch.setattr(module, "_runtime_context", lambda: ("/workspace/example", "", True))
+    monkeypatch.setattr(module, "validate_planning_bundle", lambda *args, **kwargs: None)
+    monkeypatch.setattr(module, "_safe_writer", lambda: events.append)
+
+    response = module.complete_engagement_planning.func(tool_call_id="call-1")
+
+    assert events == [{"type": "planning_draft_ready", "agent": "soundwave", "id": "call-1"}]
+    assert "Review the documents" in response
