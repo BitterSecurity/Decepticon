@@ -92,15 +92,6 @@ def _seed_if_empty(backend: Neo4jBackend) -> None:
     n = backend.bulk_ingest_cypher(cypher_text)
     log.info("seeded %d Cypher statements from %s", n, cypher_path)
 
-    # Hybrid retrieval (ADR-0011): once the corpus is loaded, create the
-    # vector index and embed each skill through the litellm proxy. The dump
-    # is deliberately embedding-free, so this is what makes semantic
-    # find_skill possible. It degrades to a no-op when the proxy env is
-    # absent — the substring path keeps working either way.
-    from decepticon.skillogy.embed_ingest import ingest_embeddings  # noqa: PLC0415
-
-    ingest_embeddings(backend)
-
 
 def _start_rest(backend: Neo4jBackend, port: int, started_at: float) -> None:
     try:
@@ -133,6 +124,15 @@ def _ingest_in_background(backend: Neo4jBackend) -> None:
     graph is already populated the seed is a cheap no-op count check.
     """
     try:
+        backend.ensure_fulltext_index()
+    except Exception as exc:  # noqa: BLE001
+        log.error(
+            "full-text index creation failed: %r — find_skill will fall back to "
+            "substring matching and under-retrieve multi-word queries",
+            exc,
+        )
+
+    try:
         _seed_if_empty(backend)
     except Exception as exc:  # noqa: BLE001
         # Failing to seed is loud but not fatal — the operator may
@@ -140,6 +140,27 @@ def _ingest_in_background(backend: Neo4jBackend) -> None:
         # (a different cypher file, or a manual seed). REST stays up
         # so health probes can report the situation.
         log.error("cypher seed failed: %r — continuing without it", exc)
+
+    # Hybrid retrieval (ADR-0011): create the vector index and embed every
+    # skill whose embedding-input text changed since the last boot. The dump is
+    # deliberately embedding-free, so this is what makes semantic find_skill
+    # possible; it degrades to a no-op when the proxy env is absent.
+    #
+    # This MUST run outside _seed_if_empty. It used to be the tail of that
+    # function, so an ALREADY-POPULATED graph — the steady state for any
+    # persistent Neo4j, i.e. every managed/AuraDB deployment — hit the
+    # skill_count>0 early return and never reached the backfill. The corpus was
+    # therefore never embedded and find_skill silently served substring-only
+    # results forever. Embedding is content-hashed and idempotent, so running it
+    # on every boot is cheap (a no-op on an unchanged corpus) and is what lets a
+    # graph seeded before ADR-0011 — or one whose skills changed out of band via
+    # an incremental ingest — catch up without a re-seed.
+    try:
+        from decepticon.skillogy.embed_ingest import ingest_embeddings  # noqa: PLC0415
+
+        ingest_embeddings(backend)
+    except Exception as exc:  # noqa: BLE001
+        log.error("embedding backfill failed: %r — semantic find_skill unavailable", exc)
 
 
 def main() -> int:

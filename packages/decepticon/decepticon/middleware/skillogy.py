@@ -58,47 +58,28 @@ _DEFAULT_SKILLOGY_URL = "http://skillogy:9100"
 _POLICY_PROMPT = """
 
 [Skillogy access]
-Skills live in a Neo4j knowledge graph (MITRE ATT&CK Enterprise v19.1).
+Graph schema: Skills are stored in Neo4j. Skill nodes have name, path, subdomain,
+description, when_to_use, and body. They connect to Phase via IN_PHASE, Tag
+via TAGGED, Technique via IMPLEMENTS, and MoC via BELONGS_TO. Tactics connect
+to Techniques via HAS_TECHNIQUE.
 
-Graph schema — what the tool filters walk:
-  Nodes
-    (:Skill   {name, path, subdomain, description, when_to_use, body})
-    (:Phase   {name, kill_chain_order, kind})    e.g. 'reconnaissance', 'active-directory'
-    (:MoC     {name, parent_phase, description}) per-phase concept navigation map
-    (:Tag     {name})                            e.g. 'kerberoasting', 'credential-theft'
-    (:Tactic  {id, name})                        e.g. id='TA0001' 'Initial Access'
-    (:Technique {id, name, is_subtechnique, parent_id, platforms})
-                                                 e.g. id='T1558.003' Kerberoasting
-  Edges
-    (:Skill)-[:IN_PHASE]->(:Phase)
-    (:Skill)-[:BELONGS_TO]->(:MoC)
-    (:Skill)-[:TAGGED]->(:Tag)
-    (:Skill)-[:IMPLEMENTS]->(:Technique)
-    (:Tactic)-[:HAS_TECHNIQUE]->(:Technique)
-    (:Technique)-[:HAS_SUBTECHNIQUE]->(:Technique)
-    (:MoC)-[:BELONGS_TO_PHASE]->(:Phase)
+find_skill(query?, subdomain?, mitre_id?, tag?, tactic_id?, limit=20):
+  Finds candidates. Filters AND together. subdomain, tag, mitre_id and
+  tactic_id follow the graph relationships above. An ATT&CK ID belongs in
+  mitre_id for exact filtering. query searches skill names, usage triggers,
+  tags and other metadata, and body text. The highest weights go to name and
+  when_to_use. Use concise domain terms, for example:
+  find_skill(query="lsass dump credential memory", subdomain="post-exploit")
+  English terms have the best lexical recall; semantic search may find other
+  languages when embeddings are available. Results include matched_by:
+  lexical, semantic, both, or structured for a filter-only query. Both search
+  legs matching is a stronger signal. Read descriptions and choose the skill
+  that fits the task; do not select solely by rank. Retry with other terms if
+  none fit.
 
-Three tools:
-  • find_skill(query?, subdomain?, mitre_id?, tag?, tactic_id?, limit=20)
-      Relationship-aware discovery. AND-combined filters:
-        subdomain → IN_PHASE        e.g. 'active-directory'
-        tag       → TAGGED          e.g. 'kerberoasting'
-        mitre_id  → IMPLEMENTS to Technique.id (T1xxx or T1xxx.yyy)
-        tactic_id → IMPLEMENTS → HAS_TECHNIQUE to Tactic.id (TAxxxx)
-        query     → substring on name / description / when_to_use
-      Returns name, path, subdomain, description, matched_mitre, matched_tags.
-  • load_skill(name_or_path)
-      Fetch one SKILL.md's body (the content only — metadata like subdomain /
-      tags / when_to_use is search-side, surfaced by find_skill). Accept a
-      unique frontmatter `name` (e.g. 'kerberoasting') or the canonical
-      '/skills/.../SKILL.md' path.
-  • traverse(from_path, edge_types?, depth=2)
-      BFS from a Skill seed along the edge whitelist
-      (IN_PHASE, IMPLEMENTS, TAGGED, BELONGS_TO, RELATED_TO,
-       HAS_TECHNIQUE, HAS_SUBTECHNIQUE). depth ≤ 5.
-
-Workflow: find_skill to narrow candidates → load_skill on the chosen
-match. Use traverse for "what is related to this skill" questions.
+load_skill(name_or_path): fetch the chosen SKILL.md body by name or path.
+traverse(from_path, edge_types?, depth=2): explore related graph nodes.
+Workflow: find_skill, inspect candidates, load_skill; traverse when needed.
 """
 
 
@@ -251,12 +232,40 @@ def _make_find_skill_tool(backend, allowed_path_prefixes: list[str] | None = Non
     ) -> str:
         """Relationship-aware skill discovery in the skillogy graph.
 
-        Filters AND-combine. Pass at least one. ``query`` substring-matches
-        name/description/triggers. ``subdomain`` follows IN_PHASE.
-        ``mitre_id`` follows IMPLEMENTS to a Technique. ``tag`` follows
-        TAGGED. ``tactic_id`` (e.g. 'TA0001' for Initial Access) ladders
-        via IMPLEMENTS → HAS_TECHNIQUE. Returns each hit's name, path,
-        subdomain, description, matched_mitre, matched_tags.
+        Filters AND-combine. Pass at least one.
+
+        ``query`` is a weighted term search over skill names, metadata and
+        body. Each query term is matched independently; name and usage-trigger
+        matches have the highest weights.
+
+        So expand your intent into domain vocabulary — tools, technique names,
+        protocols, artefacts — instead of writing a prose sentence. Relevant
+        terms improve precision; common English function words are ignored.
+        Terms are stemmed so "kerberoast" finds "kerberoasting"::
+
+            good: "kerberoast kerberos TGS service ticket SPN"
+            good: "lsass dump credential memory minidump comsvcs"
+            bad:  "how do I steal credentials from the machine"
+
+        English domain terms give the best lexical recall. Non-English input
+        may work through semantic retrieval when embeddings are available.
+        Pass an ATT&CK ID as ``mitre_id`` for an exact graph filter;
+        ``query`` searches the ID text and may return other matches.
+
+        THE RESULT IS A CANDIDATE LIST, NOT AN ANSWER. Read each hit's
+        ``description`` and choose the one that fits your situation — do not
+        load the first hit reflexively. Use concise domain terms. If nothing
+        fits, re-query with different terms or ``traverse`` from the closest
+        hit instead of settling.
+
+        ``subdomain`` follows IN_PHASE. ``mitre_id`` follows IMPLEMENTS to a
+        Technique. ``tag`` follows TAGGED. ``tactic_id`` (e.g. 'TA0001' for
+        Initial Access) ladders via IMPLEMENTS → HAS_TECHNIQUE. Combining a
+        term ``query`` with a structured filter is the strongest form.
+
+        Returns each hit's name, path, subdomain, description, matched_mitre,
+        matched_tags, and matched_by — which legs matched (["lexical"],
+        ["semantic"], or both). Found by both = strongest match.
         """
         try:
             hits = backend.find_skill(
