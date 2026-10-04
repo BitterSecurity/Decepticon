@@ -51,6 +51,14 @@ def test_current_api_models_have_proxy_routes(
     assert route["litellm_params"]["model"] == model
     assert route["litellm_params"]["api_key"] == f"os.environ/{key_env}"
     assert (route.get("model_info", {}).get("mode") == "responses") is response_mode
+    if model == "gemini/gemini-3.8-flash":
+        assert route["litellm_params"]["additional_drop_params"] == [
+            "temperature",
+            "top_p",
+            "top_k",
+            "thinking_budget",
+            "candidate_count",
+        ]
 
 
 def test_collect_requested_models_includes_global_and_role_overrides() -> None:

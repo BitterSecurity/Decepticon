@@ -62,8 +62,8 @@ log = get_logger("llm.factory")
 # each model its OWN max-output ceiling so a big deliverable completes in one
 # call. It is a ceiling, not a forced value — short replies cost nothing extra.
 # Values above 64k require the streaming API path (the SDK already streams).
-# Authoritative caps (see ``_model_max_output_tokens``): Claude Opus 4.x and
-# Sonnet (4.6/5) = 128000; Claude Haiku 4.5 = 64000. Unknown models fall back
+# Authoritative caps (see ``_model_max_output_tokens``): Claude Fable 5,
+# Opus 4/5 and Sonnet 4/5 = 128000; Claude Haiku 4.5 = 64000. Unknown models fall back
 # to the safe 64k default. Override with ``DECEPTICON_LLM_MAX_TOKENS`` (an
 # explicit value wins over the per-model resolution).
 DEFAULT_LLM_MAX_TOKENS = 64000
@@ -91,7 +91,7 @@ def _model_max_output_tokens(model: str) -> int:
     Match on the model slug suffix (last path segment) so every namespace we
     route through resolves the same — ``anthropic/claude-opus-4-8``,
     ``auth/claude-opus-4-8``, ``openrouter/anthropic/claude-sonnet-4-6``.
-    Opus 4.x and Sonnet (4.6/5) support 128000 output tokens; Haiku 4.5
+    Fable 5, Opus 4/5, and Sonnet 4/5 support 128000 output tokens; Haiku 4.5
     supports 64000. Unknown / non-Claude models fall back to the safe 64k
     default rather than an over-large value the upstream might reject.
     """
@@ -969,9 +969,8 @@ def _log_served_model(requested: str, result: object) -> None:
 def _model_drops_temperature(model: str) -> bool:
     """Return True if the LiteLLM model id rejects the ``temperature`` param.
 
-    Anthropic deprecated ``temperature`` for Claude Opus 4.7 — the request
-    gets a 400 from the upstream API regardless of the proxy path. Match
-    on the Opus 4.x family across every namespace we route through:
+    Current Claude Fable/Opus/Sonnet 5.5, Gemini 3.8 Flash, and GPT-6 models
+    reject sampling parameters. Match model families across every namespace:
 
       anthropic/claude-opus-4-7
       auth/claude-opus-4-7
@@ -985,6 +984,7 @@ def _model_drops_temperature(model: str) -> bool:
     return (
         slug.startswith(("claude-opus-4", "claude-opus-5", "claude-sonnet-5-5", "claude-fable-5"))
         or _model_is_kimi_coding(model)
+        or model.endswith("/gemini-3.8-flash")
         or _model_uses_responses_api(model)
     )
 
@@ -1771,6 +1771,8 @@ class LLMFactory:
             kwargs["use_responses_api"] = True
         if _model_drops_temperature(model):
             kwargs["disabled_params"] = {"temperature": None}
+            if model.endswith("/gemini-3.8-flash"):
+                kwargs["disabled_params"].update({"top_p": None, "top_k": None})
         elif _model_is_deepseek_thinking(model):
             # DeepSeek V4 Pro thinking mode rejects temperature.
             kwargs["disabled_params"] = {"temperature": None}

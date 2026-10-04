@@ -222,6 +222,15 @@ class TestLLMFactory:
         previous = self.factory._create_chat_model("openai/gpt-5.5", 0.2)
         assert previous.use_responses_api is None
 
+    def test_gemini_3_8_omits_deprecated_sampling_params(self) -> None:
+        model = self.factory._create_chat_model("gemini/gemini-3.8-flash", 0.2)
+        assert model.temperature is None
+        assert model.disabled_params == {
+            "temperature": None,
+            "top_p": None,
+            "top_k": None,
+        }
+
     def test_gpt6_tool_call_posts_to_proxy_responses_endpoint(self, monkeypatch) -> None:
         requests: list[tuple[str, dict]] = []
 

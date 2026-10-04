@@ -247,6 +247,7 @@ model_list:
     litellm_params:
       model: gemini/gemini-3.8-flash
       api_key: os.environ/GEMINI_API_KEY
+      additional_drop_params: ["temperature", "top_p", "top_k", "thinking_budget", "candidate_count"]
     model_info:
       input_cost_per_token: 0.00000075
       output_cost_per_token: 0.00000375
