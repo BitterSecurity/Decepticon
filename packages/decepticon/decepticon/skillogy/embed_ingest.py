@@ -7,7 +7,7 @@ stays embedding-free (a model swap is a re-embed, not a rebuild) and an
 unchanged corpus is a no-op.
 
 Degrades silently: when the litellm proxy is not configured the whole step is
-skipped and ``find_skill`` keeps using the legacy substring path.
+skipped and ``find_skill`` keeps using full-text lexical search.
 """
 
 from __future__ import annotations
@@ -53,17 +53,18 @@ def ingest_embeddings(backend: Neo4jBackend) -> dict[str, int]:
     """Create the vector index and backfill changed/missing skill embeddings.
 
     Returns a small stats dict (``{"embedded": n, "skipped": m, "failed": k}``)
-    for the boot log. Never raises — a failure leaves the affected skills
-    without an embedding, and ``find_skill`` falls back to substring for them.
+    for the boot log. Never raises — a failed backfill leaves semantic search
+    disabled for this boot, and ``find_skill`` uses full-text lexical results.
     """
     if not embeddings.available():
         log.info("skillogy embeddings unavailable (no litellm proxy env); skipping vector ingest")
         return {"embedded": 0, "skipped": 0, "failed": 0}
 
-    backend.ensure_vector_index(embeddings.embed_dim())
+    dim = embeddings.embed_dim()
+    backend.ensure_vector_index(dim)
 
     model = embeddings.embed_model()
-    rows = backend.fetch_skills_for_embedding()
+    rows = backend.fetch_skills_for_embedding(dim)
     pending: list[tuple[str, str, str]] = []  # (path, text, sha)
     skipped = 0
     for row in rows:
@@ -72,7 +73,7 @@ def ingest_embeddings(backend: Neo4jBackend) -> dict[str, int]:
             skipped += 1
             continue
         sha = _input_sha(model, text)
-        if row.get("embedding_input_sha256") == sha:
+        if row.get("embedded") and row.get("embedding_input_sha256") == sha:
             skipped += 1
             continue
         pending.append((row["path"], text, sha))
@@ -87,9 +88,20 @@ def ingest_embeddings(backend: Neo4jBackend) -> dict[str, int]:
             if vec is None:
                 failed += 1
                 continue
+            if len(vec) != dim:
+                log.warning(
+                    "skillogy embedding for %s has %d dimensions, expected %d", path, len(vec), dim
+                )
+                failed += 1
+                continue
             writeback.append({"path": path, "vector": vec, "sha": sha})
         if writeback:
-            embedded += backend.write_embeddings(writeback)
+            written = backend.write_embeddings(writeback, dim)
+            embedded += written
+            failed += len(writeback) - written
+
+    if failed == 0:
+        backend.mark_vector_ready(dim)
 
     log.info(
         "skillogy embedding ingest: %d embedded, %d unchanged, %d failed",

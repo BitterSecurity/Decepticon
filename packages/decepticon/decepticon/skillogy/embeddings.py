@@ -8,7 +8,7 @@ ADR-0011 §"Skillogy↔litellm coupling").
 
 Degradation contract: this module **never raises** to its callers. When the
 proxy is unconfigured or a request fails, ``embed_text`` returns ``None`` and
-``find_skill`` falls back to the legacy substring path — semantic search is an
+``find_skill`` falls back to full-text lexical search — semantic search is an
 opt-in upgrade, not a hard dependency.
 """
 

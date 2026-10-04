@@ -212,25 +212,47 @@ class Neo4jBackend:
     # free so a model swap is a re-embed, not a rebuild). The query side
     # (find_skill) uses this index for the semantic-local leg of the
     # hybrid score, and silently skips it when no embeddings exist.
-    VECTOR_INDEX_NAME = "skill_embedding"
+    @staticmethod
+    def _vector_names(dim: int) -> tuple[str, str]:
+        """Keep different embedding dimensions in separate Neo4j properties.
+
+        ``CREATE ... IF NOT EXISTS`` does not change an existing index's
+        dimensions. A model switch must therefore use a new index and property
+        instead of silently querying the old index with incompatible vectors.
+        """
+        dimension = int(dim)
+        if dimension <= 0:
+            raise ValueError("embedding dimension must be positive")
+        return f"skill_embedding_{dimension}", f"embedding_{dimension}"
 
     def ensure_vector_index(self, dim: int) -> None:
-        """Create the ``:Skill(embedding)`` vector index if absent (idempotent).
+        """Create the dimension-specific ``:Skill`` vector index if absent.
 
         ``dim`` is inlined as a literal — Neo4j does not accept a query
         parameter for ``vector.dimensions`` in index DDL. It is coerced to
         ``int`` first so the f-string cannot carry an injection.
         """
+        self._vector_ready_dim = None
+        index_name, property_name = self._vector_names(dim)
         dim_literal = int(dim)
         cypher = (
-            f"CREATE VECTOR INDEX {self.VECTOR_INDEX_NAME} IF NOT EXISTS "
-            "FOR (s:Skill) ON (s.embedding) "
+            f"CREATE VECTOR INDEX {index_name} IF NOT EXISTS "
+            f"FOR (s:Skill) ON (s.{property_name}) "
             "OPTIONS {indexConfig: {"
             f"`vector.dimensions`: {dim_literal}, "
             "`vector.similarity_function`: 'cosine'}}"
         )
         with self._driver.session(database=self._database) as session:
-            session.run(cypher)
+            session.run(cast(LiteralString, cypher)).consume()
+            session.run(
+                "CALL db.awaitIndex($name, $timeout_seconds)",
+                name=index_name,
+                timeout_seconds=300,
+            ).consume()
+
+    def mark_vector_ready(self, dim: int) -> None:
+        """Enable semantic search after this dimension's backfill succeeds."""
+        self._vector_ready_dim = int(dim)
 
     # Native Neo4j full-text (Lucene/BM25) index backing the term-search leg.
     FULLTEXT_INDEX_NAME = "skill_text"
@@ -246,8 +268,7 @@ class Neo4jBackend:
 
         NOTE ON CHANGING THE ANALYZER: ``IF NOT EXISTS`` matches on the index's
         SCHEMA (label + properties), not its name, so once an index exists this
-        call is a no-op and a changed analyzer is silently ignored — the same
-        trap as changing embedding dimensions against ``ensure_vector_index``.
+        call is a no-op and a changed analyzer is silently ignored.
         We detect that case and warn rather than dropping the operator's index
         out from under them; applying it needs an explicit
         ``DROP INDEX skill_text`` followed by a restart.
@@ -369,23 +390,25 @@ class Neo4jBackend:
         value = config.get("fulltext.analyzer") if isinstance(config, dict) else None
         return str(value) if value else ""
 
-    def fetch_skills_for_embedding(self) -> list[dict[str, Any]]:
+    def fetch_skills_for_embedding(self, dim: int) -> list[dict[str, Any]]:
         """Return the text fields each skill is embedded from, plus the sha of
         the input that produced its current embedding (``None`` if never
         embedded). The caller re-embeds only rows whose recomputed input sha
         differs — so a content edit re-embeds, an unchanged corpus is a no-op.
         """
+        _, property_name = self._vector_names(dim)
         cypher = (
             "MATCH (s:Skill) "
             "RETURN s.path AS path, s.name AS name, "
             "       coalesce(s.description, '') AS description, "
             "       coalesce(s.when_to_use, '') AS when_to_use, "
-            "       s.embedding_input_sha256 AS embedding_input_sha256"
+            "       s.embedding_input_sha256 AS embedding_input_sha256, "
+            f"       s.{property_name} IS NOT NULL AS embedded"
         )
         with self._driver.session(database=self._database, default_access_mode="READ") as session:
             return [dict(record) for record in session.run(cypher)]
 
-    def write_embeddings(self, rows: list[dict[str, Any]]) -> int:
+    def write_embeddings(self, rows: list[dict[str, Any]], dim: int) -> int:
         """Persist embeddings onto their ``:Skill`` nodes.
 
         Each row is ``{"path": str, "vector": list[float], "sha": str}``.
@@ -395,15 +418,16 @@ class Neo4jBackend:
         """
         if not rows:
             return 0
+        _, property_name = self._vector_names(dim)
         cypher = (
             "UNWIND $rows AS row "
             "MATCH (s:Skill {path: row.path}) "
-            "CALL db.create.setNodeVectorProperty(s, 'embedding', row.vector) "
+            "CALL db.create.setNodeVectorProperty(s, $property_name, row.vector) "
             "SET s.embedding_input_sha256 = row.sha "
             "RETURN count(s) AS written"
         )
         with self._driver.session(database=self._database) as session:
-            result = session.run(cypher, rows=rows).single()
+            result = session.run(cypher, rows=rows, property_name=property_name).single()
         return 0 if result is None else int(result["written"])
 
     # ---- skill ops ----
@@ -556,6 +580,17 @@ class Neo4jBackend:
         # Gated on ``searchable`` rather than ``query`` so an unusable query does
         # not spend an embedding round-trip to score nothing.
         query_vec = embeddings.embed_text(query) if searchable and query is not None else None
+        if query_vec is not None:
+            expected_dim = embeddings.embed_dim()
+            if len(query_vec) != expected_dim:
+                log.warning(
+                    "skillogy query embedding has %d dimensions, expected %d; using lexical search",
+                    len(query_vec),
+                    expected_dim,
+                )
+                query_vec = None
+            elif getattr(self, "_vector_ready_dim", None) != expected_dim:
+                query_vec = None
         if query_vec is None:
             # Degraded (or structured-only) path. Label it so the caller can
             # tell "semantic found nothing" from "semantic never ran" — a
@@ -737,9 +772,8 @@ class Neo4jBackend:
             post_filters.append(acl_clause)
         k = min(cand_n * 5, 500) if post_filters else cand_n
         params = dict(shared)
-        params.update(
-            {"index_name": self.VECTOR_INDEX_NAME, "k": k, "qvec": query_vec, "cand_n": cand_n}
-        )
+        index_name, _ = self._vector_names(len(query_vec))
+        params.update({"index_name": index_name, "k": k, "qvec": query_vec, "cand_n": cand_n})
         where = f"WHERE {' AND '.join(post_filters)} " if post_filters else ""
         cypher = (
             "CALL db.index.vector.queryNodes($index_name, $k, $qvec) "
