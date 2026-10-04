@@ -132,4 +132,6 @@ def complete_engagement_planning(
                 "id": tool_call_id,
             }
         )
-    return "Planning draft ready. Review the documents in Plan mode; select Red explicitly when ready."
+    return (
+        "Planning draft ready. Review the documents in Plan mode; select Red explicitly when ready."
+    )

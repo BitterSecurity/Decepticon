@@ -30,7 +30,9 @@ NO_WORKSPACE_ERROR = (
     "engagement and cannot access the shared /workspace root."
 )
 PLAN_ONLY_ERROR = "Plan filesystem access is limited to /workspace/plan."
-LOCKED_ROE_ERROR = "The operator-confirmed RoE is read-only. Change engagement rules outside Plan mode."
+LOCKED_ROE_ERROR = (
+    "The operator-confirmed RoE is read-only. Change engagement rules outside Plan mode."
+)
 
 
 def _normalize_engagement_workspace(workspace_path: str | None) -> str | None:

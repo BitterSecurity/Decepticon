@@ -95,7 +95,10 @@ def test_soundwave_filesystem_reads_roe_and_edits_planning_documents() -> None:
         "content": "read:/workspace/test/plan/roe.json",
         "encoding": "utf-8",
     }
-    assert scoped.edit("/workspace/plan/conops.json", "old", "new").path == "/workspace/plan/conops.json"
+    assert (
+        scoped.edit("/workspace/plan/conops.json", "old", "new").path
+        == "/workspace/plan/conops.json"
+    )
     assert scoped.grep("scope", path="/workspace").matches == [
         {"path": "/workspace/plan/roe.json", "line": 1, "text": "target"}
     ]
@@ -112,7 +115,9 @@ def test_soundwave_cannot_change_roe_even_when_it_is_missing() -> None:
     assert scoped.write("/workspace/plan/conops.json", "{}").path == "/workspace/plan/conops.json"
 
     runtime_scoped = EngagementFilesystemBackend(backend, "/workspace/test")
-    assert "read-only" in (runtime_scoped.edit("/workspace/plan/roe.json", "old", "new").error or "")
+    assert "read-only" in (
+        runtime_scoped.edit("/workspace/plan/roe.json", "old", "new").error or ""
+    )
 
 
 def test_soundwave_filesystem_rejects_paths_outside_plan() -> None:
@@ -179,7 +184,10 @@ def test_soundwave_next_run_draft_reads_existing_document_from_nested_workspace(
         "read",
         ("/workspace/org-1/eng-1/drafts/next/plan/roe.json", 0, 2000),
     )
-    assert scoped.edit("/workspace/plan/conops.json", "old", "new").path == "/workspace/plan/conops.json"
+    assert (
+        scoped.edit("/workspace/plan/conops.json", "old", "new").path
+        == "/workspace/plan/conops.json"
+    )
     assert scoped.read("/workspace/org-1/eng-1/plan/roe.json").error
 
 
