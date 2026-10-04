@@ -22,10 +22,73 @@ defenses, layered: ``default_access_mode=READ`` on the Bolt session
 from __future__ import annotations
 
 import logging
+import os
 import re
-from typing import Any
+from typing import Any, LiteralString, cast
 
 log = logging.getLogger(__name__)
+
+_SEARCH_FIELDS: tuple[tuple[str, int], ...] = (
+    ("name", 10),
+    ("when_to_use", 8),
+    ("tags_raw", 6),
+    ("subdomain", 5),
+    ("description", 4),
+    ("allowed_tools", 3),
+    ("mitre_attack_raw", 3),
+    ("body", 1),
+)
+_SEARCH_TERMS_RE = re.compile(r"[^\W_][\w./+#-]*", flags=re.UNICODE)
+_SEARCH_STOP_TERMS = frozenset(
+    {
+        "a",
+        "an",
+        "and",
+        "are",
+        "be",
+        "by",
+        "for",
+        "from",
+        "how",
+        "in",
+        "is",
+        "it",
+        "of",
+        "on",
+        "or",
+        "the",
+        "to",
+        "with",
+    }
+)
+_LUCENE_RESERVED = r'+-&|!(){}[]^"~*?:\/'
+_LUCENE_ESCAPE_RE = re.compile("([" + re.escape(_LUCENE_RESERVED) + "])")
+
+
+def _lucene_query(query: str | None) -> str:
+    if not query:
+        return ""
+    terms = tuple(
+        dict.fromkeys(
+            term
+            for match in _SEARCH_TERMS_RE.finditer(query.casefold())
+            if (term := match.group().strip(".-/+#"))
+            and len(term) >= 2
+            and term not in _SEARCH_STOP_TERMS
+        )
+    )[:16]
+    if not terms:
+        return ""
+    return " OR ".join(
+        f"{field}:{_escape_lucene(term)}^{boost}"
+        for field, boost in _SEARCH_FIELDS
+        for term in terms
+    )
+
+
+def _escape_lucene(term: str) -> str:
+    return _LUCENE_ESCAPE_RE.sub(r"\\\1", term)
+
 
 # Write-mode Cypher keywords we refuse to forward, even though the
 # Neo4j driver session is also opened in READ mode. The check is
@@ -112,6 +175,7 @@ class Neo4jBackend:
         self._driver = GraphDatabase.driver(uri, auth=(user, password))
         self._database = database
         self._max_rows = max_rows
+        self._fulltext_ready = False
 
     def close(self) -> None:
         self._driver.close()
@@ -167,6 +231,143 @@ class Neo4jBackend:
         )
         with self._driver.session(database=self._database) as session:
             session.run(cypher)
+
+    # Native Neo4j full-text (Lucene/BM25) index backing the term-search leg.
+    FULLTEXT_INDEX_NAME = "skill_text"
+
+    DEFAULT_FULLTEXT_ANALYZER = "english"
+
+    def ensure_fulltext_index(self) -> None:
+        """Create the ``:Skill`` full-text index if absent (idempotent).
+
+        Indexes the Skill metadata and body fields used by the SaaS search
+        router. Query-time boosts favor names and curated trigger vocabulary;
+        body text supplies low-weight recall.
+
+        NOTE ON CHANGING THE ANALYZER: ``IF NOT EXISTS`` matches on the index's
+        SCHEMA (label + properties), not its name, so once an index exists this
+        call is a no-op and a changed analyzer is silently ignored — the same
+        trap as changing embedding dimensions against ``ensure_vector_index``.
+        We detect that case and warn rather than dropping the operator's index
+        out from under them; applying it needs an explicit
+        ``DROP INDEX skill_text`` followed by a restart.
+        """
+        analyzer = (
+            os.environ.get("DECEPTICON_SKILLOGY_FULLTEXT_ANALYZER", "").strip()
+            or self.DEFAULT_FULLTEXT_ANALYZER
+        )
+        if re.fullmatch(r"[A-Za-z0-9_.-]+", analyzer) is None:
+            raise ValueError("invalid DECEPTICON_SKILLOGY_FULLTEXT_ANALYZER")
+        # Validate against the server's own list rather than a local
+        # enumeration, so this never drifts from what Neo4j supports.
+        available = self._available_fulltext_analyzers()
+        if available and analyzer not in available:
+            log.warning(
+                "full-text analyzer %r is not offered by this Neo4j (available: %s); "
+                "falling back to the server default",
+                analyzer,
+                ", ".join(sorted(available)),
+            )
+            analyzer = ""
+
+        existing = self._existing_fulltext_analyzer()
+        if existing is not None:
+            if analyzer and existing != analyzer:
+                log.warning(
+                    "full-text index '%s' already exists with analyzer %r, but %r is "
+                    "configured. CREATE ... IF NOT EXISTS matches on schema, not name, "
+                    "so this is a no-op. To apply it: DROP INDEX %s and restart.",
+                    self.FULLTEXT_INDEX_NAME,
+                    existing,
+                    analyzer,
+                    self.FULLTEXT_INDEX_NAME,
+                )
+            self._await_fulltext_index()
+            self._fulltext_ready = True
+            return
+
+        options = (
+            f"OPTIONS {{indexConfig: {{`fulltext.analyzer`: '{analyzer}'}}}}" if analyzer else ""
+        )
+        properties = ", ".join(f"s.{field}" for field, _ in _SEARCH_FIELDS)
+        cypher = (
+            f"CREATE FULLTEXT INDEX {self.FULLTEXT_INDEX_NAME} IF NOT EXISTS "
+            f"FOR (s:Skill) ON EACH [{properties}] "
+            f"{options}"
+        ).strip()
+        with self._driver.session(database=self._database) as session:
+            session.run(cast(LiteralString, cypher)).consume()
+        self._await_fulltext_index()
+        self._fulltext_ready = True
+        log.info(
+            "created full-text index '%s' (analyzer: %s)",
+            self.FULLTEXT_INDEX_NAME,
+            analyzer or "server default",
+        )
+
+    def _await_fulltext_index(self) -> None:
+        with self._driver.session(database=self._database) as session:
+            session.run(
+                "CALL db.awaitIndex($name, $timeout_seconds)",
+                name=self.FULLTEXT_INDEX_NAME,
+                timeout_seconds=300,
+            ).consume()
+
+    # Both helpers below catch ``Neo4jError`` rather than ``Exception`` on
+    # purpose: a server that cannot answer the probe is a tolerable degradation
+    # (we fall back to the server-default analyzer / attempt the DDL and let
+    # Neo4j reject an invalid one), but a KeyError or AttributeError here is OUR
+    # bug and must surface. A blanket catch previously hid exactly that — this
+    # procedure yields a column named ``analyzer``, the code read ``name``, and
+    # the resulting KeyError was swallowed into "no analyzers available", which
+    # silently rejected every configured analyzer.
+
+    def _available_fulltext_analyzers(self) -> set[str]:
+        """Analyzer names this server offers, or an empty set if unreachable."""
+        from neo4j.exceptions import Neo4jError  # noqa: PLC0415 — lazy, see __init__
+
+        try:
+            with self._driver.session(
+                database=self._database, default_access_mode="READ"
+            ) as session:
+                return {
+                    record["analyzer"]
+                    for record in session.run(
+                        "CALL db.index.fulltext.listAvailableAnalyzers() YIELD analyzer "
+                        "RETURN analyzer"
+                    )
+                }
+        except Neo4jError as exc:
+            log.debug("could not list full-text analyzers: %s", exc)
+            return set()
+
+    def _existing_fulltext_analyzer(self) -> str | None:
+        """The analyzer of the existing full-text index, or ``None`` if absent.
+
+        Returns ``""`` when the index exists but names no analyzer, so callers
+        can still distinguish "exists" from "absent".
+        """
+        from neo4j.exceptions import Neo4jError  # noqa: PLC0415 — lazy, see __init__
+
+        try:
+            with self._driver.session(
+                database=self._database, default_access_mode="READ"
+            ) as session:
+                record = session.run(
+                    "SHOW INDEXES YIELD name, type, options "
+                    "WHERE name = $name AND type = 'FULLTEXT' "
+                    "RETURN options AS options",
+                    name=self.FULLTEXT_INDEX_NAME,
+                ).single()
+        except Neo4jError as exc:
+            log.debug("could not inspect full-text index: %s", exc)
+            return None
+        if record is None:
+            return None
+        options = record.get("options") or {}
+        config = options.get("indexConfig") or {} if isinstance(options, dict) else {}
+        value = config.get("fulltext.analyzer") if isinstance(config, dict) else None
+        return str(value) if value else ""
 
     def fetch_skills_for_embedding(self) -> list[dict[str, Any]]:
         """Return the text fields each skill is embedded from, plus the sha of
@@ -288,21 +489,28 @@ class Neo4jBackend:
         ``query`` (free text) drives **ranking** via two legs fused with
         reciprocal-rank fusion:
 
-        - *lexical* — substring match on name / description / when_to_use
-          (the legacy signal; exact for keywords like "kerberoast").
+        - *lexical* — field-weighted term search over Skill metadata and body.
+          Names and ``when_to_use`` triggers carry the strongest weights;
+          body text provides lower-weight recall.
         - *semantic* — cosine k-NN over the per-skill embedding vector
-          index, so a paraphrase ("steal kerberos tickets") finds the skill
-          even with no shared substring.
+          index, so a term nobody wrote in ``when_to_use`` can still find
+          the skill.
 
         The semantic leg is **opt-in**: when no embeddings exist (the
         litellm proxy is unconfigured, or the corpus was never embedded),
-        ``find_skill`` returns the pure lexical result, name-ordered —
-        byte-for-byte the pre-ADR-0011 behaviour. The structured-only path
-        (no ``query``) is likewise unchanged.
+        ``find_skill`` returns the pure term-search result. That path is
+        self-sufficient — semantic retrieval improves recall on unanticipated
+        vocabulary, it is not a prerequisite for intent-shaped queries. The
+        structured-only path (no ``query``) is unchanged and name-ordered.
 
         Returns each match's ``name``, ``path``, ``subdomain``,
-        ``description`` and the matched dimensions (``matched_mitre``,
-        ``matched_tags``) so the agent can see *why* a skill came back.
+        ``description``, the matched dimensions (``matched_mitre``,
+        ``matched_tags``) and ``matched_by`` — which retrieval legs returned
+        the row (``["lexical"]``, ``["semantic"]``, both, or
+        ``["structured"]`` for a filter-only query) — so the agent can see
+        *why* a skill came back and how strongly. ``matched_by`` is also the
+        degradation signal: a free-text query whose every hit says only
+        ``["lexical"]`` means the semantic leg did not run.
         """
         from decepticon.skillogy import embeddings  # noqa: PLC0415
 
@@ -335,17 +543,26 @@ class Neo4jBackend:
             acl_clause = "ANY(p IN $allowed_path_prefixes WHERE s.path STARTS WITH p)"
             shared["allowed_path_prefixes"] = list(allowed_path_prefixes)
 
-        if not query and not structured:
+        if not _lucene_query(query) and not structured:
             raise ValueError(
                 "find_skill requires at least one of: query, subdomain, mitre_id, tag, tactic_id"
             )
 
+        searchable = bool(_lucene_query(query))
+
         lexical = self._find_lexical(query, structured, acl_clause, shared, cand_n)
 
-        # Semantic leg only when there is free text AND it can be embedded.
-        query_vec = embeddings.embed_text(query) if query else None
+        # Semantic leg only when there is searchable free text AND it embeds.
+        # Gated on ``searchable`` rather than ``query`` so an unusable query does
+        # not spend an embedding round-trip to score nothing.
+        query_vec = embeddings.embed_text(query) if searchable and query is not None else None
         if query_vec is None:
-            return lexical[:limit]
+            # Degraded (or structured-only) path. Label it so the caller can
+            # tell "semantic found nothing" from "semantic never ran" — a
+            # searchable query returning only ``["lexical"]`` hits is the
+            # signal that embeddings are unavailable.
+            leg = ["lexical"] if searchable else ["structured"]
+            return [{**rec, "matched_by": list(leg)} for rec in lexical[:limit]]
 
         semantic = self._find_semantic(query_vec, structured, acl_clause, shared, cand_n)
         return self._rrf_fuse(lexical, semantic, limit)
@@ -369,17 +586,125 @@ class Neo4jBackend:
         shared: dict[str, Any],
         cand_n: int,
     ) -> list[dict[str, Any]]:
-        """Substring + structured leg. Name-ordered (stable, legacy order)."""
+        """Full-text (BM25) + structured leg, relevance-ordered.
+
+        Free text goes to the ``skill_text`` full-text index over the Skill
+        metadata and body fields. Lucene applies analyzer matching and BM25;
+        query-time field boosts prioritize names and usage triggers.
+
+        This replaced a whole-query ``CONTAINS`` predicate. That clause matched
+        the ENTIRE query string as one substring, so any multi-word query — i.e.
+        exactly what an agent produces when asked to describe an objective —
+        matched nothing and this leg returned zero rows, leaving retrieval
+        wholly dependent on the optional embedding leg.
+
+        Structured filters and the ACL are applied as post-filters, mirroring
+        ``_find_semantic``: an index-backed procedure call cannot pre-apply
+        them, so we over-fetch and prune. The structured-only path (no
+        ``query``) does not touch the index and keeps its legacy name-ordering.
+        """
+        params = dict(shared)
+        params["cand_n"] = cand_n
+        lucene = _lucene_query(query)
+
+        if lucene and not getattr(self, "_fulltext_ready", False):
+            return self._find_lexical_substring_fallback(
+                query, structured, acl_clause, shared, cand_n
+            )
+
+        if not lucene:
+            wheres = list(structured)
+            if acl_clause:
+                wheres.append(acl_clause)
+            cypher = (
+                "MATCH (s:Skill) "
+                f"WHERE {' AND '.join(wheres)} "
+                f"{self._ENRICH_TAIL}"
+                "WITH s, collect(DISTINCT t.id) AS matched_mitre, "
+                "     collect(DISTINCT tg.name) AS matched_tags "
+                f"RETURN {self._RETURN_FIELDS} "
+                "ORDER BY name "
+                "LIMIT $cand_n"
+            )
+            with self._driver.session(
+                database=self._database, default_access_mode="READ"
+            ) as session:
+                return [
+                    dict(record)
+                    for record in session.run(cast(LiteralString, cypher), parameters=params)
+                ]
+
+        post_filters = list(structured)
+        if acl_clause:
+            post_filters.append(acl_clause)
+        # Widen the fetch when filters will drop rows, same rationale as the
+        # vector leg. Bounded by the corpus size in practice.
+        k = min(cand_n * 5, 500) if post_filters else cand_n
+        params.update({"index_name": self.FULLTEXT_INDEX_NAME, "lucene": lucene, "k": k})
+        where = f"WHERE {' AND '.join(post_filters)} " if post_filters else ""
+        cypher = (
+            "CALL db.index.fulltext.queryNodes($index_name, $lucene, {limit: $k}) "
+            "YIELD node AS s, score "
+            f"{where}"
+            f"{self._ENRICH_TAIL}"
+            "WITH s, score, collect(DISTINCT t.id) AS matched_mitre, "
+            "     collect(DISTINCT tg.name) AS matched_tags "
+            f"RETURN {self._RETURN_FIELDS} "
+            "ORDER BY score DESC, name "
+            "LIMIT $cand_n"
+        )
+        from neo4j.exceptions import ClientError  # noqa: PLC0415 — lazy, see __init__
+
+        try:
+            with self._driver.session(
+                database=self._database, default_access_mode="READ"
+            ) as session:
+                return [
+                    dict(record)
+                    for record in session.run(cast(LiteralString, cypher), parameters=params)
+                ]
+        except ClientError as exc:
+            # Narrow on purpose: the only ClientError this call can raise that we
+            # can act on is "no such fulltext schema index" — the index is created
+            # at boot (``ensure_fulltext_index``), so this means an older graph or
+            # a failed DDL. Anything else (auth, syntax, server state) is a real
+            # fault and must propagate. Degrade to the pre-index predicate so the
+            # agent still gets keyword hits, and say why.
+            if "no such fulltext schema index" not in str(exc).lower():
+                raise
+            log.warning(
+                "full-text index '%s' is missing; falling back to substring matching. "
+                "Multi-word queries will under-retrieve until it exists — restart "
+                "skillogy to create it.",
+                self.FULLTEXT_INDEX_NAME,
+            )
+            return self._find_lexical_substring_fallback(
+                query, structured, acl_clause, shared, cand_n
+            )
+
+    def _find_lexical_substring_fallback(
+        self,
+        query: str | None,
+        structured: list[str],
+        acl_clause: str | None,
+        shared: dict[str, Any],
+        cand_n: int,
+    ) -> list[dict[str, Any]]:
+        """Pre-index behaviour: whole-query substring match, name-ordered.
+
+        Only reached when the full-text index is missing. Retained purely so a
+        missing index degrades instead of erroring; it is NOT the intended path
+        and under-retrieves any multi-word query by construction.
+        """
         wheres = list(structured)
         params = dict(shared)
         params["cand_n"] = cand_n
-        if query:
-            wheres.append(
-                "(toLower(s.name) CONTAINS toLower($query) "
-                "OR toLower(s.description) CONTAINS toLower($query) "
-                "OR toLower(s.when_to_use) CONTAINS toLower($query))"
-            )
-            params["query"] = query
+        params["query"] = query
+        wheres.append(
+            "(toLower(s.name) CONTAINS toLower($query) "
+            "OR toLower(coalesce(s.description, '')) CONTAINS toLower($query) "
+            "OR toLower(coalesce(s.when_to_use, '')) CONTAINS toLower($query))"
+        )
         if acl_clause:
             wheres.append(acl_clause)
         cypher = (
@@ -447,19 +772,33 @@ class Neo4jBackend:
         skill found by both legs ranks above one found by either alone. Ties
         break on name for deterministic output. ``rrf_k`` is the standard
         rank-smoothing constant (60).
+
+        Each row carries ``matched_by`` — the legs that returned it, in leg
+        order. The raw vector ``score`` is still stripped (it is not
+        comparable across queries); ``matched_by`` is the part the agent can
+        actually reason with: a hit found by both legs is a stronger match
+        than one found by either alone.
         """
         scores: dict[str, float] = {}
         record_by_path: dict[str, dict[str, Any]] = {}
-        for leg in (lexical, semantic):
+        legs_by_path: dict[str, list[str]] = {}
+        for leg_name, leg in (("lexical", lexical), ("semantic", semantic)):
             for rank, rec in enumerate(leg):
                 path = rec["path"]
                 record_by_path.setdefault(path, rec)
+                legs_by_path.setdefault(path, []).append(leg_name)
                 scores[path] = scores.get(path, 0.0) + 1.0 / (rrf_k + rank + 1)
         ordered = sorted(
             record_by_path.values(),
             key=lambda r: (-scores[r["path"]], r.get("name") or ""),
         )
-        return [{k: v for k, v in r.items() if k != "score"} for r in ordered[:limit]]
+        return [
+            {
+                **{k: v for k, v in r.items() if k != "score"},
+                "matched_by": legs_by_path[r["path"]],
+            }
+            for r in ordered[:limit]
+        ]
 
     # ---- per-phase MoC summary (used by SkillogyMiddleware system prompt) ----
 

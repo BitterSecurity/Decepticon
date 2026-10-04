@@ -37,8 +37,21 @@ def test_found_by_both_legs_outranks_single_leg() -> None:
 def test_score_field_stripped() -> None:
     semantic = [_rec("s", "/s", score=0.9)]
     out = Neo4jBackend._rrf_fuse([], semantic, limit=10)
-    assert out == [_rec("s", "/s")]
+    assert out == [_rec("s", "/s", matched_by=["semantic"])]
     assert "score" not in out[0]
+
+
+def test_matched_by_reports_both_legs() -> None:
+    # The agent's only signal for match strength: a hit found by both legs
+    # must say so, and a single-leg hit must not claim the other leg.
+    lexical = [_rec("shared", "/shared"), _rec("lex-only", "/l")]
+    semantic = [_rec("shared", "/shared", score=0.9), _rec("sem-only", "/s", score=0.4)]
+    by_path = {
+        r["path"]: r["matched_by"] for r in Neo4jBackend._rrf_fuse(lexical, semantic, limit=10)
+    }
+    assert by_path["/shared"] == ["lexical", "semantic"]
+    assert by_path["/l"] == ["lexical"]
+    assert by_path["/s"] == ["semantic"]
 
 
 def test_respects_limit() -> None:
