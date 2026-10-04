@@ -14,6 +14,7 @@ parsers:
 pipeline:
   inputs:
     - name: tail
+      alias: blue_proxy
       tag: blue.http
       path: /sensor-logs/access*
       parser: proxy_json
@@ -27,6 +28,7 @@ pipeline:
       buffer_max_size: 1M
       skip_long_lines: true
     - name: tail
+      alias: blue_target_logs
       tag: blue.target_logs
       path: /target-logs/*
       key: log

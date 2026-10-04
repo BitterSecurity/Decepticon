@@ -65,4 +65,25 @@ describe("Blue Cell chat notifications", () => {
     expect(gap).toContain("10–12");
     expect(gap).toContain("agent unavailable");
   });
+
+  it("shows collector loss as an observation gap", () => {
+    const message = formatBlueNotification({
+      seq: 5,
+      kind: "coverage_gap",
+      payload: {
+        id: "coverage-1",
+        reason: "collector_data_loss",
+        counters: { collector_long_lines_skipped_total: 2 },
+      },
+    });
+    expect(message).toContain("수집 공백");
+    expect(message).toContain("collector_long_lines_skipped_total=2");
+    const restart = formatBlueNotification({
+      seq: 6,
+      kind: "coverage_gap",
+      payload: { id: "coverage-2", reason: "collector_restarted" },
+    });
+    expect(restart).toContain("재시작");
+    expect(restart).toContain("연속성");
+  });
 });

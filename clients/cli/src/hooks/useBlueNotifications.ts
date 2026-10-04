@@ -2,7 +2,8 @@ import { useEffect } from "react";
 
 interface BlueNotification {
   seq: number;
-  kind: "detected" | "assessment" | "analysis_error" | "watch_alert" | "watch_error";
+  kind: "detected" | "assessment" | "analysis_error" | "watch_alert" | "watch_error" |
+    "coverage_gap" | "coverage_restored";
   payload: {
     id: string;
     rule_id?: string;
@@ -11,6 +12,8 @@ interface BlueNotification {
     start_seq?: number;
     end_seq?: number;
     error?: string;
+    reason?: string;
+    counters?: Record<string, number>;
     evidence?: {
       method?: string;
       uri?: string;
@@ -29,6 +32,23 @@ interface NotificationPage {
 
 export function formatBlueNotification(notification: BlueNotification): string {
   const { payload } = notification;
+  if (notification.kind === "coverage_gap") {
+    if (payload.reason === "collector_restarted") {
+      return "[Blue Cell] 수집기가 재시작됐습니다. 저장된 수집 카운터와 최근 대상 이벤트를 확인해 관측 연속성을 검토하세요.";
+    }
+    if (payload.reason === "receiver_state_replaced") {
+      return "[Blue Cell] 수신기 저장소가 교체되거나 초기화됐습니다. 이전 관측 기록의 연속성을 확인하세요.";
+    }
+    if (payload.reason === "collector_data_loss") {
+      const counters = Object.entries(payload.counters ?? {})
+        .map(([name, count]) => `${name}=${count}`).join(", ");
+      return `[Blue Cell] 수집 공백: 수집 파이프라인에서 기록 누락이 확인됐습니다. ${counters || "자세한 내용은 /blue metrics를 확인하세요."} 이 구간의 공격 부재를 판단할 수 없습니다.`;
+    }
+    return "[Blue Cell] 수집 공백: 대상 로그 수집기 또는 수신기가 응답하지 않습니다. /blue status로 상태를 확인하세요.";
+  }
+  if (notification.kind === "coverage_restored") {
+    return "[Blue Cell] 수집기 응답이 복구됐습니다. 이전 관측 공백은 사라진 것으로 간주할 수 없습니다.";
+  }
   if (notification.kind === "watch_alert") {
     const sequences = payload.evidence?.event_seqs?.join(", ") ?? "?";
     return `[Blue Cell] ${(payload.severity ?? "unknown").toUpperCase()} 상주 감시 알림. ` +

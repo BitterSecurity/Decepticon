@@ -7,20 +7,24 @@ Blue Cell observes a local web service while Decepticon Red can continue attacki
 Start a web service on a local port, then enter:
 
 ```text
-/blue up 127.0.0.1:3000
+/blue up 127.0.0.1:3000 --logs /absolute/host/log-directory
 /blue status
+/blue verify
+/blue sources
 /blue events
 /blue incidents
 ```
 
-Send host traffic you want Blue to observe to `http://127.0.0.1:18080`. Point Red inside its Docker sandbox at `http://host.docker.internal:18080`; the bundled sandbox maps that name to the Docker host. A service already exposed on its original port still accepts bypass traffic; the proxy cannot see those requests. For complete ingress visibility, make the original listener private and route all clients through the proxy. The optional `BLUE_TARGET_LOG_DIR` environment variable points Fluent Bit at a directory containing the target's logs. If you launch the service yourself, `capture_process.py` can capture its stdout and stderr without changing application code:
+Send host traffic you want Blue to observe to `http://127.0.0.1:18080`. Point Red inside its Docker sandbox at `http://host.docker.internal:18080`; the bundled sandbox maps that name to the Docker host. A service already exposed on its original port still accepts bypass traffic; the proxy cannot see those requests. For complete ingress visibility, make the original listener private and route all clients through the proxy. `--logs` binds an existing directory on the Docker host into the collector read-only, without requiring a Compose file for the target service. A missing directory makes startup fail instead of silently creating an empty source. Omit `--logs` for proxy-only mode. If you launch the service yourself, `capture_process.py` can capture its stdout and stderr without changing application code:
 
 ```sh
 mkdir -p /tmp/decepticon-target-logs
 python3 capture_process.py /tmp/decepticon-target-logs/process.jsonl python3 app.py
 ```
 
-The CLI starts the sensor stack with Docker Compose. It expects the running Decepticon management network and LangGraph server, plus Linux host networking for the proxy to reach a service bound to `127.0.0.1`. The CLI discovers the Docker bridge gateway; the proxy binds only to that gateway and host loopback. Detection messages appear in the interactive chat as `[Blue Cell]` events while Red runs. The monitor queues incidents for the Blue Cell agent, posts `[Blue Cell 조사]` findings, and independently asks the agent to review every new event window. The monitor and agent keep working when the CLI is closed; retained notifications appear when the CLI is reopened. `/blue status` shows AI watch backlog and failed windows. `/blue analyze` requests a separate manual investigation. `/blue stop` stops the stack and retains Docker volumes.
+For this wrapper example, use `/blue up 127.0.0.1:3000 --logs /tmp/decepticon-target-logs` from the CLI after the service starts. The wrapper writes `process_lifecycle` start and exit records with a capture run ID, reported PID, and exit code, as well as `process_log` records for stdout and stderr. Send a request through the Blue proxy that makes the application emit a log, then run `/blue verify` and `/blue sources`. Verification distinguishes a mounted directory, a file opened by Fluent Bit, and a record delivered to the receiver during the current collector run. A replayed old line can still satisfy delivery; confirm fresh target activity by checking the actual event and its timestamp.
+
+The CLI starts the sensor stack with Docker Compose. It expects the running Decepticon management network and LangGraph server, plus Linux host networking for the proxy to reach a service bound to `127.0.0.1`. The CLI discovers the Docker bridge gateway; the proxy binds only to that gateway and host loopback. Detection messages appear in the interactive chat as `[Blue Cell]` events while Red runs. The monitor queues incidents for the Blue Cell agent, posts `[Blue Cell 조사]` findings, and independently asks the agent to review every new event window. It also sends a distinct collection-gap message if the collector stays unavailable, restarts, or reports skipped/dropped records. The monitor and agent keep working when the CLI is closed; retained notifications appear when the CLI is reopened. `/blue status` shows the mounted log source, per-input file and record counts, last target-log and proxy arrivals, collector availability, known drops, AI watch backlog, and failed windows. `/blue sources` lists the actual files that delivered retained records. The Blue agent can search exact request IDs, trace IDs, and trusted sources, or inspect a one-hour receiver-time window across sources. `/blue analyze` requests a separate manual investigation. `/blue stop` stops the stack and retains Docker volumes.
 
 The target can be local even if Red normally accepts broader URLs. Blue only connects to a local target in this OSS workflow. The command accepts `localhost`, `127.0.0.1`, or `[::1]` with an explicit port.
 
@@ -41,10 +45,11 @@ The test service listens on a Unix socket shared only with the proxy, with no di
 
 ```sh
 curl 'http://127.0.0.1:18081/events?after=0&limit=100'
+curl 'http://127.0.0.1:18081/sources?limit=20'
 curl http://127.0.0.1:18081/metrics
 curl 'http://127.0.0.1:18085/incidents?limit=20'
 curl 'http://127.0.0.1:18085/notifications?after=0&limit=100'
-curl http://127.0.0.1:18083/api/v1/metrics/prometheus
+curl http://127.0.0.1:18083/api/v2/metrics/prometheus
 ```
 
 The fixture monitor has no agent connection by default. Set `BLUE_AGENT_URL` to the reachable LangGraph API base URL to enable automatic analysis and resident AI watch, for example `http://host.docker.internal:2027` for a host development server. The runtime stack launched by `/blue up` connects to `http://langgraph:2024` on the Decepticon network. When no new events arrive, the resident process waits without calling the model. With new events, it batches up to 25 events and reviews them after at most 15 seconds by default. `BLUE_WATCH_BATCH_SIZE` (1–100) and `BLUE_WATCH_INTERVAL_SECONDS` adjust the model call rate. If model analysis is slower than sustained ingestion, cleanup trims the queue to `BLUE_WATCH_MAX_ROWS` pending events and sends explicit gap notifications for older unreviewed events. `/blue metrics` reports backlog, retrying windows, and failed review windows.
@@ -60,6 +65,8 @@ The monitor scans URI, request headers, streamed request bodies, and target log 
 ## Coverage boundaries
 
 The proxy sees HTTP requests that pass through it. Fluent Bit sees files in the configured top level log directory, including stdout and stderr captured by the wrapper. It cannot infer application actions that produce no accessible signal, see TLS before decryption outside its ingress, or see traffic sent directly to another listener. Request body files reflect only bytes the target read. This stack does not collect kernel, database, or application audit events by default and does not claim complete SIEM coverage. Add target specific log sources through `BLUE_TARGET_LOG_DIR` as needed.
+
+JSON application logs are stored with the original line and parsed attributes. Common timestamp, severity, trace, span, and request IDs are extracted for Blue investigations. `/blue metrics` and the Blue agent's sensor scan include collector availability, per-input file and record counts, and Fluent Bit counters for skipped long lines, dropped records, failed retries, and paused inputs. Receiver accepted, rejected, and evicted counters persist in SQLite across restarts; `counters_started_at` marks the initial counter migration point. An increasing loss counter creates a chat notification even when no attack rule matches. A zero counter does not prove that the target emitted every useful event. The [telemetry design](../../docs/features/blue-cell-telemetry-design.md) records the source coverage and production extension plan.
 
 To stop the isolated fixture without deleting its stored data:
 

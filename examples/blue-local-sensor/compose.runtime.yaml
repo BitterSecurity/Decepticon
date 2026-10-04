@@ -33,6 +33,11 @@ services:
       - body-spool:/body-spool
     ports:
       - "127.0.0.1:18081:8082"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8082/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
     depends_on:
       blue-proxy:
         condition: service_started
@@ -122,6 +127,7 @@ configs:
       pipeline:
         inputs:
           - name: tail
+            alias: blue_proxy
             tag: blue.http
             path: /sensor-logs/access*
             parser: proxy_json
@@ -135,6 +141,7 @@ configs:
             buffer_max_size: 1M
             skip_long_lines: true
           - name: tail
+            alias: blue_target_logs
             tag: blue.target_logs
             path: /target-logs/*
             key: log

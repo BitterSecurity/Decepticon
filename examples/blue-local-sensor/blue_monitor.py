@@ -25,6 +25,15 @@ WATCH_INTERVAL_SECONDS = float(os.environ.get("BLUE_WATCH_INTERVAL_SECONDS", "15
 WATCH_BATCH_SIZE = int(os.environ.get("BLUE_WATCH_BATCH_SIZE", "25"))
 WATCH_MAX_ROWS = int(os.environ.get("BLUE_WATCH_MAX_ROWS", "10000"))
 WATCH_MAX_ATTEMPTS = 3
+COVERAGE_INTERVAL_SECONDS = 10
+COVERAGE_FAILURE_THRESHOLD = 3
+COVERAGE_LOSS_COUNTERS = (
+    "collector_long_lines_skipped_total",
+    "collector_dropped_records_total",
+    "collector_routing_dropped_records_total",
+    "collector_retries_failed_total",
+    "rejected_total",
+)
 
 RULES = (
     (
@@ -347,6 +356,90 @@ class MonitorStore:
             if AGENT_URL:
                 self.db.execute("INSERT OR IGNORE INTO watch_pending(seq) VALUES(?)", (seq,))
 
+    def record_coverage(self, snapshot: dict) -> None:
+        available = snapshot.get("collector_available") is True
+        with self.lock, self.db:
+            row = self.db.execute(
+                "SELECT value FROM state WHERE key='collector_coverage'"
+            ).fetchone()
+            previous = json.loads(row[0]) if row else {}
+            failures = 0 if available else int(previous.get("failures", 0)) + 1
+            outage_notified = bool(previous.get("outage_notified", False))
+            notices: list[tuple[str, dict]] = []
+            if not available and failures >= COVERAGE_FAILURE_THRESHOLD and not outage_notified:
+                notices.append(("coverage_gap", {"reason": "collector_unavailable"}))
+                outage_notified = True
+            if available:
+                if outage_notified:
+                    notices.append(("coverage_restored", {"reason": "collector_responding"}))
+                outage_notified = False
+                started = snapshot.get("collector_start_time_seconds")
+                previous_start = previous.get("collector_start_time_seconds")
+                if (
+                    isinstance(started, int)
+                    and isinstance(previous_start, int)
+                    and started != previous_start
+                ):
+                    notices.append(
+                        (
+                            "coverage_gap",
+                            {
+                                "reason": "collector_restarted",
+                                "previous_start": previous_start,
+                                "current_start": started,
+                            },
+                        )
+                    )
+                epoch = snapshot.get("counters_started_at")
+                previous_epoch = previous.get("counters_started_at")
+                if (
+                    isinstance(epoch, str)
+                    and isinstance(previous_epoch, str)
+                    and epoch != previous_epoch
+                ):
+                    notices.append(("coverage_gap", {"reason": "receiver_state_replaced"}))
+                increases = {
+                    key: max(0, int(snapshot.get(key, 0)) - int(previous.get(key, 0)))
+                    for key in COVERAGE_LOSS_COUNTERS
+                }
+                increases = {key: value for key, value in increases.items() if value > 0}
+                if increases:
+                    notices.append(
+                        ("coverage_gap", {"reason": "collector_data_loss", "counters": increases})
+                    )
+            state = {
+                "failures": failures,
+                "outage_notified": outage_notified,
+                "collector_start_time_seconds": snapshot.get(
+                    "collector_start_time_seconds", previous.get("collector_start_time_seconds")
+                ),
+                "counters_started_at": snapshot.get(
+                    "counters_started_at", previous.get("counters_started_at")
+                ),
+                **{
+                    key: int(snapshot.get(key, previous.get(key, 0)))
+                    for key in COVERAGE_LOSS_COUNTERS
+                },
+            }
+            self.db.execute(
+                "INSERT INTO state(key,value) VALUES('collector_coverage',?) "
+                "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+                (json.dumps(state, separators=(",", ":")),),
+            )
+            for kind, payload in notices:
+                stamp = now()
+                incident_id = f"coverage:{uuid.uuid4().hex[:16]}"
+                self.db.execute(
+                    "INSERT INTO notifications(incident_id,kind,created_at,payload_json) "
+                    "VALUES(?,?,?,?)",
+                    (
+                        incident_id,
+                        kind,
+                        stamp,
+                        json.dumps({"id": incident_id, **payload}, separators=(",", ":")),
+                    ),
+                )
+
     def incidents(self, limit: int = 50) -> list[dict]:
         with self.lock:
             rows = self.db.execute(
@@ -562,6 +655,16 @@ def consume_forever() -> None:
         except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as error:
             print(f"blue monitor ingest retry: {error}", flush=True)
             time.sleep(2)
+
+
+def coverage_forever() -> None:
+    while True:
+        try:
+            STORE.record_coverage(get_json(f"{SENSOR_URL}/metrics"))
+        except (OSError, ValueError, KeyError, TypeError) as error:
+            print(f"blue coverage poll retry: {error}", flush=True)
+            STORE.record_coverage({"collector_available": False})
+        time.sleep(COVERAGE_INTERVAL_SECONDS)
 
 
 def extract_agent_text(result: dict) -> str:
@@ -853,6 +956,7 @@ WORKERS: dict[str, threading.Thread] = {}
 
 if __name__ == "__main__":
     WORKERS["ingest"] = threading.Thread(target=consume_forever, daemon=True)
+    WORKERS["coverage"] = threading.Thread(target=coverage_forever, daemon=True)
     if AGENT_URL:
         WORKERS["analysis"] = threading.Thread(target=analyze_forever, daemon=True)
         WORKERS["watch"] = threading.Thread(target=watch_forever, daemon=True)

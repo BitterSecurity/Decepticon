@@ -143,7 +143,10 @@ func (m BodyTap) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhtt
 
 func (m *BodyTap) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 	d.Next()
-	m.Directory = "/body-spool"
+	m.Directory = os.Getenv("BLUE_BODY_SPOOL_DIR")
+	if m.Directory == "" {
+		m.Directory = "/body-spool"
+	}
 	if d.NextArg() {
 		return d.ArgErr()
 	}

@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import threading
 from pathlib import Path
+from urllib.request import urlopen
 
 import pytest
 
@@ -126,6 +128,92 @@ def test_benign_window_advances_without_chat_alert(
     assert store.watch_cursor() == 3
     assert store.notifications(0, 10)["notifications"] == []
     assert store.metrics()["watch_backlog"] == 0
+    store.db.close()
+
+
+def test_collector_loss_and_outage_are_persistent_coverage_notifications(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monitor = load_monitor(monkeypatch, tmp_path)
+    path = tmp_path / "coverage.sqlite3"
+    store = monitor.MonitorStore(path)
+    healthy = {"collector_available": True, "collector_long_lines_skipped_total": 0}
+    store.record_coverage(healthy)
+    store.record_coverage({**healthy, "collector_long_lines_skipped_total": 2})
+    store.record_coverage({**healthy, "collector_long_lines_skipped_total": 2})
+    assert [item["kind"] for item in store.notifications(0, 10)["notifications"]] == [
+        "coverage_gap"
+    ]
+    assert store.notifications(0, 10)["notifications"][0]["payload"]["counters"] == {
+        "collector_long_lines_skipped_total": 2
+    }
+    store.record_coverage({"collector_available": False})
+    store.db.close()
+    restarted = monitor.MonitorStore(path)
+    restarted.record_coverage({"collector_available": False})
+    restarted.record_coverage({"collector_available": False})
+    restarted.record_coverage({"collector_available": False})
+    restarted.record_coverage({**healthy, "collector_long_lines_skipped_total": 2})
+    assert [item["kind"] for item in restarted.notifications(0, 10)["notifications"]] == [
+        "coverage_gap",
+        "coverage_gap",
+        "coverage_restored",
+    ]
+    restarted.db.close()
+
+
+def test_coverage_notification_is_served_by_monitor_api(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monitor = load_monitor(monkeypatch, tmp_path)
+    store = monitor.MonitorStore(tmp_path / "coverage-api.sqlite3")
+    monkeypatch.setattr(monitor, "STORE", store)
+    for _ in range(monitor.COVERAGE_FAILURE_THRESHOLD):
+        store.record_coverage({"collector_available": False})
+    server = monitor.ThreadingHTTPServer(("127.0.0.1", 0), monitor.Handler)
+    thread = threading.Thread(target=server.serve_forever)
+    thread.start()
+    try:
+        with urlopen(
+            f"http://127.0.0.1:{server.server_port}/notifications?after=0&limit=10"
+        ) as response:
+            notifications = json.load(response)["notifications"]
+        assert len(notifications) == 1
+        assert notifications[0]["kind"] == "coverage_gap"
+        assert notifications[0]["payload"]["reason"] == "collector_unavailable"
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join()
+        store.db.close()
+
+
+def test_collector_restart_is_visible_without_claiming_data_loss(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monitor = load_monitor(monkeypatch, tmp_path)
+    store = monitor.MonitorStore(tmp_path / "restart.sqlite3")
+    first = {"collector_available": True, "collector_start_time_seconds": 100}
+    store.record_coverage(first)
+    store.record_coverage({**first, "collector_start_time_seconds": 200})
+    notices = store.notifications(0, 10)["notifications"]
+    assert len(notices) == 1
+    assert notices[0]["payload"]["reason"] == "collector_restarted"
+    store.record_coverage({**first, "collector_start_time_seconds": 200})
+    assert len(store.notifications(0, 10)["notifications"]) == 1
+    store.db.close()
+
+
+def test_receiver_counter_epoch_change_is_visible(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monitor = load_monitor(monkeypatch, tmp_path)
+    store = monitor.MonitorStore(tmp_path / "receiver-reset.sqlite3")
+    store.record_coverage({"collector_available": True, "counters_started_at": "first"})
+    store.record_coverage({"collector_available": True, "counters_started_at": "second"})
+    notices = store.notifications(0, 10)["notifications"]
+    assert len(notices) == 1
+    assert notices[0]["payload"]["reason"] == "receiver_state_replaced"
     store.db.close()
 
 
