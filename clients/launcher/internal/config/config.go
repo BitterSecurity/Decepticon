@@ -741,27 +741,37 @@ func BackfillEnvFromEmbed(envPath string) ([]string, error) {
 // migration that must change a setting (e.g. flipping DECEPTICON_TELEMETRY
 // after a re-consent prompt).
 func SetEnvKey(path, key, value string) error {
+	return SetEnvKeys(path, map[string]string{key: value})
+}
+
+// SetEnvKeys replaces several settings in one private, atomic write. A
+// credential migration must never leave only some of its new passwords in
+// .env when the process is interrupted.
+func SetEnvKeys(path string, values map[string]string) error {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}
 	lines := strings.Split(string(data), "\n")
-	replaced := false
+	replaced := make(map[string]bool, len(values))
 	for i, line := range lines {
 		trimmed := strings.TrimSpace(line)
 		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
 			continue
 		}
-		if k, _, ok := parseEnvLine(trimmed); ok && k == key {
-			lines[i] = key + "=" + value
-			replaced = true
-			break
+		if k, _, ok := parseEnvLine(trimmed); ok {
+			if value, found := values[k]; found {
+				lines[i] = k + "=" + value
+				replaced[k] = true
+			}
 		}
 	}
-	if !replaced {
-		lines = append(lines, key+"="+value)
+	for key, value := range values {
+		if !replaced[key] {
+			lines = append(lines, key+"="+value)
+		}
 	}
-	return os.WriteFile(path, []byte(strings.Join(lines, "\n")), 0o600)
+	return writePrivateFile(path, []byte(strings.Join(lines, "\n")))
 }
 
 // Get returns a config value with a fallback default.

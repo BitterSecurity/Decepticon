@@ -212,6 +212,10 @@ func (c *Compose) Up(profiles ...string) error {
 	return c.run(args, false)
 }
 
+func (c *Compose) UpDatabases() error {
+	return c.run([]string{"up", "-d", "--no-build", "--wait", "--wait-timeout", startupTimeoutSeconds(), "postgres", "neo4j"}, false)
+}
+
 // startupTimeoutSeconds returns the --wait-timeout value as a string.
 // User override via DECEPTICON_STARTUP_TIMEOUT_SECONDS; falls back to 600s.
 func startupTimeoutSeconds() string {

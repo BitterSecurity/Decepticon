@@ -123,10 +123,20 @@ See [Models](models.md) for the full Tier × AuthMethod matrix and chain example
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `LITELLM_MASTER_KEY` | `sk-decepticon-master` | LiteLLM proxy auth key |
-| `LITELLM_SALT_KEY` | `sk-decepticon-salt-change-me` | LiteLLM salt (change in production) |
-| `POSTGRES_PASSWORD` | `decepticon` | PostgreSQL password |
-| `NEO4J_PASSWORD` | `decepticon-graph` | Neo4j password |
+| `LITELLM_MASTER_KEY` | Generated during onboarding | LiteLLM proxy admin key |
+| `LITELLM_SALT_KEY` | Generated during onboarding | Encrypts provider credentials stored in LiteLLM |
+| `POSTGRES_PASSWORD` | Generated during onboarding | PostgreSQL password |
+| `NEO4J_PASSWORD` | Generated during onboarding | Neo4j password |
+
+Older installations that still use the public Compose fallback credentials are
+upgraded on the next `decepticon start`. The launcher backs up `.env` to
+`~/.decepticon/.env.before-credential-migration`, rotates the LiteLLM admin
+key and database passwords without deleting existing data, and retries safely
+if the upgrade is interrupted. Each Compose project sharing the same
+`DECEPTICON_HOME` upgrades its own database volumes on its first start after
+the shared `.env` changes. It retains an old LiteLLM encryption salt when
+needed so credentials already stored in the database remain readable. The
+backup contains secrets and is written with owner-only permissions.
 
 ### Ports (optional)
 
