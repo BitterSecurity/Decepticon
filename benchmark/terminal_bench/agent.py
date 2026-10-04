@@ -18,6 +18,7 @@ from benchmark.terminal_bench.sandbox import HarborSandboxAdapter
 from benchmark.terminal_bench.trajectory import AGENT_NAME, RunMetrics, write_atif_trajectory
 from decepticon import __version__
 from decepticon.llm.factory import LLMFactory
+from decepticon.middleware.notifications import SandboxNotificationMiddleware
 from decepticon.runtime.recording import RecordingMiddleware
 from decepticon.tools.bash import BASH_PROMPT, BASH_TOOLS
 from decepticon.tools.bash.bash import set_sandbox
@@ -125,7 +126,10 @@ class DecepticonTerminalBenchAgent(BaseAgent):
             self._model(),
             tools=self.tools,
             system_prompt=SYSTEM_PROMPT,
-            middleware=[RecordingMiddleware(path=record_path)],
+            middleware=[
+                SandboxNotificationMiddleware(sandbox=sandbox),
+                RecordingMiddleware(path=record_path),
+            ],
             name=AGENT_NAME,
         ).with_config({"recursion_limit": 1000})
         result = await graph.ainvoke({"messages": [{"role": "user", "content": instruction}]})

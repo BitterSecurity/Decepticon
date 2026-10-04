@@ -16,6 +16,10 @@ from decepticon.sandbox_kernel.jobs import BackgroundJob, BackgroundJobTracker
 from decepticon.sandbox_kernel.tmux import strip_terminal_noise
 
 
+def _command_with_exit_marker(command: str, marker: str) -> str:
+    return f"{command}\nprintf '%s' $? > {shlex.quote(marker)}"
+
+
 class HarborSandboxAdapter:
     def __init__(self, environment: BaseEnvironment) -> None:
         self._environment = environment
@@ -73,7 +77,7 @@ class HarborSandboxAdapter:
 
         baseline = await tmux.capture_pane(capture_entire=True)
         marker = f"/tmp/decepticon-command-{uuid.uuid4().hex}.done"
-        wrapped = f"{command}; printf '%s' $? > {shlex.quote(marker)}"
+        wrapped = _command_with_exit_marker(command, marker)
         await tmux.send_keys([wrapped, "Enter"])
         effective_timeout = timeout if timeout is not None else 120
         blocking_timeout = min(effective_timeout, 60)
@@ -154,7 +158,7 @@ class HarborSandboxAdapter:
 
         async def start() -> None:
             tmux = await self._get_session(session)
-            wrapped = f"{command}; printf '%s' $? > {shlex.quote(marker)}"
+            wrapped = _command_with_exit_marker(command, marker)
             await tmux.send_keys([wrapped, "Enter"])
 
         from_thread.run(start)

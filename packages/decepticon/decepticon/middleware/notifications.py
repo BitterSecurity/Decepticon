@@ -27,16 +27,17 @@ fallback for explicit re-fetch (e.g. after the agent decides to
 re-inspect a session it already saw), not the primary delivery path.
 """
 
-import asyncio
 import logging
 import re
 import threading
 from collections import OrderedDict
+from functools import partial
 
+from anyio import to_thread
 from langchain.agents.middleware import AgentMiddleware
 from langchain_core.messages import HumanMessage
 
-from decepticon.backends.http_sandbox import HTTPSandbox
+from decepticon.tools.bash.protocol import BashSandboxProtocol
 
 log = logging.getLogger(__name__)
 
@@ -115,7 +116,7 @@ def _get_stream_writer():
 class SandboxNotificationMiddleware(AgentMiddleware):
     """Auto-deliver background-job completions to the agent + CLI."""
 
-    def __init__(self, sandbox: HTTPSandbox) -> None:
+    def __init__(self, sandbox: BashSandboxProtocol) -> None:
         super().__init__()
         self._sandbox = sandbox
         # OrderedDict-as-set so we can both check membership and evict in
@@ -306,10 +307,12 @@ class SandboxNotificationMiddleware(AgentMiddleware):
             return
         for job in running:
             try:
-                await asyncio.to_thread(
-                    self._sandbox.poll_completion,
-                    job.session,
-                    workspace_path=job.workspace_path,
+                await to_thread.run_sync(
+                    partial(
+                        self._sandbox.poll_completion,
+                        job.session,
+                        workspace_path=job.workspace_path,
+                    )
                 )
             except Exception as e:  # noqa: BLE001
                 log.warning("poll_completion failed for session=%s: %s", job.session, e)

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import shlex
+import subprocess
 from pathlib import Path
 from types import SimpleNamespace
 from typing import cast
@@ -11,9 +13,27 @@ from harbor.environments.base import BaseEnvironment
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
 from benchmark.terminal_bench.agent import AGENT_NAME, DecepticonTerminalBenchAgent
-from benchmark.terminal_bench.sandbox import HarborSandboxAdapter
+from benchmark.terminal_bench.sandbox import HarborSandboxAdapter, _command_with_exit_marker
 from benchmark.terminal_bench.trajectory import RunMetrics, write_atif_trajectory
+from decepticon.middleware.notifications import SandboxNotificationMiddleware
 from decepticon.tools.bash import BASH_TOOLS
+
+
+def test_heredoc_command_preserves_terminator_and_records_exit(tmp_path: Path) -> None:
+    output = tmp_path / "output.txt"
+    marker = tmp_path / "exit.txt"
+    command = f"cat <<'EOF' > {shlex.quote(str(output))}\nhello\nEOF"
+
+    result = subprocess.run(
+        ["bash", "-c", _command_with_exit_marker(command, str(marker))],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    assert output.read_text() == "hello\n"
+    assert marker.read_text() == "0"
 
 
 @pytest.mark.asyncio
@@ -29,6 +49,28 @@ async def test_sandbox_adapter_executes_inside_harbor_environment() -> None:
 
     assert result.output == "ready"
     assert result.exit_code == 0
+
+
+@pytest.mark.asyncio
+async def test_benchmark_middleware_detects_background_completion(monkeypatch) -> None:
+    class Environment:
+        async def exec(self, command: str):
+            assert "test -f" in command
+            return SimpleNamespace(return_code=0, stdout="0", stderr="")
+
+    adapter = HarborSandboxAdapter(cast(BaseEnvironment, Environment()))
+    adapter._jobs.register("build", "make", initial_markers=0)
+    adapter._background_markers["build"] = "/tmp/build.done"
+    monkeypatch.setattr(adapter, "read_session_log_diff", lambda *args, **kwargs: "built\n")
+
+    middleware = SandboxNotificationMiddleware(sandbox=adapter)
+    await middleware._arefresh_running_jobs()
+    update = middleware._build_message()
+
+    assert update is not None
+    assert "Background command" in str(update["messages"][0].content)
+    job = adapter._jobs.get("build")
+    assert job is not None and job.status == "done"
 
 
 def test_agent_exposes_the_production_bash_tool_objects(tmp_path: Path) -> None:
