@@ -1,0 +1,183 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "id": "recon-passive-dns-ct",
+      "query": "passive DNS certificate transparency reconnaissance evidence",
+      "allowed_path_prefixes": [
+        "/skills/standard/recon/"
+      ],
+      "expected_paths": [
+        "/skills/standard/recon/passive-recon/SKILL.md"
+      ],
+      "forbidden_paths": [
+        "/skills/standard/recon/active-recon/SKILL.md"
+      ]
+    },
+    {
+      "id": "recon-auth-surface",
+      "query": "map web authentication endpoints cookies evidence",
+      "allowed_path_prefixes": [
+        "/skills/standard/recon/"
+      ],
+      "expected_paths": [
+        "/skills/standard/recon/web-recon/auth-mapping/SKILL.md"
+      ]
+    },
+    {
+      "id": "web-idor",
+      "query": "validate insecure direct object authorization cross account evidence",
+      "allowed_path_prefixes": [
+        "/skills/standard/exploit/"
+      ],
+      "expected_paths": [
+        "/skills/standard/exploit/web/idor/SKILL.md"
+      ]
+    },
+    {
+      "id": "web-ssrf",
+      "query": "prove server side request forgery callback evidence",
+      "allowed_path_prefixes": [
+        "/skills/standard/exploit/"
+      ],
+      "expected_paths": [
+        "/skills/standard/exploit/web/ssrf/SKILL.md"
+      ]
+    },
+    {
+      "id": "web-graphql",
+      "query": "test graphql authorization schema endpoint evidence",
+      "allowed_path_prefixes": [
+        "/skills/standard/exploit/"
+      ],
+      "expected_paths": [
+        "/skills/standard/exploit/web/graphql/SKILL.md"
+      ]
+    },
+    {
+      "id": "web-xss",
+      "query": "validate reflected cross site scripting browser execution evidence",
+      "allowed_path_prefixes": [
+        "/skills/standard/exploit/"
+      ],
+      "expected_paths": [
+        "/skills/standard/exploit/web/xss/SKILL.md"
+      ]
+    },
+    {
+      "id": "web-oauth-redirect",
+      "query": "exploit oauth redirect uri authorization code flow",
+      "allowed_path_prefixes": [
+        "/skills/standard/exploit/"
+      ],
+      "expected_paths": [
+        "/skills/standard/exploit/web/oauth/SKILL.md",
+        "/skills/standard/exploit/web/open-redirect/SKILL.md"
+      ]
+    },
+    {
+      "id": "ad-kerberoasting",
+      "query": "enumerate kerberos service accounts request tickets active directory",
+      "allowed_path_prefixes": [
+        "/skills/standard/ad/"
+      ],
+      "expected_paths": [
+        "/skills/standard/ad/kerberoasting/SKILL.md"
+      ]
+    },
+    {
+      "id": "ad-adcs-esc1",
+      "query": "analyze active directory certificate services ESC1 template",
+      "allowed_path_prefixes": [
+        "/skills/standard/ad/"
+      ],
+      "expected_paths": [
+        "/skills/standard/ad/adcs-esc1/SKILL.md"
+      ]
+    },
+    {
+      "id": "ics-modbus",
+      "query": "collect industrial modbus device register evidence",
+      "allowed_path_prefixes": [
+        "/skills/standard/exploit/"
+      ],
+      "expected_paths": [
+        "/skills/standard/exploit/ics-ot/modbus/SKILL.md"
+      ]
+    },
+    {
+      "id": "ko-web-idor",
+      "query": "다른 사용자 계정의 객체에 접근 가능한지 권한 검증 증거를 수집",
+      "allowed_path_prefixes": [
+        "/skills/standard/exploit/"
+      ],
+      "expected_paths": [
+        "/skills/standard/exploit/web/idor/SKILL.md"
+      ]
+    },
+    {
+      "id": "ko-ad-kerberoasting",
+      "query": "액티브 디렉터리 서비스 계정 티켓을 요청해서 오프라인 크래킹 가능성을 검증",
+      "allowed_path_prefixes": [
+        "/skills/standard/ad/"
+      ],
+      "expected_paths": [
+        "/skills/standard/ad/kerberoasting/SKILL.md"
+      ]
+    },
+    {
+      "id": "paraphrase-ssrf",
+      "query": "make the server fetch an attacker-observed destination and preserve callback proof",
+      "allowed_path_prefixes": [
+        "/skills/standard/exploit/"
+      ],
+      "expected_paths": [
+        "/skills/standard/exploit/web/ssrf/SKILL.md"
+      ]
+    },
+    {
+      "id": "abstain-business-spreadsheet",
+      "query": "format quarterly sales spreadsheet and calculate revenue",
+      "allowed_path_prefixes": [
+        "/skills/standard/recon/"
+      ],
+      "abstain": true
+    },
+    {
+      "id": "abstain-wedding-planning",
+      "query": "compose wedding guest seating arrangement venue catering",
+      "allowed_path_prefixes": [
+        "/skills/standard/exploit/"
+      ],
+      "abstain": true
+    },
+    {
+      "id": "abstain-financial-calculation",
+      "query": "calculate mortgage amortization schedule monthly interest",
+      "allowed_path_prefixes": [
+        "/skills/standard/ad/"
+      ],
+      "abstain": true
+    },
+    {
+      "id": "web-sqli",
+      "query": "verify SQL injection with controlled database query evidence",
+      "allowed_path_prefixes": [
+        "/skills/standard/exploit/"
+      ],
+      "expected_paths": [
+        "/skills/standard/exploit/web/sqli/SKILL.md"
+      ]
+    },
+    {
+      "id": "cloud-aws-iam-enum",
+      "query": "enumerate AWS IAM users roles policies and permissions",
+      "allowed_path_prefixes": [
+        "/skills/standard/cloud/"
+      ],
+      "expected_paths": [
+        "/skills/standard/cloud/aws-iam-enum/SKILL.md"
+      ]
+    }
+  ]
+}
