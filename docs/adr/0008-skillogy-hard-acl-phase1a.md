@@ -85,6 +85,10 @@ two backends are interchangeable from an authorization standpoint.
    `skill_sources` is supplied, the helper falls back to
    `skills_sources_for(role)` — the same default the legacy backend
    uses.
+   A role-bearing agent must resolve a nonempty, restricted prefix list.
+   Resolver errors and invalid or empty lists stop middleware construction;
+   they must never turn into unrestricted graph access. Only a caller with
+   no role and no explicit scope retains unrestricted library/CLI access.
 5. **`/skills/shared/` is the only intentional cross-role surface.**
    Cross-cutting expertise (OPSEC, adversary emulation, finding
    protocol, references) lives there. Phase 0 / 1a corpus authors

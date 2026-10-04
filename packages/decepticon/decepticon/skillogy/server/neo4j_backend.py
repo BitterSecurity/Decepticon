@@ -24,9 +24,21 @@ from __future__ import annotations
 import logging
 import os
 import re
-from typing import Any, LiteralString, cast
+from typing import TYPE_CHECKING, Any, LiteralString, cast
+
+if TYPE_CHECKING:
+    from neo4j import Query
 
 log = logging.getLogger(__name__)
+_RUNTIME_QUERY_TIMEOUT_SECONDS = 5.0
+
+
+def _runtime_query(cypher: str) -> Query:
+    """Limit server execution time for agent-facing read queries."""
+    from neo4j import Query  # noqa: PLC0415 — optional backend dependency
+
+    return Query(cast(LiteralString, cypher), timeout=_RUNTIME_QUERY_TIMEOUT_SECONDS)
+
 
 _SEARCH_FIELDS: tuple[tuple[str, int], ...] = (
     ("name", 10),
@@ -467,7 +479,7 @@ class Neo4jBackend:
             "LIMIT 1"
         )
         with self._driver.session(database=self._database, default_access_mode="READ") as session:
-            result = session.run(query, arg=path).single()
+            result = session.run(_runtime_query(query), arg=path).single()
         if result is None:
             return None
         props = dict(result["props"])
@@ -481,7 +493,7 @@ class Neo4jBackend:
         """Return service liveness + a count of :Skill nodes in the graph."""
         query = "MATCH (s:Skill) RETURN count(s) AS skill_count"
         with self._driver.session(database=self._database, default_access_mode="READ") as session:
-            result = session.run(query).single()
+            result = session.run(_runtime_query(query)).single()
         skill_count = 0 if result is None else int(result["skill_count"])
         return {"status": "ok", "skill_count": skill_count}
 
@@ -666,7 +678,7 @@ class Neo4jBackend:
             ) as session:
                 return [
                     dict(record)
-                    for record in session.run(cast(LiteralString, cypher), parameters=params)
+                    for record in session.run(_runtime_query(cypher), parameters=params)
                 ]
 
         post_filters = list(structured)
@@ -693,7 +705,7 @@ class Neo4jBackend:
             ) as session:
                 return [
                     dict(record)
-                    for record in session.run(cast(LiteralString, cypher), parameters=params)
+                    for record in session.run(_runtime_query(cypher), parameters=params)
                 ]
         except ClientError as exc:
             # Narrow on purpose: the only ClientError this call can raise that we
@@ -750,7 +762,9 @@ class Neo4jBackend:
             "LIMIT $cand_n"
         )
         with self._driver.session(database=self._database, default_access_mode="READ") as session:
-            return [dict(record) for record in session.run(cypher, parameters=params)]
+            return [
+                dict(record) for record in session.run(_runtime_query(cypher), parameters=params)
+            ]
 
     def _find_semantic(
         self,
@@ -787,7 +801,9 @@ class Neo4jBackend:
             "LIMIT $cand_n"
         )
         with self._driver.session(database=self._database, default_access_mode="READ") as session:
-            return [dict(record) for record in session.run(cypher, parameters=params)]
+            return [
+                dict(record) for record in session.run(_runtime_query(cypher), parameters=params)
+            ]
 
     @staticmethod
     def _rrf_fuse(
@@ -854,7 +870,7 @@ class Neo4jBackend:
             return [
                 dict(record)
                 for record in session.run(
-                    cypher,
+                    _runtime_query(cypher),
                     parameters={"phase": phase, "limit": int(min(max(limit, 1), 100))},
                 )
             ]
@@ -910,7 +926,7 @@ class Neo4jBackend:
         with self._driver.session(database=self._database, default_access_mode="READ") as session:
             rows: list[dict[str, Any]] = []
             for rec in session.run(
-                cypher,
+                _runtime_query(cypher),
                 parameters={"from_path": from_path, "cap": self._max_rows},
             ):
                 labels = list(rec["labels"])
@@ -949,5 +965,5 @@ class Neo4jBackend:
         """
         assert_read_only(query)
         with self._driver.session(database=self._database, default_access_mode="READ") as session:
-            result = session.run(query, params or {})
+            result = session.run(_runtime_query(query), params or {})
             return [dict(record) for record in result.fetch(self._max_rows)]
