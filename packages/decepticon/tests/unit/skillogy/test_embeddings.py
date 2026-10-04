@@ -2,12 +2,13 @@
 
 The helper underpins hybrid retrieval but must degrade silently: with no
 litellm proxy configured it returns ``None`` so ``find_skill`` falls back to
-the legacy substring path. These tests pin that contract plus the cache and
+full-text lexical search. These tests pin that contract plus the cache and
 batch behaviour, with the HTTP layer faked — no network, no real proxy.
 """
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 import httpx
@@ -29,6 +30,7 @@ def _isolated_env(tmp_path: Any, monkeypatch: pytest.MonkeyPatch) -> None:
 def _set_proxy(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("DECEPTICON_LLM__PROXY_URL", "http://litellm:4000/")
     monkeypatch.setenv("DECEPTICON_LLM__PROXY_API_KEY", "sk-test")
+    monkeypatch.setenv("DECEPTICON_SKILLOGY_EMBED_DIM", "1")
 
 
 # --- availability / config -------------------------------------------------
@@ -62,14 +64,14 @@ def test_embed_dim_defaults_and_overrides(monkeypatch: pytest.MonkeyPatch) -> No
 
 
 def _fake_response(
-    monkeypatch: pytest.MonkeyPatch, vectors_by_input: dict[str, list[float]]
+    monkeypatch: pytest.MonkeyPatch, vectors_by_input: dict[str, list[Any]]
 ) -> list[dict]:
     """Patch the HTTP call to echo deterministic vectors and record calls."""
     calls: list[dict] = []
 
     def fake_request(
         base_url: str, key: str, model: str, inputs: list[str], **kwargs: Any
-    ) -> list[list[float]]:
+    ) -> list[list[Any]]:
         calls.append(
             {"base_url": base_url, "key": key, "model": model, "inputs": list(inputs), **kwargs}
         )
@@ -81,6 +83,7 @@ def _fake_response(
 
 def test_embed_text_happy_path(monkeypatch: pytest.MonkeyPatch) -> None:
     _set_proxy(monkeypatch)
+    monkeypatch.setenv("DECEPTICON_SKILLOGY_EMBED_DIM", "3")
     calls = _fake_response(monkeypatch, {"hello": [0.1, 0.2, 0.3]})
     assert embeddings.embed_text("hello") == [0.1, 0.2, 0.3]
     assert calls[0]["base_url"] == "http://litellm:4000"  # trailing slash stripped
@@ -117,6 +120,42 @@ def test_cache_only_misses_hit_proxy(monkeypatch: pytest.MonkeyPatch) -> None:
     assert calls[0]["inputs"] == ["b"]  # only the miss is requested
 
 
+@pytest.mark.parametrize(
+    "cached",
+    [[0.0], [float("nan")], [float("inf")], [1.0, 2.0], [True], ["1.0"], {"value": [1.0]}],
+)
+def test_invalid_cache_is_refetched(monkeypatch: pytest.MonkeyPatch, cached: object) -> None:
+    _set_proxy(monkeypatch)
+    cache = embeddings._cache_dir()
+    cache.mkdir(parents=True)
+    path = cache / f"{embeddings._cache_key(embeddings.embed_model(), 'x')}.json"
+    path.write_text(json.dumps(cached), encoding="utf-8")
+    calls = _fake_response(monkeypatch, {"x": [9.0]})
+
+    assert embeddings.embed_text("x") == [9.0]
+    assert len(calls) == 1
+    assert json.loads(path.read_text(encoding="utf-8")) == [9.0]
+
+
+def test_invalid_cache_without_proxy_degrades(monkeypatch: pytest.MonkeyPatch) -> None:
+    cache = embeddings._cache_dir()
+    cache.mkdir(parents=True)
+    path = cache / f"{embeddings._cache_key(embeddings.embed_model(), 'x')}.json"
+    path.write_text("[NaN]", encoding="utf-8")
+    assert embeddings.embed_text("x") is None
+
+
+def test_cache_reembeds_after_dimension_change(monkeypatch: pytest.MonkeyPatch) -> None:
+    _set_proxy(monkeypatch)
+    _fake_response(monkeypatch, {"x": [1.0]})
+    assert embeddings.embed_text("x") == [1.0]
+
+    monkeypatch.setenv("DECEPTICON_SKILLOGY_EMBED_DIM", "2")
+    calls = _fake_response(monkeypatch, {"x": [1.0, 2.0]})
+    assert embeddings.embed_text("x") == [1.0, 2.0]
+    assert len(calls) == 1
+
+
 # --- degradation -----------------------------------------------------------
 
 
@@ -141,6 +180,20 @@ def test_count_mismatch_returns_none(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(embeddings, "_request_embeddings", short)
     assert embeddings.embed_batch(["one", "two"]) == [None, None]
+
+
+@pytest.mark.parametrize(
+    "invalid",
+    [[0.0], [float("nan")], [float("-inf")], [1.0, 2.0], [True], ["1.0"]],
+)
+def test_invalid_provider_vector_does_not_poison_cache(
+    monkeypatch: pytest.MonkeyPatch, invalid: list[object]
+) -> None:
+    _set_proxy(monkeypatch)
+    calls = _fake_response(monkeypatch, {"good": [1.0], "bad": invalid})
+    assert embeddings.embed_batch(["good", "bad"]) == [[1.0], None]
+    assert embeddings.embed_batch(["good", "bad"]) == [[1.0], None]
+    assert calls[1]["inputs"] == ["bad"]
 
 
 def test_no_proxy_batch_all_none(monkeypatch: pytest.MonkeyPatch) -> None:

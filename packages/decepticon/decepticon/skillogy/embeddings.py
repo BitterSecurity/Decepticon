@@ -17,6 +17,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import math
 import os
 import tempfile
 import time
@@ -113,10 +114,28 @@ def _cache_key(model: str, text: str) -> str:
     return hashlib.sha256(f"{model}\n{text}".encode()).hexdigest()
 
 
+def _valid_vector(value: object, dimension: int) -> list[float] | None:
+    """Accept only a finite, nonzero vector matching the configured index."""
+    if not isinstance(value, list) or len(value) != dimension:
+        return None
+    if any(
+        isinstance(component, bool) or not isinstance(component, (int, float))
+        for component in value
+    ):
+        return None
+    try:
+        vector = [float(component) for component in value]
+    except (OverflowError, ValueError):
+        return None
+    if not all(math.isfinite(component) for component in vector) or not any(vector):
+        return None
+    return vector
+
+
 def _cache_get(model: str, text: str) -> list[float] | None:
     path = _cache_dir() / f"{_cache_key(model, text)}.json"
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        return _valid_vector(json.loads(path.read_text(encoding="utf-8")), embed_dim())
     except (OSError, json.JSONDecodeError):
         return None
 
@@ -243,9 +262,14 @@ def embed_batch(
     if len(vectors) != len(misses):
         log.warning("skillogy embedding count mismatch (%d != %d)", len(vectors), len(misses))
         return results
+    dimension = embed_dim()
     for idx, vec in zip(misses, vectors, strict=True):
-        results[idx] = vec
-        _cache_put(model, texts[idx], vec)
+        valid = _valid_vector(vec, dimension)
+        if valid is None:
+            log.warning("skillogy embedding invalid for input %d; falling back", idx)
+            continue
+        results[idx] = valid
+        _cache_put(model, texts[idx], valid)
     return results
 
 
