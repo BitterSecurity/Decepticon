@@ -21,6 +21,42 @@
 
 model_list:
   # ── Anthropic ────────────────────────────────────────────────────────
+  # Current API models available for DECEPTICON_MODEL_<ROLE> overrides.
+  # Model IDs, tool support, and base rates verified against provider docs
+  # on 2026-10-04. Keep older defaults available for existing engagements.
+  - model_name: anthropic/claude-fable-5-1
+    litellm_params:
+      model: anthropic/claude-fable-5-1
+      api_key: os.environ/ANTHROPIC_API_KEY
+      additional_drop_params: ["temperature", "top_p", "top_k"]
+      max_tokens: 128000
+    model_info:
+      input_cost_per_token: 0.000010
+      output_cost_per_token: 0.000050
+      cache_read_input_token_cost: 0.00000025
+
+  - model_name: anthropic/claude-opus-5-5
+    litellm_params:
+      model: anthropic/claude-opus-5-5
+      api_key: os.environ/ANTHROPIC_API_KEY
+      additional_drop_params: ["temperature", "top_p", "top_k"]
+      max_tokens: 128000
+    model_info:
+      input_cost_per_token: 0.000004
+      output_cost_per_token: 0.000020
+      cache_read_input_token_cost: 0.0000002
+
+  - model_name: anthropic/claude-sonnet-5-5
+    litellm_params:
+      model: anthropic/claude-sonnet-5-5
+      api_key: os.environ/ANTHROPIC_API_KEY
+      additional_drop_params: ["temperature", "top_p", "top_k"]
+      max_tokens: 128000
+    model_info:
+      input_cost_per_token: 0.000002
+      output_cost_per_token: 0.000010
+      cache_read_input_token_cost: 0.0000002
+
   # ``additional_drop_params: ["temperature"]`` on opus is required: Anthropic
   # deprecated the temperature param for Claude Opus 4.7/4.8 (extended-thinking
   # defaults). Sending it raises a 400 invalid_request_error from the upstream
@@ -93,6 +129,52 @@ model_list:
       model: bedrock/anthropic.claude-haiku-4-5-20251001-v1:0
 
   # ── OpenAI ───────────────────────────────────────────────────────────
+  # GPT-6 tool calls use Responses API. LLMFactory selects that endpoint for
+  # these direct API routes; the proxy keeps mode=responses in model_info.
+  - model_name: openai/gpt-6-astra
+    litellm_params:
+      model: openai/gpt-6-astra
+      api_key: os.environ/OPENAI_API_KEY
+      additional_drop_params: ["temperature", "top_p", "top_logprobs", "logprobs"]
+    model_info:
+      mode: responses
+      input_cost_per_token: 0.000010
+      output_cost_per_token: 0.000050
+      cache_read_input_token_cost: 0.000001
+
+  - model_name: openai/gpt-6.1-sol
+    litellm_params:
+      model: openai/gpt-6.1-sol
+      api_key: os.environ/OPENAI_API_KEY
+      additional_drop_params: ["temperature", "top_p", "top_logprobs", "logprobs"]
+    model_info:
+      mode: responses
+      input_cost_per_token: 0.000002
+      output_cost_per_token: 0.000010
+      cache_read_input_token_cost: 0.0000001
+
+  - model_name: openai/gpt-6-sol
+    litellm_params:
+      model: openai/gpt-6-sol
+      api_key: os.environ/OPENAI_API_KEY
+      additional_drop_params: ["temperature", "top_p", "top_logprobs", "logprobs"]
+    model_info:
+      mode: responses
+      input_cost_per_token: 0.000002
+      output_cost_per_token: 0.000010
+      cache_read_input_token_cost: 0.0000002
+
+  - model_name: openai/gpt-6-luna
+    litellm_params:
+      model: openai/gpt-6-luna
+      api_key: os.environ/OPENAI_API_KEY
+      additional_drop_params: ["temperature", "top_p", "top_logprobs", "logprobs"]
+    model_info:
+      mode: responses
+      input_cost_per_token: 0.0000001
+      output_cost_per_token: 0.0000005
+      cache_read_input_token_cost: 0.00000001
+
   # Per-1M USD as of 2026-05-14 (OpenAI API):
   #   gpt-5.5         $5.00 / $30.00   (built-in map missing → set)
   #   gpt-5.4         $2.50 / $15.00
@@ -172,6 +254,16 @@ model_list:
       mode: embedding
 
   # ── Google ───────────────────────────────────────────────────────────
+  - model_name: gemini/gemini-3.8-flash
+    litellm_params:
+      model: gemini/gemini-3.8-flash
+      api_key: os.environ/GEMINI_API_KEY
+      additional_drop_params: ["temperature", "top_p", "top_k", "thinking_budget", "candidate_count"]
+    model_info:
+      input_cost_per_token: 0.00000075
+      output_cost_per_token: 0.00000375
+      cache_read_input_token_cost: 0.000000075
+
   # Per-1M USD as of 2026-05-14 (Gemini Developer API, ≤200K context):
   #   2.5-pro        $1.25 / $10.00
   #   2.5-flash      $0.30 /  $2.50
@@ -337,6 +429,15 @@ model_list:
       api_key: os.environ/DEEPSEEK_API_KEY
 
   # ── xAI (Grok) ──────────────────────────────────────────────────────
+  - model_name: xai/grok-4.7
+    litellm_params:
+      model: xai/grok-4.7
+      api_key: os.environ/XAI_API_KEY
+    model_info:
+      input_cost_per_token: 0.000002
+      output_cost_per_token: 0.000006
+      cache_read_input_token_cost: 0.0000005
+
   # grok-3 / grok-3-mini retired by xAI on 2026-05-15 (12pm PT). The 4.x
   # family below is the current production lineup; grok-4.3 is xAI's
   # general flagship and grok-4-1-fast-reasoning is the cost-efficient

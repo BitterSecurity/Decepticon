@@ -1,9 +1,13 @@
 """Unit tests for decepticon.llm.factory."""
 
 import asyncio
+import json
 import logging
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import pytest
+from langchain_core.messages import HumanMessage, ToolMessage
 
 from decepticon.llm.factory import (
     LLM_MAX_TOKENS_ENV,
@@ -209,6 +213,210 @@ class TestLLMFactory:
 
         assert model.streaming is True
         assert model.disable_streaming == "tool_calling"
+
+    def test_gpt6_agent_calls_use_responses_api(self) -> None:
+        for model_id in (
+            "openai/gpt-6-astra",
+            "openai/gpt-6.1-sol",
+            "openai/gpt-6-sol",
+            "openai/gpt-6-luna",
+        ):
+            model = self.factory._create_chat_model(model_id, 0.2)
+            assert model.use_responses_api is True
+            assert model.disabled_params == {"temperature": None}
+            assert model.max_tokens == 128000
+        previous = self.factory._create_chat_model("openai/gpt-5.5", 0.2)
+        assert previous.use_responses_api is None
+
+    def test_gemini_3_8_omits_deprecated_sampling_params(self) -> None:
+        model = self.factory._create_chat_model("gemini/gemini-3.8-flash", 0.2)
+        assert model.temperature is None
+        assert model.disabled_params == {
+            "temperature": None,
+            "top_p": None,
+            "top_k": None,
+        }
+
+    @pytest.mark.parametrize(
+        "model_id",
+        [
+            "anthropic/claude-fable-5-1",
+            "anthropic/claude-opus-5-5",
+            "anthropic/claude-sonnet-5-5",
+        ],
+    )
+    def test_claude_tool_turn_preserves_thinking_blocks(self, monkeypatch, model_id) -> None:
+        from decepticon.llm.factory import _ClaudeThinkingChatOpenAI
+
+        requests: list[dict] = []
+        blocks = [
+            {"type": "thinking", "thinking": "", "signature": "opaque-signature"},
+            {"type": "redacted_thinking", "data": "opaque-redacted-data"},
+        ]
+
+        class ProxyHandler(BaseHTTPRequestHandler):
+            def do_POST(self) -> None:
+                assert self.path == "/v1/chat/completions"
+                payload = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+                requests.append(payload)
+                if len(requests) == 1:
+                    message = {
+                        "role": "assistant",
+                        "content": None,
+                        "thinking_blocks": blocks,
+                        "tool_calls": [
+                            {
+                                "id": "call_1",
+                                "type": "function",
+                                "function": {"name": "ping", "arguments": "{}"},
+                            }
+                        ],
+                    }
+                    finish_reason = "tool_calls"
+                else:
+                    message = {"role": "assistant", "content": "done"}
+                    finish_reason = "stop"
+                response = json.dumps(
+                    {
+                        "id": "chatcmpl_test",
+                        "object": "chat.completion",
+                        "created": 1,
+                        "model": model_id,
+                        "choices": [
+                            {"index": 0, "message": message, "finish_reason": finish_reason}
+                        ],
+                    }
+                ).encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(response)))
+                self.end_headers()
+                self.wfile.write(response)
+
+            def log_message(self, format: str, *args: object) -> None:
+                pass
+
+        server = ThreadingHTTPServer(("127.0.0.1", 0), ProxyHandler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            factory = LLMFactory(
+                ProxyConfig(url=f"http://127.0.0.1:{server.server_port}/v1", api_key="test-key")
+            )
+            model = factory._create_chat_model(model_id, 0.2)
+            assert isinstance(model, _ClaudeThinkingChatOpenAI)
+            assert model.disable_streaming == "tool_calling"
+            assert model.disabled_params == {
+                "temperature": None,
+                "top_p": None,
+                "top_k": None,
+            }
+            bound = model.bind_tools(
+                [
+                    {
+                        "type": "function",
+                        "function": {
+                            "name": "ping",
+                            "description": "Test tool",
+                            "parameters": {"type": "object", "properties": {}},
+                        },
+                    }
+                ]
+            )
+            first = bound.invoke([HumanMessage(content="ping")])
+            second = bound.invoke(
+                [
+                    HumanMessage(content="ping"),
+                    first,
+                    ToolMessage(content="pong", tool_call_id="call_1"),
+                ]
+            )
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=2)
+
+        assert first.additional_kwargs["thinking_blocks"] == blocks
+        assert second.content == "done"
+        assert len(requests) == 2
+        assert requests[1]["messages"][1]["thinking_blocks"] == blocks
+        assert requests[1]["messages"][2]["tool_call_id"] == "call_1"
+        assert all("temperature" not in request for request in requests)
+
+    def test_gpt6_tool_call_posts_to_proxy_responses_endpoint(self, monkeypatch) -> None:
+        requests: list[tuple[str, dict]] = []
+
+        class ProxyHandler(BaseHTTPRequestHandler):
+            def do_POST(self) -> None:
+                payload = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+                requests.append((self.path, payload))
+                response = json.dumps(
+                    {
+                        "id": "resp_test",
+                        "object": "response",
+                        "created_at": 1,
+                        "status": "completed",
+                        "model": payload["model"],
+                        "output": [
+                            {
+                                "type": "function_call",
+                                "id": "fc_1",
+                                "call_id": "call_1",
+                                "name": "ping",
+                                "arguments": '{"value":"ok"}',
+                                "status": "completed",
+                            }
+                        ],
+                        "usage": {"input_tokens": 1, "output_tokens": 2, "total_tokens": 3},
+                    }
+                ).encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(response)))
+                self.end_headers()
+                self.wfile.write(response)
+
+            def log_message(self, format: str, *args: object) -> None:
+                pass
+
+        monkeypatch.setenv("DECEPTICON_LLM_DISABLE_STREAMING", "true")
+        server = ThreadingHTTPServer(("127.0.0.1", 0), ProxyHandler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            factory = LLMFactory(
+                ProxyConfig(url=f"http://127.0.0.1:{server.server_port}/v1", api_key="test-key")
+            )
+            model = factory._create_chat_model("openai/gpt-6.1-sol", 0.2)
+            reply = model.bind_tools(
+                [
+                    {
+                        "type": "function",
+                        "function": {
+                            "name": "ping",
+                            "description": "Test tool",
+                            "parameters": {
+                                "type": "object",
+                                "properties": {"value": {"type": "string"}},
+                            },
+                        },
+                    }
+                ]
+            ).invoke([HumanMessage(content="ping")])
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=2)
+
+        assert len(requests) == 1
+        path, payload = requests[0]
+        assert path == "/v1/responses"
+        assert payload["model"] == "openai/gpt-6.1-sol"
+        assert payload["tools"][0]["name"] == "ping"
+        assert "temperature" not in payload
+        assert reply.tool_calls == [
+            {"name": "ping", "args": {"value": "ok"}, "id": "call_1", "type": "tool_call"}
+        ]
 
     def test_factory_initializes(self):
         assert self.factory.proxy_url == "http://localhost:4000"
@@ -704,6 +912,11 @@ class TestTemperatureDrop:
 
     def test_openai_keeps_temperature(self):
         assert self._drops("openai/gpt-5.5") is False
+
+    def test_current_claude_models_drop_temperature(self):
+        assert self._drops("anthropic/claude-fable-5-1") is True
+        assert self._drops("anthropic/claude-opus-5-5") is True
+        assert self._drops("anthropic/claude-sonnet-5-5") is True
 
     def test_ollama_keeps_temperature(self):
         assert self._drops("ollama_chat/qwen3-coder:30b") is False

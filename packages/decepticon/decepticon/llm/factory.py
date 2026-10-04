@@ -62,8 +62,8 @@ log = get_logger("llm.factory")
 # each model its OWN max-output ceiling so a big deliverable completes in one
 # call. It is a ceiling, not a forced value — short replies cost nothing extra.
 # Values above 64k require the streaming API path (the SDK already streams).
-# Authoritative caps (see ``_model_max_output_tokens``): Claude Opus 4.x and
-# Sonnet (4.6/5) = 128000; Claude Haiku 4.5 = 64000. Unknown models fall back
+# Authoritative caps (see ``_model_max_output_tokens``): Claude Fable 5,
+# Opus 4/5, Sonnet 4/5, and GPT-6 = 128000; Claude Haiku 4.5 = 64000. Unknown models fall back
 # to the safe 64k default. Override with ``DECEPTICON_LLM_MAX_TOKENS`` (an
 # explicit value wins over the per-model resolution).
 DEFAULT_LLM_MAX_TOKENS = 64000
@@ -91,12 +91,17 @@ def _model_max_output_tokens(model: str) -> int:
     Match on the model slug suffix (last path segment) so every namespace we
     route through resolves the same — ``anthropic/claude-opus-4-8``,
     ``auth/claude-opus-4-8``, ``openrouter/anthropic/claude-sonnet-4-6``.
-    Opus 4.x and Sonnet (4.6/5) support 128000 output tokens; Haiku 4.5
+    Fable 5, Opus 4/5, Sonnet 4/5, and GPT-6 support 128000 output tokens; Haiku 4.5
     supports 64000. Unknown / non-Claude models fall back to the safe 64k
     default rather than an over-large value the upstream might reject.
     """
     slug = model.rsplit("/", 1)[-1].lower()
-    if "opus" in slug or "sonnet" in slug:
+    if (
+        "opus" in slug
+        or "sonnet" in slug
+        or slug.startswith("claude-fable-5")
+        or _model_uses_responses_api(model)
+    ):
         return 128000
     if "haiku" in slug:
         return 64000
@@ -942,6 +947,41 @@ class _ProxiedChatOpenAI(ChatOpenAI):
         return result
 
 
+class _ClaudeThinkingChatOpenAI(_ProxiedChatOpenAI):
+    """Keep Claude's opaque thinking blocks intact across tool turns.
+
+    LiteLLM exposes them as ``thinking_blocks`` on an OpenAI-compatible
+    assistant message. LangChain's ChatOpenAI converter omits that extension
+    in both directions. Buffer tool-bound completions so their blocks arrive
+    together with signatures; ordinary text-only requests can still stream.
+    """
+
+    def _create_chat_result(self, response: Any, generation_info: dict | None = None) -> Any:
+        response_dict = response if isinstance(response, dict) else response.model_dump()
+        result = super()._create_chat_result(response, generation_info)
+        for choice, generation in zip(response_dict.get("choices") or [], result.generations):
+            message = generation.message
+            blocks = (choice.get("message") or {}).get("thinking_blocks")
+            if isinstance(message, AIMessage) and blocks is not None:
+                message.additional_kwargs["thinking_blocks"] = blocks
+        return result
+
+    def _get_request_payload(
+        self, input_: Any, *, stop: list[str] | None = None, **kwargs: Any
+    ) -> dict:
+        payload = super()._get_request_payload(input_, stop=stop, **kwargs)
+        if payload.get("tools"):
+            # ``streaming=True`` also sets the OpenAI payload flag even when
+            # LangChain's tool_calling stream guard chooses _generate().
+            payload["stream"] = False
+            payload.pop("stream_options", None)
+        source_messages = self._convert_input(input_).to_messages()
+        for source, outbound in zip(source_messages, payload.get("messages", [])):
+            if isinstance(source, AIMessage) and "thinking_blocks" in source.additional_kwargs:
+                outbound["thinking_blocks"] = source.additional_kwargs["thinking_blocks"]
+        return payload
+
+
 def _log_served_model(requested: str, result: object) -> None:
     """Best-effort attribution log: which provider/model the LiteLLM proxy
     actually routed to. When fallback fires (primary -> fallback) the
@@ -969,9 +1009,8 @@ def _log_served_model(requested: str, result: object) -> None:
 def _model_drops_temperature(model: str) -> bool:
     """Return True if the LiteLLM model id rejects the ``temperature`` param.
 
-    Anthropic deprecated ``temperature`` for Claude Opus 4.7 — the request
-    gets a 400 from the upstream API regardless of the proxy path. Match
-    on the Opus 4.x family across every namespace we route through:
+    Current Claude Fable/Opus/Sonnet 5.5, Gemini 3.8 Flash, and GPT-6 models
+    reject sampling parameters. Match model families across every namespace:
 
       anthropic/claude-opus-4-7
       auth/claude-opus-4-7
@@ -982,7 +1021,22 @@ def _model_drops_temperature(model: str) -> bool:
     Opus 4.x build added to METHOD_MODELS.
     """
     slug = model.rsplit("/", 1)[-1].lower()
-    return slug.startswith("claude-opus-4") or _model_is_kimi_coding(model)
+    return (
+        slug.startswith(("claude-opus-4", "claude-opus-5", "claude-sonnet-5-5", "claude-fable-5"))
+        or _model_is_kimi_coding(model)
+        or model.endswith("/gemini-3.8-flash")
+        or _model_uses_responses_api(model)
+    )
+
+
+def _model_uses_responses_api(model: str) -> bool:
+    """GPT-6 agent tool calls require the Responses API, not Chat Completions."""
+    return model.startswith("openai/gpt-6-") or model.startswith("openai/gpt-6.1-")
+
+
+def _model_is_claude_adaptive(model: str) -> bool:
+    slug = model.rsplit("/", 1)[-1].lower()
+    return slug.startswith(("claude-fable-5", "claude-opus-5", "claude-sonnet-5-5"))
 
 
 def _model_is_kimi_coding(model: str) -> bool:
@@ -1758,8 +1812,12 @@ class LLMFactory:
             kwargs["disable_streaming"] = "tool_calling"
         if extra_headers is not None:
             kwargs["default_headers"] = extra_headers
+        if _model_uses_responses_api(model):
+            kwargs["use_responses_api"] = True
         if _model_drops_temperature(model):
             kwargs["disabled_params"] = {"temperature": None}
+            if model.endswith("/gemini-3.8-flash") or _model_is_claude_adaptive(model):
+                kwargs["disabled_params"].update({"top_p": None, "top_k": None})
         elif _model_is_deepseek_thinking(model):
             # DeepSeek V4 Pro thinking mode rejects temperature.
             kwargs["disabled_params"] = {"temperature": None}
@@ -1767,6 +1825,9 @@ class LLMFactory:
             kwargs["temperature"] = temperature
         if _model_is_deepseek_thinking(model):
             return _DeepSeekThinkingChatOpenAI(**kwargs)
+        if _model_is_claude_adaptive(model):
+            kwargs["disable_streaming"] = "tool_calling"
+            return _ClaudeThinkingChatOpenAI(**kwargs)
         if _model_is_nvidia_nim(model):
             return _NvidiaNIMChatOpenAI(**kwargs)
         return _ProxiedChatOpenAI(**kwargs)

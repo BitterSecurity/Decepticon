@@ -43,6 +43,24 @@ For each agent, Decepticon resolves a tier (from the profile) and walks your Aut
 
 The matrix above lists the primary tier-mapped providers. Decepticon resolves the same tier × AuthMethod chain for additional providers not shown above: managed cloud platforms (AWS Bedrock, GCP Vertex AI, Azure OpenAI), further direct APIs (Groq, Together, Fireworks, Cohere, Moonshot, Z.ai, DashScope, Cerebras, Xiaomi MiMo, Baidu Qianfan), multi-vendor gateways (GitHub Models, Hugging Face, OpenCode, Vercel AI Gateway, Cloudflare AI Gateway, Venice, NanoGPT, Synthetic, ZenMux), and local / self-hosted OpenAI-compatible servers (vLLM, Ollama Cloud, LM Studio, llama.cpp, and custom endpoints). `AuthMethod` and `METHOD_MODELS` in `packages/decepticon-core/decepticon_core/types/llm.py` are the authoritative source for the full provider list and each provider's tier→model mapping.
 
+### Current direct API models (2026-10-04)
+
+With the matching provider API key, these model IDs are available as explicit
+`DECEPTICON_MODEL_<ROLE>` overrides:
+
+| Provider | Model IDs |
+|----------|-----------|
+| OpenAI | `openai/gpt-6-astra`, `openai/gpt-6.1-sol`, `openai/gpt-6-sol`, `openai/gpt-6-luna` |
+| Anthropic | `anthropic/claude-fable-5-1`, `anthropic/claude-opus-5-5`, `anthropic/claude-sonnet-5-5` |
+| Google | `gemini/gemini-3.8-flash` |
+| xAI | `xai/grok-4.7` |
+
+For example, set `DECEPTICON_MODEL_DECEPTICON=openai/gpt-6.1-sol` and supply
+`OPENAI_API_KEY`. The GPT-6 routes use the Responses API for agent tool calls.
+These direct API IDs do not imply availability on ChatGPT, Claude Code, Gemini,
+or Grok subscriptions. Existing tier defaults remain in place until their
+cost and reliability are evaluated on Decepticon workloads.
+
 ---
 
 ## Profiles
