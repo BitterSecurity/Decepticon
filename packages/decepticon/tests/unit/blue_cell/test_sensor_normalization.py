@@ -65,6 +65,21 @@ def test_structured_target_log_keeps_raw_and_correlation(receiver) -> None:
     assert event["attributes"]["status"] == 503
 
 
+@pytest.mark.parametrize(
+    "timestamp", [1791084600, 1791084600000, 1791084600000000, 1791084600000000000]
+)
+def test_structured_target_log_accepts_epoch_precision(receiver, timestamp: int) -> None:
+    event = receiver.normalize(
+        {
+            "sensor_file": "/target-logs/app.jsonl",
+            "sensor_offset": 150,
+            "sensor_read_at": "2026-10-04T03:30:01Z",
+            "log": json.dumps({"ts": timestamp, "message": "observed"}),
+        }
+    )
+    assert event["occurred_at"] == "2026-10-04T03:30:00+00:00"
+
+
 def test_proxy_log_prefix_can_follow_a_local_collector_path(receiver, monkeypatch) -> None:
     monkeypatch.setattr(receiver, "PROXY_LOG_PREFIX", "/tmp/blue-logs/access")
     event = receiver.normalize(
@@ -127,8 +142,7 @@ def test_owned_process_stdout_and_stderr_become_target_evidence(receiver, tmp_pa
             sys.executable,
             "-u",
             "-c",
-            'import json, sys; print(json.dumps({"request_id": "req-live", "message": "served"})); '
-            "print('backend warning', file=sys.stderr)",
+            'import json, sys; print(json.dumps({"request_id": "req-live", "message": "served"})); print("backend warning", file=sys.stderr)',
         ],
         check=True,
         timeout=10,

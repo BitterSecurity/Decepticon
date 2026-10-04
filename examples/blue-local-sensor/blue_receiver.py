@@ -69,7 +69,15 @@ def log_timestamp(record: dict[str, object]) -> str | None:
         value = record.get(key)
         try:
             if isinstance(value, (int, float)) and not isinstance(value, bool):
-                seconds = value / 1000 if value > 10**11 else value
+                magnitude = abs(value)
+                if magnitude > 10**17:
+                    seconds = value / 10**9
+                elif magnitude > 10**14:
+                    seconds = value / 10**6
+                elif magnitude > 10**11:
+                    seconds = value / 10**3
+                else:
+                    seconds = value
                 return datetime.fromtimestamp(seconds, timezone.utc).isoformat()
             if isinstance(value, str):
                 parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))

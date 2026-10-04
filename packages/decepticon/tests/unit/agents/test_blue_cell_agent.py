@@ -64,7 +64,7 @@ def test_default_agent_does_not_load_additive_plugin_tools(
         build, "load_plugin_tools", lambda **_kwargs: [type("Tool", (), {"name": "bash"})()]
     )
     monkeypatch.setattr(agent_mod, "create_agent", fake_create_agent)
-    monkeypatch.setattr(agent_mod, "build_sandbox_backend", lambda: object())
+    monkeypatch.setattr(agent_mod, "build_sandbox_backend", object)
     agent_mod.create_blue_cell_agent(
         llm=object(), fallback_models=[], backend=object(), middleware=[], system_prompt="test"
     )

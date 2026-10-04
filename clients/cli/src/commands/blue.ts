@@ -246,7 +246,7 @@ const blue: Command = {
       if (action === "status") {
         const output = await runCompose(["ps"], process.env);
         let watch = "";
-        let coverage = "\nCoverage: unavailable";
+        let coverage: string;
         try {
           const metrics = await queryMonitor<{ watch_enabled: boolean; watch_backlog: number; watch_failures_total: number; watch_retrying_windows: number }>("/metrics");
           watch = `\nAI watch: ${metrics.watch_enabled ? "running" : "disabled"}; backlog=${metrics.watch_backlog}; retrying=${metrics.watch_retrying_windows}; failed_windows=${metrics.watch_failures_total}`;
