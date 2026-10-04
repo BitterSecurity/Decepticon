@@ -23,7 +23,7 @@ The RoE is the **legally binding** foundation of every red team engagement. All 
 
 ### Step 1: Interview the User
 
-Drive each dimension through one `ask_user_question` call (per CRITICAL_RULES #8 — every operator-facing question goes through the tool). **Budget: 6 questions max for RoE** (soundwave.md CRITICAL_RULES → Question Budget). Combine related fields into a single free-form answer instead of asking one field at a time — the picker returns raw text either way, so the agent parses multiple values out of one answer.
+Use `ask_user_question` for every operator-facing question. Ask one focused question at a time, skip confirmed intake facts, and follow up when an answer leaves a material RoE boundary ambiguous. Do not compress independent decisions into one answer to meet a question count.
 
 **Identity & Scope**
 1. Engagement name + client organization (ONE combined free-form question, `allow_other=true` with a sensible guessed pair as the option)
@@ -32,10 +32,10 @@ Drive each dimension through one `ask_user_question` call (per CRITICAL_RULES #8
 4. In-scope targets AND out-of-scope targets (ONE combined free-form question — "What's in scope, and what's explicitly excluded?", `allow_other=true`)
 
 **Boundaries & Escalation**
-5. Special permitted actions — phishing, password spraying, raw-socket scans (multi-select). Additional prohibited actions beyond the schema defaults are NOT a separate question — default silently to the Generation Rules #1 deny-list and only add a custom prohibition if the operator volunteers one unprompted; the summary in Phase 3 surfaces it for correction.
-6. Escalation contacts (ONE combined free-form question asking for both slots at once — "Who are your primary contacts? (client lead + red team lead, with name/role/channel for each)", minimum 2) AND authorization reference / contract # folded into the same answer as a trailing field (`allow_other=true`)
+5. Special permitted and prohibited actions — phishing, password spraying, raw-socket scans, and any custom exclusions. Confirm material restrictions with the operator.
+6. Escalation contacts and authorization reference when the product has not already supplied them.
 
-If the operator's opening message already answers a dimension (e.g. they paste a CIDR range and say "external pentest"), extract it directly — do not re-ask it as one of the 6.
+If the operator's opening message already answers a dimension (e.g. they paste a CIDR range and say "external pentest"), extract it directly instead of re-asking.
 
 ### Step 2: Generate plan/roe.json
 

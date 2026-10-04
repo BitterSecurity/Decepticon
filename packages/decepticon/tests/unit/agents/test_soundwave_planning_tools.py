@@ -1,0 +1,38 @@
+from types import SimpleNamespace
+
+import pytest
+
+from decepticon.agents.standard.soundwave import _assert_planning_tools
+from decepticon.middleware.filesystem import FilesystemMiddleware
+
+
+def planning_filesystem() -> FilesystemMiddleware:
+    return FilesystemMiddleware(backend=SimpleNamespace(), plan_only=True)
+
+
+def test_interview_accepts_only_planning_and_filesystem_tools() -> None:
+    _assert_planning_tools(
+        [SimpleNamespace(name="ask_user_question"), SimpleNamespace(name="complete_engagement_planning")],
+        [planning_filesystem()],
+    )
+
+
+@pytest.mark.parametrize("name", ["bash", "execute", "browser_action", "task"])
+def test_interview_rejects_execution_tools(name: str) -> None:
+    with pytest.raises(ValueError, match="Interview mode"):
+        _assert_planning_tools([SimpleNamespace(name=name)], [planning_filesystem()])
+
+
+def test_interview_rejects_unscoped_filesystem_tool() -> None:
+    with pytest.raises(ValueError, match="plan-scoped middleware"):
+        _assert_planning_tools([SimpleNamespace(name="read_file")], [planning_filesystem()])
+
+
+def test_interview_rejects_unscoped_filesystem_middleware() -> None:
+    with pytest.raises(ValueError, match="plan-scoped filesystem"):
+        _assert_planning_tools([], [FilesystemMiddleware(backend=SimpleNamespace())])
+
+
+def test_interview_rejects_extra_unscoped_filesystem_middleware() -> None:
+    with pytest.raises(ValueError, match="plan-scoped middleware"):
+        _assert_planning_tools([], [planning_filesystem(), FilesystemMiddleware(backend=SimpleNamespace())])

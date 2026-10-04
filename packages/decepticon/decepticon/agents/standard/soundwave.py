@@ -51,6 +51,7 @@ from decepticon.agents.build import build_middleware, build_tools
 from decepticon.agents.prompts import load_prompt
 from decepticon.backends import build_sandbox_backend, make_agent_backend
 from decepticon.llm import LLMFactory
+from decepticon.middleware.filesystem import FilesystemMiddleware
 from decepticon.tools.interaction import ask_user_question, complete_engagement_planning
 from decepticon_core.plugin_loader import is_bundle_enabled, load_plugin_callbacks
 
@@ -64,6 +65,36 @@ _STANDARD_TOOLS: dict[str, Any] = {
 
 _ROLE = "soundwave"
 _RECURSION_LIMIT = 200
+_ALLOWED_TOOL_NAMES = frozenset({
+    "ask_user_question",
+    "complete_engagement_planning",
+    "load_skill",
+    "find_skill",
+    "traverse",
+    "ls",
+    "read_file",
+    "write_file",
+    "edit_file",
+    "glob",
+    "grep",
+})
+_FILESYSTEM_TOOL_NAMES = frozenset({"ls", "read_file", "write_file", "edit_file", "glob", "grep"})
+
+
+def _assert_planning_tools(tools: list[Any], middleware: list[Any]) -> None:
+    if not any(isinstance(layer, FilesystemMiddleware) and layer._plan_only for layer in middleware):
+        raise ValueError("Soundwave requires a plan-scoped filesystem in Interview mode")
+    for tool in [*tools, *(item for layer in middleware for item in getattr(layer, "tools", []))]:
+        name = getattr(tool, "name", getattr(tool, "__name__", ""))
+        if name not in _ALLOWED_TOOL_NAMES:
+            raise ValueError(f"Soundwave cannot use {name or 'an unnamed tool'} in Interview mode")
+    for tool in tools:
+        if getattr(tool, "name", getattr(tool, "__name__", "")) in _FILESYSTEM_TOOL_NAMES:
+            raise ValueError("Soundwave filesystem tools must use the plan-scoped middleware")
+    for layer in middleware:
+        if any(getattr(tool, "name", "") in _FILESYSTEM_TOOL_NAMES for tool in getattr(layer, "tools", [])):
+            if not isinstance(layer, FilesystemMiddleware) or not layer._plan_only:
+                raise ValueError("Soundwave filesystem tools must use the plan-scoped middleware")
 
 
 def create_soundwave_agent(
@@ -125,6 +156,8 @@ def create_soundwave_agent(
         )
     if system_prompt is None:
         system_prompt = load_prompt(_ROLE)
+
+    _assert_planning_tools(tools, middleware)
 
     return create_agent(
         llm,

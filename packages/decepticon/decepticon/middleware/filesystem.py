@@ -29,6 +29,7 @@ NO_WORKSPACE_ERROR = (
     "No engagement workspace is set. Filesystem tools are scoped to the active "
     "engagement and cannot access the shared /workspace root."
 )
+PLAN_ONLY_ERROR = "Interview filesystem access is limited to /workspace/plan."
 
 
 def _normalize_engagement_workspace(workspace_path: str | None) -> str | None:
@@ -62,9 +63,10 @@ def _normalize_engagement_workspace(workspace_path: str | None) -> str | None:
 class EngagementFilesystemBackend(BackendProtocol):
     """Map virtual /workspace paths to /workspace/<engagement> internally."""
 
-    def __init__(self, backend: BackendProtocol, workspace_path: str | None) -> None:
+    def __init__(self, backend: BackendProtocol, workspace_path: str | None, *, plan_only: bool = False) -> None:
         self._backend = backend
         self._root = _normalize_engagement_workspace(workspace_path)
+        self._plan_only = plan_only
         # Engagement subdir under WORKSPACE is otherwise materialized lazily by
         # the first ``write`` — but the very first agent step is typically a
         # filesystem inspection (``ls`` / ``glob``), which the backend surfaces
@@ -79,6 +81,8 @@ class EngagementFilesystemBackend(BackendProtocol):
         if self._root_ensured or self._root is None:
             return
         self._root_ensured = True
+        if self._plan_only:
+            return
         try:
             self._backend.write(f"{self._root}/.engagement", "")
         except Exception:
@@ -92,7 +96,7 @@ class EngagementFilesystemBackend(BackendProtocol):
             raise ValueError(NO_WORKSPACE_ERROR)
         virtual = validate_path(path or WORKSPACE)
         if virtual in {"/", WORKSPACE}:
-            return self._root
+            return f"{self._root}/plan" if self._plan_only else self._root
         # Idempotent: if the path already points inside ``self._root`` it is
         # already a real engagement path — return as-is. Without this guard
         # the path gets re-prefixed and the engagement slug doubles, e.g.
@@ -101,9 +105,13 @@ class EngagementFilesystemBackend(BackendProtocol):
         # Caller-side prompts no longer need to teach agents about virtual vs
         # real paths — the backend accepts both.
         if virtual == self._root or virtual.startswith(f"{self._root}/"):
-            return virtual
-        rel = virtual.removeprefix(f"{WORKSPACE}/").lstrip("/")
-        return f"{self._root}/{rel}" if rel else self._root
+            real = virtual
+        else:
+            rel = virtual.removeprefix(f"{WORKSPACE}/").lstrip("/")
+            real = f"{self._root}/{rel}" if rel else self._root
+        if self._plan_only and real != f"{self._root}/plan" and not real.startswith(f"{self._root}/plan/"):
+            raise ValueError(PLAN_ONLY_ERROR)
+        return real
 
     def _virtual(self, path: str) -> str | None:
         if self._root is None:
@@ -121,10 +129,21 @@ class EngagementFilesystemBackend(BackendProtocol):
         if self._root is None:
             raise ValueError(NO_WORKSPACE_ERROR)
         if not pattern.startswith("/"):
-            return pattern
+            if self._plan_only and any(part in {".", ".."} for part in pattern.split("/")):
+                raise ValueError(PLAN_ONLY_ERROR)
+            return pattern.removeprefix("plan/") if self._plan_only else pattern
         virtual = validate_path(pattern)
         if virtual in {"/", WORKSPACE}:
             return "**/*"
+        if self._plan_only:
+            for prefix in (f"{WORKSPACE}/plan", f"{self._root}/plan"):
+                if virtual == prefix:
+                    return "**/*"
+                if virtual.startswith(f"{prefix}/"):
+                    return virtual[len(prefix) + 1 :]
+            if virtual.startswith(f"{WORKSPACE}/**"):
+                return virtual.removeprefix(f"{WORKSPACE}/")
+            raise ValueError(PLAN_ONLY_ERROR)
         return virtual.removeprefix(f"{WORKSPACE}/").lstrip("/")
 
     def _info(self, info: FileInfo) -> FileInfo | None:
@@ -217,9 +236,10 @@ class EngagementFilesystemBackend(BackendProtocol):
         self._ensure_root()
         try:
             real_path = self._real(path)
+            safe_glob = self._glob(glob) if self._plan_only and glob is not None else glob
         except ValueError as e:
             return GrepResult(error=str(e))
-        result = self._backend.grep(pattern, path=real_path, glob=glob)
+        result = self._backend.grep(pattern, path=real_path, glob=safe_glob)
         if result.error:
             return GrepResult(error=self._mask(result.error, real_path))
         return GrepResult(
@@ -336,8 +356,9 @@ def _rebind_sandbox_per_run(backend: BackendProtocol, runtime: Any = None) -> Ba
 class FilesystemMiddleware(BaseFilesystemMiddleware):
     """FilesystemMiddleware with Decepticon's bash tool as the only executor."""
 
-    def __init__(self, **kwargs: object) -> None:
+    def __init__(self, *, plan_only: bool = False, **kwargs: object) -> None:
         super().__init__(**kwargs)  # type: ignore[arg-type]
+        self._plan_only = plan_only
         self.tools = filesystem_tools_without_execute(self.tools)
 
     def _get_backend(self, runtime) -> BackendProtocol:
@@ -348,4 +369,5 @@ class FilesystemMiddleware(BaseFilesystemMiddleware):
         return EngagementFilesystemBackend(
             _rebind_sandbox_per_run(super()._get_backend(runtime), runtime),
             _workspace_from_runtime(runtime),
+            plan_only=self._plan_only,
         )

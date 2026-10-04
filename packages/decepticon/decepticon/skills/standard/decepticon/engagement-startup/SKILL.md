@@ -35,15 +35,14 @@ Do not probe the filesystem before this call.
 
 ## Step 2: Inspect Planning State
 
-Read the active workspace's planning documents:
+Read the active workspace's RoE first:
 
 ```
 read_file("<active workspace root>/plan/roe.json")
-read_file("<active workspace root>/plan/conops.json")
-read_file("<active workspace root>/plan/deconfliction.json")
 ```
 
-If any document is missing, delegate to Soundwave:
+If the RoE is missing, stop target-facing work. Delegate to Soundwave to
+recover the authorization boundary:
 
 ```
 task(
@@ -54,6 +53,17 @@ task(
 
 If the hosted dynamic `task` schema is active, also provide its required `context`
 and `model` fields, selecting an allowed model from the assignment manifest.
+
+If `authorization.source` is `direct_operator_attestation`, the operator chose
+Red mode and confirmed the stored target scope directly. Treat this RoE as the
+authorization boundary. CONOPS and Deconfliction are optional in this path;
+do not delegate to Soundwave because they are absent. Build the OPPLAN from
+the confirmed targets and the operator's instruction. Never expand scope beyond
+`machine_enforcement` rules.
+
+Otherwise read `plan/conops.json` and `plan/deconfliction.json`. If either is
+missing, delegate to Soundwave to recover the signed planning documents before
+target-facing work.
 
 The launcher already selected the engagement. Do not enumerate the shared
 `/workspace` root, invent another workspace directory, or ask the operator to
@@ -70,9 +80,10 @@ When `load_opplan` loaded objectives:
 
 ## Step 3B: Build a New OPPLAN
 
-When no OPPLAN exists but the planning documents are present:
+When no OPPLAN exists and the applicable authorization documents are present:
 
-1. Read CONOPS goals and kill-chain dependencies.
+1. For a signed plan, read CONOPS goals and dependencies. For direct Red mode,
+   derive bounded objectives from the confirmed targets and operator instruction.
 2. Create one bounded objective per sub-agent context window. Submit the whole
    dependency DAG with `commit_opplan(objectives=[...], facts=[...],
    expected_revision=0)`. A missing plan starts at revision 0. Declare future
@@ -80,7 +91,7 @@ When no OPPLAN exists but the planning documents are present:
    all-of predecessors, `any_of` for alternatives, and `required_fact_ids` for
    evidence gates. Do not impose phase order unless the actual dependencies
    require it.
-3. Present the complete OPPLAN. If the engagement approval policy requires a plan decision, ask before dispatch; otherwise an activated run may proceed within signed scope.
+3. Present the complete OPPLAN. If the engagement approval policy requires a plan decision, ask before dispatch; otherwise an activated run may proceed within the approved RoE.
 4. Enter the execution loop after the applicable authorization. OPPLAN mutations persist
    automatically; there is no separate save tool.
 

@@ -66,7 +66,7 @@ def validate_planning_bundle(
     return None
 
 
-def _runtime_context() -> tuple[str, str, bool | None]:
+def _runtime_context() -> tuple[str, str, bool | None, bool]:
     try:
         configurable = get_config().get("configurable", {})
     except RuntimeError:
@@ -76,10 +76,12 @@ def _runtime_context() -> tuple[str, str, bool | None]:
     workspace = configurable.get("workspace_path")
     target = configurable.get("target_value")
     confirmed = configurable.get("authorization_confirmed")
+    planning_draft = configurable.get("planning_draft") is True
     return (
         workspace if isinstance(workspace, str) and workspace else "/workspace",
         target if isinstance(target, str) else "",
         confirmed if isinstance(confirmed, bool) else None,
+        planning_draft,
     )
 
 
@@ -100,7 +102,7 @@ def complete_engagement_planning(
     the bundle shares an engagement name, the RoE records authorization, and
     any launcher-declared target appears exactly in RoE scope.
     """
-    workspace, target_value, authorization_confirmed = _runtime_context()
+    workspace, target_value, authorization_confirmed, planning_draft = _runtime_context()
     failure = validate_planning_bundle(
         workspace,
         target_value=target_value,
@@ -117,7 +119,6 @@ def complete_engagement_planning(
                 "id": tool_call_id,
             }
         )
-    return (
-        "Planning complete. The operator's next message will be routed to the "
-        "Decepticon operations agent."
-    )
+    if planning_draft:
+        return "Next-run planning draft saved. The current Red authorization is unchanged."
+    return "Planning complete. Review and approve the documents, then select Red to launch."

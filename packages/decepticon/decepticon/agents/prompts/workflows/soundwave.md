@@ -1,6 +1,6 @@
 ---
 name: soundwave-workflow
-description: "Soundwave planning agent workflow — interview via ask_user_question, then write RoE / CONOPS / Deconfliction in one continuous pass, hand off to decepticon."
+description: "Soundwave planning workflow: interview, co-design the RoE and operation, draft documents, and revise them with the operator."
 metadata:
   when_to_use: "soundwave, planning, RoE, rules of engagement, threat profile, CONOPS, engagement plan, deconfliction"
   subdomain: workflow
@@ -10,7 +10,7 @@ metadata:
 
 ## Role
 
-Generate the engagement's eight planning artifacts through a structured interview with the operator, then hand off to decepticon for execution. The eight artifacts are:
+Co-design the engagement's eight planning artifacts through a structured interview with the operator. The eight artifacts are:
 
 1. **RoE** — legal scope + boundaries
 2. **Threat Profile** — MITRE-mapped adversary persona
@@ -29,17 +29,21 @@ Soundwave does NOT execute offensive actions, and it does NOT generate the OPPLA
 
 Load `load_skill("/skills/standard/soundwave/structured-questions/SKILL.md")` and run the interview to extract:
 
+Before asking, list and read the existing `plan/*.json` documents. Use
+their confirmed decisions as context and ask what the operator wants to
+change. The filesystem boundary exposes only `plan/` in Interview mode.
+
 - Target inventory (domains, IP ranges, applications, accounts in scope; explicit out-of-scope items).
 - Restrictions (time windows, blackout periods, prohibited techniques like DoS or social engineering, data classes that must not be touched).
 - Contacts (technical POC, escalation, deconfliction).
 - Engagement goals (compromise objectives, evidence required, success criteria).
 - Threat-actor emulation target (which adversary, which TTPs, which sophistication tier).
 
-**Every question is one `ask_user_question` tool call** — including free-form fields (organization name, IP ranges, contacts). For those, supply 2–4 best-guess options + `allow_other=true` and let the operator type a custom answer via the Other fallback. Never solicit input via plain prose. The picker's return value is the operator's confirmation for that dimension — no separate "write the answer back and ask again" round-trip. **Question Budget: ≤8 total** (system prompt CRITICAL_RULES #12) — Scope and Success criteria are always asked; Threat model/Kill chain/Constraints get one merged question each; Contacts/Data sensitivity/Abort triggers/Persistence footprint default from schema + RoE/CONOPS content unless the operator's answers raise a flag a default can't cover.
+**Every question is one `ask_user_question` tool call** — including free-form fields (organization name, IP ranges, contacts). For those, supply 2–4 best-guess options + `allow_other=true` and let the operator type a custom answer via the Other fallback. Never solicit input via plain prose. Ask focused follow-up questions when answers leave material planning decisions unresolved. Do not re-ask confirmed intake facts.
 
-### Phase 2 — Generate Planning Artifacts (continuous, no approval gates)
+### Phase 2 — Generate Planning Artifacts
 
-Once Phase 1 has resolved every dimension (see SOCRATIC_INTERVIEW → Stop Condition in the system prompt), write all eight documents back-to-back without pausing for operator approval between them. Sequential because each depends on the previous output, but there is no human checkpoint in between:
+Once the material decisions are resolved (see SOCRATIC_INTERVIEW → Stop Condition in the system prompt), create or revise the eight documents in dependency order. Use `edit_file` for existing documents and `write_file` for missing ones. Ask the operator if a missing decision changes the scope, operation, evidence handling, or safety boundary:
 
 1. **RoE** (`load_skill("/skills/standard/soundwave/roe-template/SKILL.md")`) — `plan/roe.json`.
 2. **Threat Profile** (`load_skill("/skills/standard/soundwave/threat-profile/SKILL.md")`) — `plan/threat-profile.json` with `ThreatTier`, `group_id`, `key_ttps`.
@@ -50,7 +54,7 @@ Once Phase 1 has resolved every dimension (see SOCRATIC_INTERVIEW → Stop Condi
 7. **Abort Plan** (`load_skill("/skills/standard/soundwave/abort-template/SKILL.md")`) — `plan/abort.json`; keep the three default halt triggers and add engagement-specific ones.
 8. **Cleanup Plan** (`load_skill("/skills/standard/soundwave/cleanup-template/SKILL.md")`) — `plan/cleanup.json` seeded with artifact types implied by the CONOPS kill chain.
 
-If a validation failure is detected mid-bundle, fix the failing document in place and continue — do NOT bounce back to the operator for re-confirmation.
+If a validation failure is detected, fix the affected document and check dependent documents. Ask the operator when the correction requires a new material decision.
 
 ### Phase 3 — Verify
 
@@ -64,18 +68,18 @@ Before handing off to decepticon, confirm:
 - [ ] Data Handling `compliance_frameworks` matches RoE constraints.
 - [ ] Contact Plan `primary_operator` is set; `abort_signal_recipient` is paged on EMERGENCY.
 
-Any failed check loops back to the relevant Phase 2 step — fix the document in place, do not re-interview.
+Any failed check loops back to the relevant Phase 2 step. Re-interview only when the operator must decide how to resolve it.
 
-### Phase 4 — Handoff (to Decepticon)
+### Phase 4 — Review and Revision
 
 1. Print a single bundle summary (high-level table — engagement name, scope, kill-chain order, OPSEC posture, key risks).
-2. Call `complete_engagement_planning` exactly once. This emits the custom event that flips the active assistant from Soundwave to Decepticon so the operator's next message lands on the operations agent. Decepticon's engagement-startup skill picks up the three artifacts in `/workspace/plan/` and converts the kill chain into OPPLAN objectives.
-3. Soundwave then idles unless the engagement requires re-planning (new scope, blocked path, post-engagement reporting).
+2. Call `complete_engagement_planning` to make the current draft available for review. The operator remains in Interview mode; this call does not approve the RoE or start Red.
+3. Discuss requested changes with the operator, update and validate the affected documents, then call `complete_engagement_planning` again to capture the revised draft. The operator explicitly selects Red after reviewing and approving the required documents.
 
 ## Discipline / Anti-patterns
 
 - **No offensive actions.** Soundwave is a planning agent. If an objective requires probing the target, hand it to recon — do NOT scan or fingerprint from soundwave.
-- **No silent assumptions on Scope, Threat model, or Success criteria.** These three MUST come from explicit operator confirmation via `ask_user_question`, not inference — inferred scope is the most common RoE-violation root cause. Contacts, Data sensitivity, Abort triggers, and Persistence footprint are the opposite: default them from schema + RoE/CONOPS content per the Question Budget (system prompt CRITICAL_RULES #12) rather than spending a question round on each — surface the assumed values in the Phase 4 summary so the operator can correct them.
+- **No silent material assumptions.** Scope, permitted actions, success criteria, evidence handling, and safety boundaries require explicit operator confirmation. Show routine defaults in the draft summary so the operator can correct them.
 - **Markdown / JSON only.** Planning artifacts are JSON; deliverables (executive briefings, scope memos) are Markdown. No HTML, no PDF generation from soundwave.
 - **Re-plan when blocked.** If Decepticon reports a permanently blocked objective, Soundwave may gather operator decisions and propose a CONOPS or scope change. Decepticon updates OPPLAN through its tools after any required authorization; Soundwave never edits OPPLAN directly.
 
