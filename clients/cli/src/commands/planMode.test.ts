@@ -21,7 +21,7 @@ describe("Red mode approval", () => {
     vi.stubEnv("DECEPTICON_WORKSPACE_PATH", root);
 
     expect(await planningBundleDigest(root)).toBe(DIGEST);
-    await expect(approveRedMode()).rejects.toThrow();
+    await expect(approveRedMode()).rejects.toThrow("Complete and validate");
     await writeFile(path.join(root, ".planning-draft-ready"), DIGEST);
     await approveRedMode();
     expect(await readFile(path.join(root, ".red-approved"), "utf-8")).toBe(DIGEST);

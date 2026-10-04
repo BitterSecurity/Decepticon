@@ -32,8 +32,14 @@ export async function planningBundleDigest(root: string): Promise<string> {
 export async function approveRedMode(): Promise<void> {
   const root = workspaceRoot();
   if (!root) return;
-  const current = await planningBundleDigest(root);
-  const draft = (await readFile(path.join(root, ".planning-draft-ready"), "utf-8")).trim();
+  let current: string;
+  let draft: string;
+  try {
+    current = await planningBundleDigest(root);
+    draft = (await readFile(path.join(root, ".planning-draft-ready"), "utf-8")).trim();
+  } catch {
+    throw new Error("Complete and validate the eight-document Interview plan before selecting Red.");
+  }
   if (draft !== current) {
     throw new Error("Planning documents changed after validation. Finish Interview validation again.");
   }
