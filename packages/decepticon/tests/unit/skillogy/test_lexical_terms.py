@@ -104,9 +104,11 @@ def test_unicode_query_reaches_semantic_search(monkeypatch) -> None:
     from decepticon.skillogy.server.neo4j_backend import Neo4jBackend
 
     be = Neo4jBackend.__new__(Neo4jBackend)
+    be.mark_vector_ready(1)
     row = {"name": "credential-access", "path": "/credential", "score": 0.9}
     monkeypatch.setattr(Neo4jBackend, "_find_lexical", lambda *a, **k: [])
     monkeypatch.setattr(Neo4jBackend, "_find_semantic", lambda *a, **k: [dict(row)])
+    monkeypatch.setattr(embeddings, "embed_dim", lambda: 1)
     monkeypatch.setattr(
         embeddings, "embed_text", lambda query: [0.1] if query == "자격증명 추출" else None
     )
@@ -114,6 +116,75 @@ def test_unicode_query_reaches_semantic_search(monkeypatch) -> None:
     hits = be.find_skill(query="자격증명 추출")
     assert hits[0]["path"] == "/credential"
     assert hits[0]["matched_by"] == ["semantic"]
+
+
+def test_wrong_query_embedding_dimension_uses_lexical_results(monkeypatch) -> None:
+    from decepticon.skillogy import embeddings
+    from decepticon.skillogy.server.neo4j_backend import Neo4jBackend
+
+    be = Neo4jBackend.__new__(Neo4jBackend)
+    lexical = {"name": "credential", "path": "/credential"}
+    monkeypatch.setattr(Neo4jBackend, "_find_lexical", lambda *a, **k: [dict(lexical)])
+    semantic = MagicMock()
+    monkeypatch.setattr(Neo4jBackend, "_find_semantic", semantic)
+    monkeypatch.setattr(embeddings, "embed_text", lambda query: [0.1])
+    monkeypatch.setattr(embeddings, "embed_dim", lambda: 2)
+
+    hits = be.find_skill(query="credential")
+
+    assert hits == [{**lexical, "matched_by": ["lexical"]}]
+    semantic.assert_not_called()
+
+
+def test_semantic_search_waits_for_backfill(monkeypatch) -> None:
+    from decepticon.skillogy import embeddings
+    from decepticon.skillogy.server.neo4j_backend import Neo4jBackend
+
+    be = Neo4jBackend.__new__(Neo4jBackend)
+    lexical = {"name": "credential", "path": "/credential"}
+    monkeypatch.setattr(Neo4jBackend, "_find_lexical", lambda *a, **k: [dict(lexical)])
+    semantic = MagicMock()
+    monkeypatch.setattr(Neo4jBackend, "_find_semantic", semantic)
+    monkeypatch.setattr(embeddings, "embed_text", lambda query: [0.1])
+    monkeypatch.setattr(embeddings, "embed_dim", lambda: 1)
+
+    hits = be.find_skill(query="credential")
+
+    assert hits == [{**lexical, "matched_by": ["lexical"]}]
+    semantic.assert_not_called()
+
+
+def test_vector_index_and_property_follow_configured_dimension() -> None:
+    from decepticon.skillogy.server.neo4j_backend import Neo4jBackend
+
+    be = Neo4jBackend.__new__(Neo4jBackend)
+    be._database = "neo4j"
+    be._driver = MagicMock()
+    session = be._driver.session.return_value.__enter__.return_value
+
+    be.ensure_vector_index(768)
+    be.mark_vector_ready(768)
+    be.ensure_vector_index(1536)
+    assert be._vector_ready_dim is None
+    queries = [
+        call.args[0] for call in session.run.call_args_list if "CREATE VECTOR INDEX" in call.args[0]
+    ]
+    assert "skill_embedding_768" in queries[0] and "s.embedding_768" in queries[0]
+    assert "skill_embedding_1536" in queries[1] and "s.embedding_1536" in queries[1]
+    waits = [call for call in session.run.call_args_list if "db.awaitIndex" in call.args[0]]
+    assert [call.kwargs["name"] for call in waits] == [
+        "skill_embedding_768",
+        "skill_embedding_1536",
+    ]
+
+    be.fetch_skills_for_embedding(768)
+    assert "s.embedding_768 IS NOT NULL AS embedded" in session.run.call_args.args[0]
+
+    be.write_embeddings([{"path": "/a", "vector": [0.1], "sha": "sha"}], 768)
+    assert session.run.call_args.kwargs["property_name"] == "embedding_768"
+
+    be._find_semantic([0.1, 0.2], [], None, {}, 5)
+    assert session.run.call_args.kwargs["parameters"]["index_name"] == "skill_embedding_2"
 
 
 @pytest.mark.parametrize("existing", [None, "english"])
