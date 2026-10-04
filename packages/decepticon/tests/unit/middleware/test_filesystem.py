@@ -87,7 +87,7 @@ def test_maps_virtual_workspace_paths_to_engagement_root() -> None:
     assert backend.calls[-1] == ("read", ("/workspace/test/plan/roe.json", 0, 2000))
 
 
-def test_soundwave_filesystem_reads_and_edits_existing_plan_only() -> None:
+def test_soundwave_filesystem_reads_roe_and_edits_planning_documents() -> None:
     backend = RecordingBackend()
     scoped = EngagementFilesystemBackend(backend, "/workspace/test", plan_only=True)
 
@@ -95,11 +95,31 @@ def test_soundwave_filesystem_reads_and_edits_existing_plan_only() -> None:
         "content": "read:/workspace/test/plan/roe.json",
         "encoding": "utf-8",
     }
-    assert scoped.edit("/workspace/plan/roe.json", "old", "new").path == "/workspace/plan/roe.json"
+    assert (
+        scoped.edit("/workspace/plan/conops.json", "old", "new").path
+        == "/workspace/plan/conops.json"
+    )
     assert scoped.grep("scope", path="/workspace").matches == [
         {"path": "/workspace/plan/roe.json", "line": 1, "text": "target"}
     ]
     assert backend.calls[-1] == ("grep_raw", ("scope", "/workspace/test/plan", None))
+
+
+def test_soundwave_cannot_change_roe_even_when_it_is_missing() -> None:
+    backend = RecordingBackend()
+    scoped = EngagementFilesystemBackend(backend, "/workspace/test", plan_only=True)
+
+    blocked_write = scoped.write("/workspace/plan/roe.json", "{}")
+    blocked_edit = scoped.edit("/workspace/plan/roe.json", "old", "new")
+    assert "read-only" in (blocked_write.error or "")
+    assert "read-only" in (blocked_edit.error or "")
+    assert not any(call[0] in {"write", "edit"} for call in backend.calls)
+    allowed_write = scoped.write("/workspace/plan/conops.json", "{}")
+    assert allowed_write.path == "/workspace/plan/conops.json"
+
+    runtime_scoped = EngagementFilesystemBackend(backend, "/workspace/test")
+    blocked_runtime_edit = runtime_scoped.edit("/workspace/plan/roe.json", "old", "new")
+    assert "read-only" in (blocked_runtime_edit.error or "")
 
 
 def test_soundwave_filesystem_rejects_paths_outside_plan() -> None:
@@ -166,7 +186,10 @@ def test_soundwave_next_run_draft_reads_existing_document_from_nested_workspace(
         "read",
         ("/workspace/org-1/eng-1/drafts/next/plan/roe.json", 0, 2000),
     )
-    assert scoped.edit("/workspace/plan/roe.json", "old", "new").path == "/workspace/plan/roe.json"
+    assert (
+        scoped.edit("/workspace/plan/conops.json", "old", "new").path
+        == "/workspace/plan/conops.json"
+    )
     assert scoped.read("/workspace/org-1/eng-1/plan/roe.json").error
 
 

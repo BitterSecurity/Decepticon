@@ -29,7 +29,10 @@ NO_WORKSPACE_ERROR = (
     "No engagement workspace is set. Filesystem tools are scoped to the active "
     "engagement and cannot access the shared /workspace root."
 )
-PLAN_ONLY_ERROR = "Interview filesystem access is limited to /workspace/plan."
+PLAN_ONLY_ERROR = "Plan filesystem access is limited to /workspace/plan."
+LOCKED_ROE_ERROR = (
+    "The operator-confirmed RoE is read-only. Change engagement rules outside Plan mode."
+)
 
 
 def _normalize_engagement_workspace(workspace_path: str | None) -> str | None:
@@ -199,12 +202,17 @@ class EngagementFilesystemBackend(BackendProtocol):
             replace(result, error=self._mask(result.error, real_path)) if result.error else result
         )
 
+    def _roe_locked(self, real_path: str) -> bool:
+        return real_path.endswith("/plan/roe.json")
+
     def write(self, file_path: str, content: str) -> WriteResult:
         self._ensure_root()
         try:
             real_path = self._real(file_path)
         except ValueError as e:
             return WriteResult(error=str(e))
+        if self._roe_locked(real_path):
+            return WriteResult(error=LOCKED_ROE_ERROR)
         result = self._backend.write(real_path, content)
         if result.error:
             masked = self._mask(result.error, real_path)
@@ -238,6 +246,8 @@ class EngagementFilesystemBackend(BackendProtocol):
             real_path = self._real(file_path)
         except ValueError as e:
             return EditResult(error=str(e))
+        if self._roe_locked(real_path):
+            return EditResult(error=LOCKED_ROE_ERROR)
         result = self._backend.edit(real_path, old_string, new_string, replace_all)
         if result.error:
             return replace(result, error=self._mask(result.error, real_path))

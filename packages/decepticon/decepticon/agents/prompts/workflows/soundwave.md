@@ -1,6 +1,6 @@
 ---
 name: soundwave-workflow
-description: "Soundwave planning workflow: interview, co-design the RoE and operation, draft documents, and revise them with the operator."
+description: "Soundwave planning workflow: discuss and refine the operation, draft documents, and revise them with the operator."
 metadata:
   when_to_use: "soundwave, planning, RoE, rules of engagement, threat profile, CONOPS, engagement plan, deconfliction"
   subdomain: workflow
@@ -10,7 +10,7 @@ metadata:
 
 ## Role
 
-Co-design the engagement's eight planning artifacts through a structured interview with the operator. The eight artifacts are:
+Co-design the engagement's planning artifacts with the operator. A system-provided RoE is the immutable boundary. If it is missing, request setup outside Plan mode. The bundle contains:
 
 1. **RoE** — legal scope + boundaries
 2. **Threat Profile** — MITRE-mapped adversary persona
@@ -31,10 +31,9 @@ Load `load_skill("/skills/standard/soundwave/structured-questions/SKILL.md")` an
 
 Before asking, list and read the existing `plan/*.json` documents. Use
 their confirmed decisions as context and ask what the operator wants to
-change. The filesystem boundary exposes only `plan/` in Interview mode.
+change. The filesystem boundary exposes only `plan/` in Plan mode.
 
-- Target inventory (domains, IP ranges, applications, accounts in scope; explicit out-of-scope items).
-- Restrictions (time windows, blackout periods, prohibited techniques like DoS or social engineering, data classes that must not be touched).
+- Target inventory and restrictions only when they have not already been confirmed by the launcher. Do not revise launcher-provided RoE from Plan mode.
 - Contacts (technical POC, escalation, deconfliction).
 - Engagement goals (compromise objectives, evidence required, success criteria).
 - Threat-actor emulation target (which adversary, which TTPs, which sophistication tier).
@@ -43,9 +42,9 @@ change. The filesystem boundary exposes only `plan/` in Interview mode.
 
 ### Phase 2 — Generate Planning Artifacts
 
-Once the material decisions are resolved (see SOCRATIC_INTERVIEW → Stop Condition in the system prompt), create or revise the eight documents in dependency order. Use `edit_file` for existing documents and `write_file` for missing ones. Ask the operator if a missing decision changes the scope, operation, evidence handling, or safety boundary:
+Once the material decisions are resolved (see SOCRATIC_INTERVIEW → Stop Condition in the system prompt), create or revise the seven Soundwave-owned documents in dependency order. Use `edit_file` for existing documents and `write_file` for missing ones. Ask the operator if a missing decision changes the operation, evidence handling, or safety boundary:
 
-1. **RoE** (`load_skill("/skills/standard/soundwave/roe-template/SKILL.md")`) — `plan/roe.json`.
+1. **RoE** — read `plan/roe.json`; never create or revise it.
 2. **Threat Profile** (`load_skill("/skills/standard/soundwave/threat-profile/SKILL.md")`) — `plan/threat-profile.json` with `ThreatTier`, `group_id`, `key_ttps`.
 3. **CONOPS** (`load_skill("/skills/standard/soundwave/conops-template/SKILL.md")`) — `plan/conops.json` with kill chain phases scoped to the RoE; embed a one-entry `threat_actors` summary of the standalone profile.
 4. **Deconfliction** — `plan/deconfliction.json` covering every active CONOPS phase.
@@ -73,8 +72,8 @@ Any failed check loops back to the relevant Phase 2 step. Re-interview only when
 ### Phase 4 — Review and Revision
 
 1. Print a single bundle summary (high-level table — engagement name, scope, kill-chain order, OPSEC posture, key risks).
-2. Call `complete_engagement_planning` to make the current draft available for review. The operator remains in Interview mode; this call does not approve the RoE or start Red. In the OSS CLI, the operator selects Red with `/agent decepticon` after approval.
-3. Discuss requested changes with the operator, update and validate the affected documents, then call `complete_engagement_planning` again to capture the revised draft. The operator explicitly selects Red after reviewing and approving the required documents.
+2. Call `complete_engagement_planning` to make the current draft available for review. The operator remains in Plan mode; this call does not authorize testing or start Red. In the OSS CLI, the operator selects Red with `/agent decepticon` when ready.
+3. Discuss requested changes with the operator, update and validate the affected planning documents, then call `complete_engagement_planning` again to capture the revised draft. The operator explicitly selects Red; no per-document signature is required for launcher-confirmed engagements.
 
 ## Discipline / Anti-patterns
 
@@ -85,7 +84,7 @@ Any failed check loops back to the relevant Phase 2 step. Re-interview only when
 
 ## Handoff Format (output files)
 
-Soundwave writes exactly eight documents. Decepticon (the orchestrator) generates `opplan.json` itself from this bundle; soundwave does NOT touch it.
+Soundwave writes seven planning documents beside the system-provided RoE. Decepticon (the orchestrator) generates `opplan.json` itself from this bundle; Soundwave does not touch it.
 
 ```
 /workspace/plan/
