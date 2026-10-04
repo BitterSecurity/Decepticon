@@ -9,9 +9,7 @@
  *
  * Selection writes to the per-process assistant override (see
  * commands/assistantOverride.ts) which useAgent reads on every submit()
- * / resume(), beating the default INITIAL_ASSISTANT_ID and the
- * soundwave→decepticon in-flight handoff. The choice persists for the
- * lifetime of this CLI process.
+ * / resume(). The choice persists for the lifetime of this CLI process.
  *
  * Usage:
  *   /agent              List orchestrators + current selection
@@ -24,6 +22,7 @@ import {
   getAssistantOverride,
   setAssistantOverride,
 } from "./assistantOverride.js";
+import { approveRedMode, revokeRedMode } from "./planMode.js";
 
 interface AssistantRow {
   assistant_id: string;
@@ -72,7 +71,7 @@ const agent: Command = {
             lines.push(`Active orchestrator override: ${current}`);
           } else {
             lines.push(
-              "No override active — using the default orchestrator selection (decepticon, or soundwave→decepticon handoff).",
+              "No override active — using the launcher's default orchestrator selection.",
             );
           }
           lines.push("");
@@ -124,6 +123,8 @@ const agent: Command = {
           );
           return;
         }
+        if (arg === "decepticon") await approveRedMode();
+        if (arg === "soundwave") await revokeRedMode();
         setAssistantOverride(arg);
         ctx.addSystemEvent(
           `Active orchestrator: ${arg}\nNext message routes here. Type /agent clear to revert.`,

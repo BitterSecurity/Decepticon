@@ -14,6 +14,7 @@ export type SubagentEventType =
   | "subagent_message"
   | "ask_user_question"
   | "engagement_ready"
+  | "planning_draft_ready"
   | "background_complete";
 
 /** One choice presented in an ask_user_question picker. */

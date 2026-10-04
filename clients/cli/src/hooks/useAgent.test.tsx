@@ -264,6 +264,57 @@ describe("useAgent — engagement handoff lifecycle", () => {
     expect(result.current.assistantId).toBe("soundwave");
   });
 
+  it("keeps Interview on the same thread after a planning draft", async () => {
+    const mc = mockState.client!;
+    (mc.runs.stream as Mock)
+      .mockReturnValueOnce(createMockStream([
+        { event: "custom", data: { type: "planning_draft_ready" } },
+      ]))
+      .mockReturnValueOnce(createMockStream([noopValuesEvent]));
+    const { result } = renderHook(() => useAgent());
+
+    act(() => result.current.submit("prepare plan"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    act(() => result.current.submit("revise plan"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+
+    const calls = (mc.runs.stream as Mock).mock.calls;
+    expect(calls).toHaveLength(2);
+    expect(calls[0][0]).toBe(calls[1][0]);
+    expect(calls[1][1]).toBe("soundwave");
+    expect(result.current.assistantId).toBe("soundwave");
+    expect(result.current.events).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        type: "system",
+        content: expect.stringContaining("Planning draft ready for review"),
+      }),
+    ]));
+  });
+
+  it("opens a new thread when the operator selects Red", async () => {
+    const mc = mockState.client!;
+    (mc.threads.create as Mock)
+      .mockResolvedValueOnce({ thread_id: "interview-thread" })
+      .mockResolvedValueOnce({ thread_id: "red-thread" });
+    (mc.runs.stream as Mock)
+      .mockReturnValueOnce(createMockStream([noopValuesEvent]))
+      .mockReturnValueOnce(createMockStream([noopValuesEvent]));
+    const { setAssistantOverride } = await import("../commands/assistantOverride.js");
+    const { result } = renderHook(() => useAgent());
+
+    act(() => result.current.submit("prepare plan"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    setAssistantOverride("decepticon");
+    act(() => result.current.submit("begin approved Red work"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+
+    const calls = (mc.runs.stream as Mock).mock.calls;
+    expect(mc.threads.create).toHaveBeenCalledTimes(2);
+    expect(calls[0][0]).not.toBe(calls[1][0]);
+    expect(calls[1][1]).toBe("decepticon");
+    expect(result.current.assistantId).toBe("decepticon");
+  });
+
   it("recovers after thread creation retries are exhausted", async () => {
     const mc = mockState.client!;
     const createThread = mc.threads.create as Mock;

@@ -1,7 +1,6 @@
-"""complete_engagement_planning — validate and signal the planning handoff."""
-
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 from typing import Annotated, Any
@@ -32,6 +31,17 @@ _PLANNING_DOCUMENTS = {
 }
 
 
+def planning_bundle_digest(workspace: str | Path) -> str:
+    digest = hashlib.sha256()
+    root = Path(workspace) / "plan"
+    for filename in _PLANNING_DOCUMENTS:
+        digest.update(filename.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update((root / filename).read_bytes())
+        digest.update(b"\0")
+    return digest.hexdigest()
+
+
 def validate_planning_bundle(
     workspace: str | Path,
     *,
@@ -40,7 +50,7 @@ def validate_planning_bundle(
 ) -> str | None:
     """Return a failure reason unless the eight-document planner bundle is ready."""
     if authorization_confirmed is False:
-        return "Authorization is not confirmed; do not hand off the engagement."
+        return "Authorization is not confirmed; do not mark the draft ready."
 
     root = Path(workspace)
     documents: dict[str, Any] = {}
@@ -60,7 +70,7 @@ def validate_planning_bundle(
 
     roe = documents["roe.json"]
     if not roe.authorization_reference.strip():
-        return "RoE must contain an explicit authorization_reference before handoff."
+        return "RoE must contain an explicit authorization_reference before the draft is ready."
     if target_value and target_value not in {entry.target for entry in roe.in_scope}:
         return "RoE in_scope must contain the exact launcher-declared target."
     return None
@@ -94,7 +104,7 @@ def _safe_writer():
 def complete_engagement_planning(
     tool_call_id: Annotated[str, InjectedToolCallId] = "",
 ) -> Any:
-    """Validate the full planner bundle and hand the engagement to Decepticon.
+    """Validate the full planner bundle and announce a reviewable draft.
 
     The event is emitted only after every Soundwave-owned document validates,
     the bundle shares an engagement name, the RoE records authorization, and
@@ -107,17 +117,20 @@ def complete_engagement_planning(
         authorization_confirmed=authorization_confirmed,
     )
     if failure:
-        return f"Planning handoff blocked: {failure}"
+        return f"Planning draft blocked: {failure}"
+    try:
+        root = Path(workspace)
+        (root / ".planning-draft-ready").write_text(planning_bundle_digest(root), encoding="utf-8")
+        (root / ".red-approved").unlink(missing_ok=True)
+    except OSError as exc:
+        return f"Planning draft could not be saved: {exc}"
     writer = _safe_writer()
     if writer is not None:
         writer(
             {
-                "type": "engagement_ready",
+                "type": "planning_draft_ready",
                 "agent": "soundwave",
                 "id": tool_call_id,
             }
         )
-    return (
-        "Planning complete. The operator's next message will be routed to the "
-        "Decepticon operations agent."
-    )
+    return "Planning draft ready. Review the documents in Interview mode; select Red explicitly after approval."

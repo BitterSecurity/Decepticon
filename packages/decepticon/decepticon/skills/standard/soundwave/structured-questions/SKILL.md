@@ -106,8 +106,6 @@ ask_user_question(
 - Header longer than 12 chars (`"Engagement Type"` → use `"Eng. type"`)
 - Re-asking the same dimension after the operator already answered — the
   returned value is authoritative; record it and move to the next dimension
-- Pausing for per-document approval after writing RoE / CONOPS /
-  Deconfliction — there is no approval gate between documents. The
-  approval moments are (a) each `ask_user_question` picker during the
-  interview, and (b) the final bundle summary right before
-  `complete_engagement_planning`.
+- Treating a picker answer or `complete_engagement_planning` as approval
+  of the full document bundle. The operator reviews the draft and may
+  request revisions in Interview before explicitly authorizing Red.

@@ -161,8 +161,8 @@ def _make_skills(*, backend: Any, role: str, skill_sources: list[str] | None = N
     return SkillsMiddleware(backend=backend, sources=sources)
 
 
-def _make_filesystem(*, backend: Any, **_: Any):
-    return FilesystemMiddleware(backend=backend)
+def _make_filesystem(*, backend: Any, role: str, **_: Any):
+    return FilesystemMiddleware(backend=backend, plan_only=role == "soundwave")
 
 
 def _make_subagent(*, backend: Any, subagents: list | None = None, **_: Any):

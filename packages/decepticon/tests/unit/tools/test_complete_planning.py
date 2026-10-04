@@ -67,7 +67,7 @@ def test_validate_planning_bundle_rejects_unconfirmed_authorization(tmp_path: Pa
     _write_bundle(tmp_path)
 
     assert validate_planning_bundle(tmp_path, authorization_confirmed=False) == (
-        "Authorization is not confirmed; do not hand off the engagement."
+        "Authorization is not confirmed; do not mark the draft ready."
     )
 
 

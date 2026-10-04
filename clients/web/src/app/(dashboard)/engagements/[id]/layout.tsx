@@ -7,13 +7,8 @@ import { useRunObserver } from "@/hooks/useRunObserver";
 import { WebTerminal } from "@/components/terminal/web-terminal";
 import { cn } from "@/lib/utils";
 
-const REQUIRED_PLAN_DOCS = ["roe", "conops", "deconfliction"] as const;
-
 function pickAssistant(planDocs: Record<string, unknown>): "soundwave" | "decepticon" {
-  for (const name of REQUIRED_PLAN_DOCS) {
-    if (planDocs[name] == null) return "soundwave";
-  }
-  return "decepticon";
+  return planDocs.redApproved === true ? "decepticon" : "soundwave";
 }
 
 export default function EngagementLayout({

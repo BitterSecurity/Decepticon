@@ -29,7 +29,7 @@ See `../references/schema-quick-reference.md` for the `CONOPS`, `ThreatActor`, `
 
 ### Step 1: Interview the User
 
-**Budget: 2 questions max for CONOPS/Threat Profile** (soundwave.md CRITICAL_RULES → Question Budget). The remaining fields below are DEFAULTED or AGENT-DRAFTED, not asked — the tier table and RoE Constraint→Profile Implication table in `threat-profile/SKILL.md` already give deterministic defaults for motivation and initial access once the tier is picked, so re-asking them wastes a turn.
+Use the tier table and RoE Constraint→Profile Implication table in `threat-profile/SKILL.md` to propose a threat profile. Ask the operator about material choices such as motivation, initial access, operation sequence, and success criteria when these are not already confirmed.
 
 **Question 1 — Threat actor tier** (single-select, use `threat-profile` skill for detailed profiling):
    - a) Opportunistic external attacker (low)
@@ -38,7 +38,7 @@ See `../references/schema-quick-reference.md` for the `CONOPS`, `ThreatActor`, `
    - d) Insider threat
    - e) Custom — describe
 
-Derive **motivation** and **initial access vector** from the picked tier via `threat-profile/references/adversary-archetypes.md` (default) — do not ask separately. Only deviate if the operator's free-text answer (via `allow_other`) already states a motivation/vector explicitly.
+Use `threat-profile/references/adversary-archetypes.md` to propose **motivation** and **initial access vector**, then confirm them when they affect the operation.
 
 **Question 2 — Success criteria** — the crown-jewel / measurable win condition. Required; no default (every engagement needs an explicit end-state).
 

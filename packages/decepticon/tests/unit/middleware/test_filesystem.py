@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 from deepagents.backends import CompositeBackend
 from deepagents.backends.protocol import (
     EditResult,
@@ -13,6 +15,7 @@ from deepagents.backends.protocol import (
 )
 from deepagents.middleware.filesystem import FilesystemMiddleware as BaseFilesystemMiddleware
 
+from decepticon.agents.middleware_slots import _make_filesystem
 from decepticon.backends.http_sandbox import HTTPSandbox
 from decepticon.middleware.filesystem import (
     EngagementFilesystemBackend,
@@ -82,6 +85,89 @@ def test_maps_virtual_workspace_paths_to_engagement_root() -> None:
         "encoding": "utf-8",
     }
     assert backend.calls[-1] == ("read", ("/workspace/test/plan/roe.json", 0, 2000))
+
+
+def test_soundwave_filesystem_reads_and_edits_existing_plan_only() -> None:
+    backend = RecordingBackend()
+    scoped = EngagementFilesystemBackend(backend, "/workspace/test", plan_only=True)
+
+    assert scoped.read("/workspace/plan/roe.json").file_data == {
+        "content": "read:/workspace/test/plan/roe.json",
+        "encoding": "utf-8",
+    }
+    assert scoped.edit("/workspace/plan/roe.json", "old", "new").path == "/workspace/plan/roe.json"
+    assert scoped.grep("scope", path="/workspace").matches == [
+        {"path": "/workspace/plan/roe.json", "line": 1, "text": "target"}
+    ]
+    assert backend.calls[-1] == ("grep_raw", ("scope", "/workspace/test/plan", None))
+
+
+def test_soundwave_filesystem_rejects_paths_outside_plan() -> None:
+    backend = RecordingBackend()
+    scoped = EngagementFilesystemBackend(backend, "/workspace/test", plan_only=True)
+
+    rejected = [
+        scoped.read("/workspace/plan/../credentials.json").error,
+        scoped.read("/workspace/credentials.json").error,
+        scoped.read("/workspace/test/credentials.json").error,
+        scoped.write("/workspace/exploit/probe.txt", "x").error,
+        scoped.edit("/workspace/credentials.json", "old", "new").error,
+        scoped.ls("/workspace/private").error,
+        scoped.glob("/workspace/private/**/*.json").error,
+        scoped.glob("../credentials*").error,
+        scoped.grep("token", glob="../credentials*").error,
+        scoped.download_files(["/workspace/credentials.json"])[0].error,
+    ]
+    assert all(rejected)
+    assert not any(call[0] in {"read", "write", "edit", "glob_info"} for call in backend.calls)
+
+
+def test_soundwave_root_and_glob_resolve_to_plan_directory() -> None:
+    backend = RecordingBackend()
+    scoped = EngagementFilesystemBackend(backend, "/workspace/test", plan_only=True)
+
+    scoped.ls("/workspace")
+    assert backend.calls[-1] == ("ls_info", "/workspace/test/plan")
+    scoped.glob("/workspace/plan/**/*.json")
+    assert backend.calls[-1] == ("glob_info", ("**/*.json", "/workspace/test/plan"))
+
+
+def test_soundwave_drops_backend_results_outside_plan() -> None:
+    scoped = EngagementFilesystemBackend(RecordingBackend(), "/workspace/test", plan_only=True)
+
+    assert scoped._virtual("/workspace/test/private/secret.json") is None
+    assert scoped._virtual("/workspace/test/plan/roe.json") == "/workspace/plan/roe.json"
+
+
+def test_soundwave_role_binds_plan_only_filesystem_without_execute() -> None:
+    backend = RecordingBackend()
+    middleware = _make_filesystem(backend=backend, role="soundwave")
+    scoped = middleware._get_backend(
+        SimpleNamespace(state={"workspace_path": "/workspace/test"}, config={})
+    )
+
+    assert "execute" not in {tool.name for tool in middleware.tools}
+    scoped.read("/workspace/plan/roe.json")
+    assert backend.calls[-1] == ("read", ("/workspace/test/plan/roe.json", 0, 2000))
+    assert scoped.read("/workspace/audit/log.json").error
+    assert len(backend.calls) == 1
+
+
+def test_soundwave_next_run_draft_reads_existing_document_from_nested_workspace() -> None:
+    backend = RecordingBackend()
+    scoped = EngagementFilesystemBackend(
+        backend,
+        "/workspace/org-1/eng-1/drafts/next",
+        plan_only=True,
+    )
+
+    scoped.read("/workspace/plan/roe.json")
+    assert backend.calls[-1] == (
+        "read",
+        ("/workspace/org-1/eng-1/drafts/next/plan/roe.json", 0, 2000),
+    )
+    assert scoped.edit("/workspace/plan/roe.json", "old", "new").path == "/workspace/plan/roe.json"
+    assert scoped.read("/workspace/org-1/eng-1/plan/roe.json").error
 
 
 def test_real_path_is_accepted_idempotently() -> None:
