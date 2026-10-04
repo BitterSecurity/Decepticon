@@ -109,15 +109,17 @@ def test_soundwave_cannot_change_roe_even_when_it_is_missing() -> None:
     backend = RecordingBackend()
     scoped = EngagementFilesystemBackend(backend, "/workspace/test", plan_only=True)
 
-    assert "read-only" in (scoped.write("/workspace/plan/roe.json", "{}").error or "")
-    assert "read-only" in (scoped.edit("/workspace/plan/roe.json", "old", "new").error or "")
+    blocked_write = scoped.write("/workspace/plan/roe.json", "{}")
+    blocked_edit = scoped.edit("/workspace/plan/roe.json", "old", "new")
+    assert "read-only" in (blocked_write.error or "")
+    assert "read-only" in (blocked_edit.error or "")
     assert not any(call[0] in {"write", "edit"} for call in backend.calls)
-    assert scoped.write("/workspace/plan/conops.json", "{}").path == "/workspace/plan/conops.json"
+    allowed_write = scoped.write("/workspace/plan/conops.json", "{}")
+    assert allowed_write.path == "/workspace/plan/conops.json"
 
     runtime_scoped = EngagementFilesystemBackend(backend, "/workspace/test")
-    assert "read-only" in (
-        runtime_scoped.edit("/workspace/plan/roe.json", "old", "new").error or ""
-    )
+    blocked_runtime_edit = runtime_scoped.edit("/workspace/plan/roe.json", "old", "new")
+    assert "read-only" in (blocked_runtime_edit.error or "")
 
 
 def test_soundwave_filesystem_rejects_paths_outside_plan() -> None:
