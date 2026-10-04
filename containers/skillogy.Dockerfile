@@ -6,7 +6,7 @@
 # runtime — just FastAPI + uvicorn + the Neo4j driver + httpx (the
 # ADR-0011 embedding client that talks to the litellm proxy) + the
 # skillogy server module + the CI-built ``skills.cypher`` dump that
-# gets ingested on boot.
+# gets reconciled with persistent Neo4j on boot.
 
 FROM python:3.13-slim
 
@@ -22,9 +22,8 @@ RUN apt-get update \
 COPY packages/decepticon/decepticon/skillogy ./decepticon/skillogy
 COPY packages/decepticon/decepticon/skill_audit ./decepticon/skill_audit
 
-# CI-built graph dump. The boot script seeds it into Neo4j only when the
-# graph is empty; the builder emits MERGE-only Cypher so the first-boot
-# seed (and any out-of-band incremental re-apply) is idempotent.
+# CI-built graph dump. A digest marker prevents unchanged releases from
+# replaying thousands of MERGEs while persistent installs receive updates.
 COPY packages/decepticon/decepticon/skills/.graph/skills.cypher /app/skills.cypher
 
 RUN touch ./decepticon/__init__.py
@@ -50,7 +49,7 @@ ENV SKILLOGY_REST_PORT=9100
 ENV SKILLOGY_NEO4J_URI=bolt://neo4j:7687
 ENV SKILLOGY_NEO4J_USER=neo4j
 
-# Baked cypher dump the boot seed reads when the graph is empty.
+# Baked cypher dump used by the release reconciler.
 ENV SKILLOGY_CYPHER_PATH=/app/skills.cypher
 
 EXPOSE 9100
