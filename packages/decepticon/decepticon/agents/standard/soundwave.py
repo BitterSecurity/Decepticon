@@ -1,7 +1,7 @@
 """Soundwave Agent — engagement document writer.
 
-Generates the eight planning documents (RoE / CONOPS / Deconfliction /
-Threat Profile / Contact / Data Handling / Abort / Cleanup) that frame
+Generates seven planning documents (CONOPS / Deconfliction / Threat Profile /
+Contact / Data Handling / Abort / Cleanup) alongside the system RoE that frame
 the red team engagement. Does NOT generate OPPLAN — the orchestrator
 owns OPPLAN directly via OPPLANMiddleware.
 
@@ -87,11 +87,11 @@ def _assert_planning_tools(tools: list[Any], middleware: list[Any]) -> None:
     if not any(
         isinstance(layer, FilesystemMiddleware) and layer._plan_only for layer in middleware
     ):
-        raise ValueError("Soundwave requires a plan-scoped filesystem in Interview mode")
+        raise ValueError("Soundwave requires a plan-scoped filesystem in Plan mode")
     for tool in [*tools, *(item for layer in middleware for item in getattr(layer, "tools", []))]:
         name = getattr(tool, "name", getattr(tool, "__name__", ""))
         if name not in _ALLOWED_TOOL_NAMES:
-            raise ValueError(f"Soundwave cannot use {name or 'an unnamed tool'} in Interview mode")
+            raise ValueError(f"Soundwave cannot use {name or 'an unnamed tool'} in Plan mode")
     for tool in tools:
         if getattr(tool, "name", getattr(tool, "__name__", "")) in _FILESYSTEM_TOOL_NAMES:
             raise ValueError("Soundwave filesystem tools must use the plan-scoped middleware")

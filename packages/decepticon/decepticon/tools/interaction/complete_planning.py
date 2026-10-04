@@ -106,8 +106,8 @@ def complete_engagement_planning(
 ) -> Any:
     """Validate the full planner bundle and announce a reviewable draft.
 
-    The event is emitted only after every Soundwave-owned document validates,
-    the bundle shares an engagement name, the RoE records authorization, and
+    The event is emitted only after the seven planning documents and the
+    system-provided RoE validate, the bundle shares an engagement name, and
     any launcher-declared target appears exactly in RoE scope.
     """
     workspace, target_value, authorization_confirmed = _runtime_context()
@@ -121,7 +121,6 @@ def complete_engagement_planning(
     try:
         root = Path(workspace)
         (root / ".planning-draft-ready").write_text(planning_bundle_digest(root), encoding="utf-8")
-        (root / ".red-approved").unlink(missing_ok=True)
     except OSError as exc:
         return f"Planning draft could not be saved: {exc}"
     writer = _safe_writer()
@@ -133,4 +132,4 @@ def complete_engagement_planning(
                 "id": tool_call_id,
             }
         )
-    return "Planning draft ready. Review the documents in Interview mode; select Red explicitly after approval."
+    return "Planning draft ready. Review the documents in Plan mode; select Red explicitly when ready."
