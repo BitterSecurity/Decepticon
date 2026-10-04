@@ -22,7 +22,6 @@ Additional post-processing:
 
 from __future__ import annotations
 
-import asyncio
 import contextlib
 import contextvars
 import hashlib
@@ -31,13 +30,15 @@ import os
 import re
 import time
 from collections import OrderedDict
+from functools import partial
 
+from anyio import to_thread
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 
-from decepticon.backends.http_sandbox import HTTPSandbox
 from decepticon.sandbox_kernel.base import SandboxBase
 from decepticon.sandbox_kernel.tmux import _interpret_exit_code
+from decepticon.tools.bash.protocol import BashSandboxProtocol
 
 log = logging.getLogger("decepticon.tools.bash.bash")
 
@@ -55,11 +56,11 @@ log = logging.getLogger("decepticon.tools.bash.bash")
 #      ``set_sandbox`` ran at agent-factory build time in the main
 #      thread. Restoring the cross-thread default keeps the public
 #      ContextVar API (used for per-request overrides) intact.
-_sandbox_var: contextvars.ContextVar[HTTPSandbox | None] = contextvars.ContextVar(
+_sandbox_var: contextvars.ContextVar[BashSandboxProtocol | None] = contextvars.ContextVar(
     "decepticon_bash_sandbox",
     default=None,
 )
-_sandbox_default: HTTPSandbox | None = None
+_sandbox_default: BashSandboxProtocol | None = None
 _current_workspace_path: contextvars.ContextVar[str] = contextvars.ContextVar(
     "decepticon_bash_workspace_path",
     default="/workspace",
@@ -238,7 +239,9 @@ def _sanitize_output(text: str) -> str:
     return text
 
 
-def set_sandbox(sandbox: HTTPSandbox) -> contextvars.Token:
+def set_sandbox(
+    sandbox: BashSandboxProtocol,
+) -> contextvars.Token[BashSandboxProtocol | None]:
     """Inject the shared HTTPSandbox instance.
 
     Writes both:
@@ -254,7 +257,7 @@ def set_sandbox(sandbox: HTTPSandbox) -> contextvars.Token:
     return _sandbox_var.set(sandbox)
 
 
-def _sandbox_from_config(config: RunnableConfig | None) -> HTTPSandbox | None:
+def _sandbox_from_config(config: RunnableConfig | None) -> BashSandboxProtocol | None:
     """Resolve a per-engagement sandbox from the run's injected config.
 
     In a SHARED langgraph process serving many engagements concurrently, each
@@ -281,7 +284,7 @@ def _sandbox_from_config(config: RunnableConfig | None) -> HTTPSandbox | None:
     return _shared_sandbox(url, token if isinstance(token, str) and token else None)
 
 
-def get_sandbox(config: RunnableConfig | None = None) -> HTTPSandbox | None:
+def get_sandbox(config: RunnableConfig | None = None) -> BashSandboxProtocol | None:
     """Return the HTTPSandbox for this call.
 
     Resolution order:
@@ -345,7 +348,7 @@ def bash_workspace(workspace_path: str):
 
 
 async def _prune_old_scratch(
-    workspace_path: str = "/workspace", sandbox: HTTPSandbox | None = None
+    workspace_path: str = "/workspace", sandbox: BashSandboxProtocol | None = None
 ) -> None:
     """Drop scratch files older than SCRATCH_TTL_MINUTES.
 
@@ -365,11 +368,13 @@ async def _prune_old_scratch(
         return
     _scratch_prune_state[workspace_path] = now
     try:
-        await asyncio.to_thread(
-            sandbox.execute,
-            f"find {workspace_path}/.scratch -type f -mmin +{SCRATCH_TTL_MINUTES} "
-            "-delete 2>/dev/null || true",
-            timeout=5,
+        await to_thread.run_sync(
+            partial(
+                sandbox.execute,
+                f"find {workspace_path}/.scratch -type f -mmin +{SCRATCH_TTL_MINUTES} "
+                "-delete 2>/dev/null || true",
+                timeout=5,
+            )
         )
     except Exception as e:
         log.warning("scratch prune failed: %s", e)
@@ -380,7 +385,7 @@ async def _offload_large_output(
     command: str,
     session: str,
     workspace_path: str = "/workspace",
-    sandbox: HTTPSandbox | None = None,
+    sandbox: BashSandboxProtocol | None = None,
 ) -> str:
     """Save large output to scratch file in sandbox, return compact reference.
 
@@ -416,8 +421,8 @@ async def _offload_large_output(
     filename = f"{workspace_path}/.scratch/{session}_{ts}_{cmd_hash}.txt"
 
     # Write via upload_files (docker cp) to avoid shell injection from output content
-    await asyncio.to_thread(sandbox.execute, f"mkdir -p {workspace_path}/.scratch")
-    await asyncio.to_thread(sandbox.upload_files, [(filename, output.encode("utf-8"))])
+    await to_thread.run_sync(partial(sandbox.execute, f"mkdir -p {workspace_path}/.scratch"))
+    await to_thread.run_sync(partial(sandbox.upload_files, [(filename, output.encode("utf-8"))]))
 
     # Build compact summary with generous preview (Claude Code: ~10KB preview)
     line_count = output.count("\n") + 1
@@ -489,11 +494,13 @@ async def bash(
     # Background mode: send command and return immediately
     if background and command:
         _reset_passive_read(workspace_path, session)
-        await asyncio.to_thread(
-            _sandbox.start_background,
-            command=command,
-            session=session,
-            **_with_workspace_kwargs(workspace_path),
+        await to_thread.run_sync(
+            partial(
+                _sandbox.start_background,
+                command=command,
+                session=session,
+                **_with_workspace_kwargs(workspace_path),
+            )
         )
         return (
             f"[BACKGROUND] Command started in session '{session}'.\n"
@@ -558,15 +565,19 @@ async def bash_output(session: str = "main", config: RunnableConfig | None = Non
 
     workspace_path = _workspace_path_from_config(config)
 
-    job = await asyncio.to_thread(
-        _sandbox.poll_completion,
-        session,
-        **_with_workspace_kwargs(workspace_path),
+    job = await to_thread.run_sync(
+        partial(
+            _sandbox.poll_completion,
+            session,
+            **_with_workspace_kwargs(workspace_path),
+        )
     )
-    diff_raw = await asyncio.to_thread(
-        _sandbox.read_session_log_diff,
-        session,
-        **_with_workspace_kwargs(workspace_path),
+    diff_raw = await to_thread.run_sync(
+        partial(
+            _sandbox.read_session_log_diff,
+            session,
+            **_with_workspace_kwargs(workspace_path),
+        )
     )
     diff = _sanitize_output(diff_raw) if diff_raw else ""
 
@@ -619,15 +630,17 @@ async def bash_kill(session: str, config: RunnableConfig | None = None) -> str:
 
     workspace_path = _workspace_path_from_config(config)
 
-    await asyncio.to_thread(
-        _sandbox.kill_session, session, **_with_workspace_kwargs(workspace_path)
+    await to_thread.run_sync(
+        partial(_sandbox.kill_session, session, **_with_workspace_kwargs(workspace_path))
     )
 
     _reset_passive_read(workspace_path, session)
-    log_path = await asyncio.to_thread(
-        _sandbox.session_log_path,
-        session,
-        workspace_path,
+    log_path = await to_thread.run_sync(
+        partial(
+            _sandbox.session_log_path,
+            session,
+            workspace_path,
+        )
     )
     return f"[KILLED] session '{session}' terminated. Log preserved at {log_path}."
 
@@ -648,10 +661,12 @@ async def bash_status(config: RunnableConfig | None = None) -> str:
     # Poll all known running jobs first, then take ONE snapshot for the table.
     for job in _sandbox._jobs.all_jobs():
         if job.status == "running" and job.workspace_path == workspace_path:
-            await asyncio.to_thread(
-                _sandbox.poll_completion,
-                job.session,
-                **_with_workspace_kwargs(workspace_path),
+            await to_thread.run_sync(
+                partial(
+                    _sandbox.poll_completion,
+                    job.session,
+                    **_with_workspace_kwargs(workspace_path),
+                )
             )
 
     jobs = [job for job in _sandbox._jobs.all_jobs() if job.workspace_path == workspace_path]

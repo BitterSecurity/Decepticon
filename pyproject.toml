@@ -54,6 +54,7 @@ dev = [
     "pytest-xdist>=3.6.0",
     "ruff>=0.4.0",
     "basedpyright>=1.37.0",
+    "harbor>=0.17.1,<0.18",
 ]
 lint = [
     "bandit[toml]>=1.7.10",
