@@ -28,7 +28,7 @@ model_list:
     litellm_params:
       model: anthropic/claude-fable-5-1
       api_key: os.environ/ANTHROPIC_API_KEY
-      additional_drop_params: ["temperature"]
+      additional_drop_params: ["temperature", "top_p", "top_k"]
       max_tokens: 128000
     model_info:
       input_cost_per_token: 0.000010
@@ -39,7 +39,7 @@ model_list:
     litellm_params:
       model: anthropic/claude-opus-5-5
       api_key: os.environ/ANTHROPIC_API_KEY
-      additional_drop_params: ["temperature"]
+      additional_drop_params: ["temperature", "top_p", "top_k"]
       max_tokens: 128000
     model_info:
       input_cost_per_token: 0.000004
