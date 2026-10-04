@@ -249,7 +249,7 @@ def test_filtered_search_limits_after_acl_and_structured_filters(monkeypatch) ->
         20,
     )
 
-    cypher = session.run.call_args.args[0]
+    cypher = session.run.call_args.args[0].text
     assert "queryNodes($index_name, $lucene)" in cypher
     assert "WHERE s.subdomain = $subdomain AND ANY(" in cypher
     assert cypher.index("WHERE") < cypher.index("LIMIT $cand_n")
