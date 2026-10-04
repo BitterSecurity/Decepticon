@@ -1563,6 +1563,7 @@ class LLMFactory:
         mapping: LLMModelMapping | None = None,
         credentials: Credentials | None = None,
         profile: ModelProfile | str | None = None,
+        apply_role_overrides: bool = True,
     ):
         self._proxy = proxy or self._resolve_proxy_config()
         if mapping is not None:
@@ -1575,6 +1576,7 @@ class LLMFactory:
             self._mapping = LLMModelMapping.from_credentials_and_profile(creds, resolved_profile)
         self._router = ModelRouter(self._mapping)
         self._cache: dict[str, BaseChatModel] = {}
+        self._apply_role_overrides = apply_role_overrides
 
     @staticmethod
     def _compose_assignment(role: str, assignment: ModelAssignment) -> ModelAssignment:
@@ -1666,9 +1668,9 @@ class LLMFactory:
             return self._cache[role]
 
         default_role = self._resolve_default_role(role, default_role)
-        assignment = self._compose_assignment(
-            role, self._router.get_assignment(role, default_role=default_role)
-        )
+        assignment = self._router.get_assignment(role, default_role=default_role)
+        if self._apply_role_overrides:
+            assignment = self._compose_assignment(role, assignment)
         log.info(
             "Creating LLM for role '%s' → model '%s' via %s",
             role,
