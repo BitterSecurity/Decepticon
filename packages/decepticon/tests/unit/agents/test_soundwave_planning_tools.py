@@ -62,3 +62,24 @@ def test_completed_plan_emits_draft_event_without_handoff(
     assert "Review the documents" in response
     assert (tmp_path / ".planning-draft-ready").read_text() == "digest"
     assert not (tmp_path / ".red-approved").exists()
+
+
+def test_planning_digest_matches_cli_and_launcher(tmp_path: Path) -> None:
+    module = import_module("decepticon.tools.interaction.complete_planning")
+    plan = tmp_path / "plan"
+    plan.mkdir()
+    for filename in (
+        "roe.json",
+        "threat-profile.json",
+        "conops.json",
+        "deconfliction.json",
+        "contact.json",
+        "data-handling.json",
+        "abort.json",
+        "cleanup.json",
+    ):
+        (plan / filename).write_text("{}")
+
+    assert module.planning_bundle_digest(tmp_path) == (
+        "23bb0ad057e96e5098d6c8ef731ce1afadd9e1957f6adf6b720196ad35409418"
+    )
