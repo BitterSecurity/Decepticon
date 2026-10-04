@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import sys
+from types import ModuleType
 from unittest.mock import MagicMock
 
 import pytest
@@ -154,9 +156,12 @@ def test_search_uses_fallback_until_fulltext_index_is_ready(monkeypatch) -> None
     fallback.assert_called_once()
 
 
-def test_filtered_search_limits_after_acl_and_structured_filters() -> None:
-    pytest.importorskip("neo4j")
+def test_filtered_search_limits_after_acl_and_structured_filters(monkeypatch) -> None:
     from decepticon.skillogy.server.neo4j_backend import Neo4jBackend
+
+    neo4j_exceptions = ModuleType("neo4j.exceptions")
+    neo4j_exceptions.ClientError = type("ClientError", (Exception,), {})
+    monkeypatch.setitem(sys.modules, "neo4j.exceptions", neo4j_exceptions)
 
     be = Neo4jBackend.__new__(Neo4jBackend)
     be._fulltext_ready = True
