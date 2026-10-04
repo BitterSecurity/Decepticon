@@ -7,7 +7,7 @@ optional structured metadata adapted from the SaaS finding document model.
 Run against a local engagement workspace on Linux/WSL:
 
 ```sh
-python -m decepticon.tools.reporting.evidence_contract \
+DECEPTICON_SKIP_BOOT=1 python -m decepticon.tools.reporting.evidence_contract \
   --root ~/.decepticon/workspace/example findings/FIND-001.md
 ```
 

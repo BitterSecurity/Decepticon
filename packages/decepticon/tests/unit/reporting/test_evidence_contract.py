@@ -198,10 +198,12 @@ def test_cli_exit_and_json(tmp_path: Path) -> None:
         str(tmp_path),
         "report/summary.md",
     ]
-    missing = subprocess.run(command, capture_output=True, text=True, timeout=30)
+    # This standalone validator does not need Decepticon's agent registry boot.
+    environment = {**os.environ, "DECEPTICON_SKIP_BOOT": "1"}
+    missing = subprocess.run(command, capture_output=True, text=True, timeout=30, env=environment)
     assert missing.returncode == 1
     assert json.loads(missing.stdout)["valid"] is False
     artifact(tmp_path, "evidence/a")
-    available = subprocess.run(command, capture_output=True, text=True, timeout=30)
+    available = subprocess.run(command, capture_output=True, text=True, timeout=30, env=environment)
     assert available.returncode == 0, available.stderr
     assert json.loads(available.stdout)["references"][0]["path"] == "evidence/a"
