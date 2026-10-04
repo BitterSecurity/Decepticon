@@ -25,6 +25,7 @@ def main() -> int:
         start_new_session=True,
     )
     lock = threading.Lock()
+    capture_run_id = str(uuid.uuid4())
 
     def forward(signum, _frame) -> None:
         try:
@@ -35,20 +36,27 @@ def main() -> int:
     signal.signal(signal.SIGTERM, forward)
     signal.signal(signal.SIGINT, forward)
 
-    def drain(stream, name: str) -> None:
-        for line in stream:
+    with log_path.open("a", encoding="utf-8", buffering=1) as log:
+
+        def emit(event_type: str, message: str, **fields: object) -> None:
             event = {
                 "event_id": str(uuid.uuid4()),
-                "event_type": "process_log",
+                "event_type": event_type,
                 "source": "target-process",
+                "capture_run_id": capture_run_id,
+                "pid": child.pid,
                 "occurred_at": datetime.now(timezone.utc).isoformat(),
-                "stream": name,
-                "message": line.rstrip("\r\n"),
+                "message": message,
+                **fields,
             }
             with lock:
                 log.write(json.dumps(event, separators=(",", ":")) + "\n")
 
-    with log_path.open("a", encoding="utf-8", buffering=1) as log:
+        def drain(stream, name: str) -> None:
+            for line in stream:
+                emit("process_log", line.rstrip("\r\n"), stream=name)
+
+        emit("process_lifecycle", "process started")
         threads = [
             threading.Thread(target=drain, args=(child.stdout, "stdout")),
             threading.Thread(target=drain, args=(child.stderr, "stderr")),
@@ -58,6 +66,7 @@ def main() -> int:
         status = child.wait()
         for thread in threads:
             thread.join()
+        emit("process_lifecycle", "process exited", exit_code=status)
     return status
 
 

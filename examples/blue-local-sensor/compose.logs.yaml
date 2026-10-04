@@ -1,0 +1,9 @@
+services:
+  blue-collector:
+    volumes:
+      - type: bind
+        source: ${BLUE_TARGET_LOG_DIR:?Set BLUE_TARGET_LOG_DIR to an existing absolute host directory}
+        target: /target-logs
+        read_only: true
+        bind:
+          create_host_path: false

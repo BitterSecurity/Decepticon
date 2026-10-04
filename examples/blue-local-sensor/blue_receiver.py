@@ -6,6 +6,8 @@ import re
 import sqlite3
 import threading
 import time
+import urllib.error
+import urllib.request
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -19,30 +21,144 @@ EVENT_MAX_ROWS = int(os.environ.get("BLUE_EVENT_MAX_ROWS", "100000"))
 EVENT_TTL_SECONDS = int(os.environ.get("BLUE_EVENT_TTL_SECONDS", str(7 * 86400)))
 REJECTED_MAX_ROWS = int(os.environ.get("BLUE_REJECTED_MAX_ROWS", "10000"))
 TARGET_ID = os.environ.get("BLUE_TARGET_ID", "local-web")
+PROXY_LOG_PREFIX = os.environ.get("BLUE_PROXY_LOG_PREFIX", "/sensor-logs/access")
 MAX_BATCH_BYTES = 20 * 1024 * 1024
 MAX_PAGE_SIZE = 1000
+SEARCH_FIELDS = {
+    "request_id": "$.request_id",
+    "trace_id": "$.trace_id",
+    "source": "$.source",
+}
+COLLECTOR_METRICS_URL = os.environ.get(
+    "BLUE_COLLECTOR_METRICS_URL", "http://blue-collector:2020/api/v2/metrics/prometheus"
+)
+COLLECTOR_COUNTERS = {
+    "fluentbit_input_records_total": "collector_input_records_total",
+    "fluentbit_output_proc_records_total": "collector_output_records_total",
+    "fluentbit_input_long_line_skipped_total": "collector_long_lines_skipped_total",
+    "fluentbit_output_dropped_records_total": "collector_dropped_records_total",
+    "fluentbit_output_retries_failed_total": "collector_retries_failed_total",
+    "fluentbit_routing_logs_drop_records_total": "collector_routing_dropped_records_total",
+    "fluentbit_input_ingestion_paused": "collector_paused_inputs",
+}
+COLLECTOR_SOURCE_METRICS = {
+    "fluentbit_input_records_total": "records_total",
+    "fluentbit_input_files_opened_total": "files_opened_total",
+    "fluentbit_input_long_line_skipped_total": "long_lines_skipped_total",
+    "fluentbit_input_ingestion_paused": "paused",
+}
+COLLECTOR_SOURCE_ALIASES = {
+    "blue_proxy": "proxy",
+    "blue_target_logs": "target_logs",
+}
 
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def parse_timeline_time(value: str) -> datetime:
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if parsed.tzinfo is None:
+        raise ValueError("timezone required")
+    return parsed.astimezone(timezone.utc)
+
+
+def log_timestamp(record: dict[str, object]) -> str | None:
+    for key in ("@timestamp", "timestamp", "occurred_at", "time", "ts"):
+        value = record.get(key)
+        try:
+            if isinstance(value, (int, float)) and not isinstance(value, bool):
+                magnitude = abs(value)
+                if magnitude > 10**17:
+                    seconds = value / 10**9
+                elif magnitude > 10**14:
+                    seconds = value / 10**6
+                elif magnitude > 10**11:
+                    seconds = value / 10**3
+                else:
+                    seconds = value
+                return datetime.fromtimestamp(seconds, timezone.utc).isoformat()
+            if isinstance(value, str):
+                parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+                if parsed.tzinfo is not None:
+                    return parsed.astimezone(timezone.utc).isoformat()
+        except (OSError, OverflowError, ValueError):
+            continue
+    return None
+
+
+def log_field(record: dict[str, object], *keys: str) -> str | None:
+    for key in keys:
+        value = record.get(key)
+        if isinstance(value, (str, int, float)) and not isinstance(value, bool):
+            return str(value)
+    return None
+
+
+def log_details(record: dict[str, object], original: str) -> dict[str, object]:
+    return {
+        "raw_record": original,
+        "attributes": record,
+        "severity_text": log_field(record, "severity_text", "severity", "level", "lvl"),
+        "trace_id": log_field(record, "trace_id", "traceId"),
+        "span_id": log_field(record, "span_id", "spanId"),
+        "request_id": log_field(record, "request_id", "requestId", "req_id"),
+    }
+
+
+def parse_collector_metrics(payload: str) -> dict[str, object]:
+    counters = {name: 0 for name in COLLECTOR_COUNTERS.values()}
+    sources = {
+        source: {name: 0 for name in COLLECTOR_SOURCE_METRICS.values()}
+        for source in COLLECTOR_SOURCE_ALIASES.values()
+    }
+    start_time = None
+    for line in payload.splitlines():
+        match = re.match(r"^([a-z_]+)(?:\{([^}]*)\})?\s+([0-9.eE+-]+)(?:\s|$)", line)
+        if not match:
+            continue
+        metric, labels, raw_value = match.groups()
+        try:
+            value = int(float(raw_value))
+        except (OverflowError, ValueError):
+            continue
+        if metric == "fluentbit_process_start_time_seconds":
+            start_time = value
+        if metric in COLLECTOR_COUNTERS:
+            counters[COLLECTOR_COUNTERS[metric]] += value
+        source_match = re.search(r'\bname="([^"]+)"', labels or "")
+        source = COLLECTOR_SOURCE_ALIASES.get(source_match.group(1)) if source_match else None
+        if source and metric in COLLECTOR_SOURCE_METRICS:
+            sources[source][COLLECTOR_SOURCE_METRICS[metric]] += value
+    return {**counters, "collector_start_time_seconds": start_time, "collector_sources": sources}
+
+
+def collector_metrics() -> dict[str, object]:
+    try:
+        with urllib.request.urlopen(COLLECTOR_METRICS_URL, timeout=1) as response:
+            payload = response.read(1024 * 1024).decode("utf-8")
+        return {"collector_available": True, **parse_collector_metrics(payload)}
+    except (OSError, ValueError, UnicodeError, urllib.error.URLError):
+        return {"collector_available": False}
+
+
 def normalize(raw: object) -> dict[str, object]:
     if not isinstance(raw, dict) or not isinstance(raw.get("sensor_file"), str):
         raise ValueError("missing sensor provenance")
-    stable_record = {key: value for key, value in raw.items() if key != "sensor_read_at"}
     event_id = hashlib.sha256(
-        json.dumps(stable_record, sort_keys=True, separators=(",", ":")).encode()
+        json.dumps(raw, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
     sensor_file = raw["sensor_file"]
     sensor_read_at = raw.get("sensor_read_at")
     provenance = {
+        "schema_version": 1,
         "target_id": TARGET_ID,
         "sensor_read_at": sensor_read_at,
         "sensor_file": sensor_file,
         "sensor_offset": raw.get("sensor_offset"),
     }
-    if sensor_file.startswith("/sensor-logs/access"):
+    if sensor_file.startswith(PROXY_LOG_PREFIX):
         request = raw.get("request")
         if not isinstance(request, dict) or not isinstance(raw.get("path"), str):
             raise ValueError("invalid proxy event")
@@ -53,6 +169,7 @@ def normalize(raw: object) -> dict[str, object]:
             **provenance,
             "event_id": event_id,
             "event_type": "http_access",
+            "signal_type": "http",
             "source": "blue-ingress-proxy",
             "request_id": request_id,
             "occurred_at": datetime.fromtimestamp(float(raw["ts"]), timezone.utc).isoformat(),
@@ -89,14 +206,63 @@ def normalize(raw: object) -> dict[str, object]:
         and isinstance(parsed.get("event_type"), str)
         and isinstance(parsed.get("message"), str)
     ):
-        return {**parsed, **provenance}
+        message = parsed["message"]
+        try:
+            application_record = json.loads(message)
+        except ValueError:
+            application_record = None
+        details = (
+            log_details(application_record, message)
+            if isinstance(application_record, dict)
+            else {"raw_record": message}
+        )
+        display_message = (
+            log_field(application_record, "message", "msg", "log") or message
+            if isinstance(application_record, dict)
+            else message
+        )
+        return {
+            **provenance,
+            **details,
+            "collector_record": line,
+            "event_id": event_id,
+            "source_event_id": parsed["event_id"],
+            "event_type": (
+                "process_lifecycle"
+                if parsed["event_type"] == "process_lifecycle"
+                else "process_log"
+            ),
+            "signal_type": "log",
+            "source": "target-log-file",
+            "reported_source": "target-process",
+            "capture_run_id": parsed.get("capture_run_id"),
+            "reported_pid": parsed.get("pid"),
+            "exit_code": parsed.get("exit_code"),
+            "occurred_at": log_timestamp(parsed) or sensor_read_at,
+            "stream": parsed.get("stream"),
+            "message": display_message,
+        }
+    if isinstance(parsed, dict):
+        message = log_field(parsed, "message", "msg", "log") or line
+        return {
+            **provenance,
+            **log_details(parsed, line),
+            "event_id": event_id,
+            "event_type": "application_log",
+            "signal_type": "log",
+            "source": "target-log-file",
+            "occurred_at": log_timestamp(parsed) or sensor_read_at,
+            "message": message,
+        }
     return {
         **provenance,
         "event_id": event_id,
         "event_type": "log_line",
+        "signal_type": "log",
         "source": "target-log-file",
         "occurred_at": sensor_read_at,
         "message": line,
+        "raw_record": line,
     }
 
 
@@ -106,7 +272,6 @@ class EventStore:
             raise ValueError("event storage limits must be positive")
         DB_PATH.parent.mkdir(parents=True, exist_ok=True)
         self.condition = threading.Condition()
-        self.evicted_total = 0
         self.db = sqlite3.connect(DB_PATH, timeout=10, check_same_thread=False)
         self.db.execute("PRAGMA journal_mode=WAL")
         self.db.execute("PRAGMA synchronous=FULL")
@@ -120,13 +285,39 @@ class EventStore:
             "received_at TEXT NOT NULL,"
             "event_json TEXT NOT NULL);"
             "CREATE INDEX IF NOT EXISTS events_type_time ON events(event_type, occurred_at);"
+            "CREATE INDEX IF NOT EXISTS events_request_id_seq "
+            "ON events(json_extract(event_json,'$.request_id'), seq DESC);"
+            "CREATE INDEX IF NOT EXISTS events_trace_id_seq "
+            "ON events(json_extract(event_json,'$.trace_id'), seq DESC);"
+            "CREATE INDEX IF NOT EXISTS events_source_seq "
+            "ON events(json_extract(event_json,'$.source'), seq DESC);"
+            "CREATE INDEX IF NOT EXISTS events_received_at_seq "
+            "ON events(received_at DESC, seq DESC);"
             "CREATE TABLE IF NOT EXISTS rejected ("
             "id INTEGER PRIMARY KEY AUTOINCREMENT,"
             "reason TEXT NOT NULL,"
             "payload_sha256 TEXT NOT NULL,"
             "received_at TEXT NOT NULL);"
+            "CREATE TABLE IF NOT EXISTS counter_state ("
+            "name TEXT PRIMARY KEY, value INTEGER NOT NULL, initialized_at TEXT NOT NULL);"
         )
+        stamp = utc_now()
+        with self.db:
+            for name, initial in (
+                ("events_ingested_total", "SELECT COUNT(*) FROM events"),
+                ("events_evicted_total", "SELECT 0"),
+                ("rejected_total", "SELECT COUNT(*) FROM rejected"),
+            ):
+                self.db.execute(
+                    f"INSERT OR IGNORE INTO counter_state(name,value,initialized_at) "
+                    f"SELECT ?,({initial}),?",
+                    (name, stamp),
+                )
         self._import_legacy_log()
+
+    def increment(self, name: str, amount: int) -> None:
+        if amount:
+            self.db.execute("UPDATE counter_state SET value=value+? WHERE name=?", (amount, name))
 
     def _import_legacy_log(self) -> None:
         legacy_path = DB_PATH.with_name("observations.jsonl")
@@ -165,6 +356,8 @@ class EventStore:
                     "INSERT INTO rejected(reason,payload_sha256,received_at) VALUES(?,?,?)",
                     [(reason, digest, utc_now()) for reason, digest in rejected],
                 )
+                self.increment("events_ingested_total", accepted)
+                self.increment("rejected_total", len(rejected))
             if accepted:
                 self.condition.notify_all()
         return accepted, len(rejected)
@@ -180,15 +373,98 @@ class EventStore:
             ).fetchall()
         return [{**json.loads(payload), "seq": seq} for seq, payload in rows]
 
-    def metrics(self) -> dict[str, int]:
+    def search(
+        self, field: str, value: str, before: int | None, limit: int
+    ) -> list[dict[str, object]]:
+        path = SEARCH_FIELDS[field]
         with sqlite3.connect(DB_PATH, timeout=10) as db:
+            rows = db.execute(
+                "SELECT seq,event_json FROM events "
+                f"WHERE json_extract(event_json,'{path}')=? "
+                "AND (? IS NULL OR seq<?) ORDER BY seq DESC LIMIT ?",
+                (value, before, before, limit),
+            ).fetchall()
+        return [{**json.loads(payload), "seq": seq} for seq, payload in rows]
+
+    def sources(self, limit: int) -> list[dict[str, object]]:
+        with sqlite3.connect(DB_PATH, timeout=10) as db:
+            rows = db.execute(
+                "SELECT json_extract(event_json,'$.source'), "
+                "json_extract(event_json,'$.sensor_file'), COUNT(*), MAX(seq), "
+                "MAX(received_at) FROM events "
+                "GROUP BY json_extract(event_json,'$.source'), "
+                "json_extract(event_json,'$.sensor_file') "
+                "ORDER BY MAX(seq) DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
+        return [
+            {
+                "source": source,
+                "sensor_file": file,
+                "events_retained": count,
+                "latest_seq": latest_seq,
+                "last_received_at": last_received_at,
+            }
+            for source, file, count, latest_seq, last_received_at in rows
+        ]
+
+    def timeline(
+        self,
+        start_at: str,
+        end_at: str,
+        source: str | None,
+        before: int | None,
+        limit: int,
+    ) -> list[dict[str, object]]:
+        clauses = ["received_at>=?", "received_at<=?"]
+        values: list[str | int] = [start_at, end_at]
+        if source is not None:
+            clauses.append("json_extract(event_json,'$.source')=?")
+            values.append(source)
+        if before is not None:
+            clauses.append("seq<?")
+            values.append(before)
+        with sqlite3.connect(DB_PATH, timeout=10) as db:
+            rows = db.execute(
+                "SELECT seq,event_json FROM events WHERE "
+                + " AND ".join(clauses)
+                + " ORDER BY seq DESC LIMIT ?",
+                (*values, limit),
+            ).fetchall()
+        return [{**json.loads(payload), "seq": seq} for seq, payload in rows]
+
+    def metrics(self) -> dict[str, int | str | None]:
+        with sqlite3.connect(DB_PATH, timeout=10) as db:
+            target_logs = db.execute(
+                "SELECT COUNT(*), MAX(received_at) FROM events "
+                "WHERE json_extract(event_json,'$.source')='target-log-file'"
+            ).fetchone()
+            proxy_events = db.execute(
+                "SELECT COUNT(*), MAX(received_at) FROM events "
+                "WHERE json_extract(event_json,'$.source')='blue-ingress-proxy'"
+            ).fetchone()
+            counters = {
+                name: (int(value), initialized_at)
+                for name, value, initialized_at in db.execute(
+                    "SELECT name,value,initialized_at FROM counter_state"
+                )
+            }
             return {
                 "events_total": int(db.execute("SELECT COUNT(*) FROM events").fetchone()[0]),
-                "events_evicted_total": self.evicted_total,
-                "rejected_total": int(db.execute("SELECT COUNT(*) FROM rejected").fetchone()[0]),
+                "events_ingested_total": counters["events_ingested_total"][0],
+                "events_evicted_total": counters["events_evicted_total"][0],
+                "rejected_total": counters["rejected_total"][0],
+                "counters_started_at": counters["events_ingested_total"][1],
                 "latest_seq": int(
                     db.execute("SELECT COALESCE(MAX(seq),0) FROM events").fetchone()[0]
                 ),
+                "oldest_seq": int(
+                    db.execute("SELECT COALESCE(MIN(seq),0) FROM events").fetchone()[0]
+                ),
+                "target_log_events": int(target_logs[0]),
+                "target_log_last_received_at": target_logs[1],
+                "proxy_events": int(proxy_events[0]),
+                "proxy_last_received_at": proxy_events[1],
             }
 
     def cleanup(self) -> None:
@@ -207,7 +483,7 @@ class EventStore:
                         ).fetchone()[0]
                     )
                     self.db.execute("DELETE FROM events WHERE seq <= ?", (boundary,))
-                self.evicted_total += expired + excess
+                self.increment("events_evicted_total", expired + excess)
                 self.db.execute("DELETE FROM rejected WHERE received_at < ?", (cutoff,))
                 rejected_count = int(self.db.execute("SELECT COUNT(*) FROM rejected").fetchone()[0])
                 rejected_excess = rejected_count - REJECTED_MAX_ROWS
@@ -309,7 +585,78 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(404, {"error": "not found"})
             return
         if parsed.path == "/metrics":
-            self.send_json(200, {**STORE.metrics(), **BODY_STORE.metrics()})
+            self.send_json(200, {**STORE.metrics(), **BODY_STORE.metrics(), **collector_metrics()})
+            return
+        if parsed.path == "/sources":
+            try:
+                limit = int(parse_qs(parsed.query).get("limit", ["20"])[0])
+                if not 1 <= limit <= 100:
+                    raise ValueError
+            except ValueError:
+                self.send_json(400, {"error": "invalid source limit"})
+                return
+            sources = STORE.sources(limit + 1)
+            self.send_json(200, {"sources": sources[:limit], "has_more": len(sources) > limit})
+            return
+        if parsed.path == "/timeline":
+            try:
+                params = parse_qs(parsed.query)
+                start = parse_timeline_time(params.get("start_at", [""])[0])
+                end = parse_timeline_time(params.get("end_at", [""])[0])
+                source = params.get("source", [None])[0]
+                before_param = params.get("before", [""])[0]
+                before = int(before_param) if before_param else None
+                limit = int(params.get("limit", ["50"])[0])
+                if (
+                    not 0 < (end - start).total_seconds() <= 3600
+                    or not 1 <= limit <= 100
+                    or (
+                        source is not None
+                        and source not in ("blue-ingress-proxy", "target-log-file")
+                    )
+                    or (before is not None and before < 1)
+                ):
+                    raise ValueError
+            except ValueError:
+                self.send_json(400, {"error": "invalid timeline bounds, source, cursor or limit"})
+                return
+            events = STORE.timeline(start.isoformat(), end.isoformat(), source, before, limit + 1)
+            self.send_json(
+                200,
+                {
+                    "events": events[:limit],
+                    "next_before": events[limit - 1]["seq"] if len(events) >= limit else None,
+                    "has_more": len(events) > limit,
+                },
+            )
+            return
+        if parsed.path == "/search":
+            try:
+                params = parse_qs(parsed.query)
+                field = params.get("field", [""])[0]
+                value = params.get("value", [""])[0]
+                limit = int(params.get("limit", ["20"])[0])
+                before_param = params.get("before", [""])[0]
+                before = int(before_param) if before_param else None
+                if (
+                    field not in SEARCH_FIELDS
+                    or not 1 <= len(value) <= 256
+                    or not 1 <= limit <= 100
+                    or (before is not None and before < 1)
+                ):
+                    raise ValueError
+            except ValueError:
+                self.send_json(400, {"error": "invalid search field, value, cursor or limit"})
+                return
+            events = STORE.search(field, value, before, limit + 1)
+            self.send_json(
+                200,
+                {
+                    "events": events[:limit],
+                    "next_before": events[limit - 1]["seq"] if len(events) >= limit else None,
+                    "has_more": len(events) > limit,
+                },
+            )
             return
         if parsed.path.startswith("/bodies/"):
             ref = parsed.path.removeprefix("/bodies/")

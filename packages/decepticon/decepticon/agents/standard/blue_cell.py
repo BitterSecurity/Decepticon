@@ -4,7 +4,7 @@ from typing import Any
 
 from langchain.agents import create_agent
 
-from decepticon.agents.build import build_middleware, build_tools
+from decepticon.agents.build import build_middleware
 from decepticon.agents.prompts import load_prompt
 from decepticon.backends import build_sandbox_backend, make_agent_backend
 from decepticon.llm import LLMFactory
@@ -12,12 +12,16 @@ from decepticon.tools.defense.blue_sensor import (
     blue_sensor_body,
     blue_sensor_events,
     blue_sensor_scan,
+    blue_sensor_search,
+    blue_sensor_timeline,
 )
 from decepticon_core.plugin_loader import SubAgentSpec, is_bundle_enabled, load_plugin_callbacks
 
 _STANDARD_TOOLS: dict[str, Any] = {
     "blue_sensor_scan": blue_sensor_scan,
     "blue_sensor_events": blue_sensor_events,
+    "blue_sensor_search": blue_sensor_search,
+    "blue_sensor_timeline": blue_sensor_timeline,
     "blue_sensor_body": blue_sensor_body,
 }
 
@@ -54,7 +58,7 @@ def create_blue_cell_agent(
         backend = make_agent_backend(sandbox)
 
     if tools is None:
-        tools = build_tools(role=_ROLE, standard_tools=_STANDARD_TOOLS)
+        tools = list(_STANDARD_TOOLS.values())
     if middleware is None:
         middleware = build_middleware(
             role=_ROLE,
