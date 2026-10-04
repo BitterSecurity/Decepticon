@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -45,6 +46,114 @@ func TestMigrateLegacyCredentialsPreservesConfiguredDatabasePasswords(t *testing
 	saved, err := config.LoadEnv(path)
 	if err != nil || !reflect.DeepEqual(env, saved) {
 		t.Fatal("on-disk configuration differs from running configuration")
+	}
+}
+
+func TestLegacyCredentialsUpgradeEveryStackSharingOneHome(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("DECEPTICON_HOME", home)
+	t.Setenv("DECEPTICON_COMPOSE_PROJECT", "")
+	t.Setenv("DECEPTICON_STACK_NAME", "first")
+	path := filepath.Join(home, ".env")
+	seed := "LITELLM_MASTER_KEY=sk-decepticon-master\nLITELLM_SALT_KEY=sk-decepticon-salt-change-me\nPOSTGRES_PASSWORD=decepticon\nNEO4J_PASSWORD=decepticon-graph\n"
+	if err := os.WriteFile(path, []byte(seed), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	env, err := config.LoadEnv(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var calls []string
+	oldPassword := "decepticon-graph"
+	db := credentialDatabaseOps{
+		up: func() error { calls = append(calls, "up"); return nil },
+		postgres: func(password string) error {
+			if password == "" || password == "decepticon" {
+				t.Errorf("PostgreSQL password was not upgraded")
+			}
+			calls = append(calls, "postgres")
+			return nil
+		},
+		neo4j: func(auth map[string]string, password string) error {
+			if auth["NEO4J_PASSWORD"] != oldPassword || password == "" || password == oldPassword {
+				t.Errorf("Neo4j received incorrect old or new credentials")
+			}
+			calls = append(calls, "neo4j")
+			return nil
+		},
+	}
+	if err := migrateLegacyCredentialsWith(env, db); err != nil {
+		t.Fatal(err)
+	}
+	firstMarker := migrationCompletionPath(home)
+	if _, err := os.Stat(firstMarker); err != nil {
+		t.Fatalf("first stack completion marker missing: %v", err)
+	}
+	if !reflect.DeepEqual(calls, []string{"up", "postgres", "neo4j"}) {
+		t.Fatalf("first stack database migration: %v", calls)
+	}
+
+	t.Setenv("DECEPTICON_STACK_NAME", "second")
+	env, err = config.LoadEnv(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	secondMarker := migrationCompletionPath(home)
+	if secondMarker == firstMarker {
+		t.Fatal("distinct stacks share one completion marker")
+	}
+	calls = nil
+	if err := migrateLegacyCredentialsWith(env, db); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(calls, []string{"up", "postgres", "neo4j"}) {
+		t.Fatalf("second stack did not upgrade its existing volumes: %v", calls)
+	}
+	if _, err := os.Stat(secondMarker); err != nil {
+		t.Fatalf("second stack completion marker missing: %v", err)
+	}
+	calls = nil
+	if err := migrateLegacyCredentialsWith(env, db); err != nil || len(calls) != 0 {
+		t.Fatalf("completed stack repeated migration: calls=%v err=%v", calls, err)
+	}
+}
+
+func TestStackCredentialMigrationRetriesAfterDatabaseFailure(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("DECEPTICON_HOME", home)
+	t.Setenv("DECEPTICON_COMPOSE_PROJECT", "")
+	t.Setenv("DECEPTICON_STACK_NAME", "retry")
+	path := filepath.Join(home, ".env")
+	if err := os.WriteFile(path, []byte("POSTGRES_PASSWORD=new-postgres\nNEO4J_PASSWORD=new-neo4j\nLITELLM_MASTER_KEY=new-master\nLITELLM_SALT_KEY=old-salt\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path+".before-credential-migration", []byte("POSTGRES_PASSWORD=decepticon\nNEO4J_PASSWORD=decepticon-graph\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	env, err := config.LoadEnv(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	failed := true
+	db := credentialDatabaseOps{
+		up:       func() error { return nil },
+		postgres: func(string) error { return nil },
+		neo4j: func(map[string]string, string) error {
+			if failed {
+				failed = false
+				return errors.New("database unavailable")
+			}
+			return nil
+		},
+	}
+	if err := migrateLegacyCredentialsWith(env, db); err == nil {
+		t.Fatal("failed database rotation was accepted")
+	}
+	if _, err := os.Stat(migrationCompletionPath(home)); !os.IsNotExist(err) {
+		t.Fatalf("failed stack was marked complete: %v", err)
+	}
+	if err := migrateLegacyCredentialsWith(env, db); err != nil {
+		t.Fatalf("database migration did not retry: %v", err)
 	}
 }
 
@@ -161,7 +270,8 @@ func TestRotateNeo4jPasswordChecksResultAndResumes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	env := map[string]string{"NEO4J_HTTP_PORT": parsed.Port(), "NEO4J_PASSWORD": oldPassword}
+	t.Setenv("NEO4J_HTTP_PORT", parsed.Port())
+	env := map[string]string{"NEO4J_HTTP_PORT": "1", "NEO4J_PASSWORD": oldPassword}
 	for i := 0; i < 2; i++ {
 		if err := rotateNeo4jPassword(env, newPassword); err != nil {
 			t.Fatalf("migration attempt %d: %v", i+1, err)

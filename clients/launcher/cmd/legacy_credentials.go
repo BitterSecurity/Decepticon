@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/compose"
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/config"
+	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/opscontrol"
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/ui"
 )
 
@@ -29,6 +31,12 @@ var legacyCredentialDefaults = map[string][]string{
 
 type credentialMigrationState struct {
 	Updates map[string]string `json:"updates"`
+}
+
+type credentialDatabaseOps struct {
+	up       func() error
+	postgres func(string) error
+	neo4j    func(map[string]string, string) error
 }
 
 func isLegacyCredential(env map[string]string, key string) bool {
@@ -57,12 +65,51 @@ func needsLegacyCredentialMigration(env map[string]string) bool {
 }
 
 func migrateLegacyCredentials(env map[string]string) error {
+	var c *compose.Compose
+	return migrateLegacyCredentialsWith(env, credentialDatabaseOps{
+		up: func() error {
+			c = compose.New()
+			return c.UpDatabases()
+		},
+		postgres: func(password string) error { return rotatePostgresPassword(c, password) },
+		neo4j:    rotateNeo4jPassword,
+	})
+}
+
+func migrationCompletionPath(home string) string {
+	project := sha256.Sum256([]byte(opscontrol.ComposeProjectName()))
+	return filepath.Join(home, fmt.Sprintf(".credential-migration-%x.complete", project[:8]))
+}
+
+func migrateLegacyCredentialsWith(env map[string]string, db credentialDatabaseOps) error {
+	home := config.DecepticonHome()
+	completionPath := migrationCompletionPath(home)
+	statePath := filepath.Join(home, ".credential-migration.json")
 	if !needsLegacyCredentialMigration(env) {
+		if _, err := os.Stat(completionPath); err == nil {
+			return nil
+		} else if !os.IsNotExist(err) {
+			return err
+		}
+		previous, err := config.LoadEnv(config.EnvPath() + ".before-credential-migration")
+		if os.IsNotExist(err) {
+			return nil
+		}
+		if err != nil {
+			return fmt.Errorf("read previous credentials: %w", err)
+		}
+		if err := syncStackDatabaseCredentials(env, previous, db); err != nil {
+			return err
+		}
+		if err := markStackMigrationComplete(completionPath); err != nil {
+			return err
+		}
+		if err := os.Remove(statePath); err != nil && !os.IsNotExist(err) {
+			ui.Warning("Could not remove completed credential migration state: " + err.Error())
+		}
 		return nil
 	}
 
-	home := config.DecepticonHome()
-	statePath := filepath.Join(home, ".credential-migration.json")
 	state, err := loadOrCreateCredentialState(statePath, env)
 	if err != nil {
 		return err
@@ -71,21 +118,20 @@ func migrateLegacyCredentials(env map[string]string) error {
 		return err
 	}
 
-	c := compose.New()
-	if _, postgres := state.Updates["POSTGRES_PASSWORD"]; postgres {
-		if err := c.UpDatabases(); err != nil {
-			return fmt.Errorf("start databases with existing credentials: %w", err)
-		}
-		if err := rotatePostgresPassword(c, state.Updates["POSTGRES_PASSWORD"]); err != nil {
-			return fmt.Errorf("rotate PostgreSQL password: %w", err)
-		}
-	} else if _, neo4j := state.Updates["NEO4J_PASSWORD"]; neo4j {
-		if err := c.UpDatabases(); err != nil {
+	_, postgres := state.Updates["POSTGRES_PASSWORD"]
+	_, neo4j := state.Updates["NEO4J_PASSWORD"]
+	if postgres || neo4j {
+		if err := db.up(); err != nil {
 			return fmt.Errorf("start databases with existing credentials: %w", err)
 		}
 	}
-	if password, neo4j := state.Updates["NEO4J_PASSWORD"]; neo4j {
-		if err := rotateNeo4jPassword(env, password); err != nil {
+	if postgres {
+		if err := db.postgres(state.Updates["POSTGRES_PASSWORD"]); err != nil {
+			return fmt.Errorf("rotate PostgreSQL password: %w", err)
+		}
+	}
+	if neo4j {
+		if err := db.neo4j(env, state.Updates["NEO4J_PASSWORD"]); err != nil {
 			return fmt.Errorf("rotate Neo4j password: %w", err)
 		}
 	}
@@ -95,6 +141,9 @@ func migrateLegacyCredentials(env map[string]string) error {
 	for key, value := range state.Updates {
 		env[key] = value
 	}
+	if err := markStackMigrationComplete(completionPath); err != nil {
+		return err
+	}
 	if err := os.Remove(statePath); err != nil {
 		ui.Warning("Could not remove completed credential migration state: " + err.Error())
 	}
@@ -102,6 +151,40 @@ func migrateLegacyCredentials(env map[string]string) error {
 	ui.DimText("Original configuration backed up at " + config.EnvPath() + ".before-credential-migration")
 	if env[legacySaltMarker] == "true" {
 		ui.Warning("LiteLLM encryption salt was retained to keep stored provider credentials readable. Re-enter stored provider keys on a new installation to rotate it.")
+	}
+	return nil
+}
+
+func syncStackDatabaseCredentials(current, previous map[string]string, db credentialDatabaseOps) error {
+	postgres := current["POSTGRES_PASSWORD"] != previous["POSTGRES_PASSWORD"]
+	neo4j := current["NEO4J_PASSWORD"] != previous["NEO4J_PASSWORD"]
+	if !postgres && !neo4j {
+		return nil
+	}
+	if err := db.up(); err != nil {
+		return fmt.Errorf("start databases for this stack: %w", err)
+	}
+	if postgres {
+		if err := db.postgres(current["POSTGRES_PASSWORD"]); err != nil {
+			return fmt.Errorf("rotate PostgreSQL password for this stack: %w", err)
+		}
+	}
+	if neo4j {
+		oldAuth := make(map[string]string, len(current))
+		for key, value := range current {
+			oldAuth[key] = value
+		}
+		oldAuth["NEO4J_PASSWORD"] = previous["NEO4J_PASSWORD"]
+		if err := db.neo4j(oldAuth, current["NEO4J_PASSWORD"]); err != nil {
+			return fmt.Errorf("rotate Neo4j password for this stack: %w", err)
+		}
+	}
+	return nil
+}
+
+func markStackMigrationComplete(path string) error {
+	if err := writeExclusivePrivate(path, []byte("complete\n")); err != nil && !os.IsExist(err) {
+		return fmt.Errorf("mark stack credential migration complete: %w", err)
 	}
 	return nil
 }
@@ -189,6 +272,9 @@ func rotatePostgresPassword(c *compose.Compose, password string) error {
 
 func rotateNeo4jPassword(env map[string]string, newPassword string) error {
 	port := config.Get(env, "NEO4J_HTTP_PORT", "7474")
+	if override := os.Getenv("NEO4J_HTTP_PORT"); override != "" {
+		port = override
+	}
 	portNumber, err := strconv.Atoi(port)
 	if err != nil || portNumber < 1 || portNumber > 65535 {
 		return fmt.Errorf("invalid NEO4J_HTTP_PORT")

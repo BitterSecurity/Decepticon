@@ -132,7 +132,9 @@ Older installations that still use the public Compose fallback credentials are
 upgraded on the next `decepticon start`. The launcher backs up `.env` to
 `~/.decepticon/.env.before-credential-migration`, rotates the LiteLLM admin
 key and database passwords without deleting existing data, and retries safely
-if the upgrade is interrupted. It retains an old LiteLLM encryption salt when
+if the upgrade is interrupted. Each Compose project sharing the same
+`DECEPTICON_HOME` upgrades its own database volumes on its first start after
+the shared `.env` changes. It retains an old LiteLLM encryption salt when
 needed so credentials already stored in the database remain readable. The
 backup contains secrets and is written with owner-only permissions.
 
