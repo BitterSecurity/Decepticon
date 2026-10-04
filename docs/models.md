@@ -50,7 +50,7 @@ With the matching provider API key, these model IDs are available as explicit
 
 | Provider | Model IDs |
 |----------|-----------|
-| OpenAI | `openai/gpt-6-astra`, `openai/gpt-6.1-sol`, `openai/gpt-6-luna` |
+| OpenAI | `openai/gpt-6-astra`, `openai/gpt-6.1-sol`, `openai/gpt-6-sol`, `openai/gpt-6-luna` |
 | Anthropic | `anthropic/claude-fable-5-1`, `anthropic/claude-opus-5-5`, `anthropic/claude-sonnet-5-5` |
 | Google | `gemini/gemini-3.8-flash` |
 | xAI | `xai/grok-4.7` |

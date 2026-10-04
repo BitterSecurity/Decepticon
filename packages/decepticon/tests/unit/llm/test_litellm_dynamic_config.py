@@ -33,6 +33,7 @@ PROVIDER_EXTRA_PARAMS = _module.PROVIDER_EXTRA_PARAMS
     [
         ("openai/gpt-6-astra", "OPENAI_API_KEY", True),
         ("openai/gpt-6.1-sol", "OPENAI_API_KEY", True),
+        ("openai/gpt-6-sol", "OPENAI_API_KEY", True),
         ("openai/gpt-6-luna", "OPENAI_API_KEY", True),
         ("anthropic/claude-fable-5-1", "ANTHROPIC_API_KEY", False),
         ("anthropic/claude-opus-5-5", "ANTHROPIC_API_KEY", False),

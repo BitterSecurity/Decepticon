@@ -153,6 +153,17 @@ model_list:
       output_cost_per_token: 0.000010
       cache_read_input_token_cost: 0.0000001
 
+  - model_name: openai/gpt-6-sol
+    litellm_params:
+      model: openai/gpt-6-sol
+      api_key: os.environ/OPENAI_API_KEY
+      additional_drop_params: ["temperature", "top_p", "top_logprobs", "logprobs"]
+    model_info:
+      mode: responses
+      input_cost_per_token: 0.000002
+      output_cost_per_token: 0.000010
+      cache_read_input_token_cost: 0.0000002
+
   - model_name: openai/gpt-6-luna
     litellm_params:
       model: openai/gpt-6-luna

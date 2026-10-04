@@ -215,7 +215,12 @@ class TestLLMFactory:
         assert model.disable_streaming == "tool_calling"
 
     def test_gpt6_agent_calls_use_responses_api(self) -> None:
-        for model_id in ("openai/gpt-6-astra", "openai/gpt-6.1-sol", "openai/gpt-6-luna"):
+        for model_id in (
+            "openai/gpt-6-astra",
+            "openai/gpt-6.1-sol",
+            "openai/gpt-6-sol",
+            "openai/gpt-6-luna",
+        ):
             model = self.factory._create_chat_model(model_id, 0.2)
             assert model.use_responses_api is True
             assert model.disabled_params == {"temperature": None}
