@@ -910,7 +910,30 @@ class Neo4jBackend:
             "RELATED_TO",
             "HAS_TECHNIQUE",
             "HAS_SUBTECHNIQUE",
+            "REQUIRES",
+            "VALIDATED_BY",
+            "COMPOSES_WITH",
+            "SPECIALIZES",
+            "ALTERNATIVE_TO",
+            "CONFLICTS_WITH",
         ]
+        allowed = {
+            "IN_PHASE",
+            "IMPLEMENTS",
+            "TAGGED",
+            "BELONGS_TO",
+            "RELATED_TO",
+            "HAS_TECHNIQUE",
+            "HAS_SUBTECHNIQUE",
+            "REQUIRES",
+            "VALIDATED_BY",
+            "COMPOSES_WITH",
+            "SPECIALIZES",
+            "ALTERNATIVE_TO",
+            "CONFLICTS_WITH",
+        }
+        if not isinstance(whitelist, list) or any(edge not in allowed for edge in whitelist):
+            raise ValueError("traverse edge_types contains an unsupported relationship")
         # Cypher relationship pattern: ``[r:A|B|C*1..N]``.
         rel_pattern = f"[r:{'|'.join(whitelist)}*1..{depth}]"
         cypher = (

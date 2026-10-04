@@ -7,6 +7,9 @@ metadata:
   when_to_use: "final report, generate report, engagement complete, all objectives done, executive summary, technical report"
   tags: report, final, executive-summary, technical-report, remediation, detection-gap
   upstream_ref: "Decepticon final-engagement report template — deliverable generation, no direct attack technique"
+  skillogy:
+    version: 1
+    requires: [finding-report]
 ---
 
 # Final Engagement Report Generation
@@ -41,14 +44,14 @@ Read every `findings/FIND-*.md` (canonical name `findings/FIND-{NNN}.md`; the
 for each FIND-NNN.md:
   - id, title, severity, cwe, cvss_score, cvss_vector, vrt,
     target (affected_target), affected_component, phase,
-    technique (ATT&CK ID), status, confidence
+    technique (ATT&CK ID), result_kind, verification_status, report_status
 ```
 
 Sorting rules:
 - Primary: severity (`critical` → `high` → `medium` → `low` → `informational`)
 - Secondary: CVSS score descending
 - De-duplicate findings that appear across multiple objectives (keep highest-severity instance)
-- Flag `confidence: unverified` findings — they require a disclaimer note in the report
+- Flag `verification_status: unverified` findings — they require a disclaimer note in the report
 
 ### Step 3: Generate Executive Summary
 
@@ -203,14 +206,14 @@ Total techniques tested: [N]
 
 ### All Findings
 
-| ID | Title | Severity | CVSS | Target | Phase | ATT&CK | Status | Confidence |
+| ID / Canonical file | Title | Severity | CVSS | Target | Phase | ATT&CK | Result | Verification |
 |----|-------|----------|------|--------|-------|--------|--------|------------|
-| FIND-001 | ... | Critical | 9.8 | ... | initial-access | T1190 | Verified | verified |
+| [FIND-001](../findings/FIND-001.md) | ... | Critical | 9.8 | ... | initial-access | T1190 | vulnerability | verified |
 | ... | | | | | | | | |
 
 *Sorted by severity (Critical → High → Medium → Low → Informational), then CVSS descending.*
 
-> **Note on unverified findings**: Findings marked `confidence: unverified` were observed
+> **Note on unverified findings**: Findings marked `verification_status: unverified` were observed
 > but not fully confirmed due to [testing constraints / time / scope]. These should be
 > independently validated before remediation prioritization.
 
@@ -221,7 +224,7 @@ Total techniques tested: [N]
 ### Critical Findings
 
 #### [FIND-ID]: [Title]
-**Severity**: Critical | **CVSS**: [score] `[vector]` (v[4.0]) | **Confidence**: [verified/unverified]
+**Severity**: Critical | **CVSS**: [score or not scored] `[justified vector]` (v[3.1]) | **Verification**: [verified/unverified]
 **CWE**: [CWE-ID] | **VRT**: [category/sub-category/variant]
 **Target**: [host/service/URL]
 **Phase**: [kill chain phase]
@@ -404,114 +407,46 @@ Reference specific FIND-IDs inline where findings were exploited.]
 
 | Rule | Detail |
 |------|--------|
-| Sort order | Critical → High → Medium → Low → Informational, then CVSS descending |
-| De-duplication | If a finding appears in multiple objectives, keep one entry at the highest severity observed |
-| Unverified findings | Add disclaimer: "This finding was not fully confirmed. Validate before actioning." |
-| Missing CVSS | If no CVSS in frontmatter, assign based on severity: Critical=9.0, High=7.5, Medium=5.0, Low=2.5 |
-| Empty attack paths | If no PATH-*.md files exist, omit Section 4 and note: "No complete attack paths were documented." |
-| Empty timeline | If timeline.jsonl is empty or missing, omit Section 6 and note accordingly |
+| Sort order | Critical → High → Medium → Low → Informational, then justified CVSS descending |
+| Canonical link | Link directly to `findings/FIND-NNN.md`; do not create per-finding copies under `report/` |
+| Verified | Only `result_kind: vulnerability` with `verification_status: verified` can be listed as a confirmed vulnerability |
+| Unverified | Preserve the claim and its testing limit, with an explicit disclaimer |
+| False positive | Count the tested surface and rebuttal in coverage; exclude it from vulnerability totals |
+| Negative results | Include meaningful `result_kind: negative_result` findings as coverage evidence, not vulnerabilities |
+| Missing CVSS | State "not scored"; never infer a score from a severity label |
+| Empty attack paths | If no PATH-*.md files exist, omit Section 4 and note why |
+| Empty timeline | If timeline.jsonl is empty or missing, omit Section 6 and note why |
 
-## Deliverable-Tier Finding Promotion
+## Finding lifecycle
 
-Operational findings (`findings/FIND-NNN.md` per
-`skills/shared/finding-protocol/SKILL.md`) carry the minimum
-fields a sub-agent needs to make a decision: id, severity, title,
-agent, objective_id, discovered_at, evidence_pointer, plus
-Description / Evidence / Next sections. The orchestrator's
-final-report pass PROMOTES each operational finding into a
-deliverable-tier finding document (`report/<severity><NN>-<slug>.md`,
-e.g. `report/critical01-struts-rce.md`) with the
-heavyweight schema below — fields the orchestrator can compute from
-engagement context that sub-agents could not infer mid-engagement.
+The only per-finding document is `findings/FIND-NNN.md`. The finding author
+writes observed facts with `report_status: draft`; an independent
+`finding_verifier` updates `verification_status` and its rationale after a
+positive reproduction and equivalent negative control; `finding_reporter`
+completes the same document in place using deterministic `cvss_score` when a
+CVSS 3.1 vector is justified. `report_status: complete` means the document was
+checked and is ready to read, not that the issue is verified or fixed.
 
-Promotion is a step within this skill's report generation workflow.
-Skip promotion in any mode where the loaded mode skill (e.g.
-`skills/benchmark/SKILL.md`) replaces decepticon.md's
-`<COMPLETION_CRITERIA>` Final-response sequence with a mode-specific
-terminal behaviour (e.g. SHORT-CIRCUIT for direct credential / target
-return). The mode skill specifies the deliverable for that mode.
-
-### Heavyweight Schema (deliverable tier)
-
-Frontmatter fields beyond operational tier:
-
-```yaml
----
-id: FIND-001                                # copied from operational
-severity: critical                          # copied from operational
-title: <one-line summary>                   # copied from operational
-cvss_score: 9.8                             # orchestrator-computed from severity + technique
-cvss_vector: "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N"
-cvss_version: "4.0"
-cwe: [CWE-89]                               # REQUIRED at deliverable tier — orchestrator-derived from technique evidence
-vrt: server-side-injection/sql-injection/blind  # Bugcrowd VRT category/sub-category/variant (carries P1–P5 + CVSS/CWE cross-walk)
-mitre: [T1190]                              # orchestrator-derived from technique evidence
-affected_target: "10.0.0.5"                 # extracted from operational description / evidence
-affected_component: "MySQL 5.7 on port 3306"
-confidence: verified                        # promoted per Findings Aggregation Rules (verified for any operational finding with 2+ evidence items)
-phase: recon                                # orchestrator-inferred from agent field (recon→reconnaissance, exploit→initial-access, postexploit→post-exploitation, etc.)
-agent: recon                                # copied from operational
-objective_id: OBJ-001                       # copied from operational
-discovered_at: "2026-04-06T14:23:11Z"       # copied from operational
-detected: null                              # explicit `unknown` if Blue Team visibility not assessed
-remediation_priority: immediate             # derived from severity (critical/high → immediate, medium → short-term, low → long-term)
----
-```
-
-Body sections — extend operational tier with deliverable-grade content:
-
-- `## Description` — promoted from operational, expanded with engagement-context framing
-- `## Steps to Reproduce` — synthesized from evidence pointer files (numbered, copy-pasteable)
-- `## Impact` — orchestrator's business-impact framing (operational tier does not have this)
-- `## Evidence` — table form, references operational `evidence_pointer` files
-- `## Detection` — orchestrator-filled if blue-team visibility data exists; else `Detected by Blue Team: unknown`
-- `## Remediation` — orchestrator-derived from CWE / MITRE references
-- `## References` — CWE URL + MITRE ATT&CK URL list
-
-### Severity → CVSS-numeric Mapping (when CVSS not pre-assigned)
-
-When the technique evidence does not yield a precise CVSS vector, fall back to severity defaults from Findings Aggregation Rules: Critical=9.0, High=7.5, Medium=5.0, Low=2.5.
-
-### Promotion Algorithm
-
-Deliverable filenames are **severity-sorted and human-readable** —
-`report/<severity><NN>-<slug>.md` — because at engagement end severity is
-final, no further cross-references are created against these files, and a plain
-`ls report/` should list findings worst-first. `<severity>` is the lowercased
-label (`critical`/`high`/`medium`/`low`/`info`), `<NN>` is a per-severity
-counter (`critical01`, `critical02`, `high01`, …), and `<slug>` is a short
-kebab-case form of the title. The operational `id: FIND-NNN` is preserved in
-the deliverable frontmatter, so the readable file stays traceable to its
-operational finding and to all `finding_id` cross-references.
-
-For each operational `findings/FIND-NNN.md` in `findings/`, sorted by severity
-(critical → informational) then discovery order:
-
-1. Read frontmatter and body (operational tier).
-2. If severity in {critical, high, medium}:
-   - Promote to `report/<severity><NN>-<slug>.md` with the full deliverable
-     schema above (keep `id: FIND-NNN` in frontmatter).
-3. If severity in {low, informational}:
-   - Promote in condensed form (id / title / description / remediation only) per the existing "Low / Informational Findings" rule in Findings Detail (Section 3 of the technical-report template).
-4. Update the technical-report.md "Findings Detail" section to reference the
-   deliverable `report/<severity><NN>-<slug>.md` path (carrying its `FIND-NNN`
-   id), not `findings/FIND-NNN.md`.
-
-### Promotion is One-Way
-
-Operational findings remain in `findings/` (the orchestrator does not mutate them); deliverable findings are generated copies in `report/`. If a sub-agent updates an operational finding mid-engagement (e.g. with additional evidence), the next final-report pass re-promotes the updated operational tier — the deliverable file is regenerated, not patched.
+The technical report's findings table must cite the canonical path for every
+finding. For `false_positive` and `negative_result` entries, report what was
+tested and the evidence that ruled out the claim. Do not hide unsuccessful
+work; do not count it as compromise. For `unverified` entries, describe the
+missing proof and next discriminating test. When the reporter could not finish,
+link the draft and label it explicitly instead of inventing a complete report.
 
 ## Quality Checklist
 
 Before writing the final files, verify:
 
-- [ ] Every deliverable finding file (`report/<severity><NN>-<slug>.md`) is referenced in the technical report findings table
-- [ ] Every CRITICAL/HIGH finding has `confidence: verified` — if not, add unverified disclaimer
+- [ ] Every finding table row links to the existing `findings/FIND-NNN.md`
+- [ ] Every listed confirmed vulnerability has `result_kind: vulnerability` and `verification_status: verified`
+- [ ] The score, when present, matches the CVSS vector and deterministic tool result
+- [ ] No numeric score is inferred from the severity label
+- [ ] Negative results and false positives are counted only as tested coverage
 - [ ] Detection gap matrix covers all findings (no FIND-ID omitted)
-- [ ] Remediation roadmap has specific, actionable items (not generic "patch the system")
-- [ ] Executive summary contains zero technical jargon (no CVE IDs, tool names, protocol names)
-- [ ] All MITRE ATT&CK technique IDs follow current ATT&CK format (T followed by 4 digits, optional .xxx sub-technique)
-- [ ] Timeline is in chronological order (earliest first)
-- [ ] All file paths referenced in the report point to files that exist in the workspace
-- [ ] Overall risk rating matches the highest-severity confirmed finding
-- [ ] Top 3 findings in the executive summary are the 3 highest-severity verified findings
+- [ ] Remediation roadmap has specific, actionable items
+- [ ] Executive summary contains zero technical jargon
+- [ ] MITRE ATT&CK IDs, when present, were validated against a source of truth
+- [ ] Timeline is in chronological order
+- [ ] All referenced file paths exist in the workspace
+- [ ] Overall risk rating matches the highest-severity verified finding

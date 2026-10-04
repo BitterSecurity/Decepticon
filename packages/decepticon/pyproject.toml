@@ -160,6 +160,8 @@ enabled = ["standard", "plugins"]
 # Standard bundle — attached to the ``decepticon`` main agent.
 recon = "decepticon.agents.standard.recon:SUBAGENT_SPEC"
 exploit = "decepticon.agents.standard.exploit:SUBAGENT_SPEC"
+finding_verifier = "decepticon.agents.standard.finding_verifier:SUBAGENT_SPEC"
+finding_reporter = "decepticon.agents.standard.finding_reporter:SUBAGENT_SPEC"
 analyst = "decepticon.agents.standard.analyst:SUBAGENT_SPEC"
 reverser = "decepticon.agents.standard.reverser:SUBAGENT_SPEC"
 contract_auditor = "decepticon.agents.standard.contract_auditor:SUBAGENT_SPEC"
@@ -181,6 +183,9 @@ detector = "decepticon.agents.plugins.detector:SUBAGENT_SPEC"
 verifier = "decepticon.agents.plugins.verifier:SUBAGENT_SPEC"
 patcher = "decepticon.agents.plugins.patcher:SUBAGENT_SPEC"
 exploiter = "decepticon.agents.plugins.exploiter:SUBAGENT_SPEC"
+
+[project.entry-points."decepticon.tools"]
+mitre_lookup = "decepticon.tools.mitre:get_mitre_tools"
 
 [project.urls]
 Homepage = "https://github.com/PurpleAILAB/Decepticon"

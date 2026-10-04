@@ -533,6 +533,7 @@ AGENT_TIERS: dict[str, Tier] = {
     # Tool-heavy with moderate iteration.
     "detector": Tier.MID,
     "verifier": Tier.MID,
+    "finding_reporter": Tier.MID,
     "blue_cell": Tier.MID,
     "postexploit": Tier.MID,
     "ad_operator": Tier.MID,
@@ -561,6 +562,7 @@ AGENT_TEMPERATURES: dict[str, float] = {
     "exploiter": 0.2,
     "detector": 0.2,
     "verifier": 0.2,
+    "finding_reporter": 0.2,
     "blue_cell": 0.2,
     "patcher": 0.2,
     "postexploit": 0.3,

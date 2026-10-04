@@ -103,6 +103,8 @@ class TestPhaseForRoleMapping:
         expected = {
             "recon",
             "exploit",
+            "finding_verifier",
+            "finding_reporter",
             "postexploit",
             "ad_operator",
             "cloud_hunter",

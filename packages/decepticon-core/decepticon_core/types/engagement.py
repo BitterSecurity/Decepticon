@@ -37,12 +37,13 @@ class EngagementType(StrEnum):
 class ObjectivePhase(StrEnum):
     """Descriptive operation phases; DAG edges determine execution order.
 
-    Practical 5-phase model aligned with sub-agent routing:
+    Operational phases plus a post-operation quality phase:
       recon          → recon agent       (TA0043 Reconnaissance)
       initial-access → exploit agent     (TA0001 Initial Access + TA0002 Execution)
       post-exploit   → postexploit agent (TA0003-TA0009: Persistence thru Collection)
       c2             → postexploit agent (TA0011 Command and Control)
       exfiltration   → postexploit agent (TA0010 Exfiltration + Actions on Objectives)
+      reporting      → finding_verifier / finding_reporter (evidence quality)
     """
 
     RECON = "recon"
@@ -50,6 +51,7 @@ class ObjectivePhase(StrEnum):
     POST_EXPLOIT = "post-exploit"
     C2 = "c2"
     EXFILTRATION = "exfiltration"
+    REPORTING = "reporting"
 
 
 class OpsecLevel(StrEnum):

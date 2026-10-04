@@ -78,7 +78,11 @@ _POLICY_PROMPT = """
 Graph schema: Skills are stored in Neo4j. Skill nodes have name, path, subdomain,
 description, when_to_use, and body. They connect to Phase via IN_PHASE, Tag
 via TAGGED, Technique via IMPLEMENTS, and MoC via BELONGS_TO. Tactics connect
-to Techniques via HAS_TECHNIQUE.
+to Techniques via HAS_TECHNIQUE. Declared Skill-to-Skill relations include
+REQUIRES, VALIDATED_BY, COMPOSES_WITH, SPECIALIZES, ALTERNATIVE_TO and
+CONFLICTS_WITH. Use traverse to inspect prerequisites, validators and
+alternatives before executing a selected skill; a relation never overrides
+the role's skill path allowlist.
 
 find_skill(query?, subdomain?, mitre_id?, tag?, tactic_id?, limit=20):
   Finds candidates. Filters AND together. subdomain, tag, mitre_id and
@@ -108,6 +112,8 @@ Workflow: find_skill, inspect candidates, load_skill; traverse when needed.
 _PHASE_FOR_ROLE: dict[str, str] = {
     "recon": "reconnaissance",
     "exploit": "web-exploitation",
+    "finding_verifier": "reporting",
+    "finding_reporter": "reporting",
     "postexploit": "post-exploit",
     "ad_operator": "active-directory",
     "cloud_hunter": "cloud",

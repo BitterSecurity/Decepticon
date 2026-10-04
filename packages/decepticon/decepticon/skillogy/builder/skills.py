@@ -42,6 +42,7 @@ from decepticon.skill_audit.frontmatter import (
 )
 from decepticon.skill_audit.mitre import MitreMatrix, classify_mitre_id, coerce_mitre_list
 from decepticon.skillogy.builder.model import Edge, Node
+from decepticon.skillogy.builder.relations import relation_edges
 from decepticon.skillogy.builder.seeds import load_mocs
 
 _SKILL_ROOT_RE = re.compile(r"(?:^|/)skills/.*$")
@@ -99,6 +100,8 @@ def emit_skill_records(
     nodes: list[Node] = []
     edges: list[Edge] = []
     seen_tags: set[str] = set()
+    relation_blocks: list[tuple[str, Any, Path]] = []
+    skill_names: set[str] = set()
 
     for skill_md in sorted(skills_root.rglob("SKILL.md")):
         text = skill_md.read_text(encoding="utf-8")
@@ -115,8 +118,13 @@ def emit_skill_records(
             raise RuntimeError(
                 f"{skill_md}: missing name or description (Phase 0 validator should have caught this)"
             )
+        if name in skill_names:
+            raise RuntimeError(f"{skill_md}: duplicate Skill name {name!r}")
+        skill_names.add(name)
         metadata_raw = meta.get("metadata")
         metadata: dict[str, Any] = metadata_raw if isinstance(metadata_raw, dict) else {}
+        if "skillogy" in metadata:
+            relation_blocks.append((name, metadata["skillogy"], skill_md))
         raw_subdomain = str(metadata.get("subdomain") or "").strip()
         subdomain = resolve_subdomain(raw_subdomain) if raw_subdomain else ""
 
@@ -210,5 +218,11 @@ def emit_skill_records(
                         to_key=mitre_id,
                     )
                 )
+
+    for name, block, skill_md in relation_blocks:
+        try:
+            edges.extend(relation_edges(name, block, skill_names))
+        except ValueError as exc:
+            raise RuntimeError(f"{skill_md}: {exc}") from exc
 
     return nodes, edges

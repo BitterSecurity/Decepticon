@@ -242,6 +242,9 @@ SLOTS_PER_ROLE: dict[str, frozenset[MiddlewareSlot]] = {
     "detector": _BASE_SLOTS,
     # ── Plugin bash-executing specialists ──
     "verifier": _BASH_AGENT_SLOTS,
+    # Finding reporter writes the canonical finding using filesystem tools.
+    # It has no shell or sandbox notification surface.
+    "finding_reporter": _BASE_SLOTS | {MiddlewareSlot.ENGAGEMENT_CONTEXT},
     "patcher": _BASH_AGENT_SLOTS,
     "scanner": _BASH_AGENT_SLOTS,
     "exploiter": _BASH_AGENT_SLOTS,
