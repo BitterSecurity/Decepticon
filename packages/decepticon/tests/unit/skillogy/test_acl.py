@@ -203,6 +203,12 @@ def test_role_scope_failure_never_installs_unrestricted_tools(monkeypatch):
         maybe_install_skillogy([_StubSkillsMiddleware()], role="recon")
 
 
+def test_empty_scope_is_irrelevant_without_a_skill_slot(monkeypatch):
+    monkeypatch.setenv("DECEPTICON_USE_SKILLOGY", "1")
+    stack = [object()]
+    assert maybe_install_skillogy(stack, role="recon", skill_sources=[]) is stack
+
+
 # ── maybe_install_skillogy: role wiring picks up the ACL automatically ──
 
 

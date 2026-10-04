@@ -515,6 +515,8 @@ def maybe_install_skillogy(
         from decepticon.middleware.skills import SkillsMiddleware  # noqa: PLC0415
     except ImportError:
         return middleware_stack
+    if not any(isinstance(mw, SkillsMiddleware) for mw in middleware_stack):
+        return middleware_stack
     phase = _PHASE_FOR_ROLE.get(role) if role else None
     prefixes = _resolve_allowed_path_prefixes(role=role, skill_sources=skill_sources)
     out: list[Any] = []

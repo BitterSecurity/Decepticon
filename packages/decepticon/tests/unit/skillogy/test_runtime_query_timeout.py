@@ -2,13 +2,32 @@
 
 from __future__ import annotations
 
+import sys
+from dataclasses import dataclass
+from types import ModuleType
 from unittest.mock import MagicMock
 
 import pytest
 
 from decepticon.skillogy.server.neo4j_backend import Neo4jBackend
 
-Query = pytest.importorskip("neo4j").Query
+
+@dataclass
+class _FakeQuery:
+    text: str
+    timeout: float
+
+
+@pytest.fixture(autouse=True)
+def fake_neo4j_query(monkeypatch: pytest.MonkeyPatch) -> None:
+    # The base OSS test environment has no neo4j extra, and another test
+    # stubs the module during collection. Supply only the Query API here.
+    neo4j = ModuleType("neo4j")
+    neo4j.Query = _FakeQuery  # type: ignore[attr-defined]
+    exceptions = ModuleType("neo4j.exceptions")
+    exceptions.ClientError = type("ClientError", (Exception,), {})  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "neo4j", neo4j)
+    monkeypatch.setitem(sys.modules, "neo4j.exceptions", exceptions)
 
 
 @pytest.fixture
@@ -42,6 +61,6 @@ def test_agent_facing_reads_have_five_second_query_timeout(backend, read) -> Non
     read(backend)
 
     query = session.run.call_args.args[0]
-    assert isinstance(query, Query)
+    assert isinstance(query, _FakeQuery)
     assert query.timeout == 5.0
     assert backend._driver.session.call_args.kwargs["default_access_mode"] == "READ"
