@@ -6,6 +6,7 @@ import importlib.util
 from pathlib import Path
 
 import pytest
+import yaml
 
 _MODULE_PATH = Path(__file__).resolve().parents[5] / "config" / "litellm_dynamic_config.py"
 _spec = importlib.util.spec_from_file_location("decepticon_litellm_dynamic_config", _MODULE_PATH)
@@ -25,6 +26,31 @@ _provider_prefix = _module._provider_prefix
 _NO_API_KEY_PROVIDERS = _module._NO_API_KEY_PROVIDERS
 PROVIDER_KEY_ENV_ALIASES = _module.PROVIDER_KEY_ENV_ALIASES
 PROVIDER_EXTRA_PARAMS = _module.PROVIDER_EXTRA_PARAMS
+
+
+@pytest.mark.parametrize(
+    ("model", "key_env", "response_mode"),
+    [
+        ("openai/gpt-6-astra", "OPENAI_API_KEY", True),
+        ("openai/gpt-6.1-sol", "OPENAI_API_KEY", True),
+        ("openai/gpt-6-luna", "OPENAI_API_KEY", True),
+        ("anthropic/claude-fable-5-1", "ANTHROPIC_API_KEY", False),
+        ("anthropic/claude-opus-5-5", "ANTHROPIC_API_KEY", False),
+        ("anthropic/claude-sonnet-5-5", "ANTHROPIC_API_KEY", False),
+        ("gemini/gemini-3.8-flash", "GEMINI_API_KEY", False),
+        ("xai/grok-4.7", "XAI_API_KEY", False),
+    ],
+)
+def test_current_api_models_have_proxy_routes(
+    model: str, key_env: str, response_mode: bool
+) -> None:
+    config = yaml.safe_load((_MODULE_PATH.parent / "litellm.yaml").read_text())
+    routes = [entry for entry in config["model_list"] if entry["model_name"] == model]
+    assert len(routes) == 1
+    route = routes[0]
+    assert route["litellm_params"]["model"] == model
+    assert route["litellm_params"]["api_key"] == f"os.environ/{key_env}"
+    assert (route.get("model_info", {}).get("mode") == "responses") is response_mode
 
 
 def test_collect_requested_models_includes_global_and_role_overrides() -> None:

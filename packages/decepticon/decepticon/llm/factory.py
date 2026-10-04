@@ -96,7 +96,7 @@ def _model_max_output_tokens(model: str) -> int:
     default rather than an over-large value the upstream might reject.
     """
     slug = model.rsplit("/", 1)[-1].lower()
-    if "opus" in slug or "sonnet" in slug:
+    if "opus" in slug or "sonnet" in slug or slug.startswith("claude-fable-5"):
         return 128000
     if "haiku" in slug:
         return 64000
@@ -982,7 +982,16 @@ def _model_drops_temperature(model: str) -> bool:
     Opus 4.x build added to METHOD_MODELS.
     """
     slug = model.rsplit("/", 1)[-1].lower()
-    return slug.startswith("claude-opus-4") or _model_is_kimi_coding(model)
+    return (
+        slug.startswith(("claude-opus-4", "claude-opus-5", "claude-sonnet-5-5", "claude-fable-5"))
+        or _model_is_kimi_coding(model)
+        or _model_uses_responses_api(model)
+    )
+
+
+def _model_uses_responses_api(model: str) -> bool:
+    """GPT-6 agent tool calls require the Responses API, not Chat Completions."""
+    return model.startswith("openai/gpt-6-") or model.startswith("openai/gpt-6.1-")
 
 
 def _model_is_kimi_coding(model: str) -> bool:
@@ -1758,6 +1767,8 @@ class LLMFactory:
             kwargs["disable_streaming"] = "tool_calling"
         if extra_headers is not None:
             kwargs["default_headers"] = extra_headers
+        if _model_uses_responses_api(model):
+            kwargs["use_responses_api"] = True
         if _model_drops_temperature(model):
             kwargs["disabled_params"] = {"temperature": None}
         elif _model_is_deepseek_thinking(model):
