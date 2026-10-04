@@ -251,3 +251,15 @@ Touch points, in dependency order. Each step is independently testable.
   cache on a content hash in the builder (Step 1 cache covers this).
 - **k and expansion fan-out**: top-k seeds (≈20) and one-hop vs two-hop global
   expansion — start conservative (k=20, one hop) and tune.
+
+## Implementation update — 2026-10-04
+
+The original fixed `skill_embedding` index cannot change dimensions through
+`CREATE ... IF NOT EXISTS`. Skillogy now creates `skill_embedding_<dimension>`
+over `embedding_<dimension>`, waits for it to become online, and backfills that
+property before enabling semantic lookup. A model switch to a different
+dimension therefore creates a separate index; an existing installation
+re-embeds its skills once on upgrade. The old index and property are left in
+place so upgrades do not delete data. If backfill fails or a provider returns
+the wrong vector length, `find_skill` continues to use lexical results until
+a later successful boot completes the backfill.
