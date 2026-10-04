@@ -61,7 +61,7 @@ export CODEX_AUTH_VOLUME ?= $(shell test -f $(HOME)/.codex/auth.json && echo $(H
         web-build web-hotswap web-lint web-migrate \
         status logs health clean \
         node-install web-db-ensure \
-        benchmark recreate-litellm
+		benchmark terminal-bench recreate-litellm
 
 # ── Help (default target) ────────────────────────────────────────
 
@@ -104,6 +104,7 @@ help:
 	@echo ""
 	@echo "Other:"
 	@echo "  make benchmark [ARGS=\"--level 1\"]"
+	@echo "  make terminal-bench [ARGS=\"--include-task-name <task>\"]  # GPT-5.6 Luna/max"
 
 # ── Pre-release Verification (PRIMARY) ───────────────────────────
 
@@ -392,6 +393,16 @@ recreate-litellm:
 ## Run benchmark suite (usage: make benchmark ARGS="--level 1")
 benchmark:
 	uv run python -m benchmark.runner $(ARGS)
+
+TERMINAL_BENCH_MODEL ?= auth/gpt-5.6-luna
+TERMINAL_BENCH_EFFORT ?= max
+
+terminal-bench:
+	DECEPTICON_SKIP_BOOT=1 PYTHONPATH="$(CURDIR)$${PYTHONPATH:+:$${PYTHONPATH}}" \
+	uv run harbor run --dataset terminal-bench/terminal-bench-2-1 \
+		--agent decepticon_tbench_agent:DecepticonTerminalBenchAgent \
+		--model "$(TERMINAL_BENCH_MODEL)" \
+		--agent-kwarg "reasoning_effort=$(TERMINAL_BENCH_EFFORT)" $(ARGS)
 
 ## CVE-Bench offline dry run (mocked LLM + sandbox, 3 fixtures, seed=0).
 ## Output: benchmark/results/cve-bench/dry-run-<YYYY-MM-DD>.jsonl
