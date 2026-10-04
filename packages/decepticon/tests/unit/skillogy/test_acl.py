@@ -26,6 +26,7 @@ import pytest
 
 from decepticon.middleware.skillogy import (
     SkillogyMiddleware,
+    SkillogyScopeError,
     _resolve_allowed_path_prefixes,
     maybe_install_skillogy,
 )
@@ -170,6 +171,36 @@ def test_resolver_role_falls_back_to_skills_sources_for():
 
 def test_resolver_no_role_returns_none():
     assert _resolve_allowed_path_prefixes(role=None, skill_sources=None) is None
+
+
+def test_resolver_raises_when_role_lookup_fails(monkeypatch):
+    def unavailable(_role):
+        raise RuntimeError("plugin registry unavailable")
+
+    monkeypatch.setattr("decepticon.agents.middleware_slots.skills_sources_for", unavailable)
+    with pytest.raises(SkillogyScopeError, match="scope resolution failed"):
+        _resolve_allowed_path_prefixes(role="recon", skill_sources=None)
+
+
+@pytest.mark.parametrize(
+    "sources",
+    [[], ["/skills/"], ["/skills/shared"], ["/skills/shared/", "../outside/"]],
+)
+def test_resolver_rejects_empty_or_broad_role_scope(sources):
+    with pytest.raises(SkillogyScopeError, match="nonempty restricted scope"):
+        _resolve_allowed_path_prefixes(role="recon", skill_sources=sources)
+
+
+def test_direct_middleware_rejects_empty_scope():
+    with pytest.raises(SkillogyScopeError, match="nonempty restricted scope"):
+        SkillogyMiddleware(backend=_RecordingBackend(), allowed_path_prefixes=[])
+
+
+def test_role_scope_failure_never_installs_unrestricted_tools(monkeypatch):
+    monkeypatch.setenv("DECEPTICON_USE_SKILLOGY", "1")
+    monkeypatch.setattr("decepticon.agents.middleware_slots.skills_sources_for", lambda _role: [])
+    with pytest.raises(SkillogyScopeError, match="nonempty restricted scope"):
+        maybe_install_skillogy([_StubSkillsMiddleware()], role="recon")
 
 
 # ── maybe_install_skillogy: role wiring picks up the ACL automatically ──
