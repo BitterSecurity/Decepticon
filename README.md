@@ -86,19 +86,45 @@ decepticon
 
 → **[Quick start](docs/getting-started.md)** · **[Full setup walkthrough](docs/setup-guide.md)**
 
-### Use from Claude Code or Codex
+### MCP + Agent Skill for Claude Code and Codex
 
-After starting Decepticon, register its MCP server in your coding agent:
+Decepticon provides two pieces for coding agents: **MCP tools** control the
+local installation, engagements, and Blue Cell; the **Agent Skill** teaches
+Claude Code or Codex when and how to call those tools. Install Decepticon as
+above, then register the MCP server in the coding agent you use:
 
 ```bash
+# Claude Code (user-wide)
 claude mcp add --scope user decepticon -- decepticon mcp serve
+
+# Codex (user-wide)
 codex mcp add decepticon -- decepticon mcp serve
 ```
 
-Use the command for the coding agent you have installed, then run
-`decepticon skill install` to add the operator guide to both agents. See the
-[external agent guide](docs/integrations/external-agents.md) for the Agent Skill,
-tool workflow, and source installation path.
+Run only the registration command for your client. Install the version-matched
+Skill for both clients (or add `--client claude` or `--client codex`), then
+restart the coding agent:
+
+```bash
+decepticon skill install
+claude mcp get decepticon  # Claude Code: verify registration
+codex mcp get decepticon   # Codex: verify registration
+```
+
+Use the matching `mcp get` command for your client. The MCP server starts on
+demand; its host tools are available even before Decepticon services start.
+Ask your coding agent to call `decepticon_cli_status`, select or create a
+workspace, call `decepticon_cli_start`, then
+`decepticon_cli_connect_runtime` and `decepticon_list_graphs`. For local source
+code, `decepticon_cli_import_target` copies an approved snapshot into that
+workspace and returns the path the sandbox can read. Engagements require an
+explicit target scope and plan review before Red execution. Blue Cell tools
+can start a local sensor and read its live events and notifications.
+
+If the installed launcher does not yet have `decepticon mcp serve` or
+`decepticon skill install`, follow the source-build instructions in the
+[external agent guide](docs/integrations/external-agents.md). That guide also
+covers tool arguments and the [bundled Agent Skill](integrations/agent-skills/decepticon/SKILL.md).
 
 ### Use as a library (pip)
 
@@ -209,6 +235,7 @@ Configure via `decepticon onboard`. → **[Full model reference & fallback examp
 | Installation and first engagement | [Getting Started](docs/getting-started.md) |
 | Complete setup, OAuth, providers, dashboard | [Setup Guide](docs/setup-guide.md) |
 | All CLI commands and keyboard shortcuts | [CLI Reference](docs/cli-reference.md) |
+| Claude Code / Codex MCP and Agent Skill | [External Agent Guide](docs/integrations/external-agents.md) |
 | All `make` targets | [Makefile Reference](docs/makefile-reference.md) |
 | Agent roster and middleware | [Agents](docs/agents.md) |
 | Model profiles and fallback chain | [Models](docs/models.md) |
