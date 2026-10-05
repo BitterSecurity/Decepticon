@@ -135,17 +135,23 @@ async def test_start_tool_requires_selected_workspace_and_current_approval(
         "assistant": "decepticon",
     }
     with pytest.raises(ToolError, match="must match"):
-        await manager.call_tool("decepticon_start_engagement", {**arguments, "engagement_name": "other"})
+        await manager.call_tool(
+            "decepticon_start_engagement", {**arguments, "engagement_name": "other"}
+        )
     with pytest.raises(ToolError, match="approve"):
         await manager.call_tool("decepticon_start_engagement", arguments)
-    await manager.call_tool(
-        "decepticon_start_engagement", {**arguments, "assistant": "soundwave"}
-    )
+    await manager.call_tool("decepticon_start_engagement", {**arguments, "assistant": "soundwave"})
     plan = tmp_path / "plan"
     plan.mkdir()
     for filename in (
-        "roe.json", "threat-profile.json", "conops.json", "deconfliction.json",
-        "contact.json", "data-handling.json", "abort.json", "cleanup.json",
+        "roe.json",
+        "threat-profile.json",
+        "conops.json",
+        "deconfliction.json",
+        "contact.json",
+        "data-handling.json",
+        "abort.json",
+        "cleanup.json",
     ):
         (plan / filename).write_text("{}", encoding="utf-8")
     digest = planning_bundle_digest(tmp_path)
@@ -173,9 +179,7 @@ async def test_send_tool_rejects_other_workspace_thread(
     await manager.call_tool("decepticon_send_message", arguments)
     assert len(fake.runs.create_calls) == 1
     with pytest.raises(ToolError, match="approve"):
-        await manager.call_tool(
-            "decepticon_send_message", {**arguments, "assistant": "decepticon"}
-        )
+        await manager.call_tool("decepticon_send_message", {**arguments, "assistant": "decepticon"})
 
 
 async def test_stdio_start_rejects_unselected_and_unapproved_workspace(tmp_path: Path) -> None:
