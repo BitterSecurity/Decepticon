@@ -135,17 +135,23 @@ async def test_start_tool_requires_selected_workspace_and_current_approval(
         "assistant": "decepticon",
     }
     with pytest.raises(ToolError, match="must match"):
-        await manager.call_tool("decepticon_start_engagement", {**arguments, "engagement_name": "other"})
+        await manager.call_tool(
+            "decepticon_start_engagement", {**arguments, "engagement_name": "other"}
+        )
     with pytest.raises(ToolError, match="approve"):
         await manager.call_tool("decepticon_start_engagement", arguments)
-    await manager.call_tool(
-        "decepticon_start_engagement", {**arguments, "assistant": "soundwave"}
-    )
+    await manager.call_tool("decepticon_start_engagement", {**arguments, "assistant": "soundwave"})
     plan = tmp_path / "plan"
     plan.mkdir()
     for filename in (
-        "roe.json", "threat-profile.json", "conops.json", "deconfliction.json",
-        "contact.json", "data-handling.json", "abort.json", "cleanup.json",
+        "roe.json",
+        "threat-profile.json",
+        "conops.json",
+        "deconfliction.json",
+        "contact.json",
+        "data-handling.json",
+        "abort.json",
+        "cleanup.json",
     ):
         (plan / filename).write_text("{}", encoding="utf-8")
     digest = planning_bundle_digest(tmp_path)
@@ -173,15 +179,15 @@ async def test_send_tool_rejects_other_workspace_thread(
     await manager.call_tool("decepticon_send_message", arguments)
     assert len(fake.runs.create_calls) == 1
     with pytest.raises(ToolError, match="approve"):
-        await manager.call_tool(
-            "decepticon_send_message", {**arguments, "assistant": "decepticon"}
-        )
+        await manager.call_tool("decepticon_send_message", {**arguments, "assistant": "decepticon"})
 
 
 async def test_resume_tool_sends_checkpoint_command_and_checks_workspace(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    fake = _FakeClient(runs=[{"run_id": "r-old", "assistant_id": "soundwave", "status": "interrupted"}])
+    fake = _FakeClient(
+        runs=[{"run_id": "r-old", "assistant_id": "soundwave", "status": "interrupted"}]
+    )
     monkeypatch.setenv("DECEPTICON_ENGAGEMENT", "eng-1")
     monkeypatch.setenv("DECEPTICON_ENGAGEMENT_WORKSPACE", str(tmp_path))
     manager = build_server(_config(), client=fake)._tool_manager
@@ -205,7 +211,9 @@ async def test_resume_tool_sends_checkpoint_command_and_checks_workspace(
 async def test_resume_red_requires_current_plan_approval(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    fake = _FakeClient(runs=[{"run_id": "r-old", "assistant_id": "decepticon", "status": "interrupted"}])
+    fake = _FakeClient(
+        runs=[{"run_id": "r-old", "assistant_id": "decepticon", "status": "interrupted"}]
+    )
     monkeypatch.setenv("DECEPTICON_ENGAGEMENT", "eng-1")
     monkeypatch.setenv("DECEPTICON_ENGAGEMENT_WORKSPACE", str(tmp_path))
     fake.threads.state = {"values": {"engagement_name": "eng-1", "workspace_path": str(tmp_path)}}

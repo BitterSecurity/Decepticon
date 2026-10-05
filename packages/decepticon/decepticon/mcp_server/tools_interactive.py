@@ -100,9 +100,7 @@ def register_interactive_tools(mcp: FastMCP, engagements: EngagementClient) -> N
                 raise ValueError("thread does not belong to the selected engagement workspace")
             if assistant != "soundwave":
                 require_red_approval(selected_workspace(selected))
-        return await engagements.resume(
-            thread_id=thread_id, assistant=assistant, response=response
-        )
+        return await engagements.resume(thread_id=thread_id, assistant=assistant, response=response)
 
     @mcp.tool()
     async def decepticon_transcript(
