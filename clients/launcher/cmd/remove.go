@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -17,7 +18,8 @@ import (
 )
 
 var (
-	removeYes bool
+	removeYes               bool
+	removePreserveWorkspace bool
 )
 
 var removeCmd = &cobra.Command{
@@ -29,6 +31,7 @@ var removeCmd = &cobra.Command{
 
 func init() {
 	removeCmd.Flags().BoolVar(&removeYes, "yes", false, "Skip confirmation prompts")
+	removeCmd.Flags().BoolVar(&removePreserveWorkspace, "preserve-workspace", false, "Back up workspace data before removing the installation")
 	rootCmd.AddCommand(removeCmd)
 }
 
@@ -53,12 +56,43 @@ func runRemove(cmd *cobra.Command, args []string) error {
 
 	home := config.DecepticonHome()
 	c := compose.New()
+	preserveWorkspace := removePreserveWorkspace
+	if !removeYes && !removePreserveWorkspace {
+		preserveWorkspace = true
+		form := huh.NewForm(huh.NewGroup(huh.NewConfirm().
+			Title("Preserve workspace data?").
+			Description(filepath.Join(home, "workspace")).
+			Affirmative("Yes, keep my data").
+			Negative("No, delete everything").
+			Value(&preserveWorkspace)))
+		if err := form.Run(); err != nil {
+			return fmt.Errorf("workspace preservation selection cancelled: %w", err)
+		}
+	}
+	backupDir := ""
+	workspaceToBackup := ""
+	if preserveWorkspace {
+		userHome, err := os.UserHomeDir()
+		if err != nil {
+			return fmt.Errorf("locate workspace backup directory: %w", err)
+		}
+		workspace := filepath.Join(home, "workspace")
+		if _, err := os.Stat(workspace); err == nil {
+			backupDir = filepath.Join(userHome, "decepticon-workspace-backup")
+			if _, err := os.Lstat(backupDir); err == nil {
+				return fmt.Errorf("workspace backup already exists: %s", backupDir)
+			} else if !errors.Is(err, os.ErrNotExist) {
+				return fmt.Errorf("inspect workspace backup: %w", err)
+			}
+			workspaceToBackup = workspace
+		} else if !errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("inspect workspace before removal: %w", err)
+		}
+	}
 
-	// Phase 1: Stop containers + drop named volumes (postgres / neo4j /
-	// sliver). Down() alone leaves them behind, occupying GB of disk and
-	// poisoning a subsequent reinstall with stale schema state.
-	ui.Info("Stopping services and removing volumes...")
-	_ = c.DownAndPurge()
+	if err := stopAndBackupWorkspace(c, workspaceToBackup, backupDir); err != nil {
+		return err
+	}
 	c.RemoveOrphanedCLI()
 
 	// Phase 2: Remove Docker images
@@ -71,42 +105,9 @@ func runRemove(cmd *cobra.Command, args []string) error {
 	}
 
 	// Phase 3: Remove config directory
-	var preserveWorkspace bool
-	if !removeYes {
-		form := huh.NewForm(
-			huh.NewGroup(
-				huh.NewConfirm().
-					Title("Preserve workspace data?").
-					Description(filepath.Join(home, "workspace")).
-					Affirmative("Yes, keep my data").
-					Negative("No, delete everything").
-					Value(&preserveWorkspace),
-			),
-		)
-		_ = form.Run()
-	}
-
-	userHome, _ := os.UserHomeDir()
-	backupDir := filepath.Join(userHome, "decepticon-workspace-backup")
-
-	skipHomeRemoval := false
-	if preserveWorkspace {
-		wsDir := filepath.Join(home, "workspace")
-		ui.Info("Backing up workspace to " + backupDir)
-		if err := backupWorkspace(wsDir, backupDir); err != nil {
-			ui.Warning("Backup failed: " + err.Error())
-			ui.Warning("Workspace data left in place at " + wsDir)
-			ui.DimText("Re-run 'decepticon remove' or move the workspace manually before deleting " + home)
-			skipHomeRemoval = true
-		}
-	}
-
-	if !skipHomeRemoval {
-		ui.Info("Removing " + home + "...")
-		if err := os.RemoveAll(home); err != nil {
-			ui.Error("Failed to remove " + home + ": " + err.Error())
-			ui.DimText("Run manually: sudo rm -rf " + home)
-		}
+	ui.Info("Removing " + home + "...")
+	if err := os.RemoveAll(home); err != nil {
+		return fmt.Errorf("remove installation directory %s: %w", home, err)
 	}
 
 	// Phase 4: Remove launcher binary
@@ -118,7 +119,7 @@ func runRemove(cmd *cobra.Command, args []string) error {
 	cleanShellRC()
 
 	ui.Success("Decepticon has been removed")
-	if preserveWorkspace {
+	if backupDir != "" {
 		ui.DimText("Workspace data preserved at " + backupDir)
 	}
 	return nil
@@ -203,7 +204,7 @@ func isInstallPathLine(line string) bool {
 // cross-device or permission errors. Refuses to overwrite an existing dst
 // so a previous backup is never silently clobbered.
 func backupWorkspace(src, dst string) error {
-	if _, err := os.Stat(dst); err == nil {
+	if _, err := os.Lstat(dst); err == nil {
 		return fmt.Errorf("backup target already exists: %s", dst)
 	}
 	if err := os.Rename(src, dst); err == nil {
@@ -239,4 +240,19 @@ func copyDirRecursive(src, dst string) error {
 		}
 		return os.WriteFile(target, data, info.Mode())
 	})
+}
+
+func stopAndBackupWorkspace(c *compose.Compose, workspace, backup string) error {
+	if workspace != "" {
+		if err := c.Down(); err != nil {
+			return fmt.Errorf("stop services before workspace backup: %w", err)
+		}
+		if err := backupWorkspace(workspace, backup); err != nil {
+			return fmt.Errorf("preserve workspace before removal: %w", err)
+		}
+	}
+	if err := c.DownAndPurge(); err != nil {
+		return fmt.Errorf("purge services before removal: %w", err)
+	}
+	return nil
 }
