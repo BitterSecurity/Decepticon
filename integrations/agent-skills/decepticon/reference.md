@@ -3,7 +3,8 @@
 Exact parameters, defaults, clamps, and return schemas for every `decepticon_*`
 tool. Read this when you need precise field names or edge-case behaviour. All
 tools are async. Engagement tools use LangGraph; Blue observation tools use
-the local receiver and monitor HTTP APIs.
+the local receiver and monitor HTTP APIs. Plugin tools use the LangGraph
+server's bundle API.
 
 ## Conventions
 
@@ -156,6 +157,22 @@ events when a service is unavailable.
 
 Limits are 1–100. Invalid arguments and receiver/monitor errors surface as MCP
 tool errors, so they must not be interpreted as empty evidence.
+
+---
+
+## Agent plugin bundle tools
+
+- `decepticon_plugin_bundles()` returns the live `{bundles: [{name, enabled,
+  graphs}]}` state from LangGraph.
+- `decepticon_plugin_enable(name)` activates an optional bundle for the running
+  server session and returns `{bundle, enabled, graphs, skipped}`.
+- `decepticon_plugin_disable(name)` deactivates an optional bundle for the
+  running session. The core `standard` bundle cannot be disabled.
+
+Bundle names are restricted to lowercase letters, digits, `_`, and `-`.
+Runtime changes do not persist across server restarts; set
+`DECEPTICON_PLUGINS` to change the startup bundle list. API errors are MCP
+tool errors, not an empty bundle list.
 
 ---
 

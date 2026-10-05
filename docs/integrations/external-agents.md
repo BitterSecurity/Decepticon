@@ -3,8 +3,9 @@
 Decepticon ships an **engagement MCP server** so external agent runtimes can
 discover and observe engagements, launch a background run, send follow-up
 messages, inspect state, and cancel runs. The installed CLI also manages
-services, local Blue Cell sensors, plugin bundles, and the web dashboard;
-those operations are not exposed as MCP tools.
+services, local Blue Cell sensors, plugin bundles, and the web dashboard.
+Plugin bundle listing and runtime toggling are also exposed through MCP;
+service and sensor lifecycle remain CLI operations.
 
 This makes Decepticon usable from Claude Code, Codex,
 [OpenClaw](https://github.com/openclaw/openclaw), and
@@ -39,6 +40,8 @@ canonical `findings/FIND-*.md` or `report/` artifacts.
 | `decepticon_blue_incidents` / `decepticon_blue_notifications` | Read monitor incidents and defensive messages |
 | `decepticon_blue_body` | Read a bounded captured request-body preview |
 | `decepticon_blue_search` / `decepticon_blue_timeline` | Correlate target events by exact ID/source or time window |
+| `decepticon_plugin_bundles` | List live plugin bundle state |
+| `decepticon_plugin_enable` / `decepticon_plugin_disable` | Toggle an optional agent bundle for this server session |
 
 Run-control tools use the `thread_id` returned by `decepticon_start_engagement`
 or listed by `decepticon_list_engagements`. Findings tools use an

@@ -29,9 +29,11 @@ from decepticon.mcp_server.auth import build_auth
 from decepticon.mcp_server.blue import BlueClient
 from decepticon.mcp_server.config import ServerConfig, load_config
 from decepticon.mcp_server.engagements import EngagementClient
+from decepticon.mcp_server.plugins import PluginClient
 from decepticon.mcp_server.tools_blue import register_blue_tools
 from decepticon.mcp_server.tools_interactive import register_interactive_tools
 from decepticon.mcp_server.tools_lifecycle import register_lifecycle_tools
+from decepticon.mcp_server.tools_plugins import register_plugin_tools
 
 
 def build_server(
@@ -39,6 +41,7 @@ def build_server(
     *,
     client: Any | None = None,
     blue_client: BlueClient | None = None,
+    plugin_client: PluginClient | None = None,
     host: str = "127.0.0.1",
     port: int = 8765,
 ) -> FastMCP:
@@ -54,4 +57,7 @@ def build_server(
     register_lifecycle_tools(mcp, engagements, cfg)
     register_interactive_tools(mcp, engagements)
     register_blue_tools(mcp, blue_client or BlueClient())
+    register_plugin_tools(
+        mcp, plugin_client or PluginClient(cfg.langgraph_url, timeout=cfg.request_timeout_seconds)
+    )
     return mcp

@@ -36,9 +36,10 @@ interfaces cover different operations; choose the one that actually exists.
 | Onboard, start, stop, update, inspect services | Host `decepticon` command |
 | Start or stop a local Blue Cell sensor | Interactive CLI `/blue up`, `/blue stop` |
 | Inspect a running Blue Cell | MCP `decepticon_blue_status`, `decepticon_blue_sources`, `decepticon_blue_events`, `decepticon_blue_incidents`, `decepticon_blue_notifications`, `decepticon_blue_body`, `decepticon_blue_search`, `decepticon_blue_timeline`; interactive CLI `/blue verify` and `/blue analyze` |
-| Toggle plugins, web dashboard, or active agent | Interactive CLI `/plugins`, `/web`, `/agent` |
+| List or toggle agent plugin bundles | MCP `decepticon_plugin_bundles`, `decepticon_plugin_enable`, `decepticon_plugin_disable`; interactive CLI `/plugins` |
+| Control web dashboard or select the active CLI agent | Interactive CLI `/web`, `/agent` |
 
-Do not invent MCP tools for Blue Cell setup, plugin toggles, or service
+Do not invent MCP tools for Blue Cell setup or service
 management. The slash commands above work inside Decepticon's interactive
 terminal, not in the shell or the MCP bridge.
 
