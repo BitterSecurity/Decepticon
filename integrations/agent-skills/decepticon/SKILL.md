@@ -3,7 +3,7 @@ name: decepticon
 description: "Operate Decepticon OSS through its installed CLI and engagement MCP tools when the user asks to run or inspect an authorized security engagement or a local Blue Cell. Do not use for unrelated security questions or raw scanner commands."
 license: Apache-2.0
 metadata:
-  version: 2.1.0
+  version: 2.2.0
   homepage: "https://github.com/BitterSecurity/Decepticon"
 ---
 
@@ -16,11 +16,13 @@ interfaces cover different operations; choose the one that actually exists.
 
 ## Connect
 
-1. Check `decepticon status`. If the installation is missing, the user can run
+1. Check MCP `decepticon_cli_status` when available, or run `decepticon status`
+   on the host. If the installation is missing, the user can run
    `decepticon onboard`. `decepticon start` starts services and opens the
    interactive terminal; it is not a headless scan command.
-2. For MCP, confirm `decepticon_list_graphs` works. A connection error means
-   the stack or MCP registration needs attention. See the
+2. For MCP, call `decepticon_cli_connect_runtime` if engagement tools are
+   absent after services start, then confirm `decepticon_list_graphs` works.
+   A connection error means the stack needs attention. See the
    [integration guide](https://github.com/BitterSecurity/Decepticon/blob/main/docs/integrations/external-agents.md) for
    Claude Code and Codex registration.
 3. The user can install this skill for both clients with
@@ -33,13 +35,16 @@ interfaces cover different operations; choose the one that actually exists.
 | Discover agents, list engagements, read status or a compact state summary | MCP `decepticon_list_graphs`, `decepticon_list_engagements`, `decepticon_engagement_status`, `decepticon_engagement_state` |
 | Watch an engagement | MCP `decepticon_transcript` with `next_index`; `decepticon_watch` for a bounded live sample |
 | Send a follow-up or stop a run | MCP `decepticon_send_message` or `decepticon_cancel_engagement` |
-| Onboard, start, stop, update, inspect services | Host `decepticon` command |
+| Inspect services and knowledge graph health | MCP `decepticon_cli_status`, `decepticon_cli_kg_health`, or host CLI |
+| Stop services after the operator asks | MCP `decepticon_cli_stop` or host `decepticon stop` |
+| Update after the operator asks | MCP `decepticon_cli_update` or host `decepticon update` |
+| Onboard and start | Host `decepticon` command |
 | Start or stop a local Blue Cell sensor | Interactive CLI `/blue up`, `/blue stop` |
 | Inspect a running Blue Cell | MCP `decepticon_blue_status`, `decepticon_blue_sources`, `decepticon_blue_events`, `decepticon_blue_incidents`, `decepticon_blue_notifications`, `decepticon_blue_body`, `decepticon_blue_search`, `decepticon_blue_timeline`; interactive CLI `/blue verify` and `/blue analyze` |
 | List or toggle agent plugin bundles | MCP `decepticon_plugin_bundles`, `decepticon_plugin_enable`, `decepticon_plugin_disable`; interactive CLI `/plugins` |
 | Control web dashboard or select the active CLI agent | Interactive CLI `/web`, `/agent` |
 
-Do not invent MCP tools for Blue Cell setup or service
+Do not invent MCP tools for Blue Cell setup or other service
 management. The slash commands above work inside Decepticon's interactive
 terminal, not in the shell or the MCP bridge.
 

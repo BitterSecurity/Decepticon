@@ -288,11 +288,14 @@ func (c *Compose) Exec(service string, command ...string) error {
 	return c.run(args, false)
 }
 
-func (c *Compose) RunMCPStdio() error {
-	return c.run([]string{
+func (c *Compose) MCPCommand() *exec.Cmd {
+	args := append(c.baseArgs(),
 		"exec", "-T", "-e", "DECEPTICON_SKIP_BOOT=1",
-		"langgraph", "decepticon-mcp", "--transport", "stdio",
-	}, true)
+		"langgraph", "decepticon-mcp", "--transport", "stdio")
+	cmd := exec.Command(c.Runtime.Bin, args...)
+	cmd.Env = c.composeEnv()
+	cmd.Stderr = os.Stderr
+	return cmd
 }
 
 // RunInteractive runs a one-off container with stdin attached.

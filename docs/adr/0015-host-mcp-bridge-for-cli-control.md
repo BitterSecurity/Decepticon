@@ -1,0 +1,51 @@
+# 0015. Host MCP bridge for CLI control
+
+- **Status:** Proposed
+- **Date:** 2026-10-05
+- **Deciders:** OSS maintainers
+- **Related:** [MCP capability audit](../integrations/mcp-capability-audit-2026-10-05.md)
+
+## Context
+
+The current `decepticon mcp serve` command passes stdio through to a Python
+server inside the LangGraph container. That server has engagement and Blue Cell
+observation tools, but it cannot invoke host launcher operations or inspect
+the CLI-selected host workspace. Coding agents need both surfaces through one
+MCP registration.
+
+## Decision
+
+The installed Go launcher owns the client-facing MCP stdio connection. It
+connects to the existing Python MCP server as a child process, copies its tool
+schemas and annotations, and forwards calls and results. Host-owned tools are
+registered on the same server: service status, knowledge graph health, stop,
+and update. Stop and update require an explicit confirmation argument.
+The launcher captures command output for tool results and reserves stdout for
+MCP JSON-RPC. A runtime tool name may not replace a host-owned name.
+
+The host MCP connection remains available when the runtime is stopped. A
+`decepticon_cli_connect_runtime` tool connects and publishes the runtime tools
+after the services become available.
+
+The bridge uses the official Go MCP SDK. This adds a top-level dependency to
+the launcher, avoiding a hand-written MCP protocol implementation. The child
+server remains the owner of engagement and Blue observation behavior.
+
+## Consequences
+
+- Claude Code and Codex retain one `decepticon mcp serve` registration.
+- The launcher can add typed host operations without putting a Docker socket
+  into the LangGraph container.
+- Host controls work before LangGraph starts; engagement and Blue observation
+  tools appear after a runtime connection.
+- Starting services and interactive onboarding still require separate headless
+  APIs before they can be offered as MCP tools.
+
+## Alternatives considered
+
+- Mounting the Docker socket into LangGraph grants the agent container broad
+  host control and bypasses the existing launcher boundary.
+- Duplicating all Python engagement tools in Go would create two behavior
+  contracts for the same agents.
+- Parsing and rewriting MCP JSON-RPC manually would add protocol maintenance
+  and interoperability risk.

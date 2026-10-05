@@ -46,7 +46,7 @@ func TestMCPHelperProcess(t *testing.T) {
 	os.Exit(0)
 }
 
-func TestRunMCPStdioForwardsJSONRPCWithoutTerminal(t *testing.T) {
+func TestMCPCommandForwardsJSONRPCWithoutTerminal(t *testing.T) {
 	t.Setenv("DECEPTICON_MCP_TEST_HELPER", "1")
 	t.Setenv("DECEPTICON_STACK_NAME", "")
 	inputReader, inputWriter, err := os.Pipe()
@@ -82,7 +82,10 @@ func TestRunMCPStdioForwardsJSONRPCWithoutTerminal(t *testing.T) {
 			ComposeArgs: []string{"-test.run=TestMCPHelperProcess", "--"},
 		},
 	}
-	if err := c.RunMCPStdio(); err != nil {
+	command := c.MCPCommand()
+	command.Stdin = os.Stdin
+	command.Stdout = os.Stdout
+	if err := command.Run(); err != nil {
 		t.Fatal(err)
 	}
 	if err := outputWriter.Close(); err != nil {
