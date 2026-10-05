@@ -79,6 +79,32 @@ def register_interactive_tools(mcp: FastMCP, engagements: EngagementClient) -> N
         )
 
     @mcp.tool()
+    async def decepticon_resume_engagement(
+        thread_id: str, response: str | None = None
+    ) -> RunHandle:
+        """Resume a paused checkpoint with an operator answer, as CLI /resume does."""
+        state = await engagements.get_state(thread_id)
+        latest = await engagements.latest_run(thread_id)
+        if latest is None or latest.get("status") != "interrupted":
+            raise ValueError("engagement has no paused checkpoint to resume")
+        assistant = str(latest.get("assistant_id") or "")
+        if not assistant:
+            raise ValueError("paused run has no assistant")
+        selected = os.environ.get("DECEPTICON_ENGAGEMENT", "")
+        if selected:
+            values = state.get("values") if isinstance(state, dict) else None
+            if not isinstance(values, dict) or (
+                values.get("engagement_name") != selected
+                or values.get("workspace_path") != str(engagement_workspace(selected))
+            ):
+                raise ValueError("thread does not belong to the selected engagement workspace")
+            if assistant != "soundwave":
+                require_red_approval(selected_workspace(selected))
+        return await engagements.resume(
+            thread_id=thread_id, assistant=assistant, response=response
+        )
+
+    @mcp.tool()
     async def decepticon_transcript(
         thread_id: str, after_index: int = 0, limit: int = 40
     ) -> Transcript:

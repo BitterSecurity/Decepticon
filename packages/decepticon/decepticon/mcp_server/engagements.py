@@ -198,6 +198,20 @@ class EngagementClient:
             status=str(run.get("status", "pending")),
         )
 
+    async def resume(
+        self, *, thread_id: str, assistant: str, response: str | None = None
+    ) -> RunHandle:
+        command = {"resume": response if response else True}
+        run = await self._ensure_client().runs.create(
+            thread_id, assistant_id=assistant, command=command
+        )
+        return RunHandle(
+            thread_id=thread_id,
+            run_id=str(run["run_id"]),
+            assistant=assistant,
+            status=str(run.get("status", "pending")),
+        )
+
     async def cancel(self, thread_id: str) -> str | None:
         """Cancel the active run on a thread. Returns the cancelled run id, if any."""
         latest = await self.latest_run(thread_id)

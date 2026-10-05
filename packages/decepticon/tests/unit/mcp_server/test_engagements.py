@@ -178,6 +178,42 @@ async def test_send_tool_rejects_other_workspace_thread(
         )
 
 
+async def test_resume_tool_sends_checkpoint_command_and_checks_workspace(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fake = _FakeClient(runs=[{"run_id": "r-old", "assistant_id": "soundwave", "status": "interrupted"}])
+    monkeypatch.setenv("DECEPTICON_ENGAGEMENT", "eng-1")
+    monkeypatch.setenv("DECEPTICON_ENGAGEMENT_WORKSPACE", str(tmp_path))
+    manager = build_server(_config(), client=fake)._tool_manager
+    fake.threads.state = {"values": {"engagement_name": "other", "workspace_path": str(tmp_path)}}
+    with pytest.raises(ToolError, match="does not belong"):
+        await manager.call_tool("decepticon_resume_engagement", {"thread_id": "t-123"})
+    fake.threads.state = {"values": {"engagement_name": "eng-1", "workspace_path": str(tmp_path)}}
+    await manager.call_tool(
+        "decepticon_resume_engagement", {"thread_id": "t-123", "response": "Approve option A"}
+    )
+    assert fake.runs.create_calls[0]["command"] == {"resume": "Approve option A"}
+    assert fake.runs.create_calls[0]["assistant_id"] == "soundwave"
+    assert "input" not in fake.runs.create_calls[0]
+    await manager.call_tool("decepticon_resume_engagement", {"thread_id": "t-123"})
+    assert fake.runs.create_calls[1]["command"] == {"resume": True}
+    fake.runs._runs[0]["status"] = "success"
+    with pytest.raises(ToolError, match="no paused checkpoint"):
+        await manager.call_tool("decepticon_resume_engagement", {"thread_id": "t-123"})
+
+
+async def test_resume_red_requires_current_plan_approval(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fake = _FakeClient(runs=[{"run_id": "r-old", "assistant_id": "decepticon", "status": "interrupted"}])
+    monkeypatch.setenv("DECEPTICON_ENGAGEMENT", "eng-1")
+    monkeypatch.setenv("DECEPTICON_ENGAGEMENT_WORKSPACE", str(tmp_path))
+    fake.threads.state = {"values": {"engagement_name": "eng-1", "workspace_path": str(tmp_path)}}
+    manager = build_server(_config(), client=fake)._tool_manager
+    with pytest.raises(ToolError, match="approve"):
+        await manager.call_tool("decepticon_resume_engagement", {"thread_id": "t-123"})
+
+
 async def test_stdio_start_rejects_unselected_and_unapproved_workspace(tmp_path: Path) -> None:
     params = StdioServerParameters(
         command=sys.executable,

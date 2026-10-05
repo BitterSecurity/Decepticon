@@ -38,6 +38,7 @@ interfaces cover different operations; choose the one that actually exists.
 | Discover agents, list engagements, read status or a compact state summary | MCP `decepticon_list_graphs`, `decepticon_list_engagements`, `decepticon_engagement_status`, `decepticon_engagement_state` |
 | Watch an engagement | MCP `decepticon_transcript` with `next_index`; `decepticon_watch` for a bounded live sample |
 | Send a follow-up or stop a run | MCP `decepticon_send_message` or `decepticon_cancel_engagement` |
+| Answer a paused checkpoint | MCP `decepticon_resume_engagement` with the interrupted `thread_id` and optional `response`; inspect the state and requested approval first |
 | Inspect services and knowledge graph health | MCP `decepticon_cli_status`, `decepticon_cli_kg_health`, or host CLI |
 | Stop services after the operator asks | MCP `decepticon_cli_stop` or host `decepticon stop` |
 | Update after the operator asks | MCP `decepticon_cli_update` or host `decepticon update` |
@@ -93,6 +94,10 @@ follow the returned reinstall guidance instead of editing database passwords.
 - `decepticon_send_message` queues a new turn behind an active run. Do not tell
   the user it changed the current execution until a subsequent transcript or
   state confirms the effect.
+- Use `decepticon_resume_engagement` for a paused checkpoint. A normal
+  `decepticon_send_message` creates a new turn and does not answer the
+  checkpoint's interrupt. Read the transcript and state, obtain the operator's
+  requested answer, then resume and verify the resulting run.
 - `decepticon_engagement_findings` reads a persisted `graph.json` only. An
   `available=false` result does not prove the absence of findings. Use the
   artifact tools to inspect the selected workspace's `findings/FIND-*.md`

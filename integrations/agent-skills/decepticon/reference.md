@@ -131,6 +131,16 @@ Send an operator message onto the engagement thread — steer, answer, or switch
   orchestrator's model mid-engagement (e.g. `/model anthropic/claude-opus-4-8`).
 - **Returns:** `{ thread_id, run_id, assistant, status }`.
 
+## decepticon_resume_engagement(thread_id, response=None)
+
+Continue an interrupted LangGraph checkpoint, matching the interactive
+CLI's `/resume` action. Requires the latest run to be interrupted and the
+thread to belong to the selected workspace. Red runs require the current
+approved plan. Without `response`, the resume command sends `true`; with a
+response, it sends that string as the checkpoint answer. Returns a new
+`{ thread_id, run_id, assistant, status }` handle. Use the transcript or state
+to understand the pending question before answering.
+
 ## decepticon_engagement_state(thread_id)
 
 Engagement context minus the message log.

@@ -29,6 +29,7 @@ Its findings tool reads `graph.json`; host artifact tools expose canonical
 | `decepticon_list_engagements` | Browse / resume recent engagements |
 | `decepticon_start_engagement` | Launch a background engagement (targets + scope/RoE) |
 | `decepticon_send_message` | Queue a follow-up turn or `/model` change after the active run |
+| `decepticon_resume_engagement` | Answer a paused checkpoint with an optional response |
 | `decepticon_transcript` | Read the orchestrator narrative incrementally (watch) |
 | `decepticon_watch` | Tail the live sub-agent stream for a few seconds |
 | `decepticon_engagement_state` | Inspect OPPLAN / objectives / scope / phase |
