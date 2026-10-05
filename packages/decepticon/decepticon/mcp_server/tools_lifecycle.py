@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import os
 from datetime import UTC, datetime
+from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
@@ -25,6 +27,21 @@ from decepticon_core.utils.engagement_scope import is_valid_engagement_label
 
 def default_engagement_name() -> str:
     return "mcp-" + datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
+
+
+async def selected_thread_state(engagements: EngagementClient, thread_id: str) -> dict[str, Any]:
+    state = await engagements.get_state(thread_id)
+    if not isinstance(state, dict):
+        raise ValueError("invalid engagement thread state")
+    selected = os.environ.get("DECEPTICON_ENGAGEMENT", "")
+    if selected:
+        values = state.get("values")
+        if not isinstance(values, dict) or (
+            values.get("engagement_name") != selected
+            or values.get("workspace_path") != str(engagement_workspace(selected))
+        ):
+            raise ValueError("thread does not belong to the selected engagement workspace")
+    return state
 
 
 def register_lifecycle_tools(
@@ -86,6 +103,8 @@ def register_lifecycle_tools(
         ``success``/``error``/``timeout``/``interrupted``/``none``). Pass
         ``engagement_name`` to also learn whether findings have been persisted.
         """
+        if os.environ.get("DECEPTICON_ENGAGEMENT"):
+            await selected_thread_state(engagements, thread_id)
         latest = await engagements.latest_run(thread_id)
         run_id = str(latest["run_id"]) if latest else None
         status = str(latest.get("status", "unknown")) if latest else "none"
@@ -119,5 +138,7 @@ def register_lifecycle_tools(
     @mcp.tool()
     async def decepticon_cancel_engagement(thread_id: str) -> str:
         """Cancel the active run on an engagement thread."""
+        if os.environ.get("DECEPTICON_ENGAGEMENT"):
+            await selected_thread_state(engagements, thread_id)
         run_id = await engagements.cancel(thread_id)
         return f"cancelled {run_id}" if run_id else "no active run to cancel"
