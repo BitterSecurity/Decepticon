@@ -14,6 +14,12 @@ server's bundle API.
 - **`engagement_name`** is the selected workspace slug. The installed stack
   binds that workspace at `/workspace`; new MCP threads must use the same slug.
 - Tools return structured objects (shown below). Counts/cursors are integers.
+- CLI `/file <path>` is a client-side file read followed by message submission;
+  coding agents can read the file with their own file tool and send its text
+  through `decepticon_start_engagement` or `decepticon_send_message`.
+- CLI `/model <id>` for an existing thread maps to
+  `decepticon_send_message(thread_id, message="/model <id>")`. Confirm the
+  model change in the subsequent transcript or state.
 
 ---
 

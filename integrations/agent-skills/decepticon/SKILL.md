@@ -57,10 +57,15 @@ interfaces cover different operations; choose the one that actually exists.
 | Install the version-matched coding-agent Skill | MCP `decepticon_cli_skill_install` with `client=codex|claude|both`; replacing a modified Skill requires confirmation |
 | Completely remove the local installation | MCP `decepticon_cli_remove`; default backs up the workspace and requires `REMOVE DECEPTICON`, while deleting workspace data requires `DELETE ALL DECEPTICON DATA` |
 | Select the active agent | Set the MCP engagement `assistant` parameter; interactive CLI `/agent` |
+| Send a prompt stored in a local file | Read it with the coding agent's file tool, then pass its text to `decepticon_start_engagement` or `decepticon_send_message`; interactive CLI `/file` performs the same read and submit |
+| Change the model for a running thread | Send `/model <id>` with `decepticon_send_message`, then inspect the transcript; interactive CLI `/model` applies to its own terminal session |
 
 The interactive `/blue analyze` flow maps to `decepticon_send_message` with
 `assistant="blue_cell"` after a thread exists. Keep the automatic monitor
 and its notifications separate from this on-demand investigation.
+`/help`, `/clear`, and `/quit` control the interactive terminal interface;
+in a coding agent, read this Skill/reference, clear the client conversation,
+or close the MCP client session respectively.
 
 For MCP onboarding, provide `DECEPTICON_AUTH_PRIORITY`, a working auth method
 or credential, and an explicit `DECEPTICON_TELEMETRY=off|research` choice in
