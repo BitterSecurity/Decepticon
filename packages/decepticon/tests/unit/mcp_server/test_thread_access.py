@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from mcp.server.fastmcp import FastMCP
 from mcp.shared.memory import create_connected_server_and_client_session
 
 from decepticon.mcp_server.config import ServerConfig
@@ -17,19 +18,21 @@ class _Threads:
         self.workspace = workspace
 
     async def get_state(self, thread_id: str) -> dict[str, Any]:
-        selected = thread_id == "selected-thread"
+        selected = thread_id in {"selected-thread", "misplaced-thread"}
         return {
             "values": {
                 "engagement_name": "selected" if selected else "foreign",
-                "workspace_path": str(self.workspace) if selected else "/foreign",
+                "workspace_path": str(self.workspace)
+                if thread_id == "selected-thread"
+                else "/foreign",
                 "messages": [],
             }
         }
 
     async def search(self, **_: Any) -> list[dict[str, Any]]:
         return [
-            {"thread_id": "foreign-thread", "metadata": {"engagement_name": "foreign"}},
-            {"thread_id": "selected-thread", "metadata": {"engagement_name": "selected"}},
+            {"thread_id": "foreign-thread", "values": {"engagement_name": "foreign"}},
+            {"thread_id": "selected-thread", "values": {"engagement_name": "selected"}},
         ]
 
 
@@ -50,7 +53,7 @@ class _Client:
         self.runs = _Runs()
 
 
-def _server(client: _Client) -> Any:
+def _server(client: _Client) -> FastMCP:
     return build_server(ServerConfig("http://test:2024", "soundwave", 10), client=client)
 
 
@@ -61,17 +64,20 @@ def _server(client: _Client) -> Any:
         "decepticon_engagement_state",
         "decepticon_engagement_status",
         "decepticon_cancel_engagement",
+        "decepticon_watch",
     ],
 )
+@pytest.mark.parametrize("thread_id", ["foreign-thread", "misplaced-thread"])
 async def test_selected_workspace_rejects_foreign_thread(
-    tool: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tool: str, thread_id: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("DECEPTICON_ENGAGEMENT", "selected")
     monkeypatch.setenv("DECEPTICON_ENGAGEMENT_WORKSPACE", str(tmp_path))
     client = _Client(tmp_path)
     async with create_connected_server_and_client_session(_server(client)) as session:
-        result = await session.call_tool(tool, {"thread_id": "foreign-thread"})
+        result = await session.call_tool(tool, {"thread_id": thread_id})
         assert result.isError
+        assert "does not belong" in str(result.content)
         assert client.runs.cancelled == []
         if tool == "decepticon_cancel_engagement":
             result = await session.call_tool(tool, {"thread_id": "selected-thread"})
