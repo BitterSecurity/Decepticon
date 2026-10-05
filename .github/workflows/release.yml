@@ -113,13 +113,14 @@ jobs:
       # publish a sha256sum-format manifest as a release asset; the
       # installer/launcher fetches it from the immutable release URL and
       # verifies every config file against it before writing.
-      - name: Generate config manifest
+      - name: Generate integrity manifests
         run: |
           set -euo pipefail
           sha256sum docker-compose.yml config/litellm.yaml .env.example > config-checksums.txt
+          sha256sum integrations/agent-skills/decepticon/SKILL.md integrations/agent-skills/decepticon/reference.md integrations/agent-skills/decepticon/examples.md > agent-skill-checksums.txt
           cat config-checksums.txt
 
-      - name: Upload config manifest to draft release
+      - name: Upload integrity manifests to draft release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -127,7 +128,7 @@ jobs:
           # GoReleaser created the release in draft mode above. --clobber so
           # re-runs of the launcher job (e.g. release-recover) refresh the
           # asset instead of erroring.
-          gh release upload "${GITHUB_REF_NAME}" config-checksums.txt --clobber
+          gh release upload "${GITHUB_REF_NAME}" config-checksums.txt agent-skill-checksums.txt --clobber
 
   # Multi-arch images that build well under QEMU (Python wheels, simple
   # binaries). Web is split out below — its arm64 emulation cost dominated

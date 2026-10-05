@@ -1,130 +1,73 @@
 ---
 name: decepticon
-description: "Drive Decepticon — an autonomous multi-agent red-team framework — over MCP to run authorized penetration tests and bug-bounty engagements end to end, then watch and steer them live from chat. Launch an engagement against a target, poll its transcript to narrate progress, send messages to refocus it, and pull findings as SARIF. Use when the user asks to run a pentest/red-team engagement, hunt a bug bounty, do recon, exploit/scan a host, web app, API, network, cloud, Active Directory, mobile app, or smart contract WITH Decepticon — or to check/resume a running engagement or report what Decepticon found. Triggers: run a decepticon engagement, pentest this with decepticon, bug bounty, recon this target, red team this, scan this host, resume the engagement, what did decepticon find, decepticon status. Do NOT use for ad-hoc local tool runs (running nmap/sqlmap/ffuf directly) when no Decepticon server is involved — this drives the Decepticon orchestrator, not raw tools."
+description: "Operate Decepticon OSS through its installed CLI and engagement MCP tools when the user asks to run or inspect an authorized security engagement or a local Blue Cell. Do not use for unrelated security questions or raw scanner commands."
 license: Apache-2.0
 metadata:
-  version: 2.0.0
-  homepage: "https://github.com/PurpleAILAB/Decepticon"
-  hermes:
-    tags: [decepticon, red-teaming, penetration-testing, bug-bounty, mcp, autonomous-agents, recon, exploitation, sarif]
-    related_skills: [pentest-recon, offensive-reporting, reconnaissance]
+  version: 2.1.0
+  homepage: "https://github.com/BitterSecurity/Decepticon"
 ---
 
-# Decepticon engagements (over MCP)
+# Decepticon operator
 
-Drive **Decepticon** — an autonomous multi-agent red-team framework — as if its
-CLI were in this chat. Run an authorized engagement end to end (recon →
-exploitation → post-exploitation → reporting) across web, API, network, Active
-Directory, cloud, mobile, smart-contract, and binary targets, then **watch it
-progress and steer it as it runs**.
+Use Decepticon as the user's security platform. The host `decepticon` command
+manages the installation and opens an interactive CLI. The registered MCP
+server exposes engagement control and observation to coding agents. These
+interfaces cover different operations; choose the one that actually exists.
 
-You interact through the `decepticon_*` MCP tools (listed below). The heavy
-work runs inside the Decepticon server; you are the operator at the console.
+## Connect
 
-## Mental model — read this first
+1. Check `decepticon status`. If the installation is missing, the user can run
+   `decepticon onboard`. `decepticon start` starts services and opens the
+   interactive terminal; it is not a headless scan command.
+2. For MCP, confirm `decepticon_list_graphs` works. A connection error means
+   the stack or MCP registration needs attention. See the
+   [integration guide](https://github.com/BitterSecurity/Decepticon/blob/main/docs/integrations/external-agents.md) for
+   Claude Code and Codex registration.
+3. The user can install this skill for both clients with
+   `decepticon skill install` after a release containing that command.
 
-- An **engagement is a thread.** `decepticon_start_engagement` returns a
-  `thread_id`. That is the handle for *every* other tool — there are no run
-  ids to track.
-- The **orchestrator** (`decepticon` graph) builds an OPPLAN and delegates to
-  specialist sub-agents (recon, exploit, postexploit, analyst, reverser,
-  cloud_hunter, ad_operator, mobile_operator, …) via a `task()` tool. You watch
-  that narrative and nudge it.
-- Engagements are **long and asynchronous** (minutes to hours). `start` returns
-  immediately; you **poll** and narrate. **Never block** waiting for completion.
+## Choose the operation
 
-## Authorization — non-negotiable
+| Request | Supported surface |
+|---|---|
+| Discover agents, list engagements, read status or a compact state summary | MCP `decepticon_list_graphs`, `decepticon_list_engagements`, `decepticon_engagement_status`, `decepticon_engagement_state` |
+| Watch an engagement | MCP `decepticon_transcript` with `next_index`; `decepticon_watch` for a bounded live sample |
+| Send a follow-up or stop a run | MCP `decepticon_send_message` or `decepticon_cancel_engagement` |
+| Onboard, start, stop, update, inspect services | Host `decepticon` command |
+| Start and inspect a local Blue Cell sensor | Interactive CLI `/blue up`, `/blue status`, `/blue verify`, `/blue events`, `/blue incidents`, `/blue metrics`, `/blue analyze`, `/blue stop` |
+| Toggle plugins, web dashboard, or active agent | Interactive CLI `/plugins`, `/web`, `/agent` |
 
-- Only start engagements against assets the user has **explicitly confirmed are
-  in scope**. If scope is unclear or missing, **ask before starting** — do not
-  guess a target.
-- ALWAYS pass scope + rules of engagement in `instruction`: name the in-scope
-  hosts/domains/paths **and the explicit out-of-scope** items. The orchestrator
-  enforces RoE on every tool call, but you are responsible for giving it
-  correct scope.
-- Decline targets that are plainly not the user's to test.
+Do not invent MCP tools for Blue Cell setup, plugin toggles, or service
+management. The slash commands above work inside Decepticon's interactive
+terminal, not in the shell or the MCP bridge.
 
-## Prerequisites (verify on first failure)
+## Engagement workflow
 
-- A Decepticon **LangGraph server** must be running. For an installed CLI,
-  `decepticon mcp serve` connects through the running LangGraph container. For
-  a Python package or source checkout, the bridge uses `DECEPTICON_API_URL`
-  (default `http://localhost:2024`). If a tool reports a connection failure,
-  tell the user to run `decepticon start` or `langgraph dev` as appropriate.
-- The `decepticon` MCP server must be registered. See the
-  [integration docs](../../../docs/integrations/external-agents.md).
+- Obtain the user's explicit target scope and rules of engagement before any
+  active testing. State both included and excluded assets. Do not infer
+  authorization from a URL or repository path.
+- For an existing CLI engagement, call `decepticon_list_engagements`, identify
+  its `thread_id`, then read `decepticon_engagement_state` and
+  `decepticon_transcript`. Keep the returned `next_index` for later reads.
+- `decepticon_start_engagement` exists, but the installed MCP bridge does not
+  currently bind a new thread to the CLI's selected `/workspace` engagement.
+  Use it only when the server's workspace mapping is explicitly configured and
+  confirmed for that engagement. Otherwise start the engagement in the
+  interactive CLI and observe its thread through MCP.
+- A local repository path in MCP `targets` is passed as text. It is not copied
+  into the sandbox; confirm the target code is actually mounted before asking
+  Decepticon to analyze it.
+- `decepticon_send_message` queues a new turn behind an active run. Do not tell
+  the user it changed the current execution until a subsequent transcript or
+  state confirms the effect.
+- `decepticon_engagement_findings` reads a persisted `graph.json` only. An
+  `available=false` result does not prove the absence of findings. For an
+  installed CLI engagement, inspect the selected host workspace's
+  `findings/FIND-*.md` and `report/` artifacts when available. Cite the
+  actual artifact and verification status; do not invent a SARIF result.
+- If a run is interrupted or fails, read the latest transcript and status
+  before retrying. Stop polling when the user has the requested update or
+  the run reaches a terminal state.
 
-## Tools
-
-| Tool | Use it to | Key args | Returns (key fields) |
-|------|-----------|----------|----------------------|
-| `decepticon_list_graphs` | see available graphs | — | `[{graph_id, name}]` |
-| `decepticon_list_engagements` | browse / resume | `limit` | `[{thread_id, engagement_name, status}]` |
-| `decepticon_start_engagement` | launch | `targets[]`, `instruction`, `scan_mode`, `engagement_name?` | `{thread_id, engagement_name, run_id, status}` |
-| `decepticon_transcript` | watch the narrative | `thread_id`, `after_index`, `limit` | `{messages[], next_index, total, run_status}` |
-| `decepticon_watch` | live sub-agent burst | `thread_id`, `max_seconds`, `max_events` | `{events[], run_status}` |
-| `decepticon_send_message` | steer / answer / `/model` | `thread_id`, `message` | `{run_id, status}` |
-| `decepticon_engagement_state` | OPPLAN / scope / phase | `thread_id` | `{engagement_name, message_count, values}` |
-| `decepticon_engagement_status` | run status + findings ready | `thread_id`, `engagement_name?` | `{status, findings_available}` |
-| `decepticon_engagement_findings` | pull results | `engagement_name`, `include_sarif?` | `{available, result_count, level_counts, sarif?}` |
-| `decepticon_cancel_engagement` | stop the run | `thread_id` | text |
-
-Full parameters, defaults, clamps, and return schemas are in
-[`reference.md`](reference.md). Worked end-to-end runs are in
-[`examples.md`](examples.md).
-
-## The core loop
-
-1. **Pick a graph.** Usually `decepticon` (full kill chain). Use `recon` for
-   recon-only, `soundwave` for planning. `decepticon_list_graphs()` if unsure.
-2. **Start.** `decepticon_start_engagement(targets=[…], instruction="In scope: …;
-   Out of scope: …", scan_mode="standard")`. Save `thread_id` **and**
-   `engagement_name`.
-3. **Watch + narrate.** Loop `decepticon_transcript(thread_id,
-   after_index=<previous next_index>)`; summarise only the NEW messages for the
-   user (coordinator decisions, `task(<specialist>)` delegations, results). For
-   a live burst use `decepticon_watch(thread_id)`. Check
-   `decepticon_engagement_status(thread_id, engagement_name)`; stop polling when
-   `status` is terminal **or** `findings_available` is true.
-4. **Steer** when useful: `decepticon_send_message(thread_id, "skip the staging
-   host, focus on the API")`, answer the coordinator, or switch models with
-   `/model anthropic/claude-opus-4-8`.
-5. **Report.** When findings exist:
-   `decepticon_engagement_findings(engagement_name, include_sarif=true)` →
-   present severity, counts, and reproduction. `decepticon_engagement_state` for
-   the OPPLAN/phase.
-6. **Resume later.** `decepticon_list_engagements()` → reuse any `thread_id`.
-
-## Polling cadence (phone / chat friendly)
-
-- Don't spam tools. While running, poll the transcript every ~15–30s and give
-  the user a **1–2 line update per poll**, not raw dumps.
-- Use the returned `next_index` as your cursor so each update covers only new
-  activity.
-- `decepticon_watch` blocks up to `max_seconds` (≤45) — use it for a quick live
-  glimpse, not as your main loop.
-
-## Interpreting results (fast guide)
-
-- **transcript.messages**: `role` is user/assistant/tool. `tool_calls` like
-  `task(recon)` means a specialist was dispatched. `tool` messages carry results.
-- **status**: `pending`/`running` = working; `success` = finished;
-  `error`/`timeout`/`interrupted` = stopped (say why; offer resume/restart);
-  `none` = no run yet.
-- **findings**: `available=false` → not persisted yet, keep polling.
-  `level_counts` maps SARIF level → count (`error` = critical/high, `warning` =
-  medium, `note` = low). Pass `include_sarif=true` to mine reproduction details.
-- **engagement_state.values**: OPPLAN, objectives, scope, phase, working files.
-
-## Errors & recovery
-
-- **Connection failure** → the Decepticon server isn't up at `DECEPTICON_API_URL`.
-  Ask the user to start it; don't loop.
-- **`findings_available=false` for a while** → normal early on; keep watching the
-  transcript and report progress.
-- **`status=error`/`timeout`** → read the last transcript messages for the cause,
-  summarise it, and offer to `send_message` a fix or start fresh.
-- **No active run on `watch`/`cancel`** → the engagement is idle/finished; use
-  `transcript`/`findings` instead.
-
-See [`reference.md`](reference.md) and [`examples.md`](examples.md) for depth.
+Read [reference.md](reference.md) for exact MCP arguments and
+[examples.md](examples.md) for CLI and MCP handoffs.

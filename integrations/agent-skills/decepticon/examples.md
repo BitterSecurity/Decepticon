@@ -1,124 +1,68 @@
-# Decepticon MCP — worked examples
+# Decepticon operator examples
 
-Concrete tool-call sequences for common requests, with how to narrate to the
-user. Tool calls are shown as `tool(args) -> {key fields}`. Adapt the prose;
-keep updates short.
+These examples separate host commands, Decepticon's interactive slash commands,
+and MCP tool calls. Confirm target scope before active testing.
 
----
+## Inspect a running CLI engagement from Claude Code or Codex
 
-## 1. Bug-bounty engagement, watched from a phone
+The operator started `decepticon start`, selected an engagement, and began a
+run in the interactive CLI. From the coding agent:
 
-**User:** "Hunt bugs on `https://app.example.com` and `*.example.com`. Out of
-scope: the billing host `pay.example.com`. Use Decepticon."
-
-```
-decepticon_start_engagement(
-  targets=["https://app.example.com", "*.example.com"],
-  instruction="In scope: app.example.com and all *.example.com subdomains. "
-              "Out of scope: pay.example.com (production billing). Bug-bounty "
-              "rules: no DoS, no data exfiltration, rate-limit requests.",
-  scan_mode="standard",
-) -> { thread_id: "th_1", engagement_name: "mcp-20260603-2140", status: "pending" }
+```text
+decepticon_list_engagements(limit=20)
+  -> [{thread_id: "th_1", engagement_name: "example-assessment", ...}]
+decepticon_engagement_state(thread_id="th_1")
+decepticon_transcript(thread_id="th_1", after_index=0, limit=40)
+  -> {next_index: 8, messages: [...], run_status: "running"}
+decepticon_transcript(thread_id="th_1", after_index=8, limit=40)
 ```
 
-Reply: *"Engagement `mcp-20260603-2140` started against app.example.com (+
-subdomains), billing host excluded. I'll watch and report progress."*
+Report only new, observed activity. A `decepticon_watch` call can sample a
+short live window; it is not a durable event subscription.
 
-Then poll (every ~20s), advancing the cursor:
+## Steer after the current run
 
-```
-decepticon_transcript(thread_id="th_1", after_index=0) -> { next_index: 6, run_status: "running",
-  messages: [ ... assistant: "Building OPPLAN…", tool_calls: ["task(recon)"], tool(name=task): "Found 4 subdomains, 3 web apps…" ] }
-```
-
-Reply: *"Recon done — 4 subdomains, 3 web apps. Now enumerating endpoints."*
-Next poll uses `after_index=6`, and so on. When:
-
-```
-decepticon_engagement_status(thread_id="th_1", engagement_name="mcp-20260603-2140")
-  -> { status: "running", findings_available: true }
-decepticon_engagement_findings(engagement_name="mcp-20260603-2140", include_sarif=true)
-  -> { available: true, result_count: 3, level_counts: {error: 1, warning: 2}, sarif: {...} }
+```text
+decepticon_send_message(
+  thread_id="th_1",
+  message="Within the approved scope, focus on /api/v2 before other endpoints."
+)
 ```
 
-Reply with the findings: 1 high + 2 medium, each with affected URL + repro from
-`sarif.runs[0].results[]`. Offer to keep the run going for deeper coverage.
+This queues a later turn. Check the subsequent transcript before claiming that
+the agent changed its current activity. `decepticon_cancel_engagement` stops an
+active run when the operator requests that.
 
-## 2. Recon only
+## Start a local Blue Cell
 
-**User:** "Just do recon on `10.10.0.0/24`, don't exploit anything."
+Inside the Decepticon interactive CLI, the operator can enter:
 
-```
-decepticon_start_engagement(targets=["10.10.0.0/24"],
-  instruction="Recon and enumeration ONLY. In scope: 10.10.0.0/24. Do not exploit.",
-  assistant="recon", scan_mode="quick")
-```
-
-Use the `recon` graph + an explicit no-exploit instruction. Watch via
-`transcript`; report hosts/services/attack surface from
-`decepticon_engagement_state(thread_id)` (`values` holds the recon map).
-
-## 3. Steering a live engagement
-
-**User (mid-run):** "Ignore the marketing site, focus on the API at `/api/v2`."
-
-```
-decepticon_send_message(thread_id="th_1",
-  message="Deprioritize the marketing site. Focus on the REST API under /api/v2 — "
-          "test authz/IDOR and injection there.") -> { run_id: "rn_9", status: "pending" }
+```text
+/blue up 127.0.0.1:3000
+/blue verify
+/blue events 20
+/blue incidents 20
+/blue analyze
 ```
 
-Reply: *"Refocusing the engagement on `/api/v2` (authz/IDOR + injection)."* Keep
-polling the transcript to confirm the orchestrator picked it up.
+Tell the operator to send test traffic to `http://127.0.0.1:18080`. These are
+interactive CLI commands, not MCP tools or shell commands. The coding agent
+may inspect the target's local logs and the selected workspace when it has
+host access, but it must not claim that MCP started the sensor.
 
-**Switch models mid-run** (e.g. for a hard target):
+## Read results without hiding a gap
 
-```
-decepticon_send_message(thread_id="th_1", message="/model anthropic/claude-opus-4-8")
-```
+`decepticon_engagement_findings(engagement_name="example-assessment")` reads
+`graph.json` only. If it returns `available=false`, inspect the selected host
+workspace's `findings/FIND-*.md` and `report/` files. The installed MCP bridge
+cannot currently read those files from its container. Report the actual
+finding IDs, evidence, verification status, and affected targets from files
+you opened; do not turn `available=false` into a no-findings claim.
 
-## 4. Check status / resume later
+## A separately mapped LangGraph server
 
-**User (next day):** "What's happening with the example.com engagement?"
-
-```
-decepticon_list_engagements(limit=20) -> [{ thread_id: "th_1", engagement_name: "mcp-20260603-2140", status: "idle" }, …]
-decepticon_transcript(thread_id="th_1", after_index=0, limit=10)   # recent narrative
-decepticon_engagement_findings(engagement_name="mcp-20260603-2140")  # what was found
-```
-
-Summarise where it stands + findings. To continue, `decepticon_send_message` or
-`decepticon_start_engagement` a fresh pass.
-
-## 5. A live burst (when the user wants detail "right now")
-
-```
-decepticon_watch(thread_id="th_1", max_seconds=15, max_events=30)
-  -> { run_status: "running", events: [{event:"custom", data:"{\"type\":\"recon_step\",…}"}, …], truncated: true }
-```
-
-Summarise the live sub-agent activity (e.g. "recon agent is fuzzing
-directories, exploit agent queued"). Then return to the normal transcript loop.
-
-## 6. Handling failure
-
-```
-decepticon_engagement_status(thread_id="th_1", engagement_name="…") -> { status: "error" }
-decepticon_transcript(thread_id="th_1", after_index=<n>, limit=10)  # read the cause
-```
-
-Tell the user what failed (from the last messages) and offer to
-`decepticon_send_message` a correction or start a fresh engagement. If a tool
-errors with a connection problem, the Decepticon server is down — ask the user
-to start it rather than retrying.
-
----
-
-## Narration principles
-
-- One or two sentences per update; lead with what changed.
-- Name the phase/specialist ("recon", "exploit", "post-ex") so the user follows
-  the kill chain.
-- Surface findings with **severity + affected target + one-line repro**.
-- Never paste raw transcript/SARIF dumps into chat — summarise; offer detail on
-  request.
+For a deployment that explicitly maps the MCP engagement name to its own
+workspace, the agent can call `decepticon_start_engagement` with the user's
+approved targets and a full in-scope and out-of-scope instruction. Save its
+`thread_id`, then use the transcript cursor, status, and cancel tools as above.
+Confirm that mapping before using this flow on an installed Docker stack.

@@ -1,10 +1,10 @@
 # External agents — Claude Code, Codex, OpenClaw & Hermes
 
 Decepticon ships an **engagement MCP server** so external agent runtimes can
-drive it like its CLI — from a phone, via those agents' chat channels. It
-exposes the full interactive loop over the Model Context Protocol: discover and
-resume engagements, launch one, **steer it by chatting**, **watch progress**,
-inspect the OPPLAN, and pull findings.
+discover and observe engagements, launch a background run, send follow-up
+messages, inspect state, and cancel runs. The installed CLI also manages
+services, local Blue Cell sensors, plugin bundles, and the web dashboard;
+those operations are not exposed as MCP tools.
 
 This makes Decepticon usable from Claude Code, Codex,
 [OpenClaw](https://github.com/openclaw/openclaw), and
@@ -15,9 +15,10 @@ Coding agent  ──MCP stdio──▶  decepticon mcp serve  ──container ex
 ```
 
 The bridge is a thin control plane. The red-team work runs inside the
-Decepticon LangGraph server (full RoE enforcement, sandbox, knowledge-graph
-persistence); the MCP layer translates tool calls into LangGraph runs
-(`decepticon.mcp_server`) and reads persisted transcript/state/findings back.
+Decepticon LangGraph server. The MCP layer translates tool calls into
+LangGraph runs (`decepticon.mcp_server`) and reads persisted transcript/state.
+Its current findings tool only reads `graph.json` and does not expose the
+canonical `findings/FIND-*.md` or `report/` artifacts.
 
 ## Tools
 
@@ -26,16 +27,17 @@ persistence); the MCP layer translates tool calls into LangGraph runs
 | `decepticon_list_graphs` | Discover engagement graphs (decepticon, recon, soundwave, …) |
 | `decepticon_list_engagements` | Browse / resume recent engagements |
 | `decepticon_start_engagement` | Launch a background engagement (targets + scope/RoE) |
-| `decepticon_send_message` | Steer / answer the coordinator / `/model` switch mid-run |
+| `decepticon_send_message` | Queue a follow-up turn or `/model` change after the active run |
 | `decepticon_transcript` | Read the orchestrator narrative incrementally (watch) |
 | `decepticon_watch` | Tail the live sub-agent stream for a few seconds |
 | `decepticon_engagement_state` | Inspect OPPLAN / objectives / scope / phase |
-| `decepticon_engagement_status` | Latest run status + whether findings exist |
-| `decepticon_engagement_findings` | Findings summary / full SARIF v2.1.0 |
+| `decepticon_engagement_status` | Latest run status + whether `graph.json` is visible |
+| `decepticon_engagement_findings` | `graph.json` summary / SARIF when that file is visible |
 | `decepticon_cancel_engagement` | Stop the active run |
 
-Every tool is keyed by the `thread_id` returned from `decepticon_start_engagement`
-(or listed by `decepticon_list_engagements`) — no run-id juggling, just like the CLI.
+Run-control tools use the `thread_id` returned by `decepticon_start_engagement`
+or listed by `decepticon_list_engagements`. Findings tools use an
+`engagement_name`. The MCP bridge resolves active run IDs internally.
 
 ## 1. Claude Code and Codex with the installed CLI
 
@@ -63,19 +65,31 @@ The launcher keeps MCP stdout reserved for JSON-RPC and sends runtime errors
 to stderr. A missing install or stopped stack produces an MCP startup error;
 run `decepticon onboard` or `decepticon start`, respectively.
 
-The optional [Decepticon Agent Skill](../../integrations/agent-skills/decepticon/SKILL.md)
-teaches either coding agent the engagement loop and the required scope check.
-From a source checkout, install the whole skill directory:
+Install the [Decepticon Agent Skill](../../integrations/agent-skills/decepticon/SKILL.md)
+to teach either coding agent which operations use MCP and which require the
+interactive CLI. A released launcher installs the version-matched skill with:
 
 ```bash
-mkdir -p ~/.claude/skills ~/.agents/skills
-cp -R integrations/agent-skills/decepticon ~/.claude/skills/
-cp -R integrations/agent-skills/decepticon ~/.agents/skills/
+decepticon skill install
+# Or choose one: --client claude | --client codex
 ```
 
-Restart the coding agent after registering MCP or installing the skill. A
-plugin is not required for this integration: the same MCP server and Agent
-Skill are usable independently in Claude Code and Codex.
+From a source checkout using a development launcher:
+
+```bash
+cd clients/launcher
+go run . skill install --from ../../integrations/agent-skills/decepticon
+```
+
+The installer preserves a modified existing skill unless `--force` is given;
+`--force` backs it up before replacing it. Restart the coding agent after
+registering MCP or installing the skill.
+
+For the installed Docker stack, start an engagement through the interactive
+CLI after selecting its workspace. `decepticon_start_engagement` does not
+currently change the sandbox bind mount to match a new MCP engagement name.
+The MCP tool can then observe the CLI thread through
+`decepticon_list_engagements` and `decepticon_transcript`.
 
 ## 2. Python package or source checkout
 
@@ -169,7 +183,9 @@ auto-discovers it under the `red-teaming` category.
 3. `decepticon_send_message(thread_id, "focus on the API, skip the marketing site")`
    — steer mid-engagement, answer the coordinator, or `/model anthropic/claude-opus-4-8`.
 4. `decepticon_engagement_state(thread_id)` — check the OPPLAN / phase.
-5. `decepticon_engagement_findings(engagement_name, include_sarif=true)` — pull results.
+5. `decepticon_engagement_findings(engagement_name, include_sarif=true)` — read
+   `graph.json` when present. Check the selected host workspace's
+   `findings/FIND-*.md` and `report/` files for canonical results.
 6. Later, `decepticon_list_engagements()` to resume any thread by `thread_id`.
 
 ## 6. Remote / networked use (optional)

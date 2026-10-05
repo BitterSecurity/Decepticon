@@ -9,8 +9,9 @@ tools are async and target a running Decepticon LangGraph server.
 - **`thread_id`** is the engagement handle (from `start_engagement` /
   `list_engagements`). The active run for a thread is resolved automatically —
   you never pass a `run_id`.
-- **`engagement_name`** is the human slug used for the workspace + findings
-  (`~/.decepticon/workspace/<engagement_name>/`). `start_engagement` returns it.
+- **`engagement_name`** is the thread's human slug. The installed stack binds
+  the CLI-selected workspace at `/workspace`; an MCP-created name does not
+  change that bind mount or create a matching host directory.
 - Tools return structured objects (shown below). Counts/cursors are integers.
 
 ---
@@ -33,7 +34,9 @@ Recent engagements, most-recently-updated first — for browse / resume.
 
 ## decepticon_start_engagement(targets, instruction="", scan_mode="standard", engagement_name=None, assistant=None)
 
-Launch a **background** engagement. Returns immediately.
+Launch a **background** engagement. Returns immediately. On the installed
+Docker stack, this tool does not select or mount a new engagement workspace;
+use the CLI-selected engagement unless workspace mapping has been verified.
 
 - **Args:**
   - `targets` (list[str], required) — URLs, hostnames/CIDRs, repo URLs, or paths.
@@ -49,7 +52,7 @@ Launch a **background** engagement. Returns immediately.
 
 The orchestrator narrative — poll this to watch progress.
 
-- **Args:** `thread_id`; `after_index` (int — start after this message index);
+- **Args:** `thread_id`; `after_index` (int — start at this message index);
   `limit` (int, clamped 1–200).
 - **Returns:** `{ thread_id, run_status, total, next_index, messages: [{ index,
   role, text, tool_calls, name }] }`.
@@ -80,7 +83,7 @@ Send an operator message onto the engagement thread — steer, answer, or switch
 - **Args:** `thread_id`; `message` (str); `assistant` (optional — defaults to the
   thread's existing graph).
 - **Behaviour:** enqueued after any active run (`multitask_strategy="enqueue"`),
-  so it is never rejected; dispatched in the background.
+  then dispatched in the background. Confirm its effect in a later transcript.
 - **Special:** start `message` with `/model <provider/model-id>` to switch the
   orchestrator's model mid-engagement (e.g. `/model anthropic/claude-opus-4-8`).
 - **Returns:** `{ thread_id, run_id, assistant, status }`.
@@ -102,7 +105,8 @@ Latest run status + whether findings have been persisted.
 - **Args:** `thread_id`; `engagement_name` (optional — needed to check findings).
 - **Returns:** `{ thread_id, run_id, status, findings_available }`.
   - `status`: `pending`/`running`/`success`/`error`/`timeout`/`interrupted`/`none`.
-  - `findings_available`: true once `graph.json` exists for the engagement.
+  - `findings_available`: true once this bridge can see `graph.json` for the
+    engagement. False does not mean `FIND-*.md` or reports are absent.
 
 ## decepticon_engagement_findings(engagement_name, include_sarif=False)
 
@@ -110,7 +114,9 @@ Findings summary, optionally with the full SARIF v2.1.0 document.
 
 - **Args:** `engagement_name`; `include_sarif` (bool — full SARIF when true).
 - **Returns:** `{ engagement_name, available, result_count, level_counts, sarif }`.
-  - `available`: false until the orchestrator persists findings (keep polling).
+  - `available`: false unless this bridge can read `graph.json`. The installed
+    LangGraph container does not mount the CLI-selected workspace, so check
+    canonical host artifacts separately.
   - `level_counts`: SARIF level → count. `error` ≈ critical/high, `warning` ≈
     medium, `note` ≈ low.
   - `sarif`: full SARIF doc when `include_sarif=true`, else null. Mine
@@ -131,7 +137,9 @@ Cancel the active run on a thread.
   `status`; do not call a blocking wait.
 - **Cursoring:** always pass the previous `next_index` as `after_index` so you
   narrate only new activity and avoid repeating yourself.
-- **Server required:** all tools need the Decepticon LangGraph server up at
-  `DECEPTICON_API_URL`. A connection error means it isn't running.
-- **Findings lag the run:** `status=running` with `findings_available=false` is
-  normal; findings appear as the analyst persists them.
+- **Server required:** all tools need the LangGraph server. The installed
+  launcher runs the bridge inside its container; Python installs connect to
+  `DECEPTICON_API_URL`.
+- **Canonical results:** inspect the selected host workspace's
+  `findings/FIND-*.md` and `report/` files. An empty `graph.json` response is
+  not evidence that the engagement found nothing.
