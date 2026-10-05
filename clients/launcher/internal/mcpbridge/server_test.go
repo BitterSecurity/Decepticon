@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -134,8 +135,8 @@ func TestRuntimeToolsAndCLIStatusShareOneServer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tools.Tools) != 11 {
-		t.Fatalf("got %d tools, want three runtime and eight host tools", len(tools.Tools))
+	if len(tools.Tools) != 14 {
+		t.Fatalf("got %d tools, want three runtime and eleven host tools", len(tools.Tools))
 	}
 	for _, tool := range tools.Tools {
 		if tool.Name == "decepticon_cli_status" && (tool.Annotations == nil || !tool.Annotations.ReadOnlyHint) {
@@ -258,6 +259,56 @@ func TestRuntimeToolsAndCLIStatusShareOneServer(t *testing.T) {
 	if len(listed) != 1 || listed[0].(map[string]any)["name"] != "red-test" || listed[0].(map[string]any)["assistant"] != "soundwave" {
 		t.Fatalf("listed workspaces = %#v", listed)
 	}
+	workspace := filepath.Join(os.Getenv("DECEPTICON_HOME"), "workspace", "red-test")
+	plan := filepath.Join(workspace, "plan")
+	if err := os.WriteFile(filepath.Join(plan, "roe.json"), []byte("{}"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	artifacts, err := session.CallTool(ctx, &mcp.CallToolParams{
+		Name: "decepticon_cli_list_artifacts", Arguments: map[string]any{"engagement": "red-test"},
+	})
+	if err != nil || artifacts.IsError || len(artifacts.StructuredContent.(map[string]any)["artifacts"].([]any)) != 1 {
+		t.Fatalf("artifacts = %#v, %v", artifacts, err)
+	}
+	read, err := session.CallTool(ctx, &mcp.CallToolParams{
+		Name: "decepticon_cli_read_artifact", Arguments: map[string]any{
+			"engagement": "red-test", "path": "plan/roe.json", "max_bytes": 1,
+		},
+	})
+	if err != nil || read.IsError || read.StructuredContent.(map[string]any)["content"] != "{" || read.StructuredContent.(map[string]any)["truncated"] != true {
+		t.Fatalf("read artifact = %#v, %v", read, err)
+	}
+	denied, err = session.CallTool(ctx, &mcp.CallToolParams{
+		Name: "decepticon_cli_read_artifact", Arguments: map[string]any{
+			"engagement": "red-test", "path": "../.env",
+		},
+	})
+	if err != nil || !denied.IsError {
+		t.Fatalf("unsafe read = %#v, %v", denied, err)
+	}
+	denied, err = session.CallTool(ctx, &mcp.CallToolParams{
+		Name: "decepticon_cli_approve_red", Arguments: map[string]any{"engagement": "red-test"},
+	})
+	if err != nil || !denied.IsError {
+		t.Fatalf("unconfirmed approval = %#v, %v", denied, err)
+	}
+	for _, filename := range []string{
+		"threat-profile.json", "conops.json", "deconfliction.json", "contact.json",
+		"data-handling.json", "abort.json", "cleanup.json",
+	} {
+		if err := os.WriteFile(filepath.Join(plan, filename), []byte("{}"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(workspace, ".planning-draft-ready"), []byte("23bb0ad057e96e5098d6c8ef731ce1afadd9e1957f6adf6b720196ad35409418"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	approved, err := session.CallTool(ctx, &mcp.CallToolParams{
+		Name: "decepticon_cli_approve_red", Arguments: map[string]any{"engagement": "red-test", "confirmed": true},
+	})
+	if err != nil || approved.IsError {
+		t.Fatalf("approval = %#v, %v", approved, err)
+	}
 }
 
 func TestColdServerConnectsRuntimeAfterStartup(t *testing.T) {
@@ -305,7 +356,7 @@ func TestColdServerConnectsRuntimeAfterStartup(t *testing.T) {
 	}
 	defer session.Close()
 	tools, err := session.ListTools(ctx, nil)
-	if err != nil || len(tools.Tools) != 8 {
+	if err != nil || len(tools.Tools) != 11 {
 		t.Fatalf("cold tools = %#v, %v", tools, err)
 	}
 	failed, err := session.CallTool(ctx, &mcp.CallToolParams{Name: "decepticon_cli_connect_runtime"})
@@ -318,7 +369,7 @@ func TestColdServerConnectsRuntimeAfterStartup(t *testing.T) {
 		t.Fatalf("connect runtime = %#v, %v", connected, err)
 	}
 	tools, err = session.ListTools(ctx, nil)
-	if err != nil || len(tools.Tools) != 9 {
+	if err != nil || len(tools.Tools) != 12 {
 		t.Fatalf("connected tools = %#v, %v", tools, err)
 	}
 	result, err := session.CallTool(ctx, &mcp.CallToolParams{Name: "decepticon_ready"})

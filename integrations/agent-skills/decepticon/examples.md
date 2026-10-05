@@ -53,9 +53,9 @@ host access, but it must not claim that MCP started the sensor.
 ## Read results without hiding a gap
 
 `decepticon_engagement_findings(engagement_name="example-assessment")` reads
-`graph.json` only. If it returns `available=false`, inspect the selected host
-workspace's `findings/FIND-*.md` and `report/` files. The MCP tool does not
-currently return those files. Report the actual
+`graph.json` only. If it returns `available=false`, list and read the selected
+workspace's `findings/FIND-*.md` and `report/` files through the artifact
+tools. Report the actual
 finding IDs, evidence, verification status, and affected targets from files
 you opened; do not turn `available=false` into a no-findings claim.
 
@@ -65,5 +65,9 @@ Use `decepticon_cli_start` with the workspace slug, then
 `decepticon_cli_connect_runtime`. Call `decepticon_start_engagement` with that
 same slug, the user's approved targets, and a full in-scope and out-of-scope
 instruction. Choose `assistant="soundwave"` while preparing the plan. An active
-assistant requires the current plan approval. Save the returned `thread_id`,
+assistant requires the current plan approval. After Soundwave completes the
+draft, use `decepticon_cli_list_artifacts` and `decepticon_cli_read_artifact`
+to review all eight plan documents with the operator. Call
+`decepticon_cli_approve_red(engagement="<slug>", confirmed=true)` only after
+the operator approves. Save the returned `thread_id`,
 then use the transcript cursor, status, and cancel tools.

@@ -9,8 +9,6 @@
 package engagement
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -70,22 +68,17 @@ func isReady(home, slug string) bool {
 
 func isRedApproved(home, slug string) bool {
 	root := filepath.Join(home, "workspace", slug)
-	marker, err := os.ReadFile(filepath.Join(root, ".red-approved"))
+	workspace, err := os.OpenRoot(root)
 	if err != nil {
 		return false
 	}
-	digest := sha256.New()
-	for _, filename := range planningDocuments {
-		content, err := os.ReadFile(filepath.Join(root, "plan", filename))
-		if err != nil {
-			return false
-		}
-		_, _ = digest.Write([]byte(filename))
-		_, _ = digest.Write([]byte{0})
-		_, _ = digest.Write(content)
-		_, _ = digest.Write([]byte{0})
+	defer workspace.Close()
+	marker, err := workspace.ReadFile(".red-approved")
+	if err != nil {
+		return false
 	}
-	return strings.TrimSpace(string(marker)) == hex.EncodeToString(digest.Sum(nil))
+	digest, err := planDigest(workspace)
+	return err == nil && strings.TrimSpace(string(marker)) == digest
 }
 
 // ScanEngagements returns every directory under home/workspace/ regardless

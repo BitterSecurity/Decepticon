@@ -18,8 +18,8 @@ Coding agent  ──MCP stdio──▶  decepticon mcp serve  ──container ex
 The bridge is a thin control plane. The red-team work runs inside the
 Decepticon LangGraph server. The MCP layer translates tool calls into
 LangGraph runs (`decepticon.mcp_server`) and reads persisted transcript/state.
-Its current findings tool only reads `graph.json` and does not expose the
-canonical `findings/FIND-*.md` or `report/` artifacts.
+Its findings tool reads `graph.json`; host artifact tools expose canonical
+`findings/FIND-*.md` and `report/` files with bounded reads.
 
 ## Tools
 
@@ -45,6 +45,8 @@ canonical `findings/FIND-*.md` or `report/` artifacts.
 | `decepticon_cli_status` / `decepticon_cli_kg_health` | Inspect installed service and graph health from the host |
 | `decepticon_cli_start` / `decepticon_cli_stop` | Start services for an existing workspace or stop the stack |
 | `decepticon_cli_workspaces` / `decepticon_cli_create_workspace` | List or create host engagement workspaces |
+| `decepticon_cli_list_artifacts` / `decepticon_cli_read_artifact` | Review bounded plan, finding, report, and graph files from the host workspace |
+| `decepticon_cli_approve_red` | Approve the current validated plan after operator review |
 | `decepticon_cli_update` | Apply a release update after operator confirmation |
 | `decepticon_cli_connect_runtime` | Publish engagement, plugin, and Blue observation tools after starting services |
 
@@ -107,8 +109,10 @@ registering MCP or installing the skill.
 For the installed Docker stack, select a workspace with
 `decepticon_cli_start`, connect runtime tools, then call
 `decepticon_start_engagement` with that same workspace slug. Soundwave can
-prepare the plan; Red and other active assistants require an approved current
-plan. The selected workspace is mounted at `/workspace` in the sandbox and
+prepare the plan; use the artifact tools to review its eight documents, then
+approve with `decepticon_cli_approve_red` after operator confirmation. Red and
+other active assistants require that current approval. The selected workspace
+is mounted at `/workspace` in the sandbox and
 read-only in LangGraph so the bridge can verify approval and read `graph.json`.
 
 ## 2. Python package or source checkout

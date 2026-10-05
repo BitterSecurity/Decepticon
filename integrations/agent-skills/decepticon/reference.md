@@ -26,6 +26,18 @@ List the engagement graphs (assistants) the connected server exposes.
 - Common `graph_id`s: `decepticon` (full kill-chain orchestrator), `recon`
   (recon only), `soundwave` (engagement planning). Others may exist per install.
 
+## Host workspace review tools
+
+- `decepticon_cli_list_artifacts(engagement)` lists up to 100 files in the
+  selected local workspace's `plan/`, `findings/`, `report/`, and `graph.json`.
+  Returns `{ artifacts: [{ path, size }], truncated }`.
+- `decepticon_cli_read_artifact(engagement, path, max_bytes=65536)` reads one
+  allowed file. `max_bytes` must be 1–262144. Returns
+  `{ path, content, truncated }`; paths cannot escape the workspace.
+- `decepticon_cli_approve_red(engagement, confirmed=true)` writes the Red
+  approval only when the operator has reviewed the plan and the current
+  eight-document digest matches `.planning-draft-ready`.
+
 ## decepticon_list_engagements(limit=20)
 
 Recent engagements, most-recently-updated first — for browse / resume.

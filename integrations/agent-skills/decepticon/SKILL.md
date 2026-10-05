@@ -3,7 +3,7 @@ name: decepticon
 description: "Operate Decepticon OSS through its installed CLI and engagement MCP tools when the user asks to run or inspect an authorized security engagement or a local Blue Cell. Do not use for unrelated security questions or raw scanner commands."
 license: Apache-2.0
 metadata:
-  version: 2.3.0
+  version: 2.4.0
   homepage: "https://github.com/BitterSecurity/Decepticon"
 ---
 
@@ -41,6 +41,8 @@ interfaces cover different operations; choose the one that actually exists.
 | Update after the operator asks | MCP `decepticon_cli_update` or host `decepticon update` |
 | List or create local engagement workspaces | MCP `decepticon_cli_workspaces`, `decepticon_cli_create_workspace` |
 | Start services for an existing engagement | MCP `decepticon_cli_start` with its workspace slug, then `decepticon_cli_connect_runtime` |
+| Review a plan, findings, or report | MCP `decepticon_cli_list_artifacts` and bounded `decepticon_cli_read_artifact` |
+| Approve the validated plan for Red | MCP `decepticon_cli_approve_red` after operator review, with `confirmed=true` |
 | Initial onboarding or interactive CLI | Host `decepticon` command |
 | Start or stop a local Blue Cell sensor | Interactive CLI `/blue up`, `/blue stop` |
 | Inspect a running Blue Cell | MCP `decepticon_blue_status`, `decepticon_blue_sources`, `decepticon_blue_events`, `decepticon_blue_incidents`, `decepticon_blue_notifications`, `decepticon_blue_body`, `decepticon_blue_search`, `decepticon_blue_timeline`; interactive CLI `/blue verify` and `/blue analyze` |
@@ -67,8 +69,10 @@ terminal, not in the shell or the MCP bridge.
 - Start a new MCP thread only for the workspace selected by
   `decepticon_cli_start`. Use `assistant="soundwave"` while planning. Red and
   other active assistants require the current eight-document plan to be
-  reviewed and approved in the interactive CLI first. The MCP tool checks the
-  selected workspace and approval digest before dispatch.
+  reviewed and approved. List and read all eight `plan/*.json` documents,
+  present them to the operator, then call `decepticon_cli_approve_red` only
+  after the operator approves. The MCP run checks the selected workspace and
+  approval digest before dispatch.
 - A local repository path in MCP `targets` is passed as text. It is not copied
   into the sandbox; confirm the target code is actually mounted before asking
   Decepticon to analyze it.
@@ -76,10 +80,9 @@ terminal, not in the shell or the MCP bridge.
   the user it changed the current execution until a subsequent transcript or
   state confirms the effect.
 - `decepticon_engagement_findings` reads a persisted `graph.json` only. An
-  `available=false` result does not prove the absence of findings. For an
-  installed CLI engagement, inspect the selected host workspace's
-  `findings/FIND-*.md` and `report/` artifacts when available. Cite the
-  actual artifact and verification status; do not invent a SARIF result.
+  `available=false` result does not prove the absence of findings. Use the
+  artifact tools to inspect the selected workspace's `findings/FIND-*.md`
+  and `report/` files. Cite the actual artifact and verification status.
 - If a run is interrupted or fails, read the latest transcript and status
   before retrying. Stop polling when the user has the requested update or
   the run reaches a terminal state.

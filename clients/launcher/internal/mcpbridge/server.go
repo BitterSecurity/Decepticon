@@ -33,6 +33,17 @@ type startInput struct {
 	Engagement string `json:"engagement" jsonschema:"existing local engagement workspace slug"`
 }
 
+type readArtifactInput struct {
+	Engagement string `json:"engagement"`
+	Path       string `json:"path"`
+	MaxBytes   int    `json:"max_bytes,omitempty"`
+}
+
+type approveInput struct {
+	Engagement string `json:"engagement"`
+	Confirmed  bool   `json:"confirmed" jsonschema:"true only after the operator reviews and approves the current plan"`
+}
+
 type workspaceOutput struct {
 	Workspaces []workspaceEntry `json:"workspaces"`
 }
@@ -62,6 +73,8 @@ func NewServer(ctx context.Context, runtime *mcp.ClientSession, run CommandRunne
 		"decepticon_cli_stop": true, "decepticon_cli_update": true,
 		"decepticon_cli_connect_runtime": true, "decepticon_cli_start": true,
 		"decepticon_cli_workspaces": true, "decepticon_cli_create_workspace": true,
+		"decepticon_cli_list_artifacts": true, "decepticon_cli_read_artifact": true,
+		"decepticon_cli_approve_red": true,
 	}
 	registerRuntime := func(session *mcp.ClientSession) error {
 		return registerRuntimeTools(ctx, server, session, hostNames)
@@ -96,6 +109,39 @@ func NewServer(ctx context.Context, runtime *mcp.ClientSession, run CommandRunne
 	})
 
 	destructive := true
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "decepticon_cli_list_artifacts",
+		Description: "List bounded plan, findings, report, and graph files in a named local engagement workspace.",
+		Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true, OpenWorldHint: &closedWorld},
+	}, func(_ context.Context, _ *mcp.CallToolRequest, input startInput) (*mcp.CallToolResult, engagement.ArtifactList, error) {
+		listing, err := engagement.ListArtifacts(config.DecepticonHome(), input.Engagement)
+		return nil, listing, err
+	})
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "decepticon_cli_read_artifact",
+		Description: "Read up to 256 KiB from an allowed plan, finding, report, or graph file in a named workspace.",
+		Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true, OpenWorldHint: &closedWorld},
+	}, func(_ context.Context, _ *mcp.CallToolRequest, input readArtifactInput) (*mcp.CallToolResult, engagement.ArtifactContent, error) {
+		limit := input.MaxBytes
+		if limit == 0 {
+			limit = 65536
+		}
+		content, err := engagement.ReadArtifact(config.DecepticonHome(), input.Engagement, input.Path, limit)
+		return nil, content, err
+	})
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "decepticon_cli_approve_red",
+		Description: "Approve the current validated plan for Red after the operator has reviewed all eight plan documents.",
+		Annotations: &mcp.ToolAnnotations{DestructiveHint: &destructive, OpenWorldHint: &closedWorld},
+	}, func(_ context.Context, _ *mcp.CallToolRequest, input approveInput) (*mcp.CallToolResult, commandOutput, error) {
+		if !input.Confirmed {
+			return nil, commandOutput{}, fmt.Errorf("Red approval requires operator confirmation")
+		}
+		if err := engagement.ApproveRed(config.DecepticonHome(), input.Engagement); err != nil {
+			return nil, commandOutput{}, err
+		}
+		return nil, commandOutput{Output: "Red mode approved for " + input.Engagement}, nil
+	})
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "decepticon_cli_workspaces",
 		Description: "List local engagement workspaces and whether the minimum planning documents exist.",
