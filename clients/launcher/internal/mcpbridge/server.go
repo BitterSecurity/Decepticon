@@ -8,6 +8,8 @@ import (
 	"os/exec"
 	"sync"
 
+	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/config"
+	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/engagement"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -27,6 +29,20 @@ type updateInput struct {
 	Force     bool   `json:"force,omitempty" jsonschema:"refresh files and images even if version is unchanged"`
 }
 
+type startInput struct {
+	Engagement string `json:"engagement" jsonschema:"existing local engagement workspace slug"`
+}
+
+type workspaceOutput struct {
+	Workspaces []workspaceEntry `json:"workspaces"`
+}
+
+type workspaceEntry struct {
+	Name          string `json:"name"`
+	PlanningReady bool   `json:"planning_ready"`
+	Assistant     string `json:"assistant"`
+}
+
 func LocalCommand(ctx context.Context, args ...string) (string, error) {
 	bin, err := os.Executable()
 	if err != nil {
@@ -44,7 +60,8 @@ func NewServer(ctx context.Context, runtime *mcp.ClientSession, run CommandRunne
 	hostNames := map[string]bool{
 		"decepticon_cli_status": true, "decepticon_cli_kg_health": true,
 		"decepticon_cli_stop": true, "decepticon_cli_update": true,
-		"decepticon_cli_connect_runtime": true,
+		"decepticon_cli_connect_runtime": true, "decepticon_cli_start": true,
+		"decepticon_cli_workspaces": true, "decepticon_cli_create_workspace": true,
 	}
 	registerRuntime := func(session *mcp.ClientSession) error {
 		return registerRuntimeTools(ctx, server, session, hostNames)
@@ -79,6 +96,46 @@ func NewServer(ctx context.Context, runtime *mcp.ClientSession, run CommandRunne
 	})
 
 	destructive := true
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "decepticon_cli_workspaces",
+		Description: "List local engagement workspaces and whether the minimum planning documents exist.",
+		Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true, OpenWorldHint: &closedWorld},
+	}, func(_ context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, workspaceOutput, error) {
+		entries, err := engagement.ScanEngagements(config.DecepticonHome())
+		if err != nil {
+			return nil, workspaceOutput{}, err
+		}
+		output := workspaceOutput{Workspaces: make([]workspaceEntry, 0, len(entries))}
+		for _, entry := range entries {
+			choice, err := engagement.SelectExisting(config.DecepticonHome(), entry.Slug)
+			if err != nil {
+				return nil, workspaceOutput{}, err
+			}
+			output.Workspaces = append(output.Workspaces, workspaceEntry{
+				Name: entry.Slug, PlanningReady: entry.Ready, Assistant: choice.AssistantID,
+			})
+		}
+		return nil, output, nil
+	})
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "decepticon_cli_create_workspace",
+		Description: "Create a new named local engagement workspace for planning.",
+		Annotations: &mcp.ToolAnnotations{OpenWorldHint: &closedWorld},
+	}, func(_ context.Context, _ *mcp.CallToolRequest, input startInput) (*mcp.CallToolResult, engagement.Choice, error) {
+		choice, err := engagement.CreateNamed(config.DecepticonHome(), input.Engagement)
+		return nil, choice, err
+	})
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "decepticon_cli_start",
+		Description: "Start Decepticon services headlessly for an existing engagement workspace. Run onboard in a terminal first if configuration is missing. Then connect runtime tools.",
+		Annotations: &mcp.ToolAnnotations{OpenWorldHint: &closedWorld},
+	}, func(callCtx context.Context, _ *mcp.CallToolRequest, input startInput) (*mcp.CallToolResult, commandOutput, error) {
+		if _, err := engagement.SelectExisting(config.DecepticonHome(), input.Engagement); err != nil {
+			return nil, commandOutput{}, err
+		}
+		output, err := run(callCtx, "start", "--headless", "--engagement", input.Engagement, "--no-update")
+		return nil, commandOutput{Output: output}, err
+	})
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "decepticon_cli_status",
 		Description: "Show the installed Decepticon service status using the host launcher.",

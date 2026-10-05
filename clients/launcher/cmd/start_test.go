@@ -3,10 +3,28 @@ package cmd
 import (
 	"maps"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/updater"
 )
+
+func TestHeadlessStartRequiresExistingConfigAndEngagement(t *testing.T) {
+	t.Setenv("DECEPTICON_HOME", t.TempDir())
+	previousHeadless, previousEngagement := headlessStart, startEngagement
+	t.Cleanup(func() {
+		headlessStart, startEngagement = previousHeadless, previousEngagement
+	})
+	headlessStart = true
+	startEngagement = ""
+	if err := runStart(nil, nil); err == nil || !strings.Contains(err.Error(), "--engagement") {
+		t.Fatalf("missing engagement error = %v", err)
+	}
+	startEngagement = "local-test"
+	if err := runStart(nil, nil); err == nil || !strings.Contains(err.Error(), "onboard") {
+		t.Fatalf("missing config error = %v", err)
+	}
+}
 
 // withProbeStubs swaps the WSL detection function variables for the
 // duration of one test, then restores them via t.Cleanup.

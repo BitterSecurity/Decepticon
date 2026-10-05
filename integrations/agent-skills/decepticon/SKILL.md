@@ -18,8 +18,9 @@ interfaces cover different operations; choose the one that actually exists.
 
 1. Check MCP `decepticon_cli_status` when available, or run `decepticon status`
    on the host. If the installation is missing, the user can run
-   `decepticon onboard`. `decepticon start` starts services and opens the
-   interactive terminal; it is not a headless scan command.
+   `decepticon onboard`. For an existing workspace, MCP
+   `decepticon_cli_start` starts services without opening the interactive
+   terminal; then call `decepticon_cli_connect_runtime`.
 2. For MCP, call `decepticon_cli_connect_runtime` if engagement tools are
    absent after services start, then confirm `decepticon_list_graphs` works.
    A connection error means the stack needs attention. See the
@@ -38,7 +39,9 @@ interfaces cover different operations; choose the one that actually exists.
 | Inspect services and knowledge graph health | MCP `decepticon_cli_status`, `decepticon_cli_kg_health`, or host CLI |
 | Stop services after the operator asks | MCP `decepticon_cli_stop` or host `decepticon stop` |
 | Update after the operator asks | MCP `decepticon_cli_update` or host `decepticon update` |
-| Onboard and start | Host `decepticon` command |
+| List or create local engagement workspaces | MCP `decepticon_cli_workspaces`, `decepticon_cli_create_workspace` |
+| Start services for an existing engagement | MCP `decepticon_cli_start` with its workspace slug, then `decepticon_cli_connect_runtime` |
+| Initial onboarding or interactive CLI | Host `decepticon` command |
 | Start or stop a local Blue Cell sensor | Interactive CLI `/blue up`, `/blue stop` |
 | Inspect a running Blue Cell | MCP `decepticon_blue_status`, `decepticon_blue_sources`, `decepticon_blue_events`, `decepticon_blue_incidents`, `decepticon_blue_notifications`, `decepticon_blue_body`, `decepticon_blue_search`, `decepticon_blue_timeline`; interactive CLI `/blue verify` and `/blue analyze` |
 | List or toggle agent plugin bundles | MCP `decepticon_plugin_bundles`, `decepticon_plugin_enable`, `decepticon_plugin_disable`; interactive CLI `/plugins` |

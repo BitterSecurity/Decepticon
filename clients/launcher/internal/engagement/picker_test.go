@@ -157,6 +157,47 @@ func TestIsRedApprovedRequiresMatchingBundle(t *testing.T) {
 	}
 }
 
+func TestSelectExistingRejectsInvalidAndMissingWorkspace(t *testing.T) {
+	home := t.TempDir()
+	for _, slug := range []string{"../escape", "missing", "UPPER"} {
+		if _, err := SelectExisting(home, slug); err == nil {
+			t.Fatalf("expected %q to be rejected", slug)
+		}
+	}
+	outside := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(home, "workspace"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(outside, filepath.Join(home, "workspace", "linked")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := SelectExisting(home, "linked"); err == nil {
+		t.Fatal("symlink workspace was accepted")
+	}
+	mkBareDir(t, home, "draft-engagement")
+	choice, err := SelectExisting(home, "draft-engagement")
+	if err != nil || choice.AssistantID != AssistantSoundwave || choice.Engagement != "draft-engagement" {
+		t.Fatalf("choice = %#v, %v", choice, err)
+	}
+}
+
+func TestCreateNamedMakesOnlyOneValidatedWorkspace(t *testing.T) {
+	home := t.TempDir()
+	if _, err := CreateNamed(home, "../escape"); err == nil {
+		t.Fatal("unsafe slug accepted")
+	}
+	created, err := CreateNamed(home, "local-assessment")
+	if err != nil || created.AssistantID != AssistantSoundwave {
+		t.Fatalf("created = %#v, %v", created, err)
+	}
+	if _, err := os.Stat(filepath.Join(created.WorkspacePath, "plan")); err != nil {
+		t.Fatalf("plan directory missing: %v", err)
+	}
+	if _, err := CreateNamed(home, "local-assessment"); err == nil {
+		t.Fatal("duplicate workspace accepted")
+	}
+}
+
 func TestValidateSlug_AcceptsReasonableSlugs(t *testing.T) {
 	home := t.TempDir()
 	for _, slug := range []string{

@@ -86,6 +86,8 @@ func applyAutoUpdate(env map[string]string, version string, skip bool) {
 // debugging a specific launcher version, or when intentionally
 // running an older release against a known-good stack.
 var skipUpdate bool
+var headlessStart bool
+var startEngagement string
 
 var startCmd = &cobra.Command{
 	Use:   "start",
@@ -95,6 +97,8 @@ var startCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(startCmd)
+	startCmd.Flags().BoolVar(&headlessStart, "headless", false, "Start services without opening the interactive CLI")
+	startCmd.Flags().StringVar(&startEngagement, "engagement", "", "Existing engagement workspace for headless start")
 
 	// PersistentFlag on root → inherited by `start`, so both
 	// `decepticon --no-update` (no subcommand → runStart) and
@@ -108,8 +112,17 @@ func init() {
 }
 
 func runStart(cmd *cobra.Command, args []string) error {
+	if headlessStart && startEngagement == "" {
+		return fmt.Errorf("headless start requires --engagement with an existing workspace")
+	}
+	if !headlessStart && startEngagement != "" {
+		return fmt.Errorf("--engagement requires --headless")
+	}
 	// 1. Check .env exists
 	if !config.EnvExists() {
+		if headlessStart {
+			return fmt.Errorf("Decepticon is not configured; run decepticon onboard in a terminal first")
+		}
 		ui.Warning("No configuration found. Running setup wizard...")
 		fmt.Println()
 		if err := runOnboard(cmd, nil); err != nil {
@@ -251,20 +264,27 @@ func runStart(cmd *cobra.Command, args []string) error {
 	// Synchronous on purpose: the prompt + unattended paths apply and re-exec
 	// before the rest of `start` proceeds. The GitHub fetch fails fast so a
 	// slow network never blocks startup.
-	applyAutoUpdate(env, version, skipUpdate)
+	applyAutoUpdate(env, version, skipUpdate || headlessStart)
 
 	// 2.6. One-time GitHub star ask. Idempotent across launches — the
 	// ack file at $DECEPTICON_HOME/.starred suppresses the prompt
 	// after the user has been through it once. Silent no-op on
 	// non-interactive stdin, so CI / piped invocations are untouched.
-	starprompt.PromptIfNotStarred()
+	if !headlessStart {
+		starprompt.PromptIfNotStarred()
+	}
 
 	// 3. Engagement picker — must run BEFORE compose Up so the sandbox
 	// container starts with /workspace bound to the chosen engagement
 	// directory. Without this, the operator would briefly see the whole
 	// workspace through the sandbox before any picking happens.
-	fmt.Println()
-	choice, err := engagement.Select(home)
+	var choice engagement.Choice
+	if headlessStart {
+		choice, err = engagement.SelectExisting(home, startEngagement)
+	} else {
+		fmt.Println()
+		choice, err = engagement.Select(home)
+	}
 	if err != nil {
 		return err
 	}
@@ -309,6 +329,10 @@ func runStart(cmd *cobra.Command, args []string) error {
 	// 5. Health checks
 	if err := health.WaitForServices(env); err != nil {
 		return err
+	}
+	if headlessStart {
+		ui.Success("Services ready for engagement " + choice.Engagement)
+		return nil
 	}
 
 	// 6. Launch CLI

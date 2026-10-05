@@ -42,6 +42,11 @@ canonical `findings/FIND-*.md` or `report/` artifacts.
 | `decepticon_blue_search` / `decepticon_blue_timeline` | Correlate target events by exact ID/source or time window |
 | `decepticon_plugin_bundles` | List live plugin bundle state |
 | `decepticon_plugin_enable` / `decepticon_plugin_disable` | Toggle an optional agent bundle for this server session |
+| `decepticon_cli_status` / `decepticon_cli_kg_health` | Inspect installed service and graph health from the host |
+| `decepticon_cli_start` / `decepticon_cli_stop` | Start services for an existing workspace or stop the stack |
+| `decepticon_cli_workspaces` / `decepticon_cli_create_workspace` | List or create host engagement workspaces |
+| `decepticon_cli_update` | Apply a release update after operator confirmation |
+| `decepticon_cli_connect_runtime` | Publish engagement, plugin, and Blue observation tools after starting services |
 
 Run-control tools use the `thread_id` returned by `decepticon_start_engagement`
 or listed by `decepticon_list_engagements`. Findings tools use an
@@ -53,8 +58,7 @@ services remains an interactive CLI operation.
 
 The installed `decepticon` launcher can expose MCP tools through the running
 LangGraph container. This uses the same LangGraph instance as the interactive
-CLI, with no separate Python installation on the host. Start the stack with
-`decepticon start` first. `decepticon mcp serve` is a stdio server
+CLI, with no separate Python installation on the host. `decepticon mcp serve` is a stdio server
 for coding agents; do not run it in an interactive terminal expecting a prompt.
 
 Register the launcher with either coding agent:
@@ -72,8 +76,13 @@ is not on the coding agent's `PATH`, substitute its absolute path. Check the
 registration with `claude mcp get decepticon` or `codex mcp get decepticon`,
 then ask the agent to list Decepticon graphs before starting an engagement.
 The launcher keeps MCP stdout reserved for JSON-RPC and sends runtime errors
-to stderr. A missing install or stopped stack produces an MCP startup error;
-run `decepticon onboard` or `decepticon start`, respectively.
+to stderr. Host tools remain available when the stack is stopped. For a fresh
+installation, run `decepticon onboard` in a terminal. Call
+`decepticon_cli_workspaces` to list existing workspaces or
+`decepticon_cli_create_workspace` to create one. Call `decepticon_cli_start`
+with its slug, then
+`decepticon_cli_connect_runtime` to publish runtime tools. The equivalent
+shell command is `decepticon start --headless --engagement <slug>`.
 
 Install the [Decepticon Agent Skill](../../integrations/agent-skills/decepticon/SKILL.md)
 to teach either coding agent which operations use MCP and which require the

@@ -420,15 +420,7 @@ func Select(home string) (Choice, error) {
 		if err != nil {
 			return Choice{}, err
 		}
-		dir := filepath.Join(root, slug)
-		if err := os.MkdirAll(filepath.Join(dir, "plan"), 0o755); err != nil {
-			return Choice{}, fmt.Errorf("create engagement dir: %w", err)
-		}
-		return Choice{
-			AssistantID:   AssistantSoundwave,
-			Engagement:    slug,
-			WorkspacePath: dir,
-		}, nil
+		return CreateNamed(home, slug)
 	}
 
 	slug := final.chosen.slug
@@ -441,6 +433,44 @@ func Select(home string) (Choice, error) {
 		Engagement:    slug,
 		WorkspacePath: filepath.Join(root, slug),
 	}, nil
+}
+
+func CreateNamed(home, slug string) (Choice, error) {
+	if err := validateSlug(home, slug); err != nil {
+		return Choice{}, err
+	}
+	root := filepath.Join(home, "workspace")
+	if err := os.MkdirAll(root, 0o755); err != nil {
+		return Choice{}, fmt.Errorf("create workspace root: %w", err)
+	}
+	path := filepath.Join(root, slug)
+	if err := os.Mkdir(path, 0o755); err != nil {
+		return Choice{}, fmt.Errorf("create engagement directory: %w", err)
+	}
+	if err := os.Mkdir(filepath.Join(path, "plan"), 0o755); err != nil {
+		return Choice{}, fmt.Errorf("create engagement plan directory: %w", err)
+	}
+	return Choice{AssistantID: AssistantSoundwave, Engagement: slug, WorkspacePath: path}, nil
+}
+
+// SelectExisting resolves a named workspace without opening the terminal picker.
+func SelectExisting(home, slug string) (Choice, error) {
+	if !slugRe.MatchString(slug) {
+		return Choice{}, fmt.Errorf("invalid engagement name %q", slug)
+	}
+	path := filepath.Join(home, "workspace", slug)
+	info, err := os.Lstat(path)
+	if err != nil {
+		return Choice{}, fmt.Errorf("engagement %q does not exist: %w", slug, err)
+	}
+	if !info.IsDir() {
+		return Choice{}, fmt.Errorf("engagement %q is not a workspace directory", slug)
+	}
+	assistant := AssistantSoundwave
+	if isRedApproved(home, slug) {
+		assistant = AssistantDecepticon
+	}
+	return Choice{AssistantID: assistant, Engagement: slug, WorkspacePath: path}, nil
 }
 
 // promptNewSlug runs a one-shot huh form for the slug-input phase.

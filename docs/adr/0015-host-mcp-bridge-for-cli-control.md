@@ -38,8 +38,8 @@ server remains the owner of engagement and Blue observation behavior.
   into the LangGraph container.
 - Host controls work before LangGraph starts; engagement and Blue observation
   tools appear after a runtime connection.
-- Starting services and interactive onboarding still require separate headless
-  APIs before they can be offered as MCP tools.
+- A named existing engagement can start headlessly through the launcher.
+  Interactive onboarding still needs a separate setup contract.
 
 ## Alternatives considered
 
