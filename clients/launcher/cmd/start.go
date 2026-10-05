@@ -293,6 +293,9 @@ func runStart(cmd *cobra.Command, args []string) error {
 	if err := os.Setenv("DECEPTICON_ENGAGEMENT_WORKSPACE", choice.WorkspacePath); err != nil {
 		return fmt.Errorf("set engagement workspace env: %w", err)
 	}
+	if err := os.Setenv("DECEPTICON_ENGAGEMENT", choice.Engagement); err != nil {
+		return fmt.Errorf("set engagement name env: %w", err)
+	}
 
 	// 4. Spawn the opscontrol daemon BEFORE `compose up` so the
 	// langgraph socket bind-mount has a real socket to attach to.

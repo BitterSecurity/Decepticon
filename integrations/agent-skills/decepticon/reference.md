@@ -11,9 +11,8 @@ server's bundle API.
 - **`thread_id`** is the engagement handle (from `start_engagement` /
   `list_engagements`). The active run for a thread is resolved automatically —
   you never pass a `run_id`.
-- **`engagement_name`** is the thread's human slug. The installed stack binds
-  the CLI-selected workspace at `/workspace`; an MCP-created name does not
-  change that bind mount or create a matching host directory.
+- **`engagement_name`** is the selected workspace slug. The installed stack
+  binds that workspace at `/workspace`; new MCP threads must use the same slug.
 - Tools return structured objects (shown below). Counts/cursors are integers.
 
 ---
@@ -36,16 +35,16 @@ Recent engagements, most-recently-updated first — for browse / resume.
 
 ## decepticon_start_engagement(targets, instruction="", scan_mode="standard", engagement_name=None, assistant=None)
 
-Launch a **background** engagement. Returns immediately. On the installed
-Docker stack, this tool does not select or mount a new engagement workspace;
-use the CLI-selected engagement unless workspace mapping has been verified.
+Launch a **background** engagement in the workspace selected at service start.
+Returns immediately. Use `assistant="soundwave"` to plan. Red and other
+assistants require the current eight-document plan and approval markers.
 
 - **Args:**
   - `targets` (list[str], required) — URLs, hostnames/CIDRs, repo URLs, or paths.
   - `instruction` (str) — **scope + rules of engagement**; in-scope AND
     out-of-scope. Always supply this.
   - `scan_mode` (`"quick"` | `"standard"` | `"deep"`) — depth/timeout profile.
-  - `engagement_name` (str, optional) — defaults to `mcp-<UTC timestamp>`.
+  - `engagement_name` (str, optional) — defaults to the selected workspace slug.
   - `assistant` (str, optional) — graph id; defaults to the server's default
     (`decepticon`).
 - **Returns:** `{ engagement_name, thread_id, run_id, assistant, status, langgraph_url }`.
@@ -85,7 +84,9 @@ Send an operator message onto the engagement thread — steer, answer, or switch
 - **Args:** `thread_id`; `message` (str); `assistant` (optional — defaults to the
   thread's existing graph).
 - **Behaviour:** enqueued after any active run (`multitask_strategy="enqueue"`),
-  then dispatched in the background. Confirm its effect in a later transcript.
+  then dispatched in the background. Installed stacks reject a thread from
+  another workspace and require current plan approval for active assistants.
+  Confirm its effect in a later transcript.
 - **Special:** start `message` with `/model <provider/model-id>` to switch the
   orchestrator's model mid-engagement (e.g. `/model anthropic/claude-opus-4-8`).
 - **Returns:** `{ thread_id, run_id, assistant, status }`.
@@ -116,9 +117,8 @@ Findings summary, optionally with the full SARIF v2.1.0 document.
 
 - **Args:** `engagement_name`; `include_sarif` (bool — full SARIF when true).
 - **Returns:** `{ engagement_name, available, result_count, level_counts, sarif }`.
-  - `available`: false unless this bridge can read `graph.json`. The installed
-    LangGraph container does not mount the CLI-selected workspace, so check
-    canonical host artifacts separately.
+  - `available`: false unless this bridge can read `graph.json` in the selected
+    workspace. Check canonical host artifacts separately.
   - `level_counts`: SARIF level → count. `error` ≈ critical/high, `warning` ≈
     medium, `note` ≈ low.
   - `sarif`: full SARIF doc when `include_sarif=true`, else null. Mine

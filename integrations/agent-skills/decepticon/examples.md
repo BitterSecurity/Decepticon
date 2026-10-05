@@ -54,15 +54,16 @@ host access, but it must not claim that MCP started the sensor.
 
 `decepticon_engagement_findings(engagement_name="example-assessment")` reads
 `graph.json` only. If it returns `available=false`, inspect the selected host
-workspace's `findings/FIND-*.md` and `report/` files. The installed MCP bridge
-cannot currently read those files from its container. Report the actual
+workspace's `findings/FIND-*.md` and `report/` files. The MCP tool does not
+currently return those files. Report the actual
 finding IDs, evidence, verification status, and affected targets from files
 you opened; do not turn `available=false` into a no-findings claim.
 
-## A separately mapped LangGraph server
+## Start a thread in the selected workspace
 
-For a deployment that explicitly maps the MCP engagement name to its own
-workspace, the agent can call `decepticon_start_engagement` with the user's
-approved targets and a full in-scope and out-of-scope instruction. Save its
-`thread_id`, then use the transcript cursor, status, and cancel tools as above.
-Confirm that mapping before using this flow on an installed Docker stack.
+Use `decepticon_cli_start` with the workspace slug, then
+`decepticon_cli_connect_runtime`. Call `decepticon_start_engagement` with that
+same slug, the user's approved targets, and a full in-scope and out-of-scope
+instruction. Choose `assistant="soundwave"` while preparing the plan. An active
+assistant requires the current plan approval. Save the returned `thread_id`,
+then use the transcript cursor, status, and cancel tools.

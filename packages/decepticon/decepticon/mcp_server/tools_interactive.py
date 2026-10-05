@@ -7,10 +7,13 @@ transcript to watch progress, inspect OPPLAN/scope, and tail the live stream.
 
 from __future__ import annotations
 
+import os
+
 from mcp.server.fastmcp import FastMCP
 
 from decepticon.mcp_server.conversation import build_engagement_state, build_transcript
 from decepticon.mcp_server.engagements import EngagementClient
+from decepticon.mcp_server.findings import engagement_workspace
 from decepticon.mcp_server.models import (
     EngagementState,
     EngagementSummary,
@@ -18,6 +21,7 @@ from decepticon.mcp_server.models import (
     Transcript,
     WatchResult,
 )
+from decepticon.mcp_server.tools_lifecycle import require_red_approval, selected_workspace
 
 _ACTIVE = ("pending", "running")
 
@@ -55,6 +59,21 @@ def register_interactive_tools(mcp: FastMCP, engagements: EngagementClient) -> N
         the coordinator, or switch models mid-engagement with ``/model <id>``.
         The turn is enqueued after any active run, so it is never rejected.
         """
+        selected = os.environ.get("DECEPTICON_ENGAGEMENT", "")
+        if selected:
+            state = await engagements.get_state(thread_id)
+            values = state.get("values") if isinstance(state, dict) else None
+            if not isinstance(values, dict) or (
+                values.get("engagement_name") != selected
+                or values.get("workspace_path") != str(engagement_workspace(selected))
+            ):
+                raise ValueError("thread does not belong to the selected engagement workspace")
+            resolved = assistant
+            if resolved is None:
+                latest = await engagements.latest_run(thread_id)
+                resolved = str(latest.get("assistant_id")) if latest else None
+            if resolved != "soundwave":
+                require_red_approval(selected_workspace(selected))
         return await engagements.send_message(
             thread_id=thread_id, message=message, assistant=assistant
         )

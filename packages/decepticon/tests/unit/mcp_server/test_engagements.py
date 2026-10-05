@@ -7,11 +7,21 @@ asserted directly.
 
 from __future__ import annotations
 
+import os
+import sys
 from collections.abc import AsyncIterator
+from pathlib import Path
 from typing import Any
+
+import pytest
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
+from mcp.server.fastmcp.exceptions import ToolError
 
 from decepticon.mcp_server.config import ServerConfig
 from decepticon.mcp_server.engagements import EngagementClient
+from decepticon.mcp_server.server import build_server
+from decepticon.tools.interaction.complete_planning import planning_bundle_digest
 
 
 class _Part:
@@ -24,9 +34,13 @@ class _Part:
 class _FakeThreads:
     def __init__(self, threads: list[dict[str, Any]] | None) -> None:
         self._threads = threads or []
+        self.state: dict[str, Any] = {"values": {}}
 
     async def create(self) -> dict[str, Any]:
         return {"thread_id": "t-123"}
+
+    async def get_state(self, thread_id: str) -> dict[str, Any]:
+        return self.state
 
     async def search(
         self, *, limit: int, sort_by: str | None = None, sort_order: str | None = None
@@ -94,15 +108,103 @@ async def test_start_dispatches_background_run_with_scope() -> None:
         scan_mode="standard",
         engagement_name="eng-1",
         assistant="decepticon",
+        workspace_path="/workspace",
     )
 
     assert (result.thread_id, result.run_id, result.status) == ("t-123", "r-456", "pending")
     call = fake.runs.create_calls[0]
     assert call["assistant_id"] == "decepticon"
     assert call["config"]["configurable"]["engagement_name"] == "eng-1"
+    assert call["config"]["configurable"]["workspace_path"] == "/workspace"
     scope = call["input"]["scan_scope"]
     assert scope["targets"] == ["https://example.com"]
     assert "Out of scope" in scope["instruction"]
+
+
+async def test_start_tool_requires_selected_workspace_and_current_approval(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fake = _FakeClient()
+    monkeypatch.setenv("DECEPTICON_ENGAGEMENT", "eng-1")
+    monkeypatch.setenv("DECEPTICON_ENGAGEMENT_WORKSPACE", str(tmp_path))
+    manager = build_server(_config(), client=fake)._tool_manager
+    arguments = {
+        "targets": ["https://example.com"],
+        "instruction": "Only example.com is in scope",
+        "engagement_name": "eng-1",
+        "assistant": "decepticon",
+    }
+    with pytest.raises(ToolError, match="must match"):
+        await manager.call_tool("decepticon_start_engagement", {**arguments, "engagement_name": "other"})
+    with pytest.raises(ToolError, match="approve"):
+        await manager.call_tool("decepticon_start_engagement", arguments)
+    await manager.call_tool(
+        "decepticon_start_engagement", {**arguments, "assistant": "soundwave"}
+    )
+    plan = tmp_path / "plan"
+    plan.mkdir()
+    for filename in (
+        "roe.json", "threat-profile.json", "conops.json", "deconfliction.json",
+        "contact.json", "data-handling.json", "abort.json", "cleanup.json",
+    ):
+        (plan / filename).write_text("{}", encoding="utf-8")
+    digest = planning_bundle_digest(tmp_path)
+    (tmp_path / ".planning-draft-ready").write_text(digest, encoding="utf-8")
+    (tmp_path / ".red-approved").write_text(digest, encoding="utf-8")
+    await manager.call_tool("decepticon_start_engagement", arguments)
+    assert fake.runs.create_calls[1]["config"]["configurable"]["workspace_path"] == str(tmp_path)
+    (plan / "roe.json").write_text('{"changed":true}', encoding="utf-8")
+    with pytest.raises(ToolError, match="changed after approval"):
+        await manager.call_tool("decepticon_start_engagement", arguments)
+
+
+async def test_send_tool_rejects_other_workspace_thread(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fake = _FakeClient()
+    monkeypatch.setenv("DECEPTICON_ENGAGEMENT", "eng-1")
+    monkeypatch.setenv("DECEPTICON_ENGAGEMENT_WORKSPACE", str(tmp_path))
+    manager = build_server(_config(), client=fake)._tool_manager
+    arguments = {"thread_id": "t-123", "message": "continue", "assistant": "soundwave"}
+    fake.threads.state = {"values": {"engagement_name": "other", "workspace_path": str(tmp_path)}}
+    with pytest.raises(ToolError, match="does not belong"):
+        await manager.call_tool("decepticon_send_message", arguments)
+    fake.threads.state = {"values": {"engagement_name": "eng-1", "workspace_path": str(tmp_path)}}
+    await manager.call_tool("decepticon_send_message", arguments)
+    assert len(fake.runs.create_calls) == 1
+    with pytest.raises(ToolError, match="approve"):
+        await manager.call_tool(
+            "decepticon_send_message", {**arguments, "assistant": "decepticon"}
+        )
+
+
+async def test_stdio_start_rejects_unselected_and_unapproved_workspace(tmp_path: Path) -> None:
+    params = StdioServerParameters(
+        command=sys.executable,
+        args=["-m", "decepticon.mcp_server", "--transport", "stdio"],
+        env={
+            **os.environ,
+            "DECEPTICON_SKIP_BOOT": "1",
+            "DECEPTICON_ENGAGEMENT": "eng-1",
+            "DECEPTICON_ENGAGEMENT_WORKSPACE": str(tmp_path),
+        },
+    )
+    async with stdio_client(params) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            arguments = {
+                "targets": ["https://example.com"],
+                "instruction": "Only example.com is in scope",
+                "assistant": "decepticon",
+            }
+            wrong = await session.call_tool(
+                "decepticon_start_engagement", {**arguments, "engagement_name": "other"}
+            )
+            assert wrong.isError is True
+            denied = await session.call_tool(
+                "decepticon_start_engagement", {**arguments, "engagement_name": "eng-1"}
+            )
+            assert denied.isError is True
 
 
 async def test_send_message_enqueues_and_resolves_assistant_from_thread() -> None:

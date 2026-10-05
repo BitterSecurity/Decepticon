@@ -3,7 +3,7 @@ name: decepticon
 description: "Operate Decepticon OSS through its installed CLI and engagement MCP tools when the user asks to run or inspect an authorized security engagement or a local Blue Cell. Do not use for unrelated security questions or raw scanner commands."
 license: Apache-2.0
 metadata:
-  version: 2.2.0
+  version: 2.3.0
   homepage: "https://github.com/BitterSecurity/Decepticon"
 ---
 
@@ -64,11 +64,11 @@ terminal, not in the shell or the MCP bridge.
 - For an existing CLI engagement, call `decepticon_list_engagements`, identify
   its `thread_id`, then read `decepticon_engagement_state` and
   `decepticon_transcript`. Keep the returned `next_index` for later reads.
-- `decepticon_start_engagement` exists, but the installed MCP bridge does not
-  currently bind a new thread to the CLI's selected `/workspace` engagement.
-  Use it only when the server's workspace mapping is explicitly configured and
-  confirmed for that engagement. Otherwise start the engagement in the
-  interactive CLI and observe its thread through MCP.
+- Start a new MCP thread only for the workspace selected by
+  `decepticon_cli_start`. Use `assistant="soundwave"` while planning. Red and
+  other active assistants require the current eight-document plan to be
+  reviewed and approved in the interactive CLI first. The MCP tool checks the
+  selected workspace and approval digest before dispatch.
 - A local repository path in MCP `targets` is passed as text. It is not copied
   into the sandbox; confirm the target code is actually mounted before asking
   Decepticon to analyze it.

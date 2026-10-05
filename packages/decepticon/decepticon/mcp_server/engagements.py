@@ -123,6 +123,7 @@ class EngagementClient:
         scan_mode: ScanMode,
         engagement_name: str,
         assistant: str,
+        workspace_path: str,
     ) -> StartResult:
         """Dispatch a background engagement run and return its handle."""
         scope_payload: dict[str, Any] = {
@@ -133,7 +134,11 @@ class EngagementClient:
             "instruction": instruction,
         }
         run_config: dict[str, Any] = {
-            "configurable": {"engagement_name": engagement_name, "scan_mode": scan_mode},
+            "configurable": {
+                "engagement_name": engagement_name,
+                "workspace_path": workspace_path,
+                "scan_mode": scan_mode,
+            },
         }
 
         client = self._ensure_client()

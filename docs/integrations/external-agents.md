@@ -104,11 +104,12 @@ The installer preserves a modified existing skill unless `--force` is given;
 `--force` backs it up before replacing it. Restart the coding agent after
 registering MCP or installing the skill.
 
-For the installed Docker stack, start an engagement through the interactive
-CLI after selecting its workspace. `decepticon_start_engagement` does not
-currently change the sandbox bind mount to match a new MCP engagement name.
-The MCP tool can then observe the CLI thread through
-`decepticon_list_engagements` and `decepticon_transcript`.
+For the installed Docker stack, select a workspace with
+`decepticon_cli_start`, connect runtime tools, then call
+`decepticon_start_engagement` with that same workspace slug. Soundwave can
+prepare the plan; Red and other active assistants require an approved current
+plan. The selected workspace is mounted at `/workspace` in the sandbox and
+read-only in LangGraph so the bridge can verify approval and read `graph.json`.
 
 ## 2. Python package or source checkout
 
@@ -134,6 +135,9 @@ DECEPTICON_SKIP_BOOT=1 decepticon-mcp --transport stdio
 
 The bridge connects to `DECEPTICON_API_URL` (default `http://localhost:2024`).
 Override with `--langgraph-url` or the env var.
+Starting a thread also requires `DECEPTICON_ENGAGEMENT` and
+`DECEPTICON_ENGAGEMENT_WORKSPACE` to identify the already mounted workspace;
+without them, the direct package bridge remains an observation surface.
 
 ## 3. OpenClaw
 
@@ -194,18 +198,21 @@ auto-discovers it under the `red-teaming` category.
 
 ## 5. CLI-like workflow (what the agent does)
 
-1. `decepticon_start_engagement(targets=[...], instruction="In scope: …; Out of scope: …")`
-   → keep the `thread_id`.
-2. `decepticon_transcript(thread_id, after_index=…)` — poll to narrate progress
+1. On an installed stack, list or create a workspace, start it with
+   `decepticon_cli_start`, then connect runtime tools.
+2. `decepticon_start_engagement(targets=[...], engagement_name="<selected slug>",
+   assistant="soundwave", instruction="In scope: …; Out of scope: …")`
+   → keep the `thread_id`. Use an active assistant only after plan approval.
+3. `decepticon_transcript(thread_id, after_index=…)` — poll to narrate progress
    (operator prompts, coordinator replies, `task()` delegations to specialists).
    `decepticon_watch(thread_id)` tails the live sub-agent feed for a few seconds.
-3. `decepticon_send_message(thread_id, "focus on the API, skip the marketing site")`
+4. `decepticon_send_message(thread_id, "focus on the API, skip the marketing site")`
    — steer mid-engagement, answer the coordinator, or `/model anthropic/claude-opus-4-8`.
-4. `decepticon_engagement_state(thread_id)` — check the OPPLAN / phase.
-5. `decepticon_engagement_findings(engagement_name, include_sarif=true)` — read
+5. `decepticon_engagement_state(thread_id)` — check the OPPLAN / phase.
+6. `decepticon_engagement_findings(engagement_name, include_sarif=true)` — read
    `graph.json` when present. Check the selected host workspace's
    `findings/FIND-*.md` and `report/` files for canonical results.
-6. Later, `decepticon_list_engagements()` to resume any thread by `thread_id`.
+7. Later, `decepticon_list_engagements()` to resume a thread in the selected workspace by `thread_id`.
 
 ## 6. Remote / networked use (optional)
 

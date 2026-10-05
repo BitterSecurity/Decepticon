@@ -393,6 +393,8 @@ services:
       # pytest where the skillogy container isn't running.
       - DECEPTICON_USE_SKILLOGY=${DECEPTICON_USE_SKILLOGY:-1}
       - DECEPTICON_SKILLOGY_URL=http://skillogy:9100
+      - DECEPTICON_ENGAGEMENT=${DECEPTICON_ENGAGEMENT:-}
+      - DECEPTICON_ENGAGEMENT_WORKSPACE=/workspace
       - BLUE_SENSOR_URL=http://blue-receiver:8082
       - BLUE_MONITOR_URL=http://blue-monitor:8085
       # Neo4j is the sole KG backend (no DECEPTICON_KG_BACKEND needed)
@@ -415,6 +417,7 @@ services:
       # (measured: 95% of "installs" survived a single day). Persisting it here
       # also makes the agent and the host CLI agree on one id.
       - ${DECEPTICON_HOME:-~/.decepticon}/telemetry:/root/.decepticon/telemetry
+      - ${DECEPTICON_ENGAGEMENT_WORKSPACE:-${DECEPTICON_HOME:-~/.decepticon}/workspace}:/workspace:ro
     # Wait for litellm to be healthy: langgraph has retry logic but the launcher
     # uses `compose up --wait` and needs healthy as the single readiness signal.
     depends_on:
