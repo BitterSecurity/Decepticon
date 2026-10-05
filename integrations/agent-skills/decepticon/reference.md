@@ -2,7 +2,8 @@
 
 Exact parameters, defaults, clamps, and return schemas for every `decepticon_*`
 tool. Read this when you need precise field names or edge-case behaviour. All
-tools are async and target a running Decepticon LangGraph server.
+tools are async. Engagement tools use LangGraph; Blue observation tools use
+the local receiver and monitor HTTP APIs.
 
 ## Conventions
 
@@ -129,6 +130,33 @@ Cancel the active run on a thread.
 - **Args:** `thread_id`.
 - **Returns:** text (`cancelled <run_id>` or `no active run to cancel`).
 
+## Blue Cell observation tools
+
+These read the running local receiver and monitor. They do not start a sensor.
+All reads are bounded and return the service's JSON fields without inventing
+events when a service is unavailable.
+
+- `decepticon_blue_status()` returns `{sensor, monitor}` metrics. Check
+  `collector_available`, source delivery counters, `watch_enabled`, and backlog.
+- `decepticon_blue_sources(limit=20)` returns `{sources, has_more}`.
+- `decepticon_blue_events(after=0, limit=20)` returns
+  `{events, next_after, has_more}`. Pass `next_after` back as `after`.
+- `decepticon_blue_incidents(limit=20)` returns `{incidents}`.
+- `decepticon_blue_notifications(after=0, limit=20)` returns
+  `{notifications, next_after, has_more}`. Its cursor is separate from events.
+- `decepticon_blue_body(ref, max_bytes=65536)` accepts a 32-character lowercase
+  hex reference and returns `{ref, total_bytes, preview_bytes, preview_utf8,
+  preview_limited}`. `max_bytes` is restricted to 1–262144.
+- `decepticon_blue_search(field, value, limit=20, before=None)` returns an
+  event page. `field` is `request_id`, `trace_id`, or `source`; `before` is a
+  positive sequence for backward pagination.
+- `decepticon_blue_timeline(start_at, end_at, source=None, limit=50,
+  before=None)` reads a timezone-aware window of at most one hour. `source` is
+  `blue-ingress-proxy` or `target-log-file`.
+
+Limits are 1–100. Invalid arguments and receiver/monitor errors surface as MCP
+tool errors, so they must not be interpreted as empty evidence.
+
 ---
 
 ## Notes & gotchas
@@ -137,9 +165,10 @@ Cancel the active run on a thread.
   `status`; do not call a blocking wait.
 - **Cursoring:** always pass the previous `next_index` as `after_index` so you
   narrate only new activity and avoid repeating yourself.
-- **Server required:** all tools need the LangGraph server. The installed
-  launcher runs the bridge inside its container; Python installs connect to
-  `DECEPTICON_API_URL`.
+- **Services required:** engagement tools need LangGraph. Blue observation
+  tools need the receiver and monitor. The installed launcher runs the bridge
+  inside the LangGraph container; Python installs use `DECEPTICON_API_URL` for
+  engagement tools and `BLUE_SENSOR_URL` / `BLUE_MONITOR_URL` for Blue reads.
 - **Canonical results:** inspect the selected host workspace's
   `findings/FIND-*.md` and `report/` files. An empty `graph.json` response is
   not evidence that the engagement found nothing.

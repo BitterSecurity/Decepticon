@@ -45,10 +45,20 @@ Inside the Decepticon interactive CLI, the operator can enter:
 /blue analyze
 ```
 
-Tell the operator to send test traffic to `http://127.0.0.1:18080`. These are
-interactive CLI commands, not MCP tools or shell commands. The coding agent
-may inspect the target's local logs and the selected workspace when it has
-host access, but it must not claim that MCP started the sensor.
+Tell the operator to send test traffic to `http://127.0.0.1:18080`. The slash
+commands run in the interactive CLI. Once the sensor is running, the coding
+agent can inspect it through MCP:
+
+```text
+decepticon_blue_status()
+decepticon_blue_events(after=0, limit=20)
+  -> {events: [...], next_after: 23, has_more: false}
+decepticon_blue_incidents(limit=20)
+decepticon_blue_notifications(after=0, limit=20)
+  -> {notifications: [...], next_after: 4, has_more: false}
+```
+
+Use the returned cursors for later polls. MCP reads did not start the sensor.
 
 ## Read results without hiding a gap
 

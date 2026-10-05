@@ -26,8 +26,10 @@ from typing import Any
 from mcp.server.fastmcp import FastMCP
 
 from decepticon.mcp_server.auth import build_auth
+from decepticon.mcp_server.blue import BlueClient
 from decepticon.mcp_server.config import ServerConfig, load_config
 from decepticon.mcp_server.engagements import EngagementClient
+from decepticon.mcp_server.tools_blue import register_blue_tools
 from decepticon.mcp_server.tools_interactive import register_interactive_tools
 from decepticon.mcp_server.tools_lifecycle import register_lifecycle_tools
 
@@ -36,6 +38,7 @@ def build_server(
     config: ServerConfig | None = None,
     *,
     client: Any | None = None,
+    blue_client: BlueClient | None = None,
     host: str = "127.0.0.1",
     port: int = 8765,
 ) -> FastMCP:
@@ -50,4 +53,5 @@ def build_server(
     mcp = FastMCP("decepticon", host=host, port=port, token_verifier=verifier, auth=auth)
     register_lifecycle_tools(mcp, engagements, cfg)
     register_interactive_tools(mcp, engagements)
+    register_blue_tools(mcp, blue_client or BlueClient())
     return mcp
