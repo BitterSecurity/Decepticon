@@ -27,6 +27,12 @@ The host MCP connection remains available when the runtime is stopped. A
 `decepticon_cli_connect_runtime` tool connects and publishes the runtime tools
 after the services become available.
 
+Local Blue sensor and web dashboard control run in a one-off CLI image through
+Docker Compose so MCP and the interactive slash commands share their behavior.
+Only `blue up|status|verify|stop` and `web up|down|url` are accepted; stop
+operations require operator confirmation. The launcher exposes a bounded
+service log tail separately from the interactive endless follow stream.
+
 The bridge uses the official Go MCP SDK. This adds a top-level dependency to
 the launcher, avoiding a hand-written MCP protocol implementation. The child
 server remains the owner of engagement and Blue observation behavior.

@@ -1,12 +1,14 @@
 package compose
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/config"
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/opscontrol"
@@ -22,6 +24,61 @@ type Compose struct {
 	// (docker / podman / nerdctl). Stored so every call uses the same
 	// binary + socket and we don't re-probe on every invocation.
 	Runtime runtime.Runtime
+}
+
+type tailOutput struct {
+	mu        sync.Mutex
+	data      []byte
+	truncated bool
+}
+
+func (w *tailOutput) Write(chunk []byte) (int, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	const maxOutput = 65536
+	w.data = append(w.data, chunk...)
+	if len(w.data) > maxOutput {
+		w.data = append([]byte(nil), w.data[len(w.data)-maxOutput:]...)
+		w.truncated = true
+	}
+	return len(chunk), nil
+}
+
+func (w *tailOutput) String() string {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	if w.truncated {
+		return "[earlier output truncated]\n" + string(w.data)
+	}
+	return string(w.data)
+}
+
+func (c *Compose) MCPAction(ctx context.Context, surface, action string, args ...string) (string, error) {
+	cmdArgs := append(c.baseArgs(), "--profile", Profiles.CLI, "run", "-T", "--rm", "--no-deps", "--entrypoint", "node", "cli", "dist/mcp-action.js", surface, action)
+	cmdArgs = append(cmdArgs, args...)
+	return c.capture(ctx, cmdArgs)
+}
+
+func (c *Compose) MCPLogs(ctx context.Context, service string, tail int) (string, error) {
+	args := append(c.baseArgs(), "logs", "--no-color", "--tail", strconv.Itoa(tail), service)
+	return c.capture(ctx, args)
+}
+
+func (c *Compose) capture(ctx context.Context, args []string) (string, error) {
+	bin := c.Runtime.Bin
+	if bin == "" {
+		bin = "docker"
+	}
+	cmd := exec.CommandContext(ctx, bin, args...)
+	cmd.Env = c.composeEnv()
+	var output tailOutput
+	cmd.Stdout = &output
+	cmd.Stderr = &output
+	err := cmd.Run()
+	if err != nil {
+		return "", fmt.Errorf("compose action: %w: %s", err, output.String())
+	}
+	return output.String(), nil
 }
 
 // New creates a Compose instance using the Decepticon home directory.

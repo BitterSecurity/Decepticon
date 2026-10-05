@@ -44,14 +44,15 @@ interfaces cover different operations; choose the one that actually exists.
 | Review a plan, findings, or report | MCP `decepticon_cli_list_artifacts` and bounded `decepticon_cli_read_artifact` |
 | Approve the validated plan for Red | MCP `decepticon_cli_approve_red` after operator review, with `confirmed=true` |
 | Initial onboarding or interactive CLI | Host `decepticon` command |
-| Start or stop a local Blue Cell sensor | Interactive CLI `/blue up`, `/blue stop` |
-| Inspect a running Blue Cell | MCP `decepticon_blue_status`, `decepticon_blue_sources`, `decepticon_blue_events`, `decepticon_blue_incidents`, `decepticon_blue_notifications`, `decepticon_blue_body`, `decepticon_blue_search`, `decepticon_blue_timeline`; interactive CLI `/blue verify` and `/blue analyze` |
+| Start, verify, or stop a local Blue Cell sensor | MCP `decepticon_cli_blue` with `action=up|status|verify|stop`; use a local upstream and optional absolute host log directory for `up` |
+| Inspect a running Blue Cell | MCP `decepticon_blue_status`, `decepticon_blue_sources`, `decepticon_blue_events`, `decepticon_blue_incidents`, `decepticon_blue_notifications`, `decepticon_blue_body`, `decepticon_blue_search`, `decepticon_blue_timeline`; `decepticon_cli_blue` with `action=verify` checks coverage |
 | List or toggle agent plugin bundles | MCP `decepticon_plugin_bundles`, `decepticon_plugin_enable`, `decepticon_plugin_disable`; interactive CLI `/plugins` |
-| Control web dashboard or select the active CLI agent | Interactive CLI `/web`, `/agent` |
+| Control web dashboard or read service logs | MCP `decepticon_cli_web` with `action=up|down|url`; `decepticon_cli_logs` for a bounded recent sample |
+| Select the active agent | Set the MCP engagement `assistant` parameter; interactive CLI `/agent` |
 
-Do not invent MCP tools for Blue Cell setup or other service
-management. The slash commands above work inside Decepticon's interactive
-terminal, not in the shell or the MCP bridge.
+The interactive `/blue analyze` flow maps to `decepticon_send_message` with
+`assistant="blue_cell"` after a thread exists. Keep the automatic monitor
+and its notifications separate from this on-demand investigation.
 
 - Poll `decepticon_blue_events` with its `next_after` cursor and
   `decepticon_blue_notifications` with its separate `next_after` cursor.

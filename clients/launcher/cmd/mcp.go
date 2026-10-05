@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/compose"
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/mcpbridge"
@@ -23,6 +24,41 @@ var mcpServeCmd = &cobra.Command{
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return serveMCP(cmd.Context(), compose.New())
+	},
+}
+
+var mcpActionCmd = &cobra.Command{
+	Use:    "mcp-action <blue|web|logs> <action> [args...]",
+	Hidden: true,
+	Args:   cobra.MinimumNArgs(2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		stack := compose.New()
+		var output string
+		var err error
+		switch args[0] {
+		case "blue", "web":
+			output, err = stack.MCPAction(cmd.Context(), args[0], args[1], args[2:]...)
+		case "logs":
+			if len(args) != 4 || args[1] != "tail" {
+				return fmt.Errorf("logs action requires tail, service, and count")
+			}
+			allowed := map[string]bool{"langgraph": true, "litellm": true, "postgres": true, "neo4j": true, "sandbox": true, "web": true, "cli": true}
+			if !allowed[args[2]] {
+				return fmt.Errorf("unsupported log service %q", args[2])
+			}
+			count, parseErr := strconv.Atoi(args[3])
+			if parseErr != nil || count < 1 || count > 200 {
+				return fmt.Errorf("log tail must be between 1 and 200")
+			}
+			output, err = stack.MCPLogs(cmd.Context(), args[2], count)
+		default:
+			return fmt.Errorf("unsupported MCP action %q", args[0])
+		}
+		if err != nil {
+			return err
+		}
+		fmt.Fprint(cmd.OutOrStdout(), output)
+		return nil
 	},
 }
 
@@ -56,4 +92,5 @@ func serveMCP(ctx context.Context, stack *compose.Compose) error {
 func init() {
 	mcpCmd.AddCommand(mcpServeCmd)
 	rootCmd.AddCommand(mcpCmd)
+	rootCmd.AddCommand(mcpActionCmd)
 }

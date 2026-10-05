@@ -89,6 +89,7 @@ func TestRuntimeToolsAndCLIStatusShareOneServer(t *testing.T) {
 	failStatus := false
 	updateArgs := []string{}
 	startArgs := []string{}
+	actionArgs := []string{}
 	server, err := NewServer(ctx, childSession, func(_ context.Context, args ...string) (string, error) {
 		if len(args) == 0 {
 			return "", errors.New("unexpected CLI command")
@@ -109,6 +110,9 @@ func TestRuntimeToolsAndCLIStatusShareOneServer(t *testing.T) {
 		case "start":
 			startArgs = append([]string{}, args...)
 			return "services ready", nil
+		case "mcp-action":
+			actionArgs = append([]string{}, args...)
+			return "action complete", nil
 		default:
 			return "", errors.New("unexpected CLI command")
 		}
@@ -135,8 +139,8 @@ func TestRuntimeToolsAndCLIStatusShareOneServer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tools.Tools) != 14 {
-		t.Fatalf("got %d tools, want three runtime and eleven host tools", len(tools.Tools))
+	if len(tools.Tools) != 17 {
+		t.Fatalf("got %d tools, want three runtime and fourteen host tools", len(tools.Tools))
 	}
 	for _, tool := range tools.Tools {
 		if tool.Name == "decepticon_cli_status" && (tool.Annotations == nil || !tool.Annotations.ReadOnlyHint) {
@@ -244,6 +248,30 @@ func TestRuntimeToolsAndCLIStatusShareOneServer(t *testing.T) {
 	}
 	if len(startArgs) != 5 || startArgs[1] != "--headless" || startArgs[2] != "--engagement" || startArgs[3] != "red-test" || startArgs[4] != "--no-update" {
 		t.Fatalf("start args = %#v", startArgs)
+	}
+	denied, err = session.CallTool(ctx, &mcp.CallToolParams{Name: "decepticon_cli_blue", Arguments: map[string]any{"action": "stop"}})
+	if err != nil || !denied.IsError {
+		t.Fatalf("unconfirmed blue stop = %#v, %v", denied, err)
+	}
+	denied, err = session.CallTool(ctx, &mcp.CallToolParams{Name: "decepticon_cli_blue", Arguments: map[string]any{"action": "up", "upstream": "https://public.example:3000"}})
+	if err != nil || !denied.IsError {
+		t.Fatalf("public blue upstream = %#v, %v", denied, err)
+	}
+	blue, err := session.CallTool(ctx, &mcp.CallToolParams{Name: "decepticon_cli_blue", Arguments: map[string]any{"action": "up", "upstream": "127.0.0.1:3000", "log_dir": "/srv/logs"}})
+	if err != nil || blue.IsError || len(actionArgs) != 6 || actionArgs[1] != "blue" || actionArgs[2] != "up" || actionArgs[5] != "/srv/logs" {
+		t.Fatalf("blue up = %#v, args = %#v, error = %v", blue, actionArgs, err)
+	}
+	denied, err = session.CallTool(ctx, &mcp.CallToolParams{Name: "decepticon_cli_web", Arguments: map[string]any{"action": "down"}})
+	if err != nil || !denied.IsError {
+		t.Fatalf("unconfirmed web down = %#v, %v", denied, err)
+	}
+	web, err := session.CallTool(ctx, &mcp.CallToolParams{Name: "decepticon_cli_web", Arguments: map[string]any{"action": "url"}})
+	if err != nil || web.IsError || len(actionArgs) != 3 || actionArgs[1] != "web" || actionArgs[2] != "url" {
+		t.Fatalf("web url = %#v, args = %#v, error = %v", web, actionArgs, err)
+	}
+	logs, err := session.CallTool(ctx, &mcp.CallToolParams{Name: "decepticon_cli_logs", Arguments: map[string]any{"service": "neo4j", "tail": 25}})
+	if err != nil || logs.IsError || len(actionArgs) != 5 || actionArgs[3] != "neo4j" || actionArgs[4] != "25" {
+		t.Fatalf("logs = %#v, args = %#v, error = %v", logs, actionArgs, err)
 	}
 	duplicate, err := session.CallTool(ctx, &mcp.CallToolParams{
 		Name: "decepticon_cli_create_workspace", Arguments: map[string]any{"engagement": "red-test"},
@@ -356,7 +384,7 @@ func TestColdServerConnectsRuntimeAfterStartup(t *testing.T) {
 	}
 	defer session.Close()
 	tools, err := session.ListTools(ctx, nil)
-	if err != nil || len(tools.Tools) != 11 {
+	if err != nil || len(tools.Tools) != 14 {
 		t.Fatalf("cold tools = %#v, %v", tools, err)
 	}
 	failed, err := session.CallTool(ctx, &mcp.CallToolParams{Name: "decepticon_cli_connect_runtime"})
@@ -369,7 +397,7 @@ func TestColdServerConnectsRuntimeAfterStartup(t *testing.T) {
 		t.Fatalf("connect runtime = %#v, %v", connected, err)
 	}
 	tools, err = session.ListTools(ctx, nil)
-	if err != nil || len(tools.Tools) != 12 {
+	if err != nil || len(tools.Tools) != 15 {
 		t.Fatalf("connected tools = %#v, %v", tools, err)
 	}
 	result, err := session.CallTool(ctx, &mcp.CallToolParams{Name: "decepticon_ready"})

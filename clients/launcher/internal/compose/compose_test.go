@@ -2,6 +2,7 @@ package compose
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -12,6 +13,32 @@ import (
 
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/runtime"
 )
+
+func TestMCPActionHelperProcess(t *testing.T) {
+	if os.Getenv("DECEPTICON_MCP_ACTION_HELPER") != "1" {
+		return
+	}
+	args := strings.Join(os.Args, " ")
+	if !strings.Contains(args, "--profile cli run -T --rm --no-deps --entrypoint node cli dist/mcp-action.js blue verify") {
+		fmt.Fprintln(os.Stderr, args)
+		os.Exit(2)
+	}
+	fmt.Fprint(os.Stdout, "coverage verified")
+	os.Exit(0)
+}
+
+func TestMCPActionUsesHeadlessCLIImage(t *testing.T) {
+	t.Setenv("DECEPTICON_MCP_ACTION_HELPER", "1")
+	t.Setenv("DECEPTICON_STACK_NAME", "")
+	stack := &Compose{
+		Home: "/test", ComposeFile: "/test/docker-compose.yml", EnvFile: "/test/.env",
+		Runtime: runtime.Runtime{Bin: os.Args[0], ComposeArgs: []string{"-test.run=TestMCPActionHelperProcess", "--"}},
+	}
+	output, err := stack.MCPAction(context.Background(), "blue", "verify")
+	if err != nil || output != "coverage verified" {
+		t.Fatalf("headless CLI action = %q, %v", output, err)
+	}
+}
 
 func TestMCPHelperProcess(t *testing.T) {
 	if os.Getenv("DECEPTICON_MCP_TEST_HELPER") != "1" {
