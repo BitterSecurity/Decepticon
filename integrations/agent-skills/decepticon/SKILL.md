@@ -1,9 +1,9 @@
 ---
 name: decepticon
 description: "Drive Decepticon — an autonomous multi-agent red-team framework — over MCP to run authorized penetration tests and bug-bounty engagements end to end, then watch and steer them live from chat. Launch an engagement against a target, poll its transcript to narrate progress, send messages to refocus it, and pull findings as SARIF. Use when the user asks to run a pentest/red-team engagement, hunt a bug bounty, do recon, exploit/scan a host, web app, API, network, cloud, Active Directory, mobile app, or smart contract WITH Decepticon — or to check/resume a running engagement or report what Decepticon found. Triggers: run a decepticon engagement, pentest this with decepticon, bug bounty, recon this target, red team this, scan this host, resume the engagement, what did decepticon find, decepticon status. Do NOT use for ad-hoc local tool runs (running nmap/sqlmap/ffuf directly) when no Decepticon server is involved — this drives the Decepticon orchestrator, not raw tools."
-version: 2.0.0
 license: Apache-2.0
 metadata:
+  version: 2.0.0
   homepage: "https://github.com/PurpleAILAB/Decepticon"
   hermes:
     tags: [decepticon, red-teaming, penetration-testing, bug-bounty, mcp, autonomous-agents, recon, exploitation, sarif]
@@ -46,12 +46,13 @@ work runs inside the Decepticon server; you are the operator at the console.
 
 ## Prerequisites (verify on first failure)
 
-- A Decepticon **LangGraph server** must be running and reachable
-  (`DECEPTICON_API_URL`, default `http://localhost:2024`). If a tool errors with
-  a connection failure, tell the user to start it (`langgraph dev` or the Docker
-  stack) — don't retry blindly.
-- The `decepticon` MCP server must be registered and launched with
-  `DECEPTICON_SKIP_BOOT=1` (fast start). See the integration docs.
+- A Decepticon **LangGraph server** must be running. For an installed CLI,
+  `decepticon mcp serve` connects through the running LangGraph container. For
+  a Python package or source checkout, the bridge uses `DECEPTICON_API_URL`
+  (default `http://localhost:2024`). If a tool reports a connection failure,
+  tell the user to run `decepticon start` or `langgraph dev` as appropriate.
+- The `decepticon` MCP server must be registered. See the
+  [integration docs](../../../docs/integrations/external-agents.md).
 
 ## Tools
 

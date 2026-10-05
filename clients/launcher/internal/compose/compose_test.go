@@ -1,9 +1,101 @@
 package compose
 
 import (
+	"bufio"
+	"fmt"
+	"io"
+	"os"
 	"path/filepath"
+	"reflect"
+	"strings"
 	"testing"
+
+	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/runtime"
 )
+
+func TestMCPHelperProcess(t *testing.T) {
+	if os.Getenv("DECEPTICON_MCP_TEST_HELPER") != "1" {
+		return
+	}
+	separator := -1
+	for index, arg := range os.Args {
+		if arg == "--" {
+			separator = index
+			break
+		}
+	}
+	if separator < 0 {
+		os.Exit(2)
+	}
+	args := os.Args[separator+1:]
+	want := []string{
+		"-p", "decepticon", "-f", "/test/docker-compose.yml",
+		"--env-file", "/test/.env", "exec", "-T", "-e",
+		"DECEPTICON_SKIP_BOOT=1", "langgraph", "decepticon-mcp",
+		"--transport", "stdio",
+	}
+	if !reflect.DeepEqual(args, want) {
+		fmt.Fprintln(os.Stderr, "wrong MCP command:", args)
+		os.Exit(3)
+	}
+	line, err := bufio.NewReader(os.Stdin).ReadString('\n')
+	if err != nil {
+		os.Exit(4)
+	}
+	fmt.Fprint(os.Stdout, line)
+	os.Exit(0)
+}
+
+func TestRunMCPStdioForwardsJSONRPCWithoutTerminal(t *testing.T) {
+	t.Setenv("DECEPTICON_MCP_TEST_HELPER", "1")
+	t.Setenv("DECEPTICON_STACK_NAME", "")
+	inputReader, inputWriter, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer inputReader.Close()
+	defer inputWriter.Close()
+	outputReader, outputWriter, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer outputReader.Close()
+	defer outputWriter.Close()
+	oldInput, oldOutput := os.Stdin, os.Stdout
+	os.Stdin, os.Stdout = inputReader, outputWriter
+	defer func() { os.Stdin, os.Stdout = oldInput, oldOutput }()
+
+	request := `{"jsonrpc":"2.0","id":1,"method":"initialize"}` + "\n"
+	if _, err := io.WriteString(inputWriter, request); err != nil {
+		t.Fatal(err)
+	}
+	if err := inputWriter.Close(); err != nil {
+		t.Fatal(err)
+	}
+	c := &Compose{
+		Home:        "/test",
+		ComposeFile: "/test/docker-compose.yml",
+		EnvFile:     "/test/.env",
+		Runtime: runtime.Runtime{
+			Name:        "test",
+			Bin:         os.Args[0],
+			ComposeArgs: []string{"-test.run=TestMCPHelperProcess", "--"},
+		},
+	}
+	if err := c.RunMCPStdio(); err != nil {
+		t.Fatal(err)
+	}
+	if err := outputWriter.Close(); err != nil {
+		t.Fatal(err)
+	}
+	response, err := io.ReadAll(outputReader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.TrimSpace(string(response)) != strings.TrimSpace(request) {
+		t.Fatalf("stdio response = %q, want %q", response, request)
+	}
+}
 
 func TestNew(t *testing.T) {
 	// filepath.Join is OS-aware (LF separators on Unix, backslash on

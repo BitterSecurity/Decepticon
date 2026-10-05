@@ -719,6 +719,9 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
+mcp = [
+    { name = "decepticon", extra = ["mcp"] },
+]
 neo4j = [
     { name = "decepticon", extra = ["neo4j"] },
 ]
@@ -747,11 +750,12 @@ lint = [
 [package.metadata]
 requires-dist = [
     { name = "decepticon", editable = "packages/decepticon" },
+    { name = "decepticon", extras = ["mcp"], marker = "extra == 'mcp'", editable = "packages/decepticon" },
     { name = "decepticon", extras = ["neo4j"], marker = "extra == 'neo4j'", editable = "packages/decepticon" },
     { name = "decepticon-core", editable = "packages/decepticon-core" },
     { name = "decepticon-sdk", editable = "packages/decepticon-sdk" },
 ]
-provides-extras = ["neo4j"]
+provides-extras = ["neo4j", "mcp"]
 
 [package.metadata.requires-dev]
 dev = [

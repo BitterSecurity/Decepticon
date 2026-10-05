@@ -24,8 +24,13 @@ var rootCmd = &cobra.Command{
 
 func Execute() {
 	updater.CleanupOldBinary()
-	if err := rootCmd.Execute(); err != nil {
-		ui.Error(err.Error())
+	command, err := rootCmd.ExecuteC()
+	if err != nil {
+		if command == mcpServeCmd {
+			fmt.Fprintln(os.Stderr, err)
+		} else {
+			ui.Error(err.Error())
+		}
 		os.Exit(1)
 	}
 }
