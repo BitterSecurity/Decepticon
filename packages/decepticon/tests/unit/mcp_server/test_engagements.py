@@ -17,6 +17,7 @@ import pytest
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 from mcp.server.fastmcp.exceptions import ToolError
+from mcp.shared.memory import create_connected_server_and_client_session
 
 from decepticon.mcp_server.config import ServerConfig
 from decepticon.mcp_server.engagements import EngagementClient
@@ -180,6 +181,72 @@ async def test_send_tool_rejects_other_workspace_thread(
     assert len(fake.runs.create_calls) == 1
     with pytest.raises(ToolError, match="approve"):
         await manager.call_tool("decepticon_send_message", {**arguments, "assistant": "decepticon"})
+
+
+@pytest.mark.parametrize(
+    "tool",
+    (
+        "decepticon_transcript",
+        "decepticon_engagement_state",
+        "decepticon_watch",
+        "decepticon_engagement_status",
+        "decepticon_cancel_engagement",
+    ),
+)
+async def test_thread_tools_reject_other_workspace(
+    tool: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fake = _FakeClient(runs=[{"run_id": "r-foreign", "status": "running"}])
+    fake.threads.state = {"values": {"engagement_name": "other", "workspace_path": "/other"}}
+    monkeypatch.setenv("DECEPTICON_ENGAGEMENT", "eng-1")
+    monkeypatch.setenv("DECEPTICON_ENGAGEMENT_WORKSPACE", str(tmp_path))
+    manager = build_server(_config(), client=fake)._tool_manager
+
+    with pytest.raises(ToolError, match="does not belong"):
+        await manager.call_tool(tool, {"thread_id": "t-foreign"})
+    assert fake.runs.cancelled is None
+
+
+async def test_list_engagements_hides_other_workspace(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fake = _FakeClient(
+        threads=[
+            {
+                "thread_id": "t-foreign",
+                "values": {"engagement_name": "other", "workspace_path": "/other"},
+            }
+        ]
+    )
+    fake.threads.state = {"values": {"engagement_name": "other", "workspace_path": "/other"}}
+    monkeypatch.setenv("DECEPTICON_ENGAGEMENT", "eng-1")
+    monkeypatch.setenv("DECEPTICON_ENGAGEMENT_WORKSPACE", str(tmp_path))
+    manager = build_server(_config(), client=fake)._tool_manager
+
+    result = await manager.call_tool("decepticon_list_engagements", {})
+    assert result == []
+
+
+async def test_mcp_client_cannot_cancel_another_workspace_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fake = _FakeClient(runs=[{"run_id": "r-foreign", "status": "running"}])
+    fake.threads.state = {"values": {"engagement_name": "other", "workspace_path": "/other"}}
+    monkeypatch.setenv("DECEPTICON_ENGAGEMENT", "eng-1")
+    monkeypatch.setenv("DECEPTICON_ENGAGEMENT_WORKSPACE", str(tmp_path))
+    async with create_connected_server_and_client_session(
+        build_server(_config(), client=fake)
+    ) as session:
+        denied = await session.call_tool("decepticon_cancel_engagement", {"thread_id": "t-1"})
+        assert denied.isError is True
+        assert fake.runs.cancelled is None
+
+        fake.threads.state = {
+            "values": {"engagement_name": "eng-1", "workspace_path": str(tmp_path)}
+        }
+        accepted = await session.call_tool("decepticon_cancel_engagement", {"thread_id": "t-1"})
+        assert accepted.isError is not True
+        assert fake.runs.cancelled == ("t-1", "r-foreign")
 
 
 async def test_stdio_start_rejects_unselected_and_unapproved_workspace(tmp_path: Path) -> None:

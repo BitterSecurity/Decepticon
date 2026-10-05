@@ -13,7 +13,6 @@ from mcp.server.fastmcp import FastMCP
 
 from decepticon.mcp_server.conversation import build_engagement_state, build_transcript
 from decepticon.mcp_server.engagements import EngagementClient
-from decepticon.mcp_server.findings import engagement_workspace
 from decepticon.mcp_server.models import (
     EngagementState,
     EngagementSummary,
@@ -21,7 +20,11 @@ from decepticon.mcp_server.models import (
     Transcript,
     WatchResult,
 )
-from decepticon.mcp_server.tools_lifecycle import require_red_approval, selected_workspace
+from decepticon.mcp_server.tools_lifecycle import (
+    require_red_approval,
+    selected_thread_state,
+    selected_workspace,
+)
 
 _ACTIVE = ("pending", "running")
 
@@ -47,7 +50,23 @@ def register_interactive_tools(mcp: FastMCP, engagements: EngagementClient) -> N
         Use a returned ``thread_id`` as the handle for ``decepticon_transcript``,
         ``decepticon_send_message``, and the other engagement tools.
         """
-        return await engagements.list_engagements(limit=_clamp(limit, 1, 100))
+        bounded = _clamp(limit, 1, 100)
+        selected = os.environ.get("DECEPTICON_ENGAGEMENT", "")
+        rows = await engagements.list_engagements(limit=100 if selected else bounded)
+        if not selected:
+            return rows
+        visible: list[EngagementSummary] = []
+        for row in rows:
+            if row.engagement_name != selected:
+                continue
+            try:
+                await selected_thread_state(engagements, row.thread_id)
+            except ValueError:
+                continue
+            visible.append(row)
+            if len(visible) == bounded:
+                break
+        return visible
 
     @mcp.tool()
     async def decepticon_send_message(
@@ -61,13 +80,7 @@ def register_interactive_tools(mcp: FastMCP, engagements: EngagementClient) -> N
         """
         selected = os.environ.get("DECEPTICON_ENGAGEMENT", "")
         if selected:
-            state = await engagements.get_state(thread_id)
-            values = state.get("values") if isinstance(state, dict) else None
-            if not isinstance(values, dict) or (
-                values.get("engagement_name") != selected
-                or values.get("workspace_path") != str(engagement_workspace(selected))
-            ):
-                raise ValueError("thread does not belong to the selected engagement workspace")
+            await selected_thread_state(engagements, thread_id)
             resolved = assistant
             if resolved is None:
                 latest = await engagements.latest_run(thread_id)
@@ -88,8 +101,8 @@ def register_interactive_tools(mcp: FastMCP, engagements: EngagementClient) -> N
         ``task()`` delegations to specialists) from ``after_index`` onward. Poll
         with the returned ``next_index`` to stream progress incrementally.
         """
+        state = await selected_thread_state(engagements, thread_id)
         _, status = await _run_status(engagements, thread_id)
-        state = await engagements.get_state(thread_id)
         return build_transcript(
             state,
             thread_id=thread_id,
@@ -105,8 +118,8 @@ def register_interactive_tools(mcp: FastMCP, engagements: EngagementClient) -> N
         Returns the orchestrator's working state (everything except the message
         log) plus message count and run status.
         """
+        state = await selected_thread_state(engagements, thread_id)
         _, status = await _run_status(engagements, thread_id)
-        state = await engagements.get_state(thread_id)
         return build_engagement_state(state, thread_id=thread_id, run_status=status)
 
     @mcp.tool()
@@ -119,6 +132,7 @@ def register_interactive_tools(mcp: FastMCP, engagements: EngagementClient) -> N
         then returns. Call again to keep watching. Returns no events when no run
         is active (the engagement is idle or finished).
         """
+        await selected_thread_state(engagements, thread_id)
         run_id, status = await _run_status(engagements, thread_id)
         if run_id is None or status not in _ACTIVE:
             return WatchResult(
