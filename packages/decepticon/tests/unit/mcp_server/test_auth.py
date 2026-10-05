@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from pathlib import Path
 
 import pytest
 
@@ -16,6 +17,7 @@ from cryptography.hazmat.primitives import serialization  # noqa: E402
 from cryptography.hazmat.primitives.asymmetric import rsa  # noqa: E402
 
 from decepticon.mcp_server.auth import (  # noqa: E402
+    _load_pem,
     build_auth,
     is_loopback_host,
     open_bind_error,
@@ -124,6 +126,17 @@ def rsa_keys() -> tuple[str, str]:
 
 def _jwt_cfg(pub: str, **kw: object) -> ServerConfig:
     return _cfg(issuer="https://issuer/", audience="decepticon-mcp", public_key=pub, **kw)
+
+
+def test_inline_pem_is_not_treated_as_a_path() -> None:
+    inline = "-----BEGIN PUBLIC KEY-----\n" + "A" * 300 + "\n-----END PUBLIC KEY-----\n"
+    assert _load_pem(inline) == inline
+
+
+def test_public_key_path_is_read(tmp_path: Path) -> None:
+    key_file = tmp_path / "public.pem"
+    key_file.write_text("public key text", encoding="utf-8")
+    assert _load_pem(str(key_file)) == "public key text"
 
 
 def test_jwt_accepts_valid_token_and_reads_scopes(rsa_keys: tuple[str, str]) -> None:
