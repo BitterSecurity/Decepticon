@@ -55,6 +55,7 @@ Its findings tool reads `graph.json`; host artifact tools expose canonical
 | `decepticon_cli_opscontrol` | Inspect, install, or uninstall the workload daemon |
 | `decepticon_cli_skill_install` | Install the version-matched Skill for Codex or Claude Code |
 | `decepticon_cli_onboard` | Configure a new local install or reset settings while preserving service credentials |
+| `decepticon_cli_remove` | Remove the local installation with workspace backup by default |
 
 Run-control tools use the `thread_id` returned by `decepticon_start_engagement`
 or listed by `decepticon_list_engagements`. Findings tools use an

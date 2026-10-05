@@ -46,6 +46,12 @@ List the engagement graphs (assistants) the connected server exposes.
   Output is limited to the most recent 64 KiB.
 - `decepticon_cli_opscontrol(action, confirmed=false)` accepts `status`,
   `install`, or `uninstall`; mutating actions require confirmation.
+- `decepticon_cli_remove(confirmation, delete_workspace=false)` removes the
+  local stack, images, configuration, and launcher. By default it first moves
+  `workspace/` to `~/decepticon-workspace-backup` and requires the exact phrase
+  `REMOVE DECEPTICON`. Set `delete_workspace=true` and confirm with
+  `DELETE ALL DECEPTICON DATA` to remove that data too. An existing backup
+  destination causes a failure before image or configuration removal.
 - `decepticon_cli_skill_install(client="both", source="", force=false,
   confirmed=false)` installs the release Skill for Codex, Claude Code, or both.
   `source` selects an absolute local bundle directory; `force` requires

@@ -53,6 +53,7 @@ interfaces cover different operations; choose the one that actually exists.
 | Control web dashboard or read service logs | MCP `decepticon_cli_web` with `action=up|down|url`; `decepticon_cli_logs` for a bounded recent sample |
 | Inspect or manage opscontrol | MCP `decepticon_cli_opscontrol` with `action=status|install|uninstall`; require operator confirmation for changes |
 | Install the version-matched coding-agent Skill | MCP `decepticon_cli_skill_install` with `client=codex|claude|both`; replacing a modified Skill requires confirmation |
+| Completely remove the local installation | MCP `decepticon_cli_remove`; default backs up the workspace and requires `REMOVE DECEPTICON`, while deleting workspace data requires `DELETE ALL DECEPTICON DATA` |
 | Select the active agent | Set the MCP engagement `assistant` parameter; interactive CLI `/agent` |
 
 The interactive `/blue analyze` flow maps to `decepticon_send_message` with

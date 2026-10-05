@@ -20,6 +20,34 @@ type skillInstallInput struct {
 	Confirmed bool   `json:"confirmed,omitempty" jsonschema:"required when force is true"`
 }
 
+type removeInput struct {
+	Confirmation    string `json:"confirmation" jsonschema:"exact operator confirmation phrase"`
+	DeleteWorkspace bool   `json:"delete_workspace,omitempty" jsonschema:"false backs up the workspace before removal; true deletes it"`
+}
+
+func registerRemoveTool(server *mcp.Server, run CommandRunner, closedWorld bool) {
+	destructive := true
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "decepticon_cli_remove",
+		Description: "Uninstall the local stack and launcher. By default, back up the workspace; confirm with REMOVE DECEPTICON. To delete workspace data too, set delete_workspace=true and confirm with DELETE ALL DECEPTICON DATA.",
+		Annotations: &mcp.ToolAnnotations{DestructiveHint: &destructive, OpenWorldHint: &closedWorld},
+	}, func(ctx context.Context, _ *mcp.CallToolRequest, input removeInput) (*mcp.CallToolResult, commandOutput, error) {
+		phrase := "REMOVE DECEPTICON"
+		if input.DeleteWorkspace {
+			phrase = "DELETE ALL DECEPTICON DATA"
+		}
+		if input.Confirmation != phrase {
+			return nil, commandOutput{}, fmt.Errorf("removal requires the exact confirmation phrase %q", phrase)
+		}
+		args := []string{"remove", "--yes"}
+		if !input.DeleteWorkspace {
+			args = append(args, "--preserve-workspace")
+		}
+		output, err := run(ctx, args...)
+		return nil, commandOutput{Output: output}, err
+	})
+}
+
 func registerAdminTools(server *mcp.Server, run CommandRunner, closedWorld bool) {
 	destructive := true
 	mcp.AddTool(server, &mcp.Tool{

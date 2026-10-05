@@ -114,7 +114,7 @@ func TestRuntimeToolsAndCLIStatusShareOneServer(t *testing.T) {
 		case "mcp-action":
 			actionArgs = append([]string{}, args...)
 			return "action complete", nil
-		case "opscontrol", "skill":
+		case "opscontrol", "skill", "remove":
 			adminArgs = append([]string{}, args...)
 			return "admin complete", nil
 		default:
@@ -143,8 +143,8 @@ func TestRuntimeToolsAndCLIStatusShareOneServer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tools.Tools) != 20 {
-		t.Fatalf("got %d tools, want three runtime and seventeen host tools", len(tools.Tools))
+	if len(tools.Tools) != 21 {
+		t.Fatalf("got %d tools, want three runtime and eighteen host tools", len(tools.Tools))
 	}
 	for _, tool := range tools.Tools {
 		if tool.Name == "decepticon_cli_status" && (tool.Annotations == nil || !tool.Annotations.ReadOnlyHint) {
@@ -317,6 +317,18 @@ func TestRuntimeToolsAndCLIStatusShareOneServer(t *testing.T) {
 	if err != nil || !denied.IsError {
 		t.Fatalf("unconfirmed onboard reset = %#v, %v", denied, err)
 	}
+	denied, err = session.CallTool(ctx, &mcp.CallToolParams{Name: "decepticon_cli_remove", Arguments: map[string]any{"confirmation": "REMOVE DECEPTICON", "delete_workspace": true}})
+	if err != nil || !denied.IsError {
+		t.Fatalf("wrong delete confirmation = %#v, %v", denied, err)
+	}
+	removed, err := session.CallTool(ctx, &mcp.CallToolParams{Name: "decepticon_cli_remove", Arguments: map[string]any{"confirmation": "REMOVE DECEPTICON"}})
+	if err != nil || removed.IsError || len(adminArgs) != 3 || adminArgs[0] != "remove" || adminArgs[2] != "--preserve-workspace" {
+		t.Fatalf("preserving removal = %#v, args = %#v, error = %v", removed, adminArgs, err)
+	}
+	removed, err = session.CallTool(ctx, &mcp.CallToolParams{Name: "decepticon_cli_remove", Arguments: map[string]any{"confirmation": "DELETE ALL DECEPTICON DATA", "delete_workspace": true}})
+	if err != nil || removed.IsError || len(adminArgs) != 2 || adminArgs[0] != "remove" || adminArgs[1] != "--yes" {
+		t.Fatalf("deleting removal = %#v, args = %#v, error = %v", removed, adminArgs, err)
+	}
 	duplicate, err := session.CallTool(ctx, &mcp.CallToolParams{
 		Name: "decepticon_cli_create_workspace", Arguments: map[string]any{"engagement": "red-test"},
 	})
@@ -428,7 +440,7 @@ func TestColdServerConnectsRuntimeAfterStartup(t *testing.T) {
 	}
 	defer session.Close()
 	tools, err := session.ListTools(ctx, nil)
-	if err != nil || len(tools.Tools) != 17 {
+	if err != nil || len(tools.Tools) != 18 {
 		t.Fatalf("cold tools = %#v, %v", tools, err)
 	}
 	failed, err := session.CallTool(ctx, &mcp.CallToolParams{Name: "decepticon_cli_connect_runtime"})
@@ -441,7 +453,7 @@ func TestColdServerConnectsRuntimeAfterStartup(t *testing.T) {
 		t.Fatalf("connect runtime = %#v, %v", connected, err)
 	}
 	tools, err = session.ListTools(ctx, nil)
-	if err != nil || len(tools.Tools) != 18 {
+	if err != nil || len(tools.Tools) != 19 {
 		t.Fatalf("connected tools = %#v, %v", tools, err)
 	}
 	result, err := session.CallTool(ctx, &mcp.CallToolParams{Name: "decepticon_ready"})

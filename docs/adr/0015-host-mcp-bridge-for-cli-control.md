@@ -42,6 +42,11 @@ service credentials for new installs. Reset retains existing service
 credentials and refuses missing or development defaults. This avoids replaying
 an interactive wizard over MCP stdio or rotating database passwords without
 recreating their volumes.
+Complete removal is a separate destructive host tool. Its default preserves
+the engagement workspace in the same backup location as the interactive CLI;
+deleting workspace data requires a stronger, distinct confirmation phrase.
+The backup runs after services stop and before images or configuration are
+removed, so a backup failure leaves those assets available for recovery.
 
 The bridge uses the official Go MCP SDK. This adds a top-level dependency to
 the launcher, avoiding a hand-written MCP protocol implementation. The child
