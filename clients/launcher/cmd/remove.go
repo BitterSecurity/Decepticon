@@ -64,7 +64,9 @@ func runRemove(cmd *cobra.Command, args []string) error {
 			Affirmative("Yes, keep my data").
 			Negative("No, delete everything").
 			Value(&preserveWorkspace)))
-		_ = form.Run()
+		if err := form.Run(); err != nil {
+			return fmt.Errorf("workspace preservation selection cancelled: %w", err)
+		}
 	}
 	backupDir := ""
 	workspaceToBackup := ""
