@@ -95,7 +95,8 @@ claude mcp add --scope user decepticon -- decepticon mcp serve
 codex mcp add decepticon -- decepticon mcp serve
 ```
 
-Use the command for the coding agent you have installed. See the
+Use the command for the coding agent you have installed, then run
+`decepticon skill install` to add the operator guide to both agents. See the
 [external agent guide](docs/integrations/external-agents.md) for the Agent Skill,
 tool workflow, and source installation path.
 
