@@ -86,6 +86,19 @@ decepticon
 
 → **[Quick start](docs/getting-started.md)** · **[Full setup walkthrough](docs/setup-guide.md)**
 
+### Use from Claude Code or Codex
+
+After starting Decepticon, register its MCP server in your coding agent:
+
+```bash
+claude mcp add --scope user decepticon -- decepticon mcp serve
+codex mcp add decepticon -- decepticon mcp serve
+```
+
+Use the command for the coding agent you have installed. See the
+[external agent guide](docs/integrations/external-agents.md) for the Agent Skill,
+tool workflow, and source installation path.
+
 ### Use as a library (pip)
 
 Building on top of the agents — a product, a research integration, or a custom orchestrator? Install the SDK from PyPI:

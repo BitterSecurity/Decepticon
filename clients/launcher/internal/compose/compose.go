@@ -288,6 +288,13 @@ func (c *Compose) Exec(service string, command ...string) error {
 	return c.run(args, false)
 }
 
+func (c *Compose) RunMCPStdio() error {
+	return c.run([]string{
+		"exec", "-T", "-e", "DECEPTICON_SKIP_BOOT=1",
+		"langgraph", "decepticon-mcp", "--transport", "stdio",
+	}, true)
+}
+
 // RunInteractive runs a one-off container with stdin attached.
 func (c *Compose) RunInteractive(profiles []string, service string, env map[string]string, command ...string) error {
 	cmdArgs := c.baseArgs()

@@ -1,4 +1,4 @@
-# External agents — OpenClaw & Hermes
+# External agents — Claude Code, Codex, OpenClaw & Hermes
 
 Decepticon ships an **engagement MCP server** so external agent runtimes can
 drive it like its CLI — from a phone, via those agents' chat channels. It
@@ -6,13 +6,12 @@ exposes the full interactive loop over the Model Context Protocol: discover and
 resume engagements, launch one, **steer it by chatting**, **watch progress**,
 inspect the OPPLAN, and pull findings.
 
-This makes Decepticon usable from
-[OpenClaw](https://github.com/openclaw/openclaw) and
+This makes Decepticon usable from Claude Code, Codex,
+[OpenClaw](https://github.com/openclaw/openclaw), and
 [Hermes](https://github.com/NousResearch/hermes-agent).
 
 ```
-OpenClaw / Hermes  ──MCP──▶  decepticon-mcp  ──LangGraph SDK──▶  Decepticon server
-   (chat / phone)              (bridge)         (HTTP :2024)        (16 agents, RoE, KG)
+Coding agent  ──MCP stdio──▶  decepticon mcp serve  ──container exec──▶  Decepticon server
 ```
 
 The bridge is a thin control plane. The red-team work runs inside the
@@ -38,7 +37,47 @@ persistence); the MCP layer translates tool calls into LangGraph runs
 Every tool is keyed by the `thread_id` returned from `decepticon_start_engagement`
 (or listed by `decepticon_list_engagements`) — no run-id juggling, just like the CLI.
 
-## 1. Install + run
+## 1. Claude Code and Codex with the installed CLI
+
+The installed `decepticon` launcher can expose MCP tools through the running
+LangGraph container. This uses the same LangGraph instance as the interactive
+CLI, with no separate Python installation on the host. Start the stack with
+`decepticon start` first. `decepticon mcp serve` is a stdio server
+for coding agents; do not run it in an interactive terminal expecting a prompt.
+
+Register the launcher with either coding agent:
+
+```bash
+# Claude Code: user scope makes it available across projects.
+claude mcp add --scope user decepticon -- decepticon mcp serve
+
+# Codex: MCP server configuration is shared by the CLI and IDE extension.
+codex mcp add decepticon -- decepticon mcp serve
+```
+
+The command after `--` must resolve to the installed launcher. If `decepticon`
+is not on the coding agent's `PATH`, substitute its absolute path. Check the
+registration with `claude mcp get decepticon` or `codex mcp get decepticon`,
+then ask the agent to list Decepticon graphs before starting an engagement.
+The launcher keeps MCP stdout reserved for JSON-RPC and sends runtime errors
+to stderr. A missing install or stopped stack produces an MCP startup error;
+run `decepticon onboard` or `decepticon start`, respectively.
+
+The optional [Decepticon Agent Skill](../../integrations/agent-skills/decepticon/SKILL.md)
+teaches either coding agent the engagement loop and the required scope check.
+From a source checkout, install the whole skill directory:
+
+```bash
+mkdir -p ~/.claude/skills ~/.agents/skills
+cp -R integrations/agent-skills/decepticon ~/.claude/skills/
+cp -R integrations/agent-skills/decepticon ~/.agents/skills/
+```
+
+Restart the coding agent after registering MCP or installing the skill. A
+plugin is not required for this integration: the same MCP server and Agent
+Skill are usable independently in Claude Code and Codex.
+
+## 2. Python package or source checkout
 
 ```bash
 # Install Decepticon with the MCP server extra
@@ -63,7 +102,7 @@ DECEPTICON_SKIP_BOOT=1 decepticon-mcp --transport stdio
 The bridge connects to `DECEPTICON_API_URL` (default `http://localhost:2024`).
 Override with `--langgraph-url` or the env var.
 
-## 2. OpenClaw
+## 3. OpenClaw
 
 ```bash
 # Register the engagement MCP server (stdio)
@@ -84,7 +123,7 @@ Telegram for phone): *"Start a Decepticon recon engagement against
 findings."* The agent calls `decepticon_start_engagement`, polls
 `decepticon_transcript`, and reports findings.
 
-## 3. Hermes
+## 4. Hermes
 
 ```yaml
 # ~/.hermes/config.yaml
@@ -120,7 +159,7 @@ Both install commands above copy the whole directory, so the reference files
 come along automatically. OpenClaw installs it globally as `decepticon`; Hermes
 auto-discovers it under the `red-teaming` category.
 
-## 4. CLI-like workflow (what the agent does)
+## 5. CLI-like workflow (what the agent does)
 
 1. `decepticon_start_engagement(targets=[...], instruction="In scope: …; Out of scope: …")`
    → keep the `thread_id`.
@@ -133,7 +172,7 @@ auto-discovers it under the `red-teaming` category.
 5. `decepticon_engagement_findings(engagement_name, include_sarif=true)` — pull results.
 6. Later, `decepticon_list_engagements()` to resume any thread by `thread_id`.
 
-## 5. Remote / networked use (optional)
+## 6. Remote / networked use (optional)
 
 The bridge can launch authorized engagements, so the `streamable-http`
 transport **refuses to bind a non-loopback `--host` without authentication** —

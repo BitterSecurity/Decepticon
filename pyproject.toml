@@ -19,6 +19,7 @@ dependencies = [
 # root activates the framework's neo4j driver. Without this, the extra
 # is invisible at root because uv treats extras as per-project.
 neo4j = ["decepticon[neo4j]"]
+mcp = ["decepticon[mcp]"]
 
 [tool.uv]
 # Virtual root — no wheel built from the workspace umbrella. Real
