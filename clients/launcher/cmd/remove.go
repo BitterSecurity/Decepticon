@@ -58,6 +58,7 @@ func runRemove(cmd *cobra.Command, args []string) error {
 	c := compose.New()
 	preserveWorkspace := removePreserveWorkspace
 	if !removeYes && !removePreserveWorkspace {
+		preserveWorkspace = true
 		form := huh.NewForm(huh.NewGroup(huh.NewConfirm().
 			Title("Preserve workspace data?").
 			Description(filepath.Join(home, "workspace")).

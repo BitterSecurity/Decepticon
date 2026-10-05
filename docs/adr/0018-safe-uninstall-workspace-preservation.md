@@ -12,6 +12,7 @@ workspace preservation after destructive work has begun.
 ## Decision
 
 Collect the preservation choice and check the backup destination first.
+Interactive preservation defaults to keeping the workspace.
 When a workspace backup is requested, stop managed services without deleting
 volumes, perform the filesystem backup, and then purge service volumes.
 Abort on a cancelled preservation prompt, failed service stop, failed backup,
