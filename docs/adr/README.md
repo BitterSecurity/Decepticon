@@ -74,5 +74,6 @@ Use [`template.md`](template.md) as the starting point.
 | [0010](0010-open-web-acquisition.md) | Acquire open-web content with a sandbox-side, RoE-gated fetch engine | Proposed |
 | [0011](0011-skillogy-lightrag-hybrid-retrieval.md) | Skillogy find_skill uses LightRAG-style hybrid retrieval over the existing graph | Proposed |
 | [0012](0012-retire-codeowners-merge-gate.md) | Retire the CODEOWNERS merge gate; keep required CI and the release environment | Accepted |
+| [0013](0013-expose-blue-observations-through-mcp.md) | Expose live Blue Cell observations through MCP | Proposed |
 
 Keep this index in sync when you land a new ADR.

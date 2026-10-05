@@ -34,10 +34,17 @@ canonical `findings/FIND-*.md` or `report/` artifacts.
 | `decepticon_engagement_status` | Latest run status + whether `graph.json` is visible |
 | `decepticon_engagement_findings` | `graph.json` summary / SARIF when that file is visible |
 | `decepticon_cancel_engagement` | Stop the active run |
+| `decepticon_blue_status` | Read receiver and monitor metrics |
+| `decepticon_blue_sources` / `decepticon_blue_events` | Read delivered sources and cursor-based target events |
+| `decepticon_blue_incidents` / `decepticon_blue_notifications` | Read monitor incidents and defensive messages |
+| `decepticon_blue_body` | Read a bounded captured request-body preview |
+| `decepticon_blue_search` / `decepticon_blue_timeline` | Correlate target events by exact ID/source or time window |
 
 Run-control tools use the `thread_id` returned by `decepticon_start_engagement`
 or listed by `decepticon_list_engagements`. Findings tools use an
-`engagement_name`. The MCP bridge resolves active run IDs internally.
+`engagement_name`. The MCP bridge resolves active run IDs internally. Blue
+reads require a running local sensor and monitor; starting or stopping those
+services remains an interactive CLI operation.
 
 ## 1. Claude Code and Codex with the installed CLI
 

@@ -34,12 +34,18 @@ interfaces cover different operations; choose the one that actually exists.
 | Watch an engagement | MCP `decepticon_transcript` with `next_index`; `decepticon_watch` for a bounded live sample |
 | Send a follow-up or stop a run | MCP `decepticon_send_message` or `decepticon_cancel_engagement` |
 | Onboard, start, stop, update, inspect services | Host `decepticon` command |
-| Start and inspect a local Blue Cell sensor | Interactive CLI `/blue up`, `/blue status`, `/blue verify`, `/blue events`, `/blue incidents`, `/blue metrics`, `/blue analyze`, `/blue stop` |
+| Start or stop a local Blue Cell sensor | Interactive CLI `/blue up`, `/blue stop` |
+| Inspect a running Blue Cell | MCP `decepticon_blue_status`, `decepticon_blue_sources`, `decepticon_blue_events`, `decepticon_blue_incidents`, `decepticon_blue_notifications`, `decepticon_blue_body`, `decepticon_blue_search`, `decepticon_blue_timeline`; interactive CLI `/blue verify` and `/blue analyze` |
 | Toggle plugins, web dashboard, or active agent | Interactive CLI `/plugins`, `/web`, `/agent` |
 
 Do not invent MCP tools for Blue Cell setup, plugin toggles, or service
 management. The slash commands above work inside Decepticon's interactive
 terminal, not in the shell or the MCP bridge.
+
+- Poll `decepticon_blue_events` with its `next_after` cursor and
+  `decepticon_blue_notifications` with its separate `next_after` cursor.
+- Check `decepticon_blue_status` for collector and monitor health before
+  interpreting missing events. Cite exact incident IDs and event sequences.
 
 ## Engagement workflow
 
