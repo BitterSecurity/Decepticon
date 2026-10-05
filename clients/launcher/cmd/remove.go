@@ -240,13 +240,16 @@ func copyDirRecursive(src, dst string) error {
 }
 
 func stopAndBackupWorkspace(c *compose.Compose, workspace, backup string) error {
-	if err := c.DownAndPurge(); err != nil {
-		return fmt.Errorf("stop services before removal: %w", err)
-	}
 	if workspace != "" {
+		if err := c.Down(); err != nil {
+			return fmt.Errorf("stop services before workspace backup: %w", err)
+		}
 		if err := backupWorkspace(workspace, backup); err != nil {
 			return fmt.Errorf("preserve workspace before removal: %w", err)
 		}
+	}
+	if err := c.DownAndPurge(); err != nil {
+		return fmt.Errorf("purge services before removal: %w", err)
 	}
 	return nil
 }
