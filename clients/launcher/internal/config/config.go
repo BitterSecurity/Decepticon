@@ -395,8 +395,8 @@ var oauthSubscriptions = map[string]subscriptionMethod{
 // ValidateAuth ensures at least one valid AuthMethod is configured.
 //
 // OAuth paths:
-//   - DECEPTICON_AUTH_CLAUDE_CODE=true requires a parseable
-//     ~/.claude/.credentials.json. LiteLLM mounts that file read-only.
+//   - DECEPTICON_AUTH_CLAUDE_CODE=true accepts an ANTHROPIC_OAUTH_TOKEN from
+//     claude setup-token or a parseable ~/.claude/.credentials.json.
 //   - DECEPTICON_AUTH_<X>=true (CHATGPT, GEMINI, COPILOT, GROK,
 //     PERPLEXITY) is satisfied by a token env var or a token file at its
 //     mounted token directory. ChatGPT uses LiteLLM native OAuth and is
@@ -420,6 +420,9 @@ func ValidateAuth(env map[string]string) error {
 	apiErr := ValidateAPIKeys(env)
 
 	if claudeOAuth {
+		if strings.HasPrefix(strings.TrimSpace(env["ANTHROPIC_OAUTH_TOKEN"]), "sk-ant-oat01-") {
+			return nil
+		}
 		if err := validateClaudeCredentials(); err == nil {
 			return nil
 		}

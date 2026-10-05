@@ -28,6 +28,13 @@ List the engagement graphs (assistants) the connected server exposes.
 
 ## Host workspace review tools
 
+- `decepticon_cli_onboard(settings, reset=false, confirmed=true)` writes the
+  private local `.env` after validating setting names, auth, telemetry choice,
+  and existing service credentials. `settings` is a map of allowed environment
+  keys, including `DECEPTICON_AUTH_PRIORITY`, a valid credential or OAuth
+  toggle, and `DECEPTICON_TELEMETRY=off|research`. New installs generate unique
+  service credentials. Reset retains them. The tool calls opscontrol install
+  after saving and does not return credential values.
 - `decepticon_cli_blue(action, upstream="", log_dir="", confirmed=false)`
   manages the local sensor. `up` requires a local HTTP origin; `log_dir` is an
   optional absolute host path. Send traffic through `http://127.0.0.1:18080`.

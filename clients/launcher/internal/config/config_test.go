@@ -274,6 +274,11 @@ func TestValidateAuth_OAuth(t *testing.T) {
 	if err := ValidateAuth(env); err == nil {
 		t.Error("expected error when ~/.claude/.credentials.json is missing")
 	}
+	env["ANTHROPIC_OAUTH_TOKEN"] = "sk-ant-oat01-test-token-of-sufficient-length"
+	if err := ValidateAuth(env); err != nil {
+		t.Fatalf("setup-token should satisfy Claude OAuth: %v", err)
+	}
+	delete(env, "ANTHROPIC_OAUTH_TOKEN")
 
 	credDir := filepath.Join(home, ".claude")
 	if err := os.MkdirAll(credDir, 0o755); err != nil {

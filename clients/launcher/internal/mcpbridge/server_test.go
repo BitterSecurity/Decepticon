@@ -143,8 +143,8 @@ func TestRuntimeToolsAndCLIStatusShareOneServer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tools.Tools) != 19 {
-		t.Fatalf("got %d tools, want three runtime and sixteen host tools", len(tools.Tools))
+	if len(tools.Tools) != 20 {
+		t.Fatalf("got %d tools, want three runtime and seventeen host tools", len(tools.Tools))
 	}
 	for _, tool := range tools.Tools {
 		if tool.Name == "decepticon_cli_status" && (tool.Annotations == nil || !tool.Annotations.ReadOnlyHint) {
@@ -301,6 +301,22 @@ func TestRuntimeToolsAndCLIStatusShareOneServer(t *testing.T) {
 	if err != nil || !denied.IsError {
 		t.Fatalf("relative skill source = %#v, %v", denied, err)
 	}
+	onboard, err := session.CallTool(ctx, &mcp.CallToolParams{Name: "decepticon_cli_onboard", Arguments: map[string]any{
+		"confirmed": true,
+		"settings": map[string]string{
+			"DECEPTICON_AUTH_PRIORITY": "openai_api", "OPENAI_API_KEY": "sk-123456789012345678901234",
+			"DECEPTICON_TELEMETRY": "off",
+		},
+	}})
+	if err != nil || onboard.IsError || adminArgs[0] != "opscontrol" || adminArgs[1] != "install" {
+		t.Fatalf("headless onboard = %#v, args = %#v, error = %v", onboard, adminArgs, err)
+	}
+	denied, err = session.CallTool(ctx, &mcp.CallToolParams{Name: "decepticon_cli_onboard", Arguments: map[string]any{
+		"reset": true, "settings": map[string]string{"DECEPTICON_TELEMETRY": "research"},
+	}})
+	if err != nil || !denied.IsError {
+		t.Fatalf("unconfirmed onboard reset = %#v, %v", denied, err)
+	}
 	duplicate, err := session.CallTool(ctx, &mcp.CallToolParams{
 		Name: "decepticon_cli_create_workspace", Arguments: map[string]any{"engagement": "red-test"},
 	})
@@ -412,7 +428,7 @@ func TestColdServerConnectsRuntimeAfterStartup(t *testing.T) {
 	}
 	defer session.Close()
 	tools, err := session.ListTools(ctx, nil)
-	if err != nil || len(tools.Tools) != 16 {
+	if err != nil || len(tools.Tools) != 17 {
 		t.Fatalf("cold tools = %#v, %v", tools, err)
 	}
 	failed, err := session.CallTool(ctx, &mcp.CallToolParams{Name: "decepticon_cli_connect_runtime"})
@@ -425,7 +441,7 @@ func TestColdServerConnectsRuntimeAfterStartup(t *testing.T) {
 		t.Fatalf("connect runtime = %#v, %v", connected, err)
 	}
 	tools, err = session.ListTools(ctx, nil)
-	if err != nil || len(tools.Tools) != 17 {
+	if err != nil || len(tools.Tools) != 18 {
 		t.Fatalf("connected tools = %#v, %v", tools, err)
 	}
 	result, err := session.CallTool(ctx, &mcp.CallToolParams{Name: "decepticon_ready"})

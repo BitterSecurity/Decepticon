@@ -17,7 +17,8 @@ interfaces cover different operations; choose the one that actually exists.
 ## Connect
 
 1. Check MCP `decepticon_cli_status` when available, or run `decepticon status`
-   on the host. If the installation is missing, the user can run
+   on the host. If configuration is missing, use `decepticon_cli_onboard`
+   with operator-approved settings or run the terminal wizard
    `decepticon onboard`. For an existing workspace, MCP
    `decepticon_cli_start` starts services without opening the interactive
    terminal; then call `decepticon_cli_connect_runtime`.
@@ -44,7 +45,8 @@ interfaces cover different operations; choose the one that actually exists.
 | Start services for an existing engagement | MCP `decepticon_cli_start` with its workspace slug, then `decepticon_cli_connect_runtime` |
 | Review a plan, findings, or report | MCP `decepticon_cli_list_artifacts` and bounded `decepticon_cli_read_artifact` |
 | Approve the validated plan for Red | MCP `decepticon_cli_approve_red` after operator review, with `confirmed=true` |
-| Initial onboarding or interactive CLI | Host `decepticon` command |
+| Configure a new installation or reset settings | MCP `decepticon_cli_onboard` after operator confirmation; terminal `decepticon onboard` is available for guided credential entry |
+| Open the interactive CLI | Host `decepticon` command |
 | Start, verify, or stop a local Blue Cell sensor | MCP `decepticon_cli_blue` with `action=up|status|verify|stop`; use a local upstream and optional absolute host log directory for `up` |
 | Inspect a running Blue Cell | MCP `decepticon_blue_status`, `decepticon_blue_sources`, `decepticon_blue_events`, `decepticon_blue_incidents`, `decepticon_blue_notifications`, `decepticon_blue_body`, `decepticon_blue_search`, `decepticon_blue_timeline`; `decepticon_cli_blue` with `action=verify` checks coverage |
 | List or toggle agent plugin bundles | MCP `decepticon_plugin_bundles`, `decepticon_plugin_enable`, `decepticon_plugin_disable`; interactive CLI `/plugins` |
@@ -56,6 +58,13 @@ interfaces cover different operations; choose the one that actually exists.
 The interactive `/blue analyze` flow maps to `decepticon_send_message` with
 `assistant="blue_cell"` after a thread exists. Keep the automatic monitor
 and its notifications separate from this on-demand investigation.
+
+For MCP onboarding, provide `DECEPTICON_AUTH_PRIORITY`, a working auth method
+or credential, and an explicit `DECEPTICON_TELEMETRY=off|research` choice in
+`settings`. Ask the operator to review the values before setting
+`confirmed=true`. Tool output never includes credentials. Reset preserves
+existing service passwords and refuses missing or known default passwords;
+follow the returned reinstall guidance instead of editing database passwords.
 
 - Poll `decepticon_blue_events` with its `next_after` cursor and
   `decepticon_blue_notifications` with its separate `next_after` cursor.

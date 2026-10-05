@@ -54,6 +54,7 @@ Its findings tool reads `graph.json`; host artifact tools expose canonical
 | `decepticon_cli_logs` | Read a bounded recent service log sample |
 | `decepticon_cli_opscontrol` | Inspect, install, or uninstall the workload daemon |
 | `decepticon_cli_skill_install` | Install the version-matched Skill for Codex or Claude Code |
+| `decepticon_cli_onboard` | Configure a new local install or reset settings while preserving service credentials |
 
 Run-control tools use the `thread_id` returned by `decepticon_start_engagement`
 or listed by `decepticon_list_engagements`. Findings tools use an
@@ -84,7 +85,9 @@ registration with `claude mcp get decepticon` or `codex mcp get decepticon`,
 then ask the agent to list Decepticon graphs before starting an engagement.
 The launcher keeps MCP stdout reserved for JSON-RPC and sends runtime errors
 to stderr. Host tools remain available when the stack is stopped. For a fresh
-installation, run `decepticon onboard` in a terminal. Call
+installation, call `decepticon_cli_onboard` with reviewed authentication and
+telemetry settings, or run `decepticon onboard` in a terminal for the guided
+wizard. Call
 `decepticon_cli_workspaces` to list existing workspaces or
 `decepticon_cli_create_workspace` to create one. Call `decepticon_cli_start`
 with its slug, then
