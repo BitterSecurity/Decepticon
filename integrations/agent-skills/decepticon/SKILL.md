@@ -27,7 +27,8 @@ interfaces cover different operations; choose the one that actually exists.
    [integration guide](https://github.com/BitterSecurity/Decepticon/blob/main/docs/integrations/external-agents.md) for
    Claude Code and Codex registration.
 3. The user can install this skill for both clients with
-   `decepticon skill install` after a release containing that command.
+   MCP `decepticon_cli_skill_install` or `decepticon skill install` after a
+   release containing that command. Use `source` for a local development bundle.
 
 ## Choose the operation
 
@@ -48,6 +49,8 @@ interfaces cover different operations; choose the one that actually exists.
 | Inspect a running Blue Cell | MCP `decepticon_blue_status`, `decepticon_blue_sources`, `decepticon_blue_events`, `decepticon_blue_incidents`, `decepticon_blue_notifications`, `decepticon_blue_body`, `decepticon_blue_search`, `decepticon_blue_timeline`; `decepticon_cli_blue` with `action=verify` checks coverage |
 | List or toggle agent plugin bundles | MCP `decepticon_plugin_bundles`, `decepticon_plugin_enable`, `decepticon_plugin_disable`; interactive CLI `/plugins` |
 | Control web dashboard or read service logs | MCP `decepticon_cli_web` with `action=up|down|url`; `decepticon_cli_logs` for a bounded recent sample |
+| Inspect or manage opscontrol | MCP `decepticon_cli_opscontrol` with `action=status|install|uninstall`; require operator confirmation for changes |
+| Install the version-matched coding-agent Skill | MCP `decepticon_cli_skill_install` with `client=codex|claude|both`; replacing a modified Skill requires confirmation |
 | Select the active agent | Set the MCP engagement `assistant` parameter; interactive CLI `/agent` |
 
 The interactive `/blue analyze` flow maps to `decepticon_send_message` with

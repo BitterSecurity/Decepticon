@@ -32,6 +32,10 @@ Docker Compose so MCP and the interactive slash commands share their behavior.
 Only `blue up|status|verify|stop` and `web up|down|url` are accepted; stop
 operations require operator confirmation. The launcher exposes a bounded
 service log tail separately from the interactive endless follow stream.
+Opscontrol management and version-matched Agent Skill installation are also
+host launcher operations. MCP validates their action and client enumerations;
+installing or uninstalling opscontrol, and force-replacing a modified Skill,
+require explicit operator confirmation.
 
 The bridge uses the official Go MCP SDK. This adds a top-level dependency to
 the launcher, avoiding a hand-written MCP protocol implementation. The child

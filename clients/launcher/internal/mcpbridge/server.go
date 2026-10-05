@@ -76,7 +76,8 @@ func NewServer(ctx context.Context, runtime *mcp.ClientSession, run CommandRunne
 		"decepticon_cli_list_artifacts": true, "decepticon_cli_read_artifact": true,
 		"decepticon_cli_approve_red": true,
 		"decepticon_cli_blue":        true, "decepticon_cli_web": true,
-		"decepticon_cli_logs": true,
+		"decepticon_cli_logs":       true,
+		"decepticon_cli_opscontrol": true, "decepticon_cli_skill_install": true,
 	}
 	registerRuntime := func(session *mcp.ClientSession) error {
 		return registerRuntimeTools(ctx, server, session, hostNames)
@@ -89,6 +90,7 @@ func NewServer(ctx context.Context, runtime *mcp.ClientSession, run CommandRunne
 	var connectMu sync.Mutex
 	closedWorld := false
 	registerSurfaceTools(server, run, closedWorld)
+	registerAdminTools(server, run, closedWorld)
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "decepticon_cli_connect_runtime",
 		Description: "Connect engagement, plugin, and Blue Cell observation tools after Decepticon services are running. Call after starting services if those tools are absent.",

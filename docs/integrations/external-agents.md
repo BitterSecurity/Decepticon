@@ -4,8 +4,8 @@ Decepticon ships an **engagement MCP server** so external agent runtimes can
 discover and observe engagements, launch a background run, send follow-up
 messages, inspect state, and cancel runs. The installed CLI also manages
 services, local Blue Cell sensors, plugin bundles, and the web dashboard.
-Plugin bundle listing and runtime toggling are also exposed through MCP;
-service and sensor lifecycle remain CLI operations.
+Plugin bundle listing, service control, local Blue sensor control, web control,
+and Agent Skill installation are also exposed through MCP.
 
 This makes Decepticon usable from Claude Code, Codex,
 [OpenClaw](https://github.com/openclaw/openclaw), and
@@ -49,12 +49,17 @@ Its findings tool reads `graph.json`; host artifact tools expose canonical
 | `decepticon_cli_approve_red` | Approve the current validated plan after operator review |
 | `decepticon_cli_update` | Apply a release update after operator confirmation |
 | `decepticon_cli_connect_runtime` | Publish engagement, plugin, and Blue observation tools after starting services |
+| `decepticon_cli_blue` | Start, inspect, verify, or stop the local Blue sensor |
+| `decepticon_cli_web` | Start, stop, or return the web dashboard URL |
+| `decepticon_cli_logs` | Read a bounded recent service log sample |
+| `decepticon_cli_opscontrol` | Inspect, install, or uninstall the workload daemon |
+| `decepticon_cli_skill_install` | Install the version-matched Skill for Codex or Claude Code |
 
 Run-control tools use the `thread_id` returned by `decepticon_start_engagement`
 or listed by `decepticon_list_engagements`. Findings tools use an
 `engagement_name`. The MCP bridge resolves active run IDs internally. Blue
-reads require a running local sensor and monitor; starting or stopping those
-services remains an interactive CLI operation.
+reads require a running local sensor and monitor. Use
+`decepticon_cli_blue` to start or verify the sensor before observing events.
 
 ## 1. Claude Code and Codex with the installed CLI
 

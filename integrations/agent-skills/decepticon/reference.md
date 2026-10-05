@@ -28,6 +28,21 @@ List the engagement graphs (assistants) the connected server exposes.
 
 ## Host workspace review tools
 
+- `decepticon_cli_blue(action, upstream="", log_dir="", confirmed=false)`
+  manages the local sensor. `up` requires a local HTTP origin; `log_dir` is an
+  optional absolute host path. Send traffic through `http://127.0.0.1:18080`.
+  `status` and `verify` inspect coverage; `stop` requires confirmation.
+- `decepticon_cli_web(action, confirmed=false)` accepts `up`, `url`, or `down`.
+  `down` requires confirmation.
+- `decepticon_cli_logs(service="langgraph", tail=50)` reads 1–200 recent lines
+  from `langgraph`, `litellm`, `postgres`, `neo4j`, `sandbox`, `web`, or `cli`.
+  Output is limited to the most recent 64 KiB.
+- `decepticon_cli_opscontrol(action, confirmed=false)` accepts `status`,
+  `install`, or `uninstall`; mutating actions require confirmation.
+- `decepticon_cli_skill_install(client="both", source="", force=false,
+  confirmed=false)` installs the release Skill for Codex, Claude Code, or both.
+  `source` selects an absolute local bundle directory; `force` requires
+  confirmation and backs up an existing modified Skill.
 - `decepticon_cli_list_artifacts(engagement)` lists up to 100 files in the
   selected local workspace's `plan/`, `findings/`, `report/`, and `graph.json`.
   Returns `{ artifacts: [{ path, size }], truncated }`.
