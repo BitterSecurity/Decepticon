@@ -77,5 +77,7 @@ Use [`template.md`](template.md) as the starting point.
 | [0013](0013-expose-blue-observations-through-mcp.md) | Expose live Blue Cell observations through MCP | Proposed |
 | [0014](0014-expose-plugin-bundles-through-mcp.md) | Expose plugin bundles through MCP | Proposed |
 | [0015](0015-host-mcp-bridge-for-cli-control.md) | Host MCP bridge for CLI control | Proposed |
+| [0016](0016-resume-paused-engagements-through-mcp.md) | Resume paused engagements through MCP | Proposed |
+| [0017](0017-import-local-target-snapshots-through-mcp.md) | Import local target snapshots through MCP | Proposed |
 
 Keep this index in sync when you land a new ADR.

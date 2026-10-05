@@ -143,8 +143,8 @@ func TestRuntimeToolsAndCLIStatusShareOneServer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tools.Tools) != 21 {
-		t.Fatalf("got %d tools, want three runtime and eighteen host tools", len(tools.Tools))
+	if len(tools.Tools) != 22 {
+		t.Fatalf("got %d tools, want three runtime and nineteen host tools", len(tools.Tools))
 	}
 	for _, tool := range tools.Tools {
 		if tool.Name == "decepticon_cli_status" && (tool.Annotations == nil || !tool.Annotations.ReadOnlyHint) {
@@ -243,6 +243,27 @@ func TestRuntimeToolsAndCLIStatusShareOneServer(t *testing.T) {
 	})
 	if err != nil || created.IsError {
 		t.Fatalf("create workspace = %#v, %v", created, err)
+	}
+	source := filepath.Join(t.TempDir(), "repository")
+	if err := os.Mkdir(source, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(source, "main.py"), []byte("print('ready')"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	importArgs := map[string]any{"engagement": "red-test", "source": source, "name": "repository"}
+	denied, err = session.CallTool(ctx, &mcp.CallToolParams{Name: "decepticon_cli_import_target", Arguments: importArgs})
+	if err != nil || !denied.IsError {
+		t.Fatalf("unconfirmed target import = %#v, %v", denied, err)
+	}
+	importArgs["confirmed"] = true
+	imported, err := session.CallTool(ctx, &mcp.CallToolParams{Name: "decepticon_cli_import_target", Arguments: importArgs})
+	if err != nil || imported.IsError || imported.StructuredContent.(map[string]any)["target"] != "/workspace/targets/repository" {
+		t.Fatalf("target import = %#v, %v", imported, err)
+	}
+	code, err := os.ReadFile(filepath.Join(os.Getenv("DECEPTICON_HOME"), "workspace", "red-test", "targets", "repository", "main.py"))
+	if err != nil || string(code) != "print('ready')" {
+		t.Fatalf("imported code = %q, %v", code, err)
 	}
 	started, err := session.CallTool(ctx, &mcp.CallToolParams{
 		Name: "decepticon_cli_start", Arguments: map[string]any{"engagement": "red-test"},
@@ -440,7 +461,7 @@ func TestColdServerConnectsRuntimeAfterStartup(t *testing.T) {
 	}
 	defer session.Close()
 	tools, err := session.ListTools(ctx, nil)
-	if err != nil || len(tools.Tools) != 18 {
+	if err != nil || len(tools.Tools) != 19 {
 		t.Fatalf("cold tools = %#v, %v", tools, err)
 	}
 	failed, err := session.CallTool(ctx, &mcp.CallToolParams{Name: "decepticon_cli_connect_runtime"})
@@ -453,7 +474,7 @@ func TestColdServerConnectsRuntimeAfterStartup(t *testing.T) {
 		t.Fatalf("connect runtime = %#v, %v", connected, err)
 	}
 	tools, err = session.ListTools(ctx, nil)
-	if err != nil || len(tools.Tools) != 19 {
+	if err != nil || len(tools.Tools) != 20 {
 		t.Fatalf("connected tools = %#v, %v", tools, err)
 	}
 	result, err := session.CallTool(ctx, &mcp.CallToolParams{Name: "decepticon_ready"})

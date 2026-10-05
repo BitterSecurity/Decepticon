@@ -43,6 +43,7 @@ interfaces cover different operations; choose the one that actually exists.
 | Stop services after the operator asks | MCP `decepticon_cli_stop` or host `decepticon stop` |
 | Update after the operator asks | MCP `decepticon_cli_update` or host `decepticon update` |
 | List or create local engagement workspaces | MCP `decepticon_cli_workspaces`, `decepticon_cli_create_workspace` |
+| Make a local code tree available to the sandbox | MCP `decepticon_cli_import_target` with the selected workspace, absolute source directory, snapshot name, and operator confirmation; use its returned `/workspace/targets/...` path |
 | Start services for an existing engagement | MCP `decepticon_cli_start` with its workspace slug, then `decepticon_cli_connect_runtime` |
 | Review a plan, findings, or report | MCP `decepticon_cli_list_artifacts` and bounded `decepticon_cli_read_artifact` |
 | Approve the validated plan for Red | MCP `decepticon_cli_approve_red` after operator review, with `confirmed=true` |
@@ -88,9 +89,11 @@ follow the returned reinstall guidance instead of editing database passwords.
   present them to the operator, then call `decepticon_cli_approve_red` only
   after the operator approves. The MCP run checks the selected workspace and
   approval digest before dispatch.
-- A local repository path in MCP `targets` is passed as text. It is not copied
-  into the sandbox; confirm the target code is actually mounted before asking
-  Decepticon to analyze it.
+- A local repository path in MCP `targets` is passed as text. For source code
+  on the host, call `decepticon_cli_import_target` after selecting a workspace
+  and confirming the source with the operator. Pass the returned sandbox path
+  as the target. The import is a bounded snapshot; repeat with a new name if
+  the source changes.
 - `decepticon_send_message` queues a new turn behind an active run. Do not tell
   the user it changed the current execution until a subsequent transcript or
   state confirms the effect.

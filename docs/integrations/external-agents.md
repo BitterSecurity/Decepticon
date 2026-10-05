@@ -46,6 +46,7 @@ Its findings tool reads `graph.json`; host artifact tools expose canonical
 | `decepticon_cli_status` / `decepticon_cli_kg_health` | Inspect installed service and graph health from the host |
 | `decepticon_cli_start` / `decepticon_cli_stop` | Start services for an existing workspace or stop the stack |
 | `decepticon_cli_workspaces` / `decepticon_cli_create_workspace` | List or create host engagement workspaces |
+| `decepticon_cli_import_target` | Copy an approved local source tree into a bounded sandbox-visible workspace snapshot |
 | `decepticon_cli_list_artifacts` / `decepticon_cli_read_artifact` | Review bounded plan, finding, report, and graph files from the host workspace |
 | `decepticon_cli_approve_red` | Approve the current validated plan after operator review |
 | `decepticon_cli_update` | Apply a release update after operator confirmation |
@@ -95,6 +96,12 @@ wizard. Call
 with its slug, then
 `decepticon_cli_connect_runtime` to publish runtime tools. The equivalent
 shell command is `decepticon start --headless --engagement <slug>`.
+For a source tree on the host, call `decepticon_cli_import_target` with the
+workspace slug, absolute source directory, unique snapshot name, and
+`confirmed=true` after operator review. Use the returned `/workspace/targets/...`
+path in `decepticon_start_engagement`. Passing a host path directly does not
+copy it into the sandbox. The import excludes local `.env*` files, symlinks,
+and dependency/cache directories and has file, size, and depth limits.
 
 Install the [Decepticon Agent Skill](../../integrations/agent-skills/decepticon/SKILL.md)
 to teach either coding agent which operations use MCP and which require the

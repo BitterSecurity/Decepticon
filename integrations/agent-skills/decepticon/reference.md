@@ -28,6 +28,15 @@ List the engagement graphs (assistants) the connected server exposes.
 
 ## Host workspace review tools
 
+- `decepticon_cli_import_target(engagement, source, name, confirmed=true)`
+  copies an absolute local source directory into the existing engagement
+  workspace. `name` is a unique 3–64 character slug. The result includes
+  `target` (for example, `/workspace/targets/repository`), `files`, `bytes`,
+  and `skipped`; pass `target` to `decepticon_start_engagement`. The snapshot
+  is immutable through this tool. It rejects symlinks and special files,
+  excludes `.git`, `node_modules`, `.venv`, `__pycache__`, and `.env*`, and
+  limits the copy to 10,000 files, 10,000 directories, 100 MiB total, 16 MiB
+  per file, and depth 32. Inspect the resulting scope before starting a run.
 - `decepticon_cli_onboard(settings, reset=false, confirmed=true)` writes the
   private local `.env` after validating setting names, auth, telemetry choice,
   and existing service credentials. `settings` is a map of allowed environment
