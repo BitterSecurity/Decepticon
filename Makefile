@@ -238,7 +238,7 @@ ci-lint:
 
 ## PR lane: fast, no coverage, slow tests excluded.
 ci-test:
-	uv run pytest -n auto -q -m "not slow"
+	uv run --extra mcp pytest -n auto -q -m "not slow"
 
 ## SKILL.md schema validator (warn mode — Phase 0). Exit 0 even if violations found.
 .PHONY: audit-skills
@@ -270,7 +270,7 @@ check-skill-graph: bootstrap-skill-graph
 
 ## main-push lane: slow included, coverage 60% gate (ratcheted from 35% in #380).
 ci-test-coverage:
-	uv run pytest -n auto --cov --cov-report=xml --cov-report=term --cov-fail-under=60
+	uv run --extra mcp pytest -n auto --cov --cov-report=xml --cov-report=term --cov-fail-under=60
 
 ## PR-informational lane: coverage without any threshold, fast subset
 ## (``-m "not slow"`` — matches the blocking PR ``ci-test`` lane so the
@@ -280,7 +280,7 @@ ci-test-coverage:
 ## decision is to keep the blocking PR pytest step coverage-free — see
 ## ci.yml comment).
 ci-test-coverage-report:
-	uv run pytest -n auto --cov --cov-report=xml --cov-report=term --cov-fail-under=0 -m "not slow"
+	uv run --extra mcp pytest -n auto --cov --cov-report=xml --cov-report=term --cov-fail-under=0 -m "not slow"
 
 quality-cli: node-install
 	# streaming workspace must be built first — its package.json main
