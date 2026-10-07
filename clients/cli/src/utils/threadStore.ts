@@ -67,22 +67,18 @@ export async function touchThread(threadId: string): Promise<void> {
 
 /** Load all saved thread entries from the server, most recent first. */
 export async function listThreads(): Promise<ThreadEntry[]> {
-  try {
-    const client = getClient();
-    const threads = await client.threads.search({
-      sortBy: "updated_at",
-      sortOrder: "desc",
-      limit: MAX_ENTRIES,
-    });
-    return threads.map((t) => ({
-      threadId: t.thread_id,
-      assistantId: (t.metadata?.assistantId as string) ?? "",
-      lastUsed: t.updated_at,
-      title: (t.metadata?.title as string) || `Session ${t.thread_id.slice(0, 8)}`,
-    }));
-  } catch {
-    return [];
-  }
+  const client = getClient();
+  const threads = await client.threads.search({
+    sortBy: "updated_at",
+    sortOrder: "desc",
+    limit: MAX_ENTRIES,
+  });
+  return threads.map((t) => ({
+    threadId: t.thread_id,
+    assistantId: (t.metadata?.assistantId as string) ?? "",
+    lastUsed: t.updated_at,
+    title: (t.metadata?.title as string) || `Session ${t.thread_id.slice(0, 8)}`,
+  }));
 }
 
 /** Load a single thread by index (0-based) from the server list. */
