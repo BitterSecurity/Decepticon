@@ -39,6 +39,8 @@ interface LangChainMessage {
   tool_call_id?: string;
   status?: string; // "success" | "error" on tool messages
   response_metadata?: {
+    finish_reason?: string;
+    stop_reason?: string;
     token_usage?: {
       completion_tokens?: number;
       prompt_tokens?: number;
@@ -227,6 +229,7 @@ export function useAgent({
       let cumPrompt = 0;
       let cumCompletion = 0;
       let completionReceived = false;
+      let serverErrorReceived = false;
 
 
       const handleCustomEvent = (data: SubagentCustomEvent) => {
@@ -425,6 +428,7 @@ export function useAgent({
               ? errData
               : errData?.message ?? errData?.error ?? "Server error";
           setError(errMsg);
+          serverErrorReceived = true;
           continue;
         }
 
@@ -512,13 +516,19 @@ export function useAgent({
             } else {
               setPendingTool(null);
               completionReceived = true;
-              // Guard against blank AI responses — emit a system hint so
-              // the user isn't left staring at an empty screen (#617).
               if (!text) {
+                const finishReason = msg.response_metadata?.finish_reason
+                  ?? msg.response_metadata?.stop_reason;
+                let diagnosis = "The model returned no displayable text or tool calls; the cause is unknown.";
+                if (finishReason === "length" || finishReason === "max_tokens") {
+                  diagnosis = "The provider reported an output token limit with no displayable text or tool calls.";
+                } else if (finishReason === "content_filter") {
+                  diagnosis = "The provider reported a content filter with no displayable text or tool calls.";
+                }
+                const runReference = runIdRef.current ? ` Run: ${runIdRef.current}.` : "";
                 addEvent({
                   type: "system",
-                  content:
-                    "Agent returned an empty response. Use /resume to retry or send a new message.",
+                  content: `${diagnosis}${runReference} Inspect the server and model logs for this run.`,
                 });
               }
             }
@@ -570,7 +580,7 @@ export function useAgent({
       // even though the run was sitting in a clean interrupt waiting for the
       // operator's pick.
       const interrupted = activeQuestionRef.current !== null;
-      if (!completionReceived && !abortController.signal.aborted && !interrupted) {
+      if (!completionReceived && !serverErrorReceived && !abortController.signal.aborted && !interrupted) {
         addSystemEvent(
           "\u26a0\ufe0f Connection to server lost. The run continues server-side. "
           + "Use /resume to reconnect.",
