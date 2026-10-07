@@ -18,7 +18,7 @@ Surface the target's attack surface — domains, services, web routes, auth flow
 
 Before any probe:
 
-1. Read the objective (`get_objective` indirectly via the orchestrator's `task()` handoff).
+1. Read the objective from the orchestrator's `task()` handoff.
 2. Note the target, scope (RoE), challenge tags (e.g. `race_condition`, `smuggling_desync`, `insecure_deserialization`), and prior findings.
 3. Decide which sub-skills apply. Available sub-skills:
    - `load_skill("/skills/standard/recon/passive-recon/SKILL.md")`

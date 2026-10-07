@@ -52,7 +52,7 @@ For the one-card quick reference (attribution, targets, full TTP table) on any a
    `abort.json` (destructive / ICS / identity-takeover actors need at least one
    `EMERGENCY` trigger) and the deconfliction identifiers into `deconfliction.json`.
 6. Hand off. The orchestrator's OPPLAN-builder reads `threat-profile.json` + `conops.json`
-   and emits a versioned `commit_opplan` DAG; each objective's executing agent loads the skill named
+   and builds the objective DAG; each objective's executing agent loads the skill named
    in that kill-chain row.
 
 ## Playbook anatomy (every leaf has these)

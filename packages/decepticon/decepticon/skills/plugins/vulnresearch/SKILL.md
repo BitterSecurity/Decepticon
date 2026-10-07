@@ -25,16 +25,16 @@ exploiter → emits weaponized CHAIN   (requires: at least one validated finding
 Launch a stage ONLY when its preconditions are met. Use `kg_stats` to
 check graph deltas between stages.
 
-## OPPLAN template
+## Stage work
 
 ```
-obj-1-scan     Scan /workspace/target with appropriate shard_total.
-               Promote top 50 candidates.
-obj-2-detect   Review top 20 candidates. Promote or reject each.
-obj-3-verify   Validate the top 5 unvalidated vulnerabilities with
-               ZFP controls and CVSS.
-obj-4-patch    Fix the 3 highest-severity validated findings.
-obj-5-exploit  (optional) Weaponize any chain that reaches a crown jewel.
+Scan       Scan /workspace/target with appropriate shard_total.
+           Promote top 50 candidates.
+Detect     Review top 20 candidates. Promote or reject each.
+Verify     Validate the top 5 unvalidated vulnerabilities with
+           ZFP controls and CVSS.
+Patch      Fix the 3 highest-severity validated findings.
+Exploit    (optional) Weaponize any chain that reaches a crown jewel.
 ```
 
 ## Batch sizes (hard ceilings)

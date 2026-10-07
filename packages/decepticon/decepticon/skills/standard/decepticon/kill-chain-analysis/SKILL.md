@@ -103,16 +103,6 @@ Objective BLOCKED
 | WinRM blocked | PsExec, WMI, DCOM, RDP, SMB exec |
 | Password spray lockout | Low-and-slow spray, single-password-multiple-users |
 
-## MITRE ATT&CK Mapping
-
-The OPPLAN `phase` is an operational workflow stage, not an ATT&CK tactic.
-Select an ATT&CK tactic and technique from the catalog for the actual action;
-never infer a tactic from `phase` alone. Submit `attack_tactic_id` and the
-technique IDs in `mitre` through `commit_opplan`. The server validates the
-relationship against the pinned Enterprise ATT&CK v19.2 catalog and stores
-canonical names and descriptions. Leave the mapping empty when the task is
-planning or reporting work without a defensible ATT&CK technique.
-
 ## Target Prioritization
 
 When multiple targets are available, prioritize:

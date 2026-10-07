@@ -62,14 +62,14 @@ PostExploit → Report: All OPPLAN objectives resolved (completed, blocked, or c
 ```
 
 ### Phase Transition Protocol
-1. Use `list_objectives` and `get_objective` to inspect current objective status and dependencies.
-2. Check the candidate objective's `blocked_by` predecessors and supporting evidence.
+1. Inspect current objective status and dependencies through the injected OPPLAN workflow.
+2. Check prerequisite work and supporting evidence.
 3. Verify the signed RoE and approval policy for the actual next action.
 4. If a prerequisite or scope check fails, record the reason and re-plan through OPPLAN tools.
 
 ### Handling Cross-Phase Dependencies
 Some objectives may uncover new targets or invalidate assumptions:
-- **New targets discovered during recon** → Revise the complete in-scope DAG through `commit_opplan`; never edit `plan/opplan.json` directly
+- **New targets discovered during recon** → Replan the in-scope work through the injected OPPLAN workflow
 - **Exploit fails, need more recon** → Return to recon phase for that specific target
 - **PostExploit reveals new network segments** → May need additional recon/exploit cycles
 

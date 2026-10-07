@@ -138,10 +138,16 @@ a stable, sorted, human-readable JSON document with a `schema_version`, a
   one call. Omit `id` on every new node: the server assigns a UUID. Reference
   new nodes by their zero-based position in the submitted `objectives` array;
   existing nodes keep their saved IDs. These positions never become saved IDs.
-  Use `expected_revision`; forward references are valid.
+  Use `expected_revision` (0 for a new plan); forward references are valid.
+  Supply engagement metadata such as `engagement_name` and `threat_profile` on
+  the first commit when known. Keep each leaf small enough for one specialist
+  handoff. Do not add dependencies solely to impose workflow phase order.
   `blocked_by` means all predecessors, `any_of` means one per alternative group.
   Declare expected facts with `facts` and use `required_fact_ids` for evidence gates.
   Keep active and terminal objectives unchanged during a replan.
+  A parent objective is complete only when its children are completed or
+  cancelled. Check the committed result for issued IDs and the new revision
+  before dispatching.
 
 - For attack-mapped objectives, supply `attack_tactic_id` (for example `TA0001`)
   and technique IDs in `mitre`. The server validates active IDs and each
@@ -190,7 +196,8 @@ before issuing the next. This applies to read tools (`get_objective`,
 
 ### Workflow
 ```
-load_opplan → inspect RoE/CONOPS → commit_opplan(complete DAG, expected_revision=0)
+load_opplan → inspect applicable scope, authorization, and planning context
+          → commit_opplan(complete DAG, expected_revision=0)
           ↓
 select status-ready leaf → verify scope/authorization → task(task_id, plan_revision)
           ↓
@@ -218,7 +225,11 @@ blocked → in-progress                 (retry with different approach)
   versioned objective COMPLETED; `no-finding` is a valid completed result.
 - ALWAYS include a typed failure outcome and reason/attempts in notes when
   marking a versioned objective BLOCKED.
-- ALWAYS set owner to the sub-agent name before delegating (recon/exploit/postexploit)
+- ALWAYS set owner to the assigned specialist before delegating.
+- For dispatchers that accept `task_id` and `plan_revision`, bind them to the
+  selected objective's saved ID and current plan revision. Use the live task
+  schema for any additional required fields. Do not mutate the plan and
+  dispatch work in the same model response.
 - ALWAYS respect the validated DAG dependencies; phase is descriptive metadata,
   not an execution gate.
 - NEVER invent ATT&CK names or descriptions; use the server's v19.2 catalog.
