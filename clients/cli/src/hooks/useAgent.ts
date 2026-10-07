@@ -1013,7 +1013,7 @@ export function useAgent({
 
           addEvent({ type: "system", content: "Session restored. Send a message to continue." });
         }).catch(() => {
-          addEvent({ type: "system", content: "Could not restore history. Thread loaded — send a message to continue." });
+          addEvent({ type: "system", content: "Could not restore this session. Check server availability and the session ID." });
           lastCountRef.current = 0;
         });
         return;
