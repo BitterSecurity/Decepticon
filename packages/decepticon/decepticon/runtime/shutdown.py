@@ -410,11 +410,12 @@ def _write_opplan_checkpoint(state: LangGraphState, workspace: Path) -> bool:
     if objectives is None:
         return False
     payload: dict[str, Any] = {
-        "schema_version": 1,
+        "schema_version": "2",
         "saved_at": time.time(),
         "engagement_name": state.get("engagement_name", "engagement"),
-        "threat_profile": state.get("threat_profile"),
-        "objective_counter": state.get("objective_counter"),
+        "threat_profile": state.get("threat_profile") or "",
+        "revision": state.get("plan_revision", 0),
+        "facts": _jsonable(state.get("plan_facts") or []),
         "objectives": _jsonable(objectives),
     }
     target = workspace / "plan" / "opplan.json"
@@ -444,7 +445,7 @@ def _write_partial_executive(state: LangGraphState, workspace: Path) -> bool:
 
 def _fallback_executive(engagement: str, state: LangGraphState, *, note: str) -> str:
     objectives = state.get("objectives") if isinstance(state, Mapping) else None
-    counter = state.get("objective_counter") if isinstance(state, Mapping) else None
+    revision = state.get("plan_revision") if isinstance(state, Mapping) else None
     lines = [
         f"# {engagement} — Partial Executive Summary (graceful shutdown)",
         "",
@@ -455,7 +456,7 @@ def _fallback_executive(engagement: str, state: LangGraphState, *, note: str) ->
         "",
         "## OPPLAN snapshot",
         "",
-        f"- objective_counter: {counter!r}",
+        f"- plan revision: {revision!r}",
         f"- objectives recorded: {len(objectives) if isinstance(objectives, (list, tuple)) else 'unknown'}",
         "",
     ]

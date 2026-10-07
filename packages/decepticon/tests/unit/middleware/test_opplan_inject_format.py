@@ -345,7 +345,7 @@ class TestAfterModelSingleOrZeroOpplanCalls:
         last_ai = AIMessage(
             content="",
             tool_calls=[
-                {"id": "tc-1", "name": "add_objective", "args": {}, "type": "tool_call"},
+                {"id": "tc-1", "name": "commit_opplan", "args": {}, "type": "tool_call"},
                 {"id": "tc-2", "name": "bash", "args": {"command": "ls"}, "type": "tool_call"},
             ],
         )
@@ -358,7 +358,7 @@ class TestAafterModelDelegatesToSync:
             content="",
             tool_calls=[
                 {"id": "tc-a", "name": "list_objectives", "args": {}, "type": "tool_call"},
-                {"id": "tc-b", "name": "add_objective", "args": {}, "type": "tool_call"},
+                {"id": "tc-b", "name": "commit_opplan", "args": {}, "type": "tool_call"},
             ],
         )
         result = await OPPLANMiddleware().aafter_model({"messages": [last_ai]}, runtime=None)
@@ -371,7 +371,7 @@ class TestAafterModelDelegatesToSync:
         last_ai = AIMessage(
             content="",
             tool_calls=[
-                {"id": "tc-x", "name": "add_objective", "args": {}, "type": "tool_call"},
+                {"id": "tc-x", "name": "commit_opplan", "args": {}, "type": "tool_call"},
             ],
         )
         result = await OPPLANMiddleware().aafter_model({"messages": [last_ai]}, runtime=None)

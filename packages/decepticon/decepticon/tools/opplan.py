@@ -20,12 +20,9 @@ from decepticon.tools.opplan_graph import PlanInspection, inspect_plan, unmet_pr
 from decepticon_core.types.attack_catalog import canonical_attack_annotation
 from decepticon_core.types.engagement import (
     OPPLAN,
-    C2Tier,
     Objective,
     ObjectiveOutcome,
-    ObjectivePhase,
     ObjectiveStatus,
-    OpsecLevel,
     PlanFact,
 )
 
@@ -44,12 +41,9 @@ _UNSET = object()
 # round-trip (reads), so the same rule applies uniformly.
 OPPLAN_TOOL_NAMES: frozenset[str] = frozenset(
     {
-        "add_objective",
         "update_objective",
         "get_objective",
         "list_objectives",
-        "objective_expand",
-        "objective_collapse",
         "load_opplan",
         "commit_opplan",
         "record_plan_fact",
@@ -453,6 +447,33 @@ def _persist_opplan_to_backend(
     return None
 
 
+def _upgrade_unversioned_plan(
+    backend: BackendProtocol | None, workspace_path: str, plan: OPPLAN
+) -> OPPLAN:
+    if plan.revision or not plan.objectives:
+        return plan
+    inspection = inspect_plan(plan.objectives, plan.facts)
+    if inspection.issues:
+        raise ValueError(
+            "Invalid legacy OPPLAN graph: "
+            + "; ".join(issue.describe() for issue in inspection.issues)
+        )
+    error = _persist_opplan_to_backend(
+        backend,
+        workspace_path,
+        [objective.model_dump(mode="json") for objective in plan.objectives],
+        plan.engagement_name,
+        plan.threat_profile,
+        revision=1,
+        facts=[fact.model_dump(mode="json") for fact in plan.facts],
+        strict=True,
+        expected_revision=0,
+    )
+    if error:
+        raise RuntimeError(f"Legacy OPPLAN upgrade failed: {error}")
+    return plan.model_copy(update={"revision": 1})
+
+
 def _format_opplan_for_agent(
     objectives: list[dict],
     engagement_name: str,
@@ -660,20 +681,11 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
         )
         if error:
             return _tool_error(tool_call_id, f"OPPLAN was not committed: {error}")
-        counter = max(
-            (
-                int(item.id[4:])
-                for item in proposed
-                if item.id.startswith("OBJ-") and item.id[4:].isdigit()
-            ),
-            default=0,
-        )
         return Command(
             update={
                 "objectives": rows,
                 "plan_revision": next_revision,
                 "plan_facts": [fact.model_dump(mode="json") for fact in proposed_facts],
-                "objective_counter": counter,
                 "engagement_name": name,
                 "threat_profile": profile,
                 "messages": [
@@ -866,173 +878,9 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
 
     @tool(
         description=(
-            "Add a single objective to the OPPLAN. The server issues a UUID. "
-            "Each objective must be completable in "
-            "ONE sub-agent context window. Use blocked_by to set kill chain dependencies. "
-            "Set engagement_name and threat_profile on the first call to initialize context. "
-            "Auto-persists the OPPLAN through the engagement filesystem backend "
-            "to /workspace/plan/opplan.json on success. "
-            "Call OPPLAN tools sequentially — never in parallel with other OPPLAN tools."
-        )
-    )
-    def add_objective(
-        title: str,
-        phase: ObjectivePhase,
-        description: str,
-        acceptance_criteria: list[str],
-        priority: int,
-        state: Annotated[dict, InjectedState],
-        engagement_name: str | None = None,
-        threat_profile: str | None = None,
-        mitre: list[str] | None = None,
-        attack_tactic_id: str | None = None,
-        opsec: OpsecLevel = OpsecLevel.STANDARD,
-        opsec_notes: str = "",
-        c2_tier: C2Tier = C2Tier.INTERACTIVE,
-        concessions: list[str] | None = None,
-        blocked_by: list[str] | None = None,
-        parent_id: str | None = None,
-        tool_call_id: Annotated[str, InjectedToolCallId] = "",
-    ) -> Command[Any]:
-        """Add one objective with auto-ID generation."""
-        if state.get("plan_revision", 0):
-            return _tool_error(tool_call_id, "Use commit_opplan to revise a versioned DAG.")
-        counter = state.get("objective_counter", 0)
-        obj_id = str(uuid4())
-
-        # Validate parent_id if supplied
-        if parent_id:
-            existing_ids = {o.get("id") for o in state.get("objectives", [])}
-            if parent_id not in existing_ids:
-                return Command(
-                    update={
-                        "messages": [
-                            ToolMessage(
-                                content=(
-                                    f"Parent objective '{parent_id}' not found. "
-                                    f"Existing: {', '.join(sorted(i for i in existing_ids if i))}"
-                                ),
-                                tool_call_id=tool_call_id,
-                                status="error",
-                            )
-                        ],
-                    }
-                )
-            parent = next(
-                objective
-                for objective in state.get("objectives", [])
-                if objective.get("id") == parent_id
-            )
-            if parent.get("status") in {"completed", "cancelled"}:
-                return Command(
-                    update={
-                        "messages": [
-                            ToolMessage(
-                                content=(
-                                    f"Cannot add a child to completed or cancelled "
-                                    f"parent {parent_id}."
-                                ),
-                                tool_call_id=tool_call_id,
-                                status="error",
-                            )
-                        ]
-                    }
-                )
-
-        obj_dict = {
-            "id": obj_id,
-            "title": title,
-            "phase": phase,
-            "description": description,
-            "acceptance_criteria": acceptance_criteria,
-            "priority": priority,
-            "status": "pending",
-            "mitre": mitre or [],
-            "opsec": opsec,
-            "opsec_notes": opsec_notes,
-            "c2_tier": c2_tier,
-            "concessions": concessions or [],
-            "blocked_by": blocked_by or [],
-            "owner": "",
-            "notes": "",
-            "parent_id": parent_id,
-        }
-
-        try:
-            obj_dict = _canonicalize_attack_rows(
-                [obj_dict | {"attack_tactic_id": attack_tactic_id}], {}
-            )[0]
-        except ValueError as exc:
-            return _tool_error(tool_call_id, str(exc))
-
-        # Pydantic validation
-        try:
-            Objective(**obj_dict)
-        except Exception as e:
-            return Command(
-                update={
-                    "messages": [
-                        ToolMessage(
-                            content=f"Validation failed for objective: {e}",
-                            tool_call_id=tool_call_id,
-                            status="error",
-                        )
-                    ],
-                }
-            )
-
-        objectives = list(state.get("objectives", []))
-        objectives.append(obj_dict)
-        inspection = _inspect_objective_rows(objectives)
-        if inspection.issues:
-            return _graph_rejection(inspection, tool_call_id)
-
-        # Ground-truth telemetry: which kill-chain phase the engagement is
-        # working — no objective text/target. No-op unless telemetry is on.
-        try:
-            from decepticon.telemetry.sink import get_sink, session_id_for
-
-            sid = session_id_for(engagement_name or state.get("engagement_name", ""))
-            get_sink().record_phase(getattr(phase, "value", str(phase)), "pending", session_id=sid)
-        except Exception:  # noqa: BLE001 — telemetry must never break the tool
-            pass
-
-        # Build state update — always include objectives + counter
-        update: dict[str, Any] = {
-            "objectives": objectives,
-            "objective_counter": counter,
-            "messages": [
-                ToolMessage(
-                    content=(
-                        f"Added {obj_id}: {obj_dict['title']} "
-                        f"(phase: {obj_dict['phase']}, priority: {obj_dict['priority']})"
-                    ),
-                    tool_call_id=tool_call_id,
-                )
-            ],
-        }
-
-        # Set engagement metadata if provided (typically on first call)
-        if engagement_name:
-            update["engagement_name"] = engagement_name
-        if threat_profile:
-            update["threat_profile"] = threat_profile
-
-        _persist_opplan_to_backend(
-            backend,
-            state.get("workspace_path"),
-            objectives,
-            engagement_name or state.get("engagement_name", ""),
-            threat_profile or state.get("threat_profile", ""),
-        )
-
-        return Command(update=update)
-
-    @tool(
-        description=(
             "Read a single objective's full details by ID. "
             "ALWAYS call this before update_objective to prevent staleness. "
-            "Returns: status, description, acceptance criteria, dependencies, notes. "
+            "Returns: status, ATT&CK mapping, DAG gates, outcome, evidence, and notes. "
             "Call OPPLAN tools sequentially — never in parallel with other OPPLAN tools."
         )
     )
@@ -1053,7 +901,7 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
                         ToolMessage(
                             content=(
                                 f"Objective '{objective_id}' not found. "
-                                f"Available: {available or 'none (use add_objective first)'}"
+                                f"Available: {available or 'none (use commit_opplan first)'}"
                             ),
                             tool_call_id=tool_call_id,
                             status="error",
@@ -1069,10 +917,24 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
             f"## {target['id']} [{obj_status.upper()}]",
             f"Title: {target.get('title', '')}",
             f"Phase: {target.get('phase', '')} | Priority: {target.get('priority', '')}",
-            f"MITRE: {mitre_str}",
             f"OPSEC: {target.get('opsec', 'standard')} | C2: {target.get('c2_tier', 'interactive')}",
             f"Description: {target.get('description', '')}",
         ]
+        attack = target.get("attack")
+        if isinstance(attack, dict):
+            lines.append(
+                f"ATT&CK v{attack.get('version', '?')}: "
+                f"{attack.get('tactic_id', '?')} {attack.get('tactic_name', '')}"
+            )
+            if attack.get("tactic_description"):
+                lines.append(f"  {attack['tactic_description']}")
+            for technique in attack.get("techniques") or []:
+                lines.append(
+                    f"  - {technique.get('id', '?')} {technique.get('name', '')}: "
+                    f"{technique.get('description', '')}"
+                )
+        elif mitre_ids:
+            lines.append(f"Legacy ATT&CK IDs requiring catalog review: {mitre_str}")
 
         criteria = target.get("acceptance_criteria", [])
         if criteria:
@@ -1084,10 +946,31 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
         blocked_by_ids = target.get("blocked_by", [])
         if blocked_by_ids:
             lines.append(f"Blocked By: {', '.join(blocked_by_ids)}")
+        for group in target.get("any_of") or []:
+            lines.append(f"Any Of: {', '.join(group)}")
+        for fact_id in target.get("required_fact_ids") or []:
+            fact = next(
+                (item for item in state.get("plan_facts", []) if item.get("id") == fact_id),
+                None,
+            )
+            lines.append(
+                f"Required Fact: {fact_id} "
+                f"({fact.get('summary', '') if fact else 'missing'}; "
+                f"{'verified' if fact and fact.get('verified') else 'waiting'})"
+            )
+        if target.get("parent_id"):
+            lines.append(f"Parent: {target['parent_id']}")
+        children = [item["id"] for item in objectives if item.get("parent_id") == objective_id]
+        if children:
+            lines.append(f"Children: {', '.join(children)}")
 
         owner = target.get("owner", "")
         if owner:
             lines.append(f"Owner: {owner}")
+        if target.get("outcome"):
+            lines.append(f"Outcome: {target['outcome']}")
+        if target.get("evidence_refs"):
+            lines.append(f"Evidence: {', '.join(target['evidence_refs'])}")
 
         obj_opsec_notes = target.get("opsec_notes", "")
         if obj_opsec_notes:
@@ -1162,7 +1045,7 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
     @tool(
         description=(
             "Update a single objective. MUST call get_objective first. "
-            "Can change: status, notes, owner, add_blocked_by. "
+            "Can change: status, notes, owner, outcome, evidence_refs. "
             "Valid transitions: pending→in-progress, in-progress→completed/blocked, "
             "blocked→in-progress (retry) or completed (abandon). "
             "Include evidence when marking completed, failure reason when marking blocked. "
@@ -1177,7 +1060,6 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
         status: str | None = None,
         notes: str | None = None,
         owner: str | None = None,
-        add_blocked_by: list[str] | None = None,
         outcome: str | None = None,
         evidence_refs: list[str] | None = None,
         tool_call_id: Annotated[str, InjectedToolCallId] = "",
@@ -1202,8 +1084,6 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
             )
 
         versioned = bool(state.get("plan_revision", 0))
-        if versioned and add_blocked_by:
-            return _tool_error(tool_call_id, "Use commit_opplan to revise DAG dependencies.")
         if versioned and status == "blocked":
             if (outcome or target.get("outcome")) not in {
                 "inconclusive",
@@ -1324,8 +1204,7 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
                                         content=(
                                             f"Cannot complete {objective_id}: "
                                             f"children still open: {', '.join(unresolved_kids)}. "
-                                            f"Complete or cancel each child first, or call "
-                                            f"objective_collapse({objective_id})."
+                                            "Complete or cancel each child first."
                                         ),
                                         tool_call_id=tool_call_id,
                                         status="error",
@@ -1352,28 +1231,6 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
         if owner is not None:
             target["owner"] = owner
             updated_fields.append("owner")
-
-        # ── Add blocked_by dependencies ──────────────────────────────
-        if add_blocked_by:
-            existing_blocked = set(target.get("blocked_by", []))
-            all_ids = {o.get("id") for o in objectives}
-            invalid = [bid for bid in add_blocked_by if bid not in all_ids]
-            if invalid:
-                return Command(
-                    update={
-                        "messages": [
-                            ToolMessage(
-                                content=f"Invalid blocked_by references: {', '.join(invalid)}",
-                                tool_call_id=tool_call_id,
-                                status="error",
-                            )
-                        ],
-                    }
-                )
-            for bid in add_blocked_by:
-                existing_blocked.add(bid)
-            target["blocked_by"] = sorted(existing_blocked)
-            updated_fields.append("blocked_by")
 
         if target.get("status") in {"in-progress", "completed"}:
             unresolved = [
@@ -1463,262 +1320,6 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
 
     @tool(
         description=(
-            "Expand a parent objective into one or more child sub-tasks. "
-            "Each child inherits the parent's phase by default but can override it. "
-            "Children receive server-issued UUIDs and are added with status 'pending'. "
-            "The parent cannot move to COMPLETED until every child is COMPLETED or CANCELLED. "
-            "Use this when an objective is broad or when recon reveals sub-tasks — it is "
-            "the Pentesting Task Tree (PTT) pattern. Keep children small enough to complete "
-            "in one sub-agent iteration. "
-            "Auto-persists the OPPLAN through the engagement filesystem backend "
-            "to /workspace/plan/opplan.json on success. "
-            "Call OPPLAN tools sequentially — never in parallel with other OPPLAN tools."
-        )
-    )
-    def objective_expand(
-        parent_id: str,
-        children: list[dict],
-        state: Annotated[dict, InjectedState],
-        tool_call_id: Annotated[str, InjectedToolCallId] = "",
-    ) -> Command[Any]:
-        """Create ``len(children)`` child objectives under ``parent_id``.
-
-        Each child dict must have: ``title`` (str), ``description`` (str),
-        ``acceptance_criteria`` (list[str]). Optional: ``phase``
-        (ObjectivePhase value, default inherited from parent),
-        ``priority`` (int, default parent.priority + N), ``mitre``,
-        ``blocked_by``.
-        """
-        if state.get("plan_revision", 0):
-            return _tool_error(tool_call_id, "Use commit_opplan to revise a versioned DAG.")
-        objectives = [dict(o) for o in state.get("objectives", [])]
-        parent = next((o for o in objectives if o.get("id") == parent_id), None)
-        if parent is None:
-            return Command(
-                update={
-                    "messages": [
-                        ToolMessage(
-                            content=f"Parent objective '{parent_id}' not found.",
-                            tool_call_id=tool_call_id,
-                            status="error",
-                        )
-                    ],
-                }
-            )
-        if parent.get("status") in {"completed", "cancelled"}:
-            return Command(
-                update={
-                    "messages": [
-                        ToolMessage(
-                            content=(
-                                f"Cannot expand {parent_id}: status is "
-                                f"{parent.get('status')}. Expand open parents only."
-                            ),
-                            tool_call_id=tool_call_id,
-                            status="error",
-                        )
-                    ],
-                }
-            )
-        if not children:
-            return Command(
-                update={
-                    "messages": [
-                        ToolMessage(
-                            content="children list is empty — nothing to expand.",
-                            tool_call_id=tool_call_id,
-                            status="error",
-                        )
-                    ],
-                }
-            )
-
-        counter = state.get("objective_counter", 0)
-        created_ids: list[str] = []
-        parent_phase = parent.get("phase")
-        try:
-            parent_priority = int(parent.get("priority", 100))
-        except (ValueError, TypeError):
-            parent_priority = 100
-        for idx, child in enumerate(children, start=1):
-            obj_id = str(uuid4())
-            title = str(child.get("title", "")).strip()
-            description = str(child.get("description", "")).strip()
-            acceptance = child.get("acceptance_criteria") or []
-            if not title or not description or not acceptance:
-                return Command(
-                    update={
-                        "messages": [
-                            ToolMessage(
-                                content=(
-                                    f"Child #{idx} missing required fields "
-                                    "(title, description, acceptance_criteria)."
-                                ),
-                                tool_call_id=tool_call_id,
-                                status="error",
-                            )
-                        ],
-                    }
-                )
-            phase = child.get("phase", parent_phase)
-            try:
-                priority = int(child.get("priority", parent_priority + idx))
-            except (ValueError, TypeError):
-                priority = parent_priority + idx
-            child_dict = {
-                "id": obj_id,
-                "title": title,
-                "phase": phase,
-                "description": description,
-                "acceptance_criteria": list(acceptance),
-                "priority": priority,
-                "status": "pending",
-                "mitre": list(child.get("mitre") or []),
-                "opsec": parent.get("opsec", "standard"),
-                "opsec_notes": "",
-                "c2_tier": parent.get("c2_tier", "interactive"),
-                "concessions": [],
-                "blocked_by": list(child.get("blocked_by") or []),
-                "owner": "",
-                "notes": "",
-                "parent_id": parent_id,
-            }
-            tactic_id = child.get("attack_tactic_id") or (parent.get("attack") or {}).get(
-                "tactic_id"
-            )
-            try:
-                child_dict = _canonicalize_attack_rows(
-                    [child_dict | {"attack_tactic_id": tactic_id}], {}
-                )[0]
-            except ValueError as exc:
-                return _tool_error(tool_call_id, str(exc))
-            try:
-                Objective(**child_dict)
-            except Exception as e:
-                return Command(
-                    update={
-                        "messages": [
-                            ToolMessage(
-                                content=f"Child #{idx} validation failed: {e}",
-                                tool_call_id=tool_call_id,
-                                status="error",
-                            )
-                        ],
-                    }
-                )
-            objectives.append(child_dict)
-            created_ids.append(obj_id)
-
-        inspection = _inspect_objective_rows(objectives)
-        if inspection.issues:
-            return _graph_rejection(inspection, tool_call_id)
-
-        _persist_opplan_to_backend(
-            backend,
-            state.get("workspace_path"),
-            objectives,
-            state.get("engagement_name", ""),
-            state.get("threat_profile", ""),
-        )
-
-        return Command(
-            update={
-                "objectives": objectives,
-                "objective_counter": counter,
-                "messages": [
-                    ToolMessage(
-                        content=(
-                            f"Expanded {parent_id} into {len(created_ids)} children: "
-                            f"{', '.join(created_ids)}"
-                        ),
-                        tool_call_id=tool_call_id,
-                    )
-                ],
-            }
-        )
-
-    @tool(
-        description=(
-            "Cancel every descendant of a parent objective. Use when abandoning a "
-            "hierarchical task — sets each child's status to 'cancelled' so the "
-            "parent can then be moved to COMPLETED or CANCELLED itself. "
-            "Only pending / in-progress / blocked children are touched; already-done "
-            "children are left as-is. "
-            "Auto-persists the OPPLAN through the engagement filesystem backend "
-            "to /workspace/plan/opplan.json on success. "
-            "Call OPPLAN tools sequentially — never in parallel with other OPPLAN tools."
-        )
-    )
-    def objective_collapse(
-        parent_id: str,
-        state: Annotated[dict, InjectedState],
-        tool_call_id: Annotated[str, InjectedToolCallId] = "",
-    ) -> Command[Any]:
-        """Mark every descendant of ``parent_id`` as cancelled."""
-        if state.get("plan_revision", 0):
-            return _tool_error(tool_call_id, "Use commit_opplan to revise a versioned DAG.")
-        objectives = [dict(o) for o in state.get("objectives", [])]
-        if not any(o.get("id") == parent_id for o in objectives):
-            return Command(
-                update={
-                    "messages": [
-                        ToolMessage(
-                            content=f"Parent objective '{parent_id}' not found.",
-                            tool_call_id=tool_call_id,
-                            status="error",
-                        )
-                    ],
-                }
-            )
-
-        # Walk descendants depth-first. ``visited`` guards against cycles in
-        # parent_id references (which the schema does not formally rule out)
-        # so a malformed plan does not hang the agent in an infinite loop.
-        stack = [parent_id]
-        visited: set[str] = {parent_id}
-        descendants: list[dict[str, Any]] = []
-        while stack:
-            current = stack.pop()
-            for o in objectives:
-                if o.get("parent_id") == current:
-                    obj_id = o.get("id")
-                    if not obj_id or obj_id in visited:
-                        continue
-                    visited.add(obj_id)
-                    descendants.append(o)
-                    stack.append(obj_id)
-
-        cancelled: list[str] = []
-        for o in descendants:
-            if o.get("status") in {"pending", "in-progress", "blocked"}:
-                o["status"] = "cancelled"
-                cancelled.append(o["id"])
-
-        _persist_opplan_to_backend(
-            backend,
-            state.get("workspace_path"),
-            objectives,
-            state.get("engagement_name", ""),
-            state.get("threat_profile", ""),
-        )
-
-        return Command(
-            update={
-                "objectives": objectives,
-                "messages": [
-                    ToolMessage(
-                        content=(
-                            f"Cancelled {len(cancelled)} descendants of {parent_id}"
-                            + (f": {', '.join(cancelled)}" if cancelled else "")
-                        ),
-                        tool_call_id=tool_call_id,
-                    )
-                ],
-            }
-        )
-
-    @tool(
-        description=(
             "Bind the active engagement workspace and load plan/opplan.json when it exists. "
             "Call before filesystem bootstrap: when the file is missing, the workspace path "
             "is still stored in agent state so planning files can be created. "
@@ -1738,10 +1339,7 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
                 update={
                     "messages": [
                         ToolMessage(
-                            content=(
-                                "No engagement workspace backend is configured. "
-                                "Use add_objective after the launcher provides workspace_path."
-                            ),
+                            content="No engagement workspace backend is configured.",
                             tool_call_id=tool_call_id,
                             status="error",
                         )
@@ -1756,7 +1354,7 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
             )
             content = (
                 f"No opplan.json found at {OPPLAN_VIRTUAL_PATH}. "
-                "Use add_objective to create a new OPPLAN."
+                "Use commit_opplan to create a new OPPLAN DAG."
                 if not_found
                 else f"Failed to load opplan.json: {read_error}"
             )
@@ -1765,7 +1363,7 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
                     ToolMessage(
                         content=content,
                         tool_call_id=tool_call_id,
-                        status="error",
+                        status="error" if not_found is False else "success",
                     )
                 ]
             }
@@ -1775,7 +1373,7 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
 
         try:
             data = json.loads(raw)
-            opplan = OPPLAN(**data)
+            opplan = _upgrade_unversioned_plan(backend, workspace_path, OPPLAN(**data))
         except Exception as e:
             return Command(
                 update={
@@ -1794,22 +1392,11 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
         if inspection.issues:
             return _graph_rejection(inspection, tool_call_id)
 
-        # Derive counter from highest existing ID so new objectives don't collide
-        counter = 0
-        for o in opplan.objectives:
-            try:
-                n = int(o.id.replace("OBJ-", ""))
-                if n > counter:
-                    counter = n
-            except (ValueError, AttributeError):
-                pass
-
         return Command(
             update={
                 "objectives": objectives_raw,
                 "engagement_name": opplan.engagement_name,
                 "threat_profile": opplan.threat_profile,
-                "objective_counter": counter,
                 "plan_revision": opplan.revision,
                 "plan_facts": [fact.model_dump(mode="json") for fact in opplan.facts],
                 "workspace_path": workspace_path,
@@ -1830,12 +1417,9 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
         commit_opplan,
         record_plan_fact,
         revoke_plan_fact,
-        add_objective,
         get_objective,
         list_objectives,
         update_objective,
-        objective_expand,
-        objective_collapse,
         load_opplan,
     ]
 

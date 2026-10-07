@@ -290,11 +290,13 @@ _POLICY_TEXT = (
 # one-line rename there, never a sweep here.
 _FRAMEWORK_TOOL_NAMES: frozenset[str] = frozenset(
     {
-        "add_objective",
+        "commit_opplan",
         "get_objective",
         "list_objectives",
         "update_objective",
-        "objective_expand",
+        "load_opplan",
+        "record_plan_fact",
+        "revoke_plan_fact",
         "read_file",
         "write_file",
         "list_directory",

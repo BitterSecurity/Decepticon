@@ -10,12 +10,10 @@ EngagementFilesystemBackend, so reads/writes target the sandbox's active
 engagement workspace rather than the LangGraph host filesystem.
 
 Tools:
-  add_objective      — add single objective
-  get_objective      — read single objective detail
-  list_objectives    — list all objectives with progress summary
-  update_objective   — update status, notes, owner, or dependencies
-  objective_expand   — add child objectives
-  objective_collapse — cancel descendant objectives
+  commit_opplan    — create or revise the complete DAG
+  get_objective    — read single objective detail
+  list_objectives  — list all objectives with progress summary
+  update_objective — update status, notes, owner, and result
   load_opplan      — hydrate state from backend file
 
 Design notes:
@@ -50,16 +48,14 @@ from decepticon.tools.opplan import (
     _read_text_from_backend,
     _run_sandbox_backend,
     _scoped_opplan_backend,
+    _upgrade_unversioned_plan,
     build_opplan_tools,
 )
 from decepticon_core.types.engagement import OPPLAN, Objective
 
 _PLAN_MUTATION_TOOLS = frozenset(
     {
-        "add_objective",
         "update_objective",
-        "objective_expand",
-        "objective_collapse",
         "load_opplan",
         "commit_opplan",
         "record_plan_fact",
@@ -105,8 +101,6 @@ class OPPLANState(AgentState):
     threat_profile: Annotated[NotRequired[str], OmitFromInput]
     """Threat actor profile for context injection."""
 
-    objective_counter: Annotated[NotRequired[int], OmitFromInput]
-
     workspace_path: Annotated[NotRequired[str], OmitFromInput, _reduce_workspace_path]
     """Engagement workspace root path — set by launcher config/load_opplan."""
 
@@ -149,24 +143,23 @@ a stable, sorted, human-readable JSON document with a `schema_version`, a
   cancelled. Check the committed result for issued IDs and the new revision
   before dispatching.
 
-- For attack-mapped objectives, supply `attack_tactic_id` (for example `TA0001`)
-  and technique IDs in `mitre`. The server validates active IDs and each
-  tactic-to-technique relationship against Enterprise ATT&CK v19.2, then saves
-  canonical names and descriptions. `phase` remains an operational workflow
-  stage; do not infer an ATT&CK tactic from `phase` alone. Use ATT&CK lookup
-  tools to choose candidates, then rely on the commit result for validation.
-  Objectives without a defensible ATT&CK mapping may leave both fields empty.
+- For each objective, decide whether its concrete adversary behavior has a
+  defensible Enterprise ATT&CK mapping. Tactics explain why, techniques explain
+  how; neither defines execution order. Do not map administrative objectives
+  such as scope review or report writing just to fill a field. For mapped
+  objectives, use the available ATT&CK lookup tools to check candidates, then
+  supply `attack_tactic_id` (for example `TA0001`) and technique IDs in `mitre`.
+  The server validates active IDs and tactic-to-technique relationships against
+  Enterprise ATT&CK v19.2 and saves canonical names and descriptions. Never
+  invent those names or descriptions. If lookup is unavailable or evidence for
+  a mapping is weak, leave both fields empty. `phase` is an operational workflow
+  stage; neither `phase` nor ATT&CK tactic implies a DAG dependency.
 
 - **`record_plan_fact`** — Attach existing workspace evidence to a declared fact
   after its producer completes. Path existence is checked; content truth is not.
 
 - **`revoke_plan_fact`** — Revoke a fact when its evidence is disproven or lost.
   Active and completed dependent objectives become blocked transitively.
-
-- **`add_objective`** — Legacy single-objective tool for unversioned plans only.
-  It also receives a server-issued UUID and requires `attack_tactic_id` when
-  supplying `mitre` technique IDs.
-  Use `commit_opplan` for new plans and replans.
 
 - **`get_objective`** — Read a single objective's full details.
   ALWAYS call this before `update_objective` (read-before-write, staleness prevention).
@@ -177,14 +170,9 @@ a stable, sorted, human-readable JSON document with a `schema_version`, a
 - **`update_objective`** — Update status, notes, or owner.
   ALWAYS call `get_objective` first.
 
-- **`objective_expand`** — Legacy hierarchy expansion for unversioned plans.
-  In a versioned DAG, revise the complete graph with `commit_opplan` instead.
-
-- **`objective_collapse`** — Legacy hierarchy collapse for unversioned plans.
-
 - **`load_opplan`** — Bind the active workspace and hydrate state from an
   existing `plan/opplan.json`. Call before filesystem bootstrap. A missing file
-  still binds the workspace so a new engagement can create its planning files.
+  still binds the workspace; use `commit_opplan` to create the first DAG.
 
 ### Concurrency rule
 
@@ -438,10 +426,32 @@ class OPPLANMiddleware(AgentMiddleware):
 
     @override
     def before_agent(self, state, runtime):
-        if state.get("objectives") or not state.get("workspace_path") or self._backend is None:
+        if not state.get("workspace_path") or self._backend is None:
+            return None
+        if state.get("objectives") and state.get("plan_revision", 0):
             return None
         token = self._bind_run_sandbox(runtime)
         try:
+            if state.get("objectives"):
+                payload = {
+                    "engagement_name": state.get("engagement_name", ""),
+                    "threat_profile": state.get("threat_profile", ""),
+                    "objectives": state["objectives"],
+                    "facts": state.get("plan_facts", []),
+                    "revision": 0,
+                }
+                try:
+                    plan = OPPLAN.model_validate(payload)
+                except ValueError:
+                    if self._migrate_legacy_plan is None:
+                        raise
+                    plan = OPPLAN.model_validate(self._migrate_legacy_plan(payload))
+                plan = _upgrade_unversioned_plan(self._backend, state["workspace_path"], plan)
+                return {
+                    "objectives": [objective.model_dump(mode="json") for objective in plan.objectives],
+                    "plan_facts": [fact.model_dump(mode="json") for fact in plan.facts],
+                    "plan_revision": plan.revision,
+                }
             scoped = _scoped_opplan_backend(self._backend, state["workspace_path"])
             if scoped is None:
                 return None
@@ -470,6 +480,7 @@ class OPPLANMiddleware(AgentMiddleware):
                     if persist_error:
                         raise RuntimeError(f"OPPLAN migration failed: {persist_error}")
                     plan.revision = next_revision
+                plan = _upgrade_unversioned_plan(self._backend, state["workspace_path"], plan)
                 return {
                     "objectives": [
                         objective.model_dump(mode="json") for objective in plan.objectives
@@ -621,7 +632,7 @@ class OPPLANMiddleware(AgentMiddleware):
     def after_model(self, state, runtime):
         """Reject parallel OPPLAN tool calls in the same model step.
 
-        Mutating tools (add/update/expand/collapse/load_opplan) race on
+        Mutating tools (commit/update/load_opplan) race on
         ``state.objectives`` because the field has no merge reducer; reads
         (get/list) gain nothing from parallelism but mixing them with writes
         muddies the contract. Apply one rule: at most one OPPLAN tool per
