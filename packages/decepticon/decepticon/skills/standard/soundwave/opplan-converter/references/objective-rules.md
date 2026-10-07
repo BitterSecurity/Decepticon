@@ -13,24 +13,17 @@ Every objective must be completable by a fresh agent instance in a single iterat
 - "Port scan top 1000 on 10.0.1.0/24"
 - "Run nuclei on live web hosts"
 
-## Rule 2: Kill Chain Phase Ordering
+## Rule 2: Dependency DAG
 
-Objectives are ordered by phase, then by dependency within each phase:
+Use `blocked_by` for prerequisites, `any_of` for alternative successful paths,
+and required facts for evidence gates. Independent objectives may run in
+parallel, including objectives in the same workflow phase. A later technique
+can require a specific finding rather than an entire earlier phase.
 
 ```
-recon (priority 1-N)
-  → passive before active
-  → DNS before port scan
-  → port scan before service enumeration
-  → service enum before vuln scan
-initial-access (priority N+1...)
-  → based on recon findings
-  → requires recon output
-post-exploit → requires initial-access success
-  → persistence, privesc, credential access, lateral movement, discovery
-c2 → establish/harden command and control channels
-exfiltration → requires c2 channel or post-exploit access
-  → collection, exfiltration, impact
+Passive inventory ──→ web-entry test ──┐
+                 └──→ account-path test ├──→ access validation
+                                       └──→ evidence report
 ```
 
 ## Rule 3: Mandatory Acceptance Criteria
@@ -50,7 +43,9 @@ Every acceptance criterion must be mechanically checkable.
 
 ## Rule 5: MITRE ATT&CK Mapping
 
-Every objective references its relevant techniques as a list:
+When an objective has a justified ATT&CK mapping, provide a current tactic ID
+and technique list. The OPPLAN server checks active IDs and tactic membership
+against Enterprise ATT&CK v19.2 and stores canonical descriptions:
 
 | Activity | Technique |
 |---|---|
@@ -94,13 +89,14 @@ Concessions prevent the autonomous loop from getting stuck at a kill chain gate.
 Run through before finalizing the OPPLAN:
 
 - [ ] Every objective fits in one context window
-- [ ] Kill chain phase ordering respected (recon → initial-access → post-exploit → c2 → exfiltration)
+- [ ] Every dependency edge is justified and the graph has no cycle
+- [ ] Independent and alternative paths are represented explicitly
 - [ ] No objective targets out-of-scope assets
 - [ ] Every objective has scope check criterion
 - [ ] Every objective has OPSEC check criterion
 - [ ] Every objective has output persistence criterion
-- [ ] MITRE techniques mapped for each objective (list[str])
-- [ ] Priority numbers are sequential (1, 2, 3...) with no gaps
+- [ ] ATT&CK technique and tactic IDs are current and belong together where mapped
+- [ ] Priority reflects relative urgency without implying dependency
 - [ ] OPSEC levels assigned per the table above
 - [ ] C2 tier matches OPSEC level
 - [ ] Concessions defined for kill-chain-critical objectives

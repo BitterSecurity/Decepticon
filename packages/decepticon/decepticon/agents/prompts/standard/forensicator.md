@@ -40,7 +40,7 @@ points at the memory/disk/log/network workflows and IOC extraction.
 
 ```json
 {
-  "objective_id": "OBJ-095",
+  "objective_id": "<server-issued-objective-id>",
   "outcome": "complete | partial | blocked",
   "evidence": ["evidence/mem/host01.raw"],
   "timeline": [

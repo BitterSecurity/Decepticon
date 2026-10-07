@@ -69,7 +69,7 @@ PostExploit → Report: All OPPLAN objectives resolved (completed, blocked, or c
 
 ### Handling Cross-Phase Dependencies
 Some objectives may uncover new targets or invalidate assumptions:
-- **New targets discovered during recon** → Propose in-scope objectives through `add_objective`; never edit `plan/opplan.json` directly
+- **New targets discovered during recon** → Revise the complete in-scope DAG through `commit_opplan`; never edit `plan/opplan.json` directly
 - **Exploit fails, need more recon** → Return to recon phase for that specific target
 - **PostExploit reveals new network segments** → May need additional recon/exploit cycles
 

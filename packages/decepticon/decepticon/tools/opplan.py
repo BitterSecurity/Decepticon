@@ -5,8 +5,10 @@ from __future__ import annotations
 import json
 import logging
 import posixpath
+from contextvars import ContextVar
 from datetime import datetime, timezone
 from typing import Annotated, Any
+from uuid import uuid4
 
 from deepagents.backends.protocol import BackendProtocol
 from langchain_core.messages import ToolMessage
@@ -15,6 +17,7 @@ from langgraph.prebuilt import InjectedState
 from langgraph.types import Command
 
 from decepticon.tools.opplan_graph import PlanInspection, inspect_plan, unmet_prerequisites
+from decepticon_core.types.attack_catalog import canonical_attack_annotation
 from decepticon_core.types.engagement import (
     OPPLAN,
     C2Tier,
@@ -27,6 +30,9 @@ from decepticon_core.types.engagement import (
 )
 
 log = logging.getLogger(__name__)
+_run_sandbox_backend: ContextVar[BackendProtocol | None] = ContextVar(
+    "opplan_run_sandbox_backend", default=None
+)
 
 OPPLAN_FILE_SCHEMA_VERSION = "2"
 OPPLAN_VIRTUAL_PATH = "/workspace/plan/opplan.json"
@@ -82,6 +88,91 @@ def _graph_rejection(inspection: PlanInspection, tool_call_id: str) -> Command[A
             ]
         }
     )
+
+
+def _assign_objective_ids(
+    objectives: list[dict[str, Any]],
+    facts: list[dict[str, Any]],
+    existing_ids: set[str],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[int, str]]:
+    ids: list[str] = []
+    issued: dict[int, str] = {}
+    for index, row in enumerate(objectives):
+        if not isinstance(row, dict):
+            raise ValueError(f"Objective at position {index} must be an object")
+        objective_id = row.get("id")
+        if objective_id is None:
+            objective_id = str(uuid4())
+            issued[index] = objective_id
+        elif not isinstance(objective_id, str) or objective_id not in existing_ids:
+            raise ValueError(
+                f"Objective at position {index} supplies an unknown ID; "
+                "omit id for a new node so the server can issue it"
+            )
+        ids.append(objective_id)
+
+    def resolve(reference: Any) -> str:
+        if type(reference) is int:
+            if reference < 0 or reference >= len(ids):
+                raise ValueError(f"Objective position {reference} is outside this DAG submission")
+            return ids[reference]
+        if isinstance(reference, str):
+            return reference
+        raise ValueError(f"Invalid objective reference {reference!r}; use an ID or array position")
+
+    resolved: list[dict[str, Any]] = []
+    for index, row in enumerate(objectives):
+        item = {**row, "id": ids[index]}
+        item["blocked_by"] = [resolve(ref) for ref in row.get("blocked_by", [])]
+        item["any_of"] = [
+            [resolve(ref) for ref in group] for group in row.get("any_of", [])
+        ]
+        if row.get("parent_id") is not None:
+            item["parent_id"] = resolve(row["parent_id"])
+        resolved.append(item)
+    resolved_facts = [
+        {**fact, "producer_id": resolve(fact["producer_id"])}
+        if "producer_id" in fact else dict(fact)
+        for fact in facts
+    ]
+    return resolved, resolved_facts, issued
+
+
+def _canonicalize_attack_rows(
+    rows: list[dict[str, Any]], existing: dict[str, Objective]
+) -> list[dict[str, Any]]:
+    canonical: list[dict[str, Any]] = []
+    for row in rows:
+        previous = existing.get(row["id"])
+        if previous is not None:
+            try:
+                if Objective.model_validate(row) == previous:
+                    canonical.append(row)
+                    continue
+            except ValueError:
+                pass
+        technique_ids = row.get("mitre") or []
+        annotation = row.get("attack")
+        tactic_id = row.get("attack_tactic_id")
+        if tactic_id is None and isinstance(annotation, dict):
+            tactic_id = annotation.get("tactic_id")
+        if tactic_id is None:
+            if technique_ids:
+                if previous is not None and previous.attack is None and technique_ids == previous.mitre:
+                    canonical.append({key: value for key, value in row.items() if key != "attack_tactic_id"})
+                    continue
+                raise ValueError(
+                    f"Objective {row['id']} has ATT&CK techniques but no tactic_id; "
+                    "select a tactic from the v19.2 catalog"
+                )
+            canonical.append({key: value for key, value in row.items() if key != "attack_tactic_id"})
+            continue
+        resolved = canonical_attack_annotation(tactic_id, technique_ids)
+        canonical.append({
+            **{key: value for key, value in row.items() if key != "attack_tactic_id"},
+            "attack": resolved.model_dump(mode="json"),
+        })
+    return canonical
 
 
 def _tool_error(tool_call_id: str, content: str) -> Command[Any]:
@@ -196,6 +287,9 @@ def _live_sandbox_backend(fallback: BackendProtocol | None) -> BackendProtocol |
     # OPPLAN through that dead endpoint hangs (the persist test hung the whole
     # middleware suite → CI 30-min timeout). The captured ``fallback`` already
     # points at the right backend for those cases, so use it.
+    run_backend = _run_sandbox_backend.get()
+    if run_backend is not None:
+        return run_backend
     try:
         from langgraph.config import get_config
 
@@ -464,8 +558,10 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
 
     @tool(
         description=(
-            "Commit the complete OPPLAN objective DAG. Supply the graph with stable "
-            "objective IDs, including forward dependencies. expected_revision must match the "
+            "Commit the complete OPPLAN objective DAG. Omit id for each new node; "
+            "the server issues a UUID. Reference a new node by its zero-based position "
+            "in objectives from blocked_by, any_of, parent_id, or a fact producer_id. "
+            "Existing nodes retain their IDs. expected_revision must match the "
             "current plan. Running and terminal objectives cannot be rewritten or removed. "
             "Use this to create or replan a DAG, then dispatch only ready objectives."
         )
@@ -486,10 +582,17 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
                 f"Stale OPPLAN revision: expected {current_revision}, got {expected_revision}.",
             )
         try:
-            proposed = [Objective.model_validate(row) for row in objectives]
+            old = {row["id"]: Objective.model_validate(row) for row in state.get("objectives", [])}
+            objective_rows, fact_rows, issued = _assign_objective_ids(
+                objectives,
+                facts if facts is not None else state.get("plan_facts", []),
+                set(old),
+            )
+            objective_rows = _canonicalize_attack_rows(objective_rows, old)
+            proposed = [Objective.model_validate(row) for row in objective_rows]
             proposed_facts = [
                 PlanFact.model_validate(row)
-                for row in (facts if facts is not None else state.get("plan_facts", []))
+                for row in fact_rows
             ]
             inspection = inspect_plan(proposed, proposed_facts)
         except Exception as exc:
@@ -498,7 +601,6 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
             return _graph_rejection(inspection, tool_call_id)
         if not proposed:
             return _tool_error(tool_call_id, "OPPLAN must contain at least one objective.")
-        old = {row["id"]: Objective.model_validate(row) for row in state.get("objectives", [])}
         new = {objective.id: objective for objective in proposed}
         for objective_id, objective in old.items():
             if objective_id in new and new[objective_id].status != objective.status:
@@ -572,6 +674,7 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
                     ToolMessage(
                         content=(
                             f"Committed OPPLAN revision {next_revision} with {len(rows)} objectives. "
+                            f"Issued IDs by submitted position: {issued}. "
                             f"Status-ready: {', '.join(inspection.status_ready_ids) or 'none'}. "
                             "Recheck RoE and evidence before dispatch."
                         ),
@@ -757,8 +860,8 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
 
     @tool(
         description=(
-            "Add a single objective to the OPPLAN. Auto-generates an ID "
-            "(OBJ-001, OBJ-002, ...). Each objective must be completable in "
+            "Add a single objective to the OPPLAN. The server issues a UUID. "
+            "Each objective must be completable in "
             "ONE sub-agent context window. Use blocked_by to set kill chain dependencies. "
             "Set engagement_name and threat_profile on the first call to initialize context. "
             "Auto-persists the OPPLAN through the engagement filesystem backend "
@@ -776,6 +879,7 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
         engagement_name: str | None = None,
         threat_profile: str | None = None,
         mitre: list[str] | None = None,
+        attack_tactic_id: str | None = None,
         opsec: OpsecLevel = OpsecLevel.STANDARD,
         opsec_notes: str = "",
         c2_tier: C2Tier = C2Tier.INTERACTIVE,
@@ -787,8 +891,8 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
         """Add one objective with auto-ID generation."""
         if state.get("plan_revision", 0):
             return _tool_error(tool_call_id, "Use commit_opplan to revise a versioned DAG.")
-        counter = state.get("objective_counter", 0) + 1
-        obj_id = f"OBJ-{counter:03d}"
+        counter = state.get("objective_counter", 0)
+        obj_id = str(uuid4())
 
         # Validate parent_id if supplied
         if parent_id:
@@ -847,6 +951,11 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
             "notes": "",
             "parent_id": parent_id,
         }
+
+        try:
+            obj_dict = _canonicalize_attack_rows([obj_dict | {"attack_tactic_id": attack_tactic_id}], {})[0]
+        except ValueError as exc:
+            return _tool_error(tool_call_id, str(exc))
 
         # Pydantic validation
         try:
@@ -1348,7 +1457,7 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
         description=(
             "Expand a parent objective into one or more child sub-tasks. "
             "Each child inherits the parent's phase by default but can override it. "
-            "Children auto-receive IDs (OBJ-NNN) and are added with status 'pending'. "
+            "Children receive server-issued UUIDs and are added with status 'pending'. "
             "The parent cannot move to COMPLETED until every child is COMPLETED or CANCELLED. "
             "Use this when an objective is broad or when recon reveals sub-tasks — it is "
             "the Pentesting Task Tree (PTT) pattern. Keep children small enough to complete "
@@ -1424,8 +1533,7 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
         except (ValueError, TypeError):
             parent_priority = 100
         for idx, child in enumerate(children, start=1):
-            counter += 1
-            obj_id = f"OBJ-{counter:03d}"
+            obj_id = str(uuid4())
             title = str(child.get("title", "")).strip()
             description = str(child.get("description", "")).strip()
             acceptance = child.get("acceptance_criteria") or []
@@ -1467,6 +1575,13 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
                 "notes": "",
                 "parent_id": parent_id,
             }
+            tactic_id = child.get("attack_tactic_id") or (parent.get("attack") or {}).get("tactic_id")
+            try:
+                child_dict = _canonicalize_attack_rows(
+                    [child_dict | {"attack_tactic_id": tactic_id}], {}
+                )[0]
+            except ValueError as exc:
+                return _tool_error(tool_call_id, str(exc))
             try:
                 Objective(**child_dict)
             except Exception as e:
@@ -1693,7 +1808,7 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
                         content=(
                             f"Loaded {len(objectives_raw)} objectives from {OPPLAN_VIRTUAL_PATH}. "
                             f"Engagement: {opplan.engagement_name} | "
-                            f"Counter at OBJ-{counter:03d} | revision {opplan.revision}"
+                            f"Revision {opplan.revision}"
                         ),
                         tool_call_id=tool_call_id,
                     )

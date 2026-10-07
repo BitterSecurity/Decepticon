@@ -81,16 +81,17 @@ OPPLAN
 ├── threat_profile: str (required, one-sentence threat actor summary)
 └── objectives: list[Objective]
     └── Objective
-        ├── id: str (required, convention: "OBJ-{NUMBER}")
+        ├── id: str (server-issued UUID; omit when submitting a new objective)
         ├── phase: ObjectivePhase (required)
-        │   └── "recon" | "initial-access" | "post-exploit" | "c2" | "exfiltration"
+        │   └── "recon" | "initial-access" | "post-exploit" | "c2" | "exfiltration" | "reporting"
         ├── title: str (required)
         ├── description: str (required)
         ├── acceptance_criteria: list[str] (required, must include scope/OPSEC/output checks)
-        ├── priority: int (required, sequential, respects kill chain)
+        ├── priority: int (relative scheduling priority, not a dependency)
         ├── status: ObjectiveStatus (default "pending")
-        │   └── "pending" | "in-progress" | "completed" | "blocked"
+        │   └── "pending" | "in-progress" | "completed" | "blocked" | "cancelled"
         ├── mitre: list[str] (MITRE ATT&CK technique IDs)
+        ├── attack: catalog-validated tactic and technique descriptions (server-generated)
         ├── opsec: OpsecLevel (default "standard")
         │   └── "loud" | "standard" | "careful" | "quiet" | "silent"
         ├── opsec_notes: str (specific OPSEC constraints)

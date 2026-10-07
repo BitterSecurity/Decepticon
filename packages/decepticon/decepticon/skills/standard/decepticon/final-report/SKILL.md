@@ -325,7 +325,7 @@ Reference specific FIND-IDs inline where findings were exploited.]
 
 | Timestamp (UTC) | Objective | Action | Target | Result |
 |-----------------|-----------|--------|--------|--------|
-| [ISO 8601] | OBJ-001 | Port scan | 10.0.0.0/24 | 12 hosts discovered |
+| [ISO 8601] | `<server-issued-objective-id>` | Port scan | 10.0.0.0/24 | 12 hosts discovered |
 | ... | | | | |
 
 ---

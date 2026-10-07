@@ -1,14 +1,16 @@
 # Objective Templates — Recon Phase
 
-Copy and customize these templates for common recon objectives. Replace `<TARGET>` with the actual target.
+Copy and customize these objective rows for a single `commit_opplan` DAG submission.
+Replace `<TARGET>` with the actual target. Omit `id`; the server issues each UUID.
+Add `blocked_by` using submitted row positions where a prerequisite is required.
 
 ## Passive Recon Objectives (priority 1-5)
 
-### OBJ-001: Passive Subdomain Enumeration
+### Passive Subdomain Enumeration
 
 ```json
 {
-  "id": "OBJ-001",
+  "attack_tactic_id": "TA0043",
   "phase": "recon",
   "title": "Passive subdomain enumeration for <TARGET>",
   "description": "Enumerate all subdomains of <TARGET> using passive sources (subfinder, amass passive, crt.sh) without directly touching target infrastructure.",
@@ -21,6 +23,7 @@ Copy and customize these templates for common recon objectives. Replace `<TARGET
     "OPSEC: No direct DNS queries sent to target nameservers — public resolvers only"
   ],
   "priority": 1,
+  "blocked_by": [],
   "status": "pending",
   "mitre": ["T1596.001"],
   "opsec": "standard",
@@ -28,11 +31,11 @@ Copy and customize these templates for common recon objectives. Replace `<TARGET
 }
 ```
 
-### OBJ-002: DNS Record Mapping
+### DNS Record Mapping
 
 ```json
 {
-  "id": "OBJ-002",
+  "attack_tactic_id": "TA0043",
   "phase": "recon",
   "title": "DNS record mapping for <TARGET>",
   "description": "Query all DNS record types (A, AAAA, MX, NS, TXT, SOA, CAA, CNAME) for <TARGET> and discovered subdomains.",
@@ -44,6 +47,7 @@ Copy and customize these templates for common recon objectives. Replace `<TARGET
     "OPSEC: Queries routed through public resolvers, not target nameservers"
   ],
   "priority": 2,
+  "blocked_by": [0],
   "status": "pending",
   "mitre": ["T1596.001"],
   "opsec": "standard",
@@ -51,11 +55,11 @@ Copy and customize these templates for common recon objectives. Replace `<TARGET
 }
 ```
 
-### OBJ-003: WHOIS & ASN Intelligence
+### WHOIS & ASN Intelligence
 
 ```json
 {
-  "id": "OBJ-003",
+  "attack_tactic_id": "TA0043",
   "phase": "recon",
   "title": "WHOIS and ASN intelligence for <TARGET>",
   "description": "Gather WHOIS registration data, ASN ownership, and IP range allocation for <TARGET>.",
@@ -67,6 +71,7 @@ Copy and customize these templates for common recon objectives. Replace `<TARGET
     "OPSEC: Public database queries only"
   ],
   "priority": 3,
+  "blocked_by": [],
   "status": "pending",
   "mitre": ["T1596.002"],
   "opsec": "standard",
@@ -74,11 +79,11 @@ Copy and customize these templates for common recon objectives. Replace `<TARGET
 }
 ```
 
-### OBJ-004: Web Fingerprinting (httpx)
+### Web Fingerprinting (httpx)
 
 ```json
 {
-  "id": "OBJ-004",
+  "attack_tactic_id": "TA0043",
   "phase": "recon",
   "title": "Web fingerprinting and live host probing",
   "description": "Probe all discovered subdomains with httpx for status codes, technology detection, and content analysis.",
@@ -90,6 +95,7 @@ Copy and customize these templates for common recon objectives. Replace `<TARGET
     "OPSEC: Request rate ≤ 10 req/sec, custom User-Agent set"
   ],
   "priority": 4,
+  "blocked_by": [0, 1],
   "status": "pending",
   "mitre": ["T1592.002"],
   "opsec": "standard",
@@ -97,11 +103,11 @@ Copy and customize these templates for common recon objectives. Replace `<TARGET
 }
 ```
 
-### OBJ-005: OSINT Gathering
+### OSINT Gathering
 
 ```json
 {
-  "id": "OBJ-005",
+  "attack_tactic_id": "TA0043",
   "phase": "recon",
   "title": "OSINT gathering for <TARGET>",
   "description": "Search Google dorks, GitHub/GitLab repos, and Wayback Machine for leaked credentials, exposed config files, and historical infrastructure data.",
@@ -114,6 +120,7 @@ Copy and customize these templates for common recon objectives. Replace `<TARGET
     "OPSEC: No direct interaction with target systems"
   ],
   "priority": 5,
+  "blocked_by": [],
   "status": "pending",
   "mitre": ["T1593.002"],
   "opsec": "standard",
@@ -123,11 +130,11 @@ Copy and customize these templates for common recon objectives. Replace `<TARGET
 
 ## Active Recon Objectives (priority 6-10)
 
-### OBJ-006: TCP Port Scan
+### TCP Port Scan
 
 ```json
 {
-  "id": "OBJ-006",
+  "attack_tactic_id": "TA0043",
   "phase": "recon",
   "title": "TCP SYN scan top 1000 ports on in-scope IPs",
   "description": "Perform TCP SYN scan of top 1000 ports on all in-scope IP addresses identified during passive recon.",
@@ -139,6 +146,7 @@ Copy and customize these templates for common recon objectives. Replace `<TARGET
     "OPSEC: Scan rate ≤ 100 packets/sec (-T3), within authorized testing window"
   ],
   "priority": 6,
+  "blocked_by": [1, 2],
   "status": "pending",
   "mitre": ["T1595.001"],
   "opsec": "standard",
@@ -146,14 +154,14 @@ Copy and customize these templates for common recon objectives. Replace `<TARGET
 }
 ```
 
-### OBJ-007: Service Version Detection
+### Service Version Detection
 
 ```json
 {
-  "id": "OBJ-007",
+  "attack_tactic_id": "TA0043",
   "phase": "recon",
   "title": "Service version detection on open ports",
-  "description": "Perform service version detection (-sV) on all open ports discovered in OBJ-006.",
+  "description": "Perform service version detection (-sV) on all open ports discovered by the port-scan objective.",
   "acceptance_criteria": [
     "nmap -sV completed on all open ports",
     "Results saved to <engagement>/recon/nmap_versions.txt and nmap_versions.xml",
@@ -162,6 +170,7 @@ Copy and customize these templates for common recon objectives. Replace `<TARGET
     "OPSEC: Version probes limited to previously discovered open ports only"
   ],
   "priority": 7,
+  "blocked_by": [5],
   "status": "pending",
   "mitre": ["T1592.002"],
   "opsec": "standard",
@@ -169,11 +178,11 @@ Copy and customize these templates for common recon objectives. Replace `<TARGET
 }
 ```
 
-### OBJ-008: Web Directory Fuzzing
+### Web Directory Fuzzing
 
 ```json
 {
-  "id": "OBJ-008",
+  "attack_tactic_id": "TA0043",
   "phase": "recon",
   "title": "Web directory fuzzing on live HTTP services",
   "description": "Run ffuf directory fuzzing against live web services identified by httpx, using common wordlist.",
@@ -185,6 +194,7 @@ Copy and customize these templates for common recon objectives. Replace `<TARGET
     "OPSEC: Request rate ≤ 10 req/sec (-rate 10), custom User-Agent"
   ],
   "priority": 8,
+  "blocked_by": [3],
   "status": "pending",
   "mitre": ["T1595.003"],
   "opsec": "standard",
@@ -192,11 +202,11 @@ Copy and customize these templates for common recon objectives. Replace `<TARGET
 }
 ```
 
-### OBJ-009: Vulnerability Scan (nuclei)
+### Vulnerability Scan (nuclei)
 
 ```json
 {
-  "id": "OBJ-009",
+  "attack_tactic_id": "TA0043",
   "phase": "recon",
   "title": "Vulnerability scan on live web targets",
   "description": "Run nuclei with default templates against all live web targets for known vulnerabilities.",
@@ -208,6 +218,7 @@ Copy and customize these templates for common recon objectives. Replace `<TARGET
     "OPSEC: Rate limited (-rl 5 -c 2), within authorized testing window"
   ],
   "priority": 9,
+  "blocked_by": [6, 7],
   "status": "pending",
   "mitre": ["T1595.002"],
   "opsec": "standard",
@@ -215,11 +226,11 @@ Copy and customize these templates for common recon objectives. Replace `<TARGET
 }
 ```
 
-### OBJ-010: Synthesis Report
+### Synthesis Report
 
 ```json
 {
-  "id": "OBJ-010",
+  "attack_tactic_id": "TA0043",
   "phase": "recon",
   "title": "Merge findings into prioritized attack surface report",
   "description": "Consolidate all recon findings into a single prioritized report with CVSS scoring and MITRE ATT&CK mapping.",
@@ -232,6 +243,7 @@ Copy and customize these templates for common recon objectives. Replace `<TARGET
     "JSON export saved to <engagement>/recon/report_<target>_recon.json"
   ],
   "priority": 10,
+  "blocked_by": [3, 4, 8],
   "status": "pending",
   "mitre": ["T1596"],
   "opsec": "standard",

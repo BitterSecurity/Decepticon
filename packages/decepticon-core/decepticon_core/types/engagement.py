@@ -35,17 +35,6 @@ class EngagementType(StrEnum):
 
 
 class ObjectivePhase(StrEnum):
-    """Descriptive operation phases; DAG edges determine execution order.
-
-    Operational phases plus a post-operation quality phase:
-      recon          → recon agent       (TA0043 Reconnaissance)
-      initial-access → exploit agent     (TA0001 Initial Access + TA0002 Execution)
-      post-exploit   → postexploit agent (TA0003-TA0009: Persistence thru Collection)
-      c2             → postexploit agent (TA0011 Command and Control)
-      exfiltration   → postexploit agent (TA0010 Exfiltration + Actions on Objectives)
-      reporting      → finding_verifier / finding_reporter (evidence quality)
-    """
-
     RECON = "recon"
     INITIAL_ACCESS = "initial-access"
     POST_EXPLOIT = "post-exploit"
@@ -83,6 +72,21 @@ class ObjectiveStatus(StrEnum):
     COMPLETED = "completed"
     BLOCKED = "blocked"
     CANCELLED = "cancelled"
+
+
+class AttackTechnique(BaseModel):
+    id: str
+    name: str
+    description: str
+
+
+class AttackAnnotation(BaseModel):
+    catalog: str
+    version: str
+    tactic_id: str
+    tactic_name: str
+    tactic_description: str
+    techniques: list[AttackTechnique] = Field(default_factory=list)
 
 
 class ObjectiveOutcome(StrEnum):
@@ -198,7 +202,7 @@ class Finding(BaseModel):
     )
 
     # AI Agent metadata
-    objective_id: str = Field(default="", description="OPPLAN objective that found this (OBJ-xxx)")
+    objective_id: str = Field(default="", description="Server-issued OPPLAN objective ID that found this")
     phase: ObjectivePhase | None = None
     agent: str = Field(
         default="", description="Agent that discovered this: recon/exploit/postexploit"
@@ -443,7 +447,7 @@ class Objective(BaseModel):
     The dispatcher selects from the prerequisite-ready frontier.
     """
 
-    id: str = Field(description="Unique ID, e.g. OBJ-001")
+    id: str = Field(description="Opaque objective ID issued by the OPPLAN server")
     phase: ObjectivePhase
     title: str
     description: str
@@ -456,6 +460,10 @@ class Objective(BaseModel):
     mitre: list[str] = Field(
         default_factory=list,
         description="MITRE ATT&CK technique IDs (e.g. ['T1190', 'T1059.004'])",
+    )
+    attack: AttackAnnotation | None = Field(
+        default=None,
+        description="Server-validated ATT&CK tactic and technique metadata",
     )
 
     # Red team-specific fields (not found in pentest planning)

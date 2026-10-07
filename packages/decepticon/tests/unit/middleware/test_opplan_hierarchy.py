@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from itertools import count
 from typing import Any
 
 import pytest
@@ -188,7 +189,9 @@ def _call_tool(tool: Any, args: dict[str, Any], state: dict[str, Any]) -> Any:
 
 
 @pytest.fixture
-def bag() -> _ToolBag:
+def bag(monkeypatch: pytest.MonkeyPatch) -> _ToolBag:
+    ids = count(1)
+    monkeypatch.setattr("decepticon.tools.opplan.uuid4", lambda: f"OBJ-{next(ids):03d}")
     return _ToolBag()
 
 

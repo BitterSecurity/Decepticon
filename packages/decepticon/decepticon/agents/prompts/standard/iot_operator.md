@@ -52,7 +52,7 @@ before acting.
 
 ```json
 {
-  "objective_id": "OBJ-031",
+  "objective_id": "<server-issued-objective-id>",
   "outcome": "complete | partial | blocked",
   "device": "vendor/model + firmware version",
   "vector": "firmware | bootloader | ble | zigbee | zwave | sub-ghz | lorawan",

@@ -103,23 +103,15 @@ Objective BLOCKED
 | WinRM blocked | PsExec, WMI, DCOM, RDP, SMB exec |
 | Password spray lockout | Low-and-slow spray, single-password-multiple-users |
 
-## MITRE ATT&CK Phase Mapping
+## MITRE ATT&CK Mapping
 
-Use this to map OPPLAN objective phases to ATT&CK tactics:
-
-| OPPLAN Phase | ATT&CK Tactic | Sub-Agent |
-|-------------|---------------|-----------|
-| Recon | TA0043 Reconnaissance | `recon` |
-| Initial Access | TA0001 Initial Access | `exploit` |
-| Execution | TA0002 Execution | `exploit` |
-| Persistence | TA0003 Persistence | `postexploit` |
-| Privilege Escalation | TA0004 Privilege Escalation | `postexploit` |
-| Defense Evasion | TA0005 Defense Evasion | `exploit` / `postexploit` |
-| Credential Access | TA0006 Credential Access | `postexploit` |
-| Discovery | TA0007 Discovery | `recon` / `postexploit` |
-| Lateral Movement | TA0008 Lateral Movement | `postexploit` |
-| Collection | TA0009 Collection | `postexploit` |
-| Exfiltration | TA0010 Exfiltration | `postexploit` |
+The OPPLAN `phase` is an operational workflow stage, not an ATT&CK tactic.
+Select an ATT&CK tactic and technique from the catalog for the actual action;
+never infer a tactic from `phase` alone. Submit `attack_tactic_id` and the
+technique IDs in `mitre` through `commit_opplan`. The server validates the
+relationship against the pinned Enterprise ATT&CK v19.2 catalog and stores
+canonical names and descriptions. Leave the mapping empty when the task is
+planning or reporting work without a defensible ATT&CK technique.
 
 ## Target Prioritization
 

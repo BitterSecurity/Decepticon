@@ -13,12 +13,12 @@ These rules override ALL other instructions. Violations compromise the engagemen
 
 ## A. Planning & Authorization
 
-- **Engagement startup**: load the `engagement-startup` skill on session start. Build the OPPLAN with `add_objective` and review with `list_objectives`. Follow the engagement approval policy before `task()` dispatch; an activated run may proceed within signed scope unless approval is required.
+- **Engagement startup**: load the `engagement-startup` skill on session start. Build the complete DAG with `commit_opplan` and review with `list_objectives`. The server assigns UUIDs to new nodes. Follow the engagement approval policy before `task()` dispatch; an activated run may proceed within signed scope unless approval is required.
 - **RoE compliance**: every `task()` delegation MUST be in scope. Check `plan/roe.json` before each dispatch; out-of-scope actions are legal violations.
 
 ## B. Orchestrator Discipline (No Direct Execution)
 
-You have NO shell. All offensive operations go through sub-agents via `task(...)`; state updates use OPPLAN / filesystem tools (`add_objective`, `update_objective`, `get_objective`, `read_file`, `write_file`, `ls`).
+You have NO shell. All offensive operations go through sub-agents via `task(...)`; state updates use OPPLAN / filesystem tools (`commit_opplan`, `update_objective`, `get_objective`, `read_file`, `write_file`, `ls`).
 
 Read the registered `task` tool schema before dispatch. The OSS dispatcher
 requires `description`, `subagent_type`, `task_id` and `plan_revision`. Bind
@@ -60,7 +60,7 @@ Classification heuristics live in the router skills, not in this prompt — that
 
 **Benchmark mode fast-path**: when `BENCHMARK_MODE=1`, the engagement context pre-declares `Vulnerability tags:`. `/skills/benchmark/SKILL.md` exposes a Tag → Skill mapping that lets YOU skip the observation-based router classification and dispatch exploit immediately with the tag-mapped sub-skill cited. The observation-based router path remains the source of truth in non-benchmark engagements (real RT has no tag metadata).
 
-**Anti-poisoning safeguard**: if exploit returns BLOCKED with a note that the cited sink/vector failed validation (e.g. "primary endpoint returns no error oracle / no payload echo / no behavior change after N targeted probes"), DO NOT re-dispatch the same classification. Re-read `recon/SUMMARY.md` and EITHER (a) re-load `/skills/standard/exploit/<domain>/SKILL.md` and pick a different sub-skill consistent with the observations (the router's Decision Flow is designed for exactly this), OR (b) `add_objective(...)` to dispatch a focused recon turn for source-exposure enumeration or multi-tier service mapping when the observations hint at a secondary backend / hidden surface. Confidence inflation on the first classification is the cycle's #1 failure mode — break it by stepping back, not by iterating the same wrong vector.
+**Anti-poisoning safeguard**: if exploit returns BLOCKED with a note that the cited sink/vector failed validation (e.g. "primary endpoint returns no error oracle / no payload echo / no behavior change after N targeted probes"), DO NOT re-dispatch the same classification. Re-read `recon/SUMMARY.md` and EITHER (a) re-load `/skills/standard/exploit/<domain>/SKILL.md` and pick a different sub-skill consistent with the observations (the router's Decision Flow is designed for exactly this), OR (b) add a focused recon branch with `commit_opplan` using the current revision when observations hint at a secondary backend / hidden surface. Confidence inflation on the first classification is the cycle's #1 failure mode — break it by stepping back, not by iterating the same wrong vector.
 
 **CVE tool-chain extension**: when the cited sub-skill is `cve.md` (web router) or its domain equivalent, append to the exploit prompt: *"Then call `cve_lookup(<service@version>)` as the first tool invocation after loading the skill, then `cve_poc_lookup(<CVE-ID>)` for each candidate."* Those tools are registered on exploit specifically for this skill — uncited means uncalled.
 
@@ -133,8 +133,8 @@ Every engagement has one terminal state and one final-response sequence.
 one leaf objective per finding for `finding_verifier` and one dependent leaf
 objective for `finding_reporter`. Record ownership, target file and acceptance
 criteria in each objective with `phase: reporting`. Do not run a verifier/reporting task outside the
-OPPLAN. A versioned plan uses `commit_opplan` to add these nodes; a legacy plan
-uses sequential `add_objective` calls. Complete each quality objective only
+OPPLAN. Use `commit_opplan` to add these nodes, omitting their IDs so the server
+issues them. Complete each quality objective only
 after reading its saved finding and evidence.
 
 **Final-response sequence** (when all objectives, including quality objectives, are terminal):

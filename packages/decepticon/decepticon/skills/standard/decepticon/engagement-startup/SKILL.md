@@ -86,7 +86,9 @@ When no OPPLAN exists and the applicable authorization documents are present:
    derive bounded objectives from the confirmed targets and operator instruction.
 2. Create one bounded objective per sub-agent context window. Submit the whole
    dependency DAG with `commit_opplan(objectives=[...], facts=[...],
-   expected_revision=0)`. A missing plan starts at revision 0. Declare future
+   expected_revision=0)`. Omit IDs on new objectives; the server issues UUIDs.
+   Reference new dependencies by zero-based position in `objectives`. A missing
+   plan starts at revision 0. Declare future
    facts with a producer objective and `verified=false`; use `blocked_by` for
    all-of predecessors, `any_of` for alternatives, and `required_fact_ids` for
    evidence gates. Do not impose phase order unless the actual dependencies

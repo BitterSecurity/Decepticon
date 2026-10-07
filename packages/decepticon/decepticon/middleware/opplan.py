@@ -23,13 +23,15 @@ Design notes:
   - Enum-typed parameters (ObjectivePhase, OpsecLevel, C2Tier)
   - Kill chain dependencies (blocked_by) with execution-time validation
   - Dynamic OPPLAN status injection every LLM call (battle tracker)
-  - Parallel mutation prevention (sequential counter-based IDs)
+  - Parallel mutation prevention for versioned DAG commits
   - Backend-mediated OPPLAN persistence at /workspace/plan/opplan.json
 """
 
 from __future__ import annotations
 
+import json
 import os
+from collections.abc import Callable
 from typing import Annotated, Any, NotRequired, cast, override
 
 from deepagents.backends.protocol import BackendProtocol
@@ -40,9 +42,17 @@ from langchain_core.messages import AIMessage, SystemMessage, ToolMessage
 
 from decepticon.tools.opplan import (
     OPPLAN_TOOL_NAMES,
+    OPPLAN_VIRTUAL_PATH,
+    _assign_objective_ids,
+    _canonicalize_attack_rows,
     _inspect_objective_rows,
+    _persist_opplan_to_backend,
+    _read_text_from_backend,
+    _run_sandbox_backend,
+    _scoped_opplan_backend,
     build_opplan_tools,
 )
+from decepticon_core.types.engagement import OPPLAN, Objective
 
 _PLAN_MUTATION_TOOLS = frozenset(
     {
@@ -96,7 +106,6 @@ class OPPLANState(AgentState):
     """Threat actor profile for context injection."""
 
     objective_counter: Annotated[NotRequired[int], OmitFromInput]
-    """Auto-increment counter for objective IDs."""
 
     workspace_path: Annotated[NotRequired[str], OmitFromInput, _reduce_workspace_path]
     """Engagement workspace root path — set by launcher config/load_opplan."""
@@ -126,10 +135,21 @@ a stable, sorted, human-readable JSON document with a `schema_version`, a
 ### Objective CRUD Tools
 
 - **`commit_opplan`** — Create or revise the complete versioned objective DAG in
-  one call. Use stable IDs and `expected_revision`; forward references are valid.
+  one call. Omit `id` on every new node: the server assigns a UUID. Reference
+  new nodes by their zero-based position in the submitted `objectives` array;
+  existing nodes keep their saved IDs. These positions never become saved IDs.
+  Use `expected_revision`; forward references are valid.
   `blocked_by` means all predecessors, `any_of` means one per alternative group.
   Declare expected facts with `facts` and use `required_fact_ids` for evidence gates.
   Keep active and terminal objectives unchanged during a replan.
+
+- For attack-mapped objectives, supply `attack_tactic_id` (for example `TA0001`)
+  and technique IDs in `mitre`. The server validates active IDs and each
+  tactic-to-technique relationship against Enterprise ATT&CK v19.2, then saves
+  canonical names and descriptions. `phase` remains an operational workflow
+  stage; do not infer an ATT&CK tactic from `phase` alone. Use ATT&CK lookup
+  tools to choose candidates, then rely on the commit result for validation.
+  Objectives without a defensible ATT&CK mapping may leave both fields empty.
 
 - **`record_plan_fact`** — Attach existing workspace evidence to a declared fact
   after its producer completes. Path existence is checked; content truth is not.
@@ -138,6 +158,8 @@ a stable, sorted, human-readable JSON document with a `schema_version`, a
   Active and completed dependent objectives become blocked transitively.
 
 - **`add_objective`** — Legacy single-objective tool for unversioned plans only.
+  It also receives a server-issued UUID and requires `attack_tactic_id` when
+  supplying `mitre` technique IDs.
   Use `commit_opplan` for new plans and replans.
 
 - **`get_objective`** — Read a single objective's full details.
@@ -199,6 +221,8 @@ blocked → in-progress                 (retry with different approach)
 - ALWAYS set owner to the sub-agent name before delegating (recon/exploit/postexploit)
 - ALWAYS respect the validated DAG dependencies; phase is descriptive metadata,
   not an execution gate.
+- NEVER invent ATT&CK names or descriptions; use the server's v19.2 catalog.
+- NEVER use objective IDs as sequence numbers or infer execution order from them.
 - Status-ready candidates are not authorization: check RoE and verify evidence
   before delegation or completion.
 """
@@ -385,10 +409,134 @@ class OPPLANMiddleware(AgentMiddleware):
 
     state_schema = OPPLANState
 
-    def __init__(self, backend: BackendProtocol | None = None) -> None:
+    def __init__(
+        self,
+        backend: BackendProtocol | None = None,
+        initial_objectives: list[dict[str, Any]] | None = None,
+        engagement_name: str = "",
+        threat_profile: str = "",
+        migrate_legacy_plan: Callable[[dict[str, Any]], dict[str, Any]] | None = None,
+    ) -> None:
         super().__init__()
         self._backend = backend
+        self._initial_objectives = initial_objectives
+        self._engagement_name = engagement_name
+        self._threat_profile = threat_profile
+        self._migrate_legacy_plan = migrate_legacy_plan
         self.tools = build_opplan_tools(backend)
+
+    @override
+    def before_agent(self, state, runtime):
+        if state.get("objectives") or not state.get("workspace_path") or self._backend is None:
+            return None
+        token = self._bind_run_sandbox(runtime)
+        try:
+            scoped = _scoped_opplan_backend(self._backend, state["workspace_path"])
+            if scoped is None:
+                return None
+            content, error = _read_text_from_backend(scoped, OPPLAN_VIRTUAL_PATH)
+            if content is not None:
+                payload = json.loads(content)
+                try:
+                    plan = OPPLAN.model_validate(payload)
+                except ValueError:
+                    if self._migrate_legacy_plan is None:
+                        raise
+                    migrated = self._migrate_legacy_plan(payload)
+                    plan = OPPLAN.model_validate(migrated)
+                    next_revision = int(payload.get("revision", 0)) + 1
+                    persist_error = _persist_opplan_to_backend(
+                        self._backend,
+                        state["workspace_path"],
+                        [objective.model_dump(mode="json") for objective in plan.objectives],
+                        plan.engagement_name,
+                        plan.threat_profile,
+                        revision=next_revision,
+                        facts=[fact.model_dump(mode="json") for fact in plan.facts],
+                        strict=True,
+                        expected_revision=int(payload.get("revision", 0)),
+                    )
+                    if persist_error:
+                        raise RuntimeError(f"OPPLAN migration failed: {persist_error}")
+                    plan.revision = next_revision
+                return {
+                    "objectives": [objective.model_dump(mode="json") for objective in plan.objectives],
+                    "plan_facts": [fact.model_dump(mode="json") for fact in plan.facts],
+                    "plan_revision": plan.revision,
+                    "engagement_name": plan.engagement_name,
+                    "threat_profile": plan.threat_profile,
+                }
+            if error and "not found" not in error.lower() and "file_not_found" not in error:
+                raise RuntimeError(f"Cannot read OPPLAN: {error}")
+            if not self._initial_objectives:
+                return None
+            rows, _, _ = _assign_objective_ids(self._initial_objectives, [], set())
+            rows = _canonicalize_attack_rows(rows, {})
+            objectives = [Objective.model_validate(row) for row in rows]
+            inspection = _inspect_objective_rows(
+                [objective.model_dump(mode="json") for objective in objectives]
+            )
+            if inspection.issues:
+                raise ValueError(
+                    "Invalid initial OPPLAN: "
+                    + "; ".join(issue.describe() for issue in inspection.issues)
+                )
+            name = self._engagement_name or state.get("engagement_name", "")
+            profile = self._threat_profile or state.get("threat_profile", "")
+            objective_rows = [objective.model_dump(mode="json") for objective in objectives]
+            persist_error = _persist_opplan_to_backend(
+                self._backend,
+                state["workspace_path"],
+                objective_rows,
+                name,
+                profile,
+                revision=1,
+                facts=[],
+                strict=True,
+                expected_revision=0,
+            )
+            if persist_error:
+                raise RuntimeError(f"Initial OPPLAN was not saved: {persist_error}")
+            return {
+                "objectives": objective_rows,
+                "plan_facts": [],
+                "plan_revision": 1,
+                "engagement_name": name,
+                "threat_profile": profile,
+            }
+        finally:
+            if token is not None:
+                _run_sandbox_backend.reset(token)
+
+    def _bind_run_sandbox(self, runtime):
+        config = getattr(runtime, "config", None)
+        if not config or not (config.get("configurable") or {}).get("sandbox_url"):
+            return None
+        from decepticon.backends import build_sandbox_backend, make_agent_backend
+
+        return _run_sandbox_backend.set(make_agent_backend(build_sandbox_backend(config)))
+
+    @override
+    def wrap_tool_call(self, request, handler):
+        if request.tool_call["name"] not in OPPLAN_TOOL_NAMES:
+            return handler(request)
+        token = self._bind_run_sandbox(request.runtime)
+        try:
+            return handler(request)
+        finally:
+            if token is not None:
+                _run_sandbox_backend.reset(token)
+
+    @override
+    async def awrap_tool_call(self, request, handler):
+        if request.tool_call["name"] not in OPPLAN_TOOL_NAMES:
+            return await handler(request)
+        token = self._bind_run_sandbox(request.runtime)
+        try:
+            return await handler(request)
+        finally:
+            if token is not None:
+                _run_sandbox_backend.reset(token)
 
     # ── wrap_model_call: inject OPPLAN context ────────────────────────
 

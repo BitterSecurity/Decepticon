@@ -37,17 +37,23 @@ Each objective must follow the **one context window** rule — if an agent can't
 
 See `references/objective-templates.md` for recon-phase templates and `references/objective-rules.md` for the complete decomposition rules.
 
-**ID Convention:** `OBJ-{NUMBER}` (auto-generated as OBJ-001, OBJ-002, ...)
+Omit `id` for new objectives. The OPPLAN server issues an opaque UUID for each
+node. Within one `commit_opplan` call, reference new dependencies by their
+zero-based positions in the submitted `objectives` array.
 
 **Phase → Sub-Agent Routing:**
 
-| Phase | Sub-Agent | MITRE Tactics |
-|-------|-----------|---------------|
-| recon | recon | TA0043 Reconnaissance |
-| initial-access | exploit | TA0001 Initial Access, TA0002 Execution |
-| post-exploit | postexploit | TA0003-TA0009 (Persistence thru Collection) |
-| c2 | postexploit | TA0011 Command and Control |
-| exfiltration | postexploit | TA0010 Exfiltration |
+| Workflow phase | Typical sub-agent |
+|----------------|-------------------|
+| recon | recon |
+| initial-access | exploit |
+| post-exploit | postexploit |
+| c2 | postexploit |
+| exfiltration | postexploit |
+| reporting | analyst |
+
+The phase describes the workflow and does not determine the ATT&CK tactic.
+Set `attack_tactic_id` and `mitre` only after checking the current catalog.
 
 ### Step 3: Write Acceptance Criteria
 
@@ -62,17 +68,22 @@ Beyond these, add criteria specific to what the objective accomplishes. Every cr
 ### Step 4: Assign Metadata
 
 For each objective:
-- **priority** — Sequential, respects kill chain ordering and dependencies
-- **mitre** — List of MITRE ATT&CK technique IDs (e.g. ["T1190", "T1059.004"])
+- **priority** — Relative scheduling priority; dependencies define execution order
+- **mitre** — Current Enterprise ATT&CK technique IDs under `attack_tactic_id`
 - **opsec** — OPSEC level: loud, standard, careful, quiet, silent
 - **opsec_notes** — Specific OPSEC constraints for this objective
 - **c2_tier** — C2 tier matching OPSEC level: interactive, short-haul, long-haul
 - **concessions** — Pre-authorized assists if objective is blocked (TIBER/CORIE concept)
-- **blocked_by** — Objective IDs that must complete first
+- **blocked_by** — Existing objective IDs or positions of new prerequisites
+- **any_of** — Alternative prerequisite groups for parallel branches
 
 ### Step 5: Generate OPPLAN
 
-Use `add_objective` (one at a time, set `engagement_name` and `threat_profile` on first call) → `list_objectives` to review → present for user approval. No mode switching needed — OPPLAN tools are always available.
+Use `commit_opplan` with the complete DAG, `expected_revision=0`, and the
+engagement name and threat profile. The server returns issued UUIDs by
+submitted position. Read the committed plan with `load_opplan` or
+`list_objectives`, then present it for user approval. For replans, retain
+existing IDs and submit the complete graph with its current revision.
 
 ### Step 6: Validate
 

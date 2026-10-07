@@ -170,7 +170,7 @@ Report structured status:
 
 | Objective | Phase | Sub-Agent | Result | Key Findings |
 |-----------|-------|-----------|--------|-------------|
-| OBJ-001 | Recon | recon | COMPLETED | 12 subdomains, AD on 10.0.0.5 |
+| `<server-issued-objective-id>` | Recon | recon | COMPLETED | 12 subdomains, AD on 10.0.0.5 |
 
 ### Decision Transparency
 Before each delegation, briefly state:
@@ -183,9 +183,9 @@ Maintain running status after each iteration:
 ```
 Engagement: {name}
 Progress: {completed}/{total} objectives
-Current: OBJ-003 (Exploit phase)
-Blocked: OBJ-002 (WAF blocking SQLi — will retry after credential access)
-Next: OBJ-004 (PostExploit — pending OBJ-003 completion)
+Current: <current objective title and ID> (Exploit phase)
+Blocked: <blocked objective title and ID> (WAF blocking SQLi — will retry after credential access)
+Next: <ready objective title and ID> (after its DAG prerequisites complete)
 ```
 
 ### Engagement Completion Report
