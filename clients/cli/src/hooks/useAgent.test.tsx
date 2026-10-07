@@ -92,7 +92,7 @@ describe("useAgent — engagement handoff lifecycle", () => {
     expect(notices[0].content).not.toContain("/resume");
   });
 
-  it("keeps a server error in conversation history without a lost-connection notice", async () => {
+  it("reports a server error without a duplicate or lost-connection notice", async () => {
     (mockState.client!.runs.stream as Mock).mockReturnValueOnce(createMockStream([
       { event: "error", data: { message: "Model request exceeds context size" } },
     ]));
@@ -102,9 +102,7 @@ describe("useAgent — engagement handoff lifecycle", () => {
     await act(async () => { await vi.runAllTimersAsync(); });
 
     const notices = result.current.events.filter((event) => event.type === "system");
-    expect(notices.map((event) => event.content)).toEqual([
-      "Server error: Model request exceeds context size",
-    ]);
+    expect(notices).toEqual([]);
     expect(result.current.error).toBe("Model request exceeds context size");
     expect(result.current.runState).toBe("idle");
   });
