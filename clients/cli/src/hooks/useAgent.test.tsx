@@ -67,6 +67,48 @@ describe("useAgent — engagement handoff lifecycle", () => {
     vi.restoreAllMocks();
   });
 
+  it.each([
+    [{ finish_reason: "length" }, "output token limit"],
+    [{ stop_reason: "max_tokens" }, "output token limit"],
+    [{ finish_reason: "content_filter" }, "content filter"],
+    [{ finish_reason: "stop" }, "cause is unknown"],
+    [{}, "cause is unknown"],
+  ])("reports empty-response metadata %j without recommending a blind retry", async (metadata, diagnosis) => {
+    (mockState.client!.runs.stream as Mock).mockReturnValueOnce(createMockStream([
+      { event: "metadata", data: { run_id: "run-empty-response" } },
+      { event: "values", data: { messages: [{
+        type: "ai", content: "", response_metadata: metadata,
+      }] } },
+    ]));
+    const { result } = renderHook(() => useAgent());
+
+    act(() => result.current.submit("hello"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+
+    const notices = result.current.events.filter((event) => event.type === "system");
+    expect(notices).toHaveLength(1);
+    expect(notices[0].content).toContain(diagnosis);
+    expect(notices[0].content).toContain("run-empty-response");
+    expect(notices[0].content).not.toContain("/resume");
+  });
+
+  it("keeps a server error in conversation history without a lost-connection notice", async () => {
+    (mockState.client!.runs.stream as Mock).mockReturnValueOnce(createMockStream([
+      { event: "error", data: { message: "Model request exceeds context size" } },
+    ]));
+    const { result } = renderHook(() => useAgent());
+
+    act(() => result.current.submit("hello"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+
+    const notices = result.current.events.filter((event) => event.type === "system");
+    expect(notices.map((event) => event.content)).toEqual([
+      "Server error: Model request exceeds context size",
+    ]);
+    expect(result.current.error).toBe("Model request exceeds context size");
+    expect(result.current.runState).toBe("idle");
+  });
+
   // ── 1. engagement_ready flips assistantId mid-stream ─────────────────────
   it("flips assistantId to 'decepticon' when engagement_ready fires mid-stream", async () => {
     const stream = createControllableStream();
