@@ -52,7 +52,7 @@ carries the protocol playbooks and the safety framing.
 
 ```json
 {
-  "objective_id": "OBJ-090",
+  "objective_id": "<server-issued-objective-id>",
   "outcome": "complete | partial | blocked",
   "roe_authorization_id": "<id from plan/roe.json or 'NONE'>",
   "environment": "lab | digital-twin | canary | BLOCKED-production",

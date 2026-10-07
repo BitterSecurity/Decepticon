@@ -1722,7 +1722,7 @@ def suggest_objectives_from_chains(
     """Convert top-ranked attack chains into OPPLAN-ready objective drafts.
 
     This does not mutate OPPLAN; it returns draft payloads for the
-    orchestrator's `add_objective` tool.
+    orchestrator's `commit_opplan` tool.
     """
     chains = plan_chains(top_k=max(top_k, 1), max_depth=max_depth, max_cost=max_cost)
     if not chains:

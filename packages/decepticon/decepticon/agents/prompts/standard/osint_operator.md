@@ -62,7 +62,7 @@ code-leak, infra, crypto, geo).
 
 ```json
 {
-  "objective_id": "OBJ-001",
+  "objective_id": "<server-issued-objective-id>",
   "outcome": "complete | partial | blocked",
   "attack_surface": {
     "domains": ["acme.com"],

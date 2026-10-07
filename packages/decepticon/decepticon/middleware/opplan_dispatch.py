@@ -20,7 +20,7 @@ class PlannedTaskSchema(BaseModel):
 
     description: str = Field(description="Complete subagent handoff and expected output")
     subagent_type: str = Field(description="One registered specialist type")
-    task_id: str = Field(description="Current OPPLAN leaf objective ID, e.g. OBJ-003")
+    task_id: str = Field(description="Current OPPLAN leaf objective ID, issued by the server")
     plan_revision: int = Field(ge=0, description="Revision observed when selecting task_id")
 
 

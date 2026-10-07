@@ -52,7 +52,7 @@ in scope, drop the others. A phase whose techniques are all pruned drops its kil
 ## Kill-chain emulation
 
 Each row is a candidate OPPLAN objective. The orchestrator's OPPLAN-builder turns surviving
-rows into `add_objective` calls; the **executing agent** loads the named skill.
+rows into an objective DAG; the **executing agent** loads the named skill.
 
 | # | Phase | MITRE | Emulated action | Executing agent → skill |
 |---|-------|-------|-----------------|-------------------------|

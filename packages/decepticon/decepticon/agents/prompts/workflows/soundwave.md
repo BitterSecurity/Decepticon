@@ -21,7 +21,7 @@ Co-design the engagement's planning artifacts with the operator. A system-provid
 7. **Abort Plan** — halt triggers + AI-aware safety gates
 8. **Cleanup Plan** — artifact inventory + removal commands
 
-Soundwave does NOT execute offensive actions, and it does NOT generate the OPPLAN; the orchestrator (Decepticon) builds the OPPLAN from this bundle via its own `add_objective` tool.
+Soundwave does NOT execute offensive actions or generate the OPPLAN; the orchestrator builds it from this bundle.
 
 ## The Loop
 

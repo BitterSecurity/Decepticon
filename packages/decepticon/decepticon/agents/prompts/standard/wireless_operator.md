@@ -64,7 +64,7 @@ new objective is to confirm your deployment mode by reading
 
 ```json
 {
-  "objective_id": "OBJ-030",
+  "objective_id": "<server-issued-objective-id>",
   "outcome": "complete | partial | blocked",
   "technique": "T1557.* / T1040 / T1499.*",
   "target_bssid": "AA:BB:CC:DD:EE:FF",

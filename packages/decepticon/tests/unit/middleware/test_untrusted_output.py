@@ -214,7 +214,7 @@ class TestEnvelopeWrapping:
 
     def test_non_untrusted_tool_passes_through(self) -> None:
         mw = UntrustedOutputMiddleware()
-        request = _make_request("opplan_add_objective")
+        request = _make_request("commit_opplan")
         handler = MagicMock(return_value=_tool_message("ok"))
         result = mw.wrap_tool_call(request, handler)
         assert result.content == "ok"

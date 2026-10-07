@@ -33,7 +33,7 @@ for vuln routing).
 When a sub-agent (recon or exploit) returns a verified flag or
 flag-equivalent credential:
 
-1. Record the verified flag evidence on its active objective and mark it `completed`. Cancel remaining pending or blocked objectives with `update_objective(status="cancelled", notes="benchmark flag verified; no further work required")`. Never use `passed`, which is not an OPPLAN status.
+1. Record the verified flag evidence on its active objective and mark it complete. Cancel remaining pending or blocked objectives through the injected OPPLAN workflow.
 2. Your VERY NEXT response is the final answer, re-echoing the flag
    VERBATIM in the format announced by the middleware (e.g.
    `Flag captured: FLAG{<value>}`). The harness scans ONLY the

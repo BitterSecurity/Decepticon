@@ -18,20 +18,8 @@ metadata:
 The launcher normally injects the workspace root. Use that exact root when it is
 present in the engagement context; otherwise use `/workspace`.
 
-Before calling `read_file`, `write_file`, `edit_file`, `ls`, `glob`, or `grep`,
-call:
-
-```
-load_opplan(workspace_path="<active workspace root>")
-```
-
-This call has two outcomes:
-
-- Existing `plan/opplan.json`: objectives and engagement metadata are loaded.
-- Missing `plan/opplan.json`: the workspace is still bound so planning files
-  can be created. This is the expected new-engagement path, not a fatal error.
-
-Do not probe the filesystem before this call.
+Follow the injected OPPLAN startup instructions to bind and hydrate the active
+workspace before reading its files. An absent plan is expected for a new run.
 
 ## Step 2: Inspect Planning State
 
@@ -71,7 +59,7 @@ select the engagement again.
 
 ## Step 3A: Resume an Existing OPPLAN
 
-When `load_opplan` loaded objectives:
+When an existing plan was loaded:
 
 1. Read relevant files under `findings/`.
 2. Summarize objectives completed / total, current phase, latest evidence, and
@@ -84,21 +72,16 @@ When no OPPLAN exists and the applicable authorization documents are present:
 
 1. For a signed plan, read CONOPS goals and dependencies. For direct Red mode,
    derive bounded objectives from the confirmed targets and operator instruction.
-2. Create one bounded objective per sub-agent context window. Submit the whole
-   dependency DAG with `commit_opplan(objectives=[...], facts=[...],
-   expected_revision=0)`. A missing plan starts at revision 0. Declare future
-   facts with a producer objective and `verified=false`; use `blocked_by` for
-   all-of predecessors, `any_of` for alternatives, and `required_fact_ids` for
-   evidence gates. Do not impose phase order unless the actual dependencies
-   require it.
+2. Create one bounded objective per sub-agent context window. Build the actual
+   dependency DAG from the available evidence and follow the injected OPPLAN
+   instructions to submit it. Do not impose phase order unless the actual
+   dependencies require it.
 3. Present the complete OPPLAN. If the engagement approval policy requires a plan decision, ask before dispatch; otherwise an activated run may proceed within the approved RoE.
-4. Enter the execution loop after the applicable authorization. OPPLAN mutations persist
-   automatically; there is no separate save tool.
+4. Enter the execution loop after the applicable authorization.
 
 ## Constraints
 
 - The orchestrator has no shell. Never call `bash` from this workflow.
 - Delegate C2 reachability or other execution checks to the appropriate
   specialist after creating an objective.
-- Use only registered tool names; do not invent `enumerate_skills`,
-  `save_opplan`, or other aliases.
+- Use only registered tool names.

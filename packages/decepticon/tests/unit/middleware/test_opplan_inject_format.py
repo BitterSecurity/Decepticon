@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -8,6 +9,25 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 from decepticon.middleware import opplan as opplan_mod
 from decepticon.middleware.opplan import OPPLAN_SYSTEM_PROMPT, OPPLANMiddleware
+
+
+def test_opplan_tool_instructions_have_one_prompt_source() -> None:
+    package_root = Path(opplan_mod.__file__).resolve().parents[1]
+    tool_names = (
+        "commit_opplan",
+        "update_objective",
+        "get_objective",
+        "list_objectives",
+        "load_opplan",
+        "record_plan_fact",
+        "revoke_plan_fact",
+    )
+    for tool_name in tool_names:
+        assert tool_name in OPPLAN_SYSTEM_PROMPT
+    for root in (package_root / "agents" / "prompts", package_root / "skills"):
+        for prompt in root.rglob("*.md"):
+            content = prompt.read_text(encoding="utf-8")
+            assert not any(name in content for name in tool_names), prompt
 
 
 def _obj_dict(obj_id: str, **overrides: Any) -> dict:
@@ -325,7 +345,7 @@ class TestAfterModelSingleOrZeroOpplanCalls:
         last_ai = AIMessage(
             content="",
             tool_calls=[
-                {"id": "tc-1", "name": "add_objective", "args": {}, "type": "tool_call"},
+                {"id": "tc-1", "name": "commit_opplan", "args": {}, "type": "tool_call"},
                 {"id": "tc-2", "name": "bash", "args": {"command": "ls"}, "type": "tool_call"},
             ],
         )
@@ -338,7 +358,7 @@ class TestAafterModelDelegatesToSync:
             content="",
             tool_calls=[
                 {"id": "tc-a", "name": "list_objectives", "args": {}, "type": "tool_call"},
-                {"id": "tc-b", "name": "add_objective", "args": {}, "type": "tool_call"},
+                {"id": "tc-b", "name": "commit_opplan", "args": {}, "type": "tool_call"},
             ],
         )
         result = await OPPLANMiddleware().aafter_model({"messages": [last_ai]}, runtime=None)
@@ -351,7 +371,7 @@ class TestAafterModelDelegatesToSync:
         last_ai = AIMessage(
             content="",
             tool_calls=[
-                {"id": "tc-x", "name": "add_objective", "args": {}, "type": "tool_call"},
+                {"id": "tc-x", "name": "commit_opplan", "args": {}, "type": "tool_call"},
             ],
         )
         result = await OPPLANMiddleware().aafter_model({"messages": [last_ai]}, runtime=None)

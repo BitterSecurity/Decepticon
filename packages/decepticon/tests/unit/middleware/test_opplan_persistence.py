@@ -1,21 +1,10 @@
-"""Tests for OPPLAN backend persistence, structured JSON, cycle guards, and the
-strict-sequential ``after_model`` rule.
-
-Covers the slice of the OPPLAN middleware that this PR introduced:
-
-- ``_persist_opplan_to_backend`` writes a v1-shaped JSON document.
-- Each mutating tool (add/update/expand/collapse) writes through the backend.
-- ``_render`` and ``objective_collapse`` survive cycles in ``parent_id``.
-- ``after_model`` rejects two OPPLAN tool calls in the same model step.
-- ``list_objectives`` does not announce "ALL OBJECTIVES COMPLETE" for an
-  empty plan.
-"""
-
 from __future__ import annotations
 
 import json
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
+from uuid import UUID
 
 import pytest
 from deepagents.backends.filesystem import FilesystemBackend
@@ -222,6 +211,8 @@ def test_load_opplan_reads_through_backend(tmp_path: Path) -> None:
     assert cmd.update["engagement_name"] == "demo"
     assert cmd.update["workspace_path"] == "/workspace"
     assert cmd.update["objectives"][0]["id"] == "OBJ-001"
+    assert cmd.update["plan_revision"] == 1
+    assert json.loads(_opplan_path(tmp_path).read_text())["revision"] == 1
     assert OPPLAN_VIRTUAL_PATH in cmd.update["messages"][0].content
 
 
@@ -259,6 +250,7 @@ def test_load_opplan_binds_workspace_when_plan_is_missing(tmp_path: Path) -> Non
 
     assert cmd.update["workspace_path"] == "/workspace"
     assert "No opplan.json found" in cmd.update["messages"][0].content
+    assert cmd.update["messages"][0].status == "success"
 
     scoped = EngagementFilesystemBackend(backend, cmd.update["workspace_path"])
     result = scoped.write("/workspace/plan/brief.md", "# Brief\n")
@@ -290,16 +282,15 @@ def _call(name: str, args: dict, state: dict, backend=None):
     return _tool(name, backend=backend).invoke(payload)
 
 
-def test_add_objective_auto_persists(tmp_path: Path) -> None:
+def test_commit_opplan_auto_persists(tmp_path: Path) -> None:
     backend = _backend(tmp_path)
     cmd = _call(
-        "add_objective",
+        "commit_opplan",
         {
-            "title": "scan",
-            "phase": "recon",
-            "description": "…",
-            "acceptance_criteria": ["nmap output saved"],
-            "priority": 1,
+            "objectives": [
+                {key: value for key, value in _obj_dict("new", title="scan").items() if key != "id"}
+            ],
+            "expected_revision": 0,
             "engagement_name": "demo",
             "threat_profile": "apt-x",
         },
@@ -316,8 +307,8 @@ def test_commit_opplan_accepts_forward_dependencies_and_rejects_stale_replans(
     backend = _backend(tmp_path)
     state = {"workspace_path": "/workspace"}
     rows = [
-        _obj_dict("OBJ-002", blocked_by=["OBJ-001"]),
-        _obj_dict("OBJ-001"),
+        {k: v for k, v in _obj_dict("second", blocked_by=[1]).items() if k != "id"},
+        {k: v for k, v in _obj_dict("first").items() if k != "id"},
     ]
     first = _call(
         "commit_opplan",
@@ -331,6 +322,10 @@ def test_commit_opplan_accepts_forward_dependencies_and_rejects_stale_replans(
         backend=backend,
     )
     assert first.update["plan_revision"] == 1
+    first_id, second_id = [row["id"] for row in first.update["objectives"]]
+    UUID(first_id)
+    UUID(second_id)
+    assert first.update["objectives"][0]["blocked_by"] == [second_id]
     assert json.loads(_opplan_path(tmp_path).read_text())["revision"] == 1
     stale = _call(
         "commit_opplan",
@@ -341,6 +336,114 @@ def test_commit_opplan_accepts_forward_dependencies_and_rejects_stale_replans(
     assert stale.update["messages"][0].status == "error"
 
 
+def test_commit_opplan_rejects_client_issued_id_and_invalid_attack_mapping(tmp_path: Path) -> None:
+    backend = _backend(tmp_path)
+    state = {"workspace_path": "/workspace"}
+    forged = _call(
+        "commit_opplan",
+        {"objectives": [_obj_dict("OBJ-999")], "expected_revision": 0},
+        state=state,
+        backend=backend,
+    )
+    assert forged.update["messages"][0].status == "error"
+    assert not _opplan_path(tmp_path).exists()
+
+    mismatched = {
+        **{k: v for k, v in _obj_dict("new").items() if k != "id"},
+        "mitre": ["T1685"],
+        "attack_tactic_id": "TA0005",
+    }
+    rejected = _call(
+        "commit_opplan",
+        {"objectives": [mismatched], "expected_revision": 0},
+        state=state,
+        backend=backend,
+    )
+    assert rejected.update["messages"][0].status == "error"
+    assert "TA0112" in rejected.update["messages"][0].content
+    assert not _opplan_path(tmp_path).exists()
+
+
+def test_commit_opplan_canonicalizes_attack_descriptions(tmp_path: Path) -> None:
+    backend = _backend(tmp_path)
+    row = {
+        **{k: v for k, v in _obj_dict("new").items() if k != "id"},
+        "mitre": ["T1685"],
+        "attack_tactic_id": "TA0112",
+        "attack": {"catalog": "forged", "version": "0", "tactic_id": "TA0112"},
+    }
+    committed = _call(
+        "commit_opplan",
+        {"objectives": [row], "expected_revision": 0},
+        state={"workspace_path": "/workspace"},
+        backend=backend,
+    )
+    objective = committed.update["objectives"][0]
+    UUID(objective["id"])
+    assert objective["attack"]["version"] == "19.2"
+    assert objective["attack"]["tactic_name"] == "Defense Impairment"
+    assert objective["attack"]["techniques"][0]["name"] == "Disable or Modify Tools"
+    assert objective["attack"]["techniques"][0]["description"]
+    detail = _call(
+        "get_objective",
+        {"objective_id": objective["id"]},
+        state={"objectives": committed.update["objectives"]},
+        backend=backend,
+    )
+    assert "TA0112 Defense Impairment" in detail.update["messages"][0].content
+    assert "T1685 Disable or Modify Tools" in detail.update["messages"][0].content
+
+
+def test_middleware_seeds_and_hydrates_one_versioned_plan(tmp_path: Path) -> None:
+    backend = _backend(tmp_path)
+    seed = {
+        **{k: v for k, v in _obj_dict("new").items() if k != "id"},
+        "mitre": ["T1190"],
+        "attack_tactic_id": "TA0001",
+    }
+    middleware = OPPLANMiddleware(
+        backend=backend,
+        initial_objectives=[seed],
+        engagement_name="demo",
+    )
+    runtime = SimpleNamespace(config={})
+    first = middleware.before_agent({"workspace_path": "/workspace"}, runtime)
+    assert first is not None
+    UUID(first["objectives"][0]["id"])
+    assert first["plan_revision"] == 1
+    assert first["objectives"][0]["attack"]["version"] == "19.2"
+    assert json.loads(_opplan_path(tmp_path).read_text())["revision"] == 1
+
+    hydrated = OPPLANMiddleware(backend=backend).before_agent(
+        {"workspace_path": "/workspace"}, runtime
+    )
+    assert hydrated == first
+
+
+def test_middleware_upgrades_saved_unversioned_plan_without_renaming_ids(tmp_path: Path) -> None:
+    backend = _backend(tmp_path)
+    _persist_opplan_to_backend(backend, "/workspace", [_obj_dict("OBJ-001")], "demo", "")
+    hydrated = OPPLANMiddleware(backend=backend).before_agent(
+        {"workspace_path": "/workspace"}, SimpleNamespace(config={})
+    )
+    assert hydrated is not None
+    assert hydrated["plan_revision"] == 1
+    assert hydrated["objectives"][0]["id"] == "OBJ-001"
+    assert json.loads(_opplan_path(tmp_path).read_text())["revision"] == 1
+
+
+def test_middleware_upgrades_unversioned_checkpoint_state(tmp_path: Path) -> None:
+    backend = _backend(tmp_path)
+    hydrated = OPPLANMiddleware(backend=backend).before_agent(
+        {"workspace_path": "/workspace", "objectives": [_obj_dict("OBJ-004")], "plan_revision": 0},
+        SimpleNamespace(config={}),
+    )
+    assert hydrated is not None
+    assert hydrated["plan_revision"] == 1
+    assert hydrated["objectives"][0]["id"] == "OBJ-004"
+    assert json.loads(_opplan_path(tmp_path).read_text())["revision"] == 1
+
+
 def test_versioned_completion_requires_real_evidence_and_separates_no_finding(
     tmp_path: Path,
 ) -> None:
@@ -348,7 +451,7 @@ def test_versioned_completion_requires_real_evidence_and_separates_no_finding(
     committed = _call(
         "commit_opplan",
         {
-            "objectives": [_obj_dict("OBJ-001")],
+            "objectives": [{k: v for k, v in _obj_dict("first").items() if k != "id"}],
             "expected_revision": 0,
             "engagement_name": "demo",
         },
@@ -356,9 +459,10 @@ def test_versioned_completion_requires_real_evidence_and_separates_no_finding(
         backend=backend,
     )
     state = {**committed.update, "workspace_path": "/workspace"}
+    objective_id = state["objectives"][0]["id"]
     started = _call(
         "update_objective",
-        {"objective_id": "OBJ-001", "status": "in-progress"},
+        {"objective_id": objective_id, "status": "in-progress"},
         state=state,
         backend=backend,
     )
@@ -367,7 +471,7 @@ def test_versioned_completion_requires_real_evidence_and_separates_no_finding(
     missing = _call(
         "update_objective",
         {
-            "objective_id": "OBJ-001",
+            "objective_id": objective_id,
             "status": "completed",
             "outcome": "no-finding",
             "evidence_refs": ["/workspace/recon/SUMMARY.md"],
@@ -382,7 +486,7 @@ def test_versioned_completion_requires_real_evidence_and_separates_no_finding(
     completed = _call(
         "update_objective",
         {
-            "objective_id": "OBJ-001",
+            "objective_id": objective_id,
             "status": "completed",
             "outcome": "no-finding",
             "evidence_refs": ["/workspace/recon/SUMMARY.md"],
@@ -399,8 +503,8 @@ def test_replan_cannot_claim_completion_or_verify_future_fact(tmp_path: Path) ->
     initial = _call(
         "commit_opplan",
         {
-            "objectives": [_obj_dict("OBJ-001")],
-            "facts": [{"id": "FACT-001", "producer_id": "OBJ-001", "summary": "Observed service"}],
+            "objectives": [{k: v for k, v in _obj_dict("first").items() if k != "id"}],
+            "facts": [{"id": "FACT-001", "producer_id": 0, "summary": "Observed service"}],
             "expected_revision": 0,
             "engagement_name": "demo",
         },
@@ -408,9 +512,10 @@ def test_replan_cannot_claim_completion_or_verify_future_fact(tmp_path: Path) ->
         backend=backend,
     )
     state = {**initial.update, "workspace_path": "/workspace"}
+    objective_id = state["objectives"][0]["id"]
     status_bypass = _call(
         "commit_opplan",
-        {"objectives": [_obj_dict("OBJ-001", status="completed")], "expected_revision": 1},
+        {"objectives": [_obj_dict(objective_id, status="completed")], "expected_revision": 1},
         state=state,
         backend=backend,
     )
@@ -418,11 +523,11 @@ def test_replan_cannot_claim_completion_or_verify_future_fact(tmp_path: Path) ->
     fact_bypass = _call(
         "commit_opplan",
         {
-            "objectives": [_obj_dict("OBJ-001")],
+            "objectives": [_obj_dict(objective_id)],
             "facts": [
                 {
                     "id": "FACT-001",
-                    "producer_id": "OBJ-001",
+                    "producer_id": objective_id,
                     "summary": "Observed service",
                     "verified": True,
                     "evidence_refs": ["/workspace/recon/SUMMARY.md"],
@@ -439,16 +544,18 @@ def test_replan_cannot_claim_completion_or_verify_future_fact(tmp_path: Path) ->
 def test_recorded_fact_unlocks_dependent_objective(tmp_path: Path) -> None:
     backend = _backend(tmp_path)
     rows = [
-        _obj_dict("OBJ-001"),
-        _obj_dict("OBJ-002", required_fact_ids=["FACT-001"]),
+        {k: v for k, v in _obj_dict("producer").items() if k != "id"},
+        {
+            k: v
+            for k, v in _obj_dict("consumer", required_fact_ids=["FACT-001"]).items()
+            if k != "id"
+        },
     ]
     committed = _call(
         "commit_opplan",
         {
             "objectives": rows,
-            "facts": [
-                {"id": "FACT-001", "producer_id": "OBJ-001", "summary": "Service identified"}
-            ],
+            "facts": [{"id": "FACT-001", "producer_id": 0, "summary": "Service identified"}],
             "expected_revision": 0,
             "engagement_name": "demo",
         },
@@ -456,9 +563,10 @@ def test_recorded_fact_unlocks_dependent_objective(tmp_path: Path) -> None:
         backend=backend,
     )
     state = {**committed.update, "workspace_path": "/workspace"}
+    producer_id, consumer_id = [row["id"] for row in state["objectives"]]
     waiting = _call(
         "update_objective",
-        {"objective_id": "OBJ-002", "status": "in-progress"},
+        {"objective_id": consumer_id, "status": "in-progress"},
         state=state,
         backend=backend,
     )
@@ -468,7 +576,7 @@ def test_recorded_fact_unlocks_dependent_objective(tmp_path: Path) -> None:
     assert write_result.error is None
     started = _call(
         "update_objective",
-        {"objective_id": "OBJ-001", "status": "in-progress"},
+        {"objective_id": producer_id, "status": "in-progress"},
         state=state,
         backend=backend,
     )
@@ -477,7 +585,7 @@ def test_recorded_fact_unlocks_dependent_objective(tmp_path: Path) -> None:
     completed = _call(
         "update_objective",
         {
-            "objective_id": "OBJ-001",
+            "objective_id": producer_id,
             "status": "completed",
             "outcome": "objective-met",
             "evidence_refs": ["/workspace/recon/SUMMARY.md"],
@@ -497,7 +605,7 @@ def test_recorded_fact_unlocks_dependent_objective(tmp_path: Path) -> None:
     assert state["plan_facts"][0]["verified"] is True, fact.update["messages"][0].content
     unlocked = _call(
         "update_objective",
-        {"objective_id": "OBJ-002", "status": "in-progress"},
+        {"objective_id": consumer_id, "status": "in-progress"},
         state=state,
         backend=backend,
     )
@@ -511,17 +619,17 @@ def test_revoked_fact_blocks_completed_dependents_transitively(tmp_path: Path) -
     write_result = scoped.write(path, "Observed service")
     assert write_result.error is None
     rows = [
-        _obj_dict("OBJ-001"),
-        _obj_dict("OBJ-002", required_fact_ids=["FACT-001"]),
-        _obj_dict("OBJ-003", blocked_by=["OBJ-002"]),
-        _obj_dict("OBJ-004", any_of=[["OBJ-002", "OBJ-005"]]),
-        _obj_dict("OBJ-005"),
+        {k: v for k, v in _obj_dict("one").items() if k != "id"},
+        {k: v for k, v in _obj_dict("two", required_fact_ids=["FACT-001"]).items() if k != "id"},
+        {k: v for k, v in _obj_dict("three", blocked_by=[1]).items() if k != "id"},
+        {k: v for k, v in _obj_dict("four", any_of=[[1, 4]]).items() if k != "id"},
+        {k: v for k, v in _obj_dict("five").items() if k != "id"},
     ]
     committed = _call(
         "commit_opplan",
         {
             "objectives": rows,
-            "facts": [{"id": "FACT-001", "producer_id": "OBJ-001", "summary": "Service"}],
+            "facts": [{"id": "FACT-001", "producer_id": 0, "summary": "Service"}],
             "expected_revision": 0,
             "engagement_name": "demo",
         },
@@ -529,7 +637,8 @@ def test_revoked_fact_blocks_completed_dependents_transitively(tmp_path: Path) -
         backend=backend,
     )
     state = {**committed.update, "workspace_path": "/workspace"}
-    for objective_id in ("OBJ-001", "OBJ-005"):
+    objective_ids = [row["id"] for row in state["objectives"]]
+    for objective_id in (objective_ids[0], objective_ids[4]):
         started = _call(
             "update_objective",
             {"objective_id": objective_id, "status": "in-progress"},
@@ -556,7 +665,7 @@ def test_revoked_fact_blocks_completed_dependents_transitively(tmp_path: Path) -
         backend=backend,
     )
     state.update(recorded.update)
-    for objective_id in ("OBJ-002", "OBJ-003", "OBJ-004"):
+    for objective_id in (objective_ids[1], objective_ids[2], objective_ids[3]):
         state.update(
             _call(
                 "update_objective",
@@ -588,11 +697,11 @@ def test_revoked_fact_blocks_completed_dependents_transitively(tmp_path: Path) -
     assert revoked.update["plan_facts"][0]["verified"] is False
     statuses = {row["id"]: row["status"] for row in revoked.update["objectives"]}
     assert statuses == {
-        "OBJ-001": "completed",
-        "OBJ-002": "blocked",
-        "OBJ-003": "blocked",
-        "OBJ-004": "completed",
-        "OBJ-005": "completed",
+        objective_ids[0]: "completed",
+        objective_ids[1]: "blocked",
+        objective_ids[2]: "blocked",
+        objective_ids[3]: "completed",
+        objective_ids[4]: "completed",
     }
     assert (
         json.loads(_opplan_path(tmp_path).read_text())["revision"]
@@ -602,15 +711,20 @@ def test_revoked_fact_blocks_completed_dependents_transitively(tmp_path: Path) -
 
 def test_update_objective_auto_persists(tmp_path: Path) -> None:
     backend = _backend(tmp_path)
+    rows = [{key: value for key, value in _obj_dict("new").items() if key != "id"}]
+    committed = _call(
+        "commit_opplan",
+        {"objectives": rows, "expected_revision": 0},
+        state={"workspace_path": "/workspace", "objectives": [], "plan_revision": 0},
+        backend=backend,
+    )
     state = {
-        "objectives": [_obj_dict("OBJ-001", status="pending")],
-        "engagement_name": "demo",
-        "threat_profile": "apt-x",
         "workspace_path": "/workspace",
+        **{key: value for key, value in committed.update.items() if key != "messages"},
     }
     _call(
         "update_objective",
-        {"objective_id": "OBJ-001", "status": "in-progress"},
+        {"objective_id": state["objectives"][0]["id"], "status": "in-progress"},
         state=state,
         backend=backend,
     )
@@ -618,48 +732,62 @@ def test_update_objective_auto_persists(tmp_path: Path) -> None:
     assert out.exists()
     data = json.loads(out.read_text(encoding="utf-8"))
     assert data["objectives"][0]["status"] == "in-progress"
+    assert data["revision"] == 2
 
 
-def test_objective_collapse_auto_persists(tmp_path: Path) -> None:
+def test_versioned_child_cancellation_auto_persists(tmp_path: Path) -> None:
     backend = _backend(tmp_path)
+    rows = [
+        {key: value for key, value in _obj_dict("new").items() if key != "id"} for _ in range(3)
+    ]
+    rows[1]["parent_id"] = 0
+    rows[2]["parent_id"] = 1
+    committed = _call(
+        "commit_opplan",
+        {"objectives": rows, "expected_revision": 0},
+        state={"workspace_path": "/workspace", "objectives": [], "plan_revision": 0},
+        backend=backend,
+    )
     state = {
-        "objectives": [
-            _obj_dict("OBJ-001"),
-            _obj_dict("OBJ-002", parent_id="OBJ-001"),
-            _obj_dict("OBJ-003", parent_id="OBJ-002"),
-        ],
-        "engagement_name": "demo",
-        "threat_profile": "apt-x",
         "workspace_path": "/workspace",
+        **{key: value for key, value in committed.update.items() if key != "messages"},
     }
-    _call("objective_collapse", {"parent_id": "OBJ-001"}, state=state, backend=backend)
+    for objective in reversed(state["objectives"][1:]):
+        changed = _call(
+            "update_objective",
+            {"objective_id": objective["id"], "status": "cancelled"},
+            state=state,
+            backend=backend,
+        )
+        state.update({key: value for key, value in changed.update.items() if key != "messages"})
     out = _opplan_path(tmp_path)
     assert out.exists()
     data = json.loads(out.read_text(encoding="utf-8"))
-    statuses = {o["id"]: o["status"] for o in data["objectives"]}
-    assert statuses["OBJ-002"] == "cancelled"
-    assert statuses["OBJ-003"] == "cancelled"
+    assert data["revision"] == 3
+    statuses = {row["id"]: row["status"] for row in data["objectives"]}
+    assert statuses[committed.update["objectives"][0]["id"]] == "pending"
+    assert all(statuses[row["id"]] == "cancelled" for row in committed.update["objectives"][1:])
 
 
 # ── cycle protection ───────────────────────────────────────────────────
 
 
-def test_objective_collapse_survives_parent_id_cycle() -> None:
-    # OBJ-A.parent_id = OBJ-B, OBJ-B.parent_id = OBJ-A → cycle
-    state = {
-        "objectives": [
-            _obj_dict("OBJ-A", parent_id="OBJ-B"),
-            _obj_dict("OBJ-B", parent_id="OBJ-A"),
-        ],
-        "engagement_name": "demo",
-        "threat_profile": "apt-x",
-        "workspace_path": None,  # skip persistence
-    }
-    # Must terminate (no RecursionError, no hang).
-    cmd = _call("objective_collapse", {"parent_id": "OBJ-A"}, state=state)
-    cancelled = {o["id"] for o in cmd.update["objectives"] if o["status"] == "cancelled"}
-    # OBJ-B is the descendant of OBJ-A; OBJ-A is itself the parent target.
-    assert "OBJ-B" in cancelled
+def test_commit_rejects_parent_id_cycle_before_persisting(tmp_path: Path) -> None:
+    backend = _backend(tmp_path)
+    rows = [
+        {key: value for key, value in _obj_dict("new").items() if key != "id"} for _ in range(2)
+    ]
+    rows[0]["parent_id"] = 1
+    rows[1]["parent_id"] = 0
+    cmd = _call(
+        "commit_opplan",
+        {"objectives": rows, "expected_revision": 0},
+        state={"workspace_path": "/workspace", "objectives": [], "plan_revision": 0},
+        backend=backend,
+    )
+    assert cmd.update["messages"][0].status == "error"
+    assert "cycle" in cmd.update["messages"][0].content.lower()
+    assert not _opplan_path(tmp_path).exists()
 
 
 def test_format_opplan_for_agent_survives_parent_id_cycle() -> None:
@@ -709,7 +837,7 @@ def test_after_model_allows_single_opplan_tool() -> None:
     last_ai = AIMessage(
         content="",
         tool_calls=[
-            {"id": "tc-z", "name": "add_objective", "args": {}, "type": "tool_call"},
+            {"id": "tc-z", "name": "commit_opplan", "args": {}, "type": "tool_call"},
         ],
     )
     assert middleware.after_model({"messages": [last_ai]}, runtime=None) is None
@@ -721,7 +849,7 @@ def test_after_model_allows_opplan_alongside_non_opplan_tool() -> None:
     last_ai = AIMessage(
         content="",
         tool_calls=[
-            {"id": "tc-1", "name": "add_objective", "args": {}, "type": "tool_call"},
+            {"id": "tc-1", "name": "commit_opplan", "args": {}, "type": "tool_call"},
             {"id": "tc-2", "name": "bash", "args": {"command": "ls"}, "type": "tool_call"},
         ],
     )

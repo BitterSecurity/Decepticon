@@ -66,7 +66,7 @@ When you finish an objective, return a JSON block:
 
 ```json
 {
-  "objective_id": "OBJ-014",
+  "objective_id": "<server-issued-objective-id>",
   "outcome": "captured | partial | blocked",
   "technique": "T1566.001 / T1566.002 / T1566.003 / T1566.004",
   "campaign_id": "<your campaign id>",

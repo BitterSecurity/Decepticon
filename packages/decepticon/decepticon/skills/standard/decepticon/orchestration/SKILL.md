@@ -74,11 +74,10 @@ task(
 Independent objectives may be ready at the same time, but the hosted dynamic
 dispatcher serializes specialist calls per engagement. Dispatch one, inspect
 its result, then dispatch the next. Never dispatch an objective whose
-`blocked_by`, `any_of`, or verified-fact prerequisite is unresolved. Separate OPPLAN mutations and `task()`
-calls into different model responses. Check RoE for each actual action.
-If recorded evidence is disproven or lost, call `revoke_plan_fact` with the
-fact ID and reason before dispatching another objective. Reassess every
-objective it blocks, including work that had previously completed.
+prerequisites are unresolved. Follow the injected OPPLAN instructions for
+plan mutations and dispatch binding. Check RoE for each actual action.
+If recorded evidence is disproven or lost, revoke it through the injected
+OPPLAN workflow before dispatching more work.
 
 ## State Management
 
@@ -97,9 +96,7 @@ objective it blocks, including work that had previously completed.
 
 ### State Update Protocol (After Each Sub-Agent Returns)
 1. **Parse result** — What did the sub-agent actually observe, and where is its evidence? A returned task is not automatically a completed objective.
-2. **Update objective state** — Call `get_objective` and then
-   `update_objective` with `completed`, `blocked`, or `in-progress`; the OPPLAN
-   middleware persists `plan/opplan.json` automatically.
+2. **Update objective state** — Record the result through the injected OPPLAN workflow.
 3. **Record verified findings** — Add `findings/FIND-{NNN}.md` only when a real finding exists
 4. **Append lessons_learned.md** — Record what worked, what failed, and why
 5. **Check completion** — All objectives completed? → Generate summary
@@ -125,9 +122,7 @@ Review these questions after every recon task() completes.
 
 3. RECON_BUDGET_EXHAUSTED with zero confirmed vulns?
    ├── Unvisited surface remains? → focused second recon turn on that surface
-   └── No unvisited surface → update_objective(objective_id="<id>",
-                               status="completed", outcome="no-finding",
-                               evidence_refs=["/workspace/recon/SUMMARY.md"])
+   └── No unvisited surface → record a no-finding outcome with the recon evidence
 ```
 
 The OPPLAN dependency state does not authorize a new probe. Recheck the signed
@@ -170,7 +165,7 @@ Report structured status:
 
 | Objective | Phase | Sub-Agent | Result | Key Findings |
 |-----------|-------|-----------|--------|-------------|
-| OBJ-001 | Recon | recon | COMPLETED | 12 subdomains, AD on 10.0.0.5 |
+| `<server-issued-objective-id>` | Recon | recon | COMPLETED | 12 subdomains, AD on 10.0.0.5 |
 
 ### Decision Transparency
 Before each delegation, briefly state:
@@ -183,9 +178,9 @@ Maintain running status after each iteration:
 ```
 Engagement: {name}
 Progress: {completed}/{total} objectives
-Current: OBJ-003 (Exploit phase)
-Blocked: OBJ-002 (WAF blocking SQLi — will retry after credential access)
-Next: OBJ-004 (PostExploit — pending OBJ-003 completion)
+Current: <current objective title and ID> (Exploit phase)
+Blocked: <blocked objective title and ID> (WAF blocking SQLi — will retry after credential access)
+Next: <ready objective title and ID> (after its DAG prerequisites complete)
 ```
 
 ### Engagement Completion Report

@@ -45,7 +45,7 @@ cwe: CWE-306
 mitre: T1595.001
 affected_target: api.example.com:3306
 confidence: confirmed
-objective_id: OBJ-REC-006
+objective_id: <server-issued-objective-id>
 phase: recon
 agent: recon-agent-run-42
 detected: false
@@ -447,26 +447,26 @@ Individual findings combine into attack chains. Document these explicitly — th
 
 ## 11. OPPLAN Feedback Loop
 
-After generating the report, return the objective IDs, evidence paths, and proposed follow-up work to the orchestrator. Do not edit `plan/opplan.json`: the orchestrator owns OPPLAN mutations through `get_objective`, `update_objective`, and `add_objective`.
+After generating the report, return the objective IDs, evidence paths, and proposed follow-up work to the orchestrator. The orchestrator owns OPPLAN mutations under the injected workflow.
 
 ### Update Completed Objectives
 
-For each recon objective, report whether its acceptance criteria were met, cite the supporting evidence, and explain any blocked or partial work. The orchestrator records the appropriate status and evidence summary with `update_objective` after reviewing the handoff.
+For each recon objective, report whether its acceptance criteria were met, cite the supporting evidence, and explain any blocked or partial work.
 
 ### Create Follow-Up Objectives
 
 When the report reveals new targets or attack paths not in the original OPPLAN:
 1. Propose follow-up objectives to the orchestrator; do not assign IDs or insert them into the plan yourself.
 2. Include the finding ID, target, suggested priority, scope and OPSEC checks, and evidence-based acceptance criteria.
-3. Identify prerequisite objective IDs separately from finding IDs. The orchestrator validates scope and adds authorized work with `add_objective(blocked_by=[...])`.
+3. Identify prerequisite work separately from finding IDs. The orchestrator validates scope and revises the DAG through the injected OPPLAN workflow.
 
 ### Report → OPPLAN Mapping
 
 ```markdown
 | Report Finding | Completed Objective | New Objective (if authorized) |
 |----------------|--------------------|-----------------------------|
-| FIND-001: Exposed MySQL (CRITICAL, CVSS 9.3) | OBJ-REC-006 (port scan) | OBJ-EXP-001 (test MySQL default credentials) |
-| FIND-002: Dangling CNAME (HIGH, CVSS 8.7) | OBJ-REC-003 (subdomain enum) | OBJ-EXP-002 (attempt subdomain takeover) |
+| FIND-001: Exposed MySQL (CRITICAL, CVSS 9.3) | Port scan (saved objective ID) | Test MySQL default credentials (ID assigned at commit) |
+| FIND-002: Dangling CNAME (HIGH, CVSS 8.7) | Subdomain enumeration (saved objective ID) | Attempt subdomain takeover (ID assigned at commit) |
 ```
 
 ## 12. Handoff Checklist

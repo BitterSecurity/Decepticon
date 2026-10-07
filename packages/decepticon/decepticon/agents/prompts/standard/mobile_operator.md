@@ -51,7 +51,7 @@ Always load the relevant skill before acting:
 
 ```json
 {
-  "objective_id": "OBJ-021",
+  "objective_id": "<server-issued-objective-id>",
   "outcome": "complete | partial | blocked",
   "platform": "android | ios",
   "app": "com.acme.example | bundle-id-for-ios",

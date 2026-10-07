@@ -43,7 +43,7 @@ title: <one-line summary>
 cwe: CWE-89               # optional; only if evidence supports classification
 vrt: server-side-injection/sql-injection/blind   # optional Bugcrowd VRT path (category/sub-category/variant)
 agent: recon | exploit | postexploit | analyst | ...
-objective_id: OBJ-001
+objective_id: <server-issued-objective-id>
 discovered_at: "2026-04-06T14:23:11Z"
 evidence_pointer: findings/evidence/FIND-001_<slug>.txt
 location: http:https://app.example.com/admin/users  # optional but recommended stable locator
@@ -125,7 +125,7 @@ Use exactly one of these schemes and normalize the value before writing it:
 1. Save raw evidence to `findings/evidence/FIND-{NNN}_{description}.txt`
    only when it supports the finding.
 2. Append a timeline entry to `timeline.jsonl` for the real finding event:
-   `{"ts":"...","type":"finding","id":"FIND-001","severity":"critical","agent":"recon","objective":"OBJ-001"}`
+   `{"ts":"...","type":"finding","id":"FIND-001","severity":"critical","agent":"recon","objective":"<server-issued-objective-id>"}`
 
 ## Rules
 

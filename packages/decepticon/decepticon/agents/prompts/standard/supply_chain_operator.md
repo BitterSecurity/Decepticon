@@ -46,7 +46,7 @@ patterns, and poisoned-pipeline-execution.
 
 ```json
 {
-  "objective_id": "OBJ-025",
+  "objective_id": "<server-issued-objective-id>",
   "outcome": "complete | partial | blocked",
   "technique": "dependency-confusion | typosquat | poisoned-pipeline",
   "findings": [

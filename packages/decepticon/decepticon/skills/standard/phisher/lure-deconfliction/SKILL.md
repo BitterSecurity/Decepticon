@@ -89,8 +89,7 @@ Poll the channel until the ack arrives OR the deadline expires.
 while true; do
   if ack_received; then break; fi
   if past_deadline; then
-    update_objective(status='blocked',
-      reason='blue-team contact unreachable for lure-deconfliction')
+    return a blocked result: blue-team contact unreachable for lure-deconfliction
     return
   fi
   sleep 60

@@ -75,12 +75,14 @@ On each invocation:
 2. **Confirm scope.** Read ``/workspace/roe.json`` if present. Refuse work
    that is out of scope.
 
-3. **Derive the work plan.** Populate OPPLAN with objectives:
-   - ``obj-1-scan``:    hand the repo root to the scanner
-   - ``obj-2-detect``:  promote or reject the top candidates
-   - ``obj-3-verify``:  validate the highest-severity vulns
-   - ``obj-4-patch``:   fix the validated findings
-   - ``obj-5-exploit``: weaponize any chains that reach a crown jewel
+3. **Derive the work plan.** Use the injected OPPLAN instructions to track
+   bounded scan, detect, verify, patch, and optional exploit work. The stages
+   correspond to these specialist goals:
+   - Scan: hand the repo root to the scanner
+   - Detect: promote or reject the top candidates
+   - Verify: validate the highest-severity vulns
+   - Patch: fix the validated findings
+   - Exploit: weaponize any chains that reach a crown jewel
      (only if the user asked for an exploit artifact)
 
 4. **Dispatch.** Call ``task()`` to delegate to the appropriate sub-agent.

@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-import json
+from pathlib import Path
 from typing import Any
+from uuid import UUID
 
-import pytest
+from deepagents.backends.filesystem import FilesystemBackend
 
 from decepticon.tools.opplan import build_opplan_tools
 from decepticon_core.types.engagement import (
@@ -135,590 +136,79 @@ class TestSchemaHierarchy:
         assert children[0]["id"] == "OBJ-002"
 
 
-# ── Middleware tools ───────────────────────────────────────────────────
-
-
-class _ToolBag:
-    """Convenience accessor over the OPPLAN tool list."""
-
-    def __init__(self) -> None:
-        self.tools = build_opplan_tools()
-        by_name = {getattr(t, "name", None) or t.__name__: t for t in self.tools}
-        self.add = by_name["add_objective"]
-        self.update = by_name["update_objective"]
-        self.list = by_name["list_objectives"]
-        self.expand = by_name["objective_expand"]
-        self.collapse = by_name["objective_collapse"]
-
-
-def _state_from(command: Any, state: dict[str, Any]) -> dict[str, Any]:
-    """Apply a Command's state update on top of the current state copy."""
-    new_state = {**state}
-    update = getattr(command, "update", None) or {}
-    for key, value in update.items():
-        if key == "messages":
-            continue
-        new_state[key] = value
-    return new_state
-
-
-def _last_message(command: Any) -> str:
-    update = getattr(command, "update", None) or {}
-    messages = update.get("messages") or []
-    if not messages:
-        return ""
-    msg = messages[-1]
-    return getattr(msg, "content", str(msg))
-
-
-def _call_tool(tool: Any, args: dict[str, Any], state: dict[str, Any]) -> Any:
-    """Invoke a middleware tool with a synthetic ToolCall envelope.
-
-    The middleware tools declare ``tool_call_id: Annotated[str, InjectedToolCallId]``
-    — LangChain requires that to be injected via a ``{"type": "tool_call",
-    "tool_call_id": ...}`` wrapper rather than passed as a plain kwarg.
-    """
-    payload = {
-        "name": getattr(tool, "name", "tool"),
-        "type": "tool_call",
-        "id": "test-call-id",
-        "args": {**args, "state": state},
-    }
-    return tool.invoke(payload)
-
-
-@pytest.fixture
-def bag() -> _ToolBag:
-    return _ToolBag()
-
-
-@pytest.fixture
-def initial_state() -> dict[str, Any]:
-    return {"objectives": [], "objective_counter": 0}
-
-
-def _add(bag: _ToolBag, state: dict, **kwargs: Any) -> dict:
-    cmd = _call_tool(bag.add, kwargs, state)
-    return _state_from(cmd, state)
-
-
-def _expand(bag: _ToolBag, state: dict, parent_id: str, children: list[dict]) -> tuple[dict, Any]:
-    cmd = _call_tool(
-        bag.expand,
-        {"parent_id": parent_id, "children": children},
-        state,
+def _invoke(tool: Any, args: dict[str, Any], state: dict[str, Any]) -> Any:
+    return tool.invoke(
+        {
+            "name": tool.name,
+            "type": "tool_call",
+            "id": "test-call-id",
+            "args": {**args, "state": state},
+        }
     )
-    return _state_from(cmd, state), cmd
 
 
-class TestAddObjectiveWithParent:
-    def test_parent_must_exist(self, bag: _ToolBag, initial_state: dict) -> None:
-        cmd = _call_tool(
-            bag.add,
-            {
-                "title": "Child",
-                "phase": ObjectivePhase.RECON,
-                "description": "x",
-                "acceptance_criteria": ["c"],
-                "priority": 1,
-                "parent_id": "OBJ-999",
-            },
-            initial_state,
-        )
-        assert "not found" in _last_message(cmd)
-
-    def test_add_with_valid_parent(self, bag: _ToolBag, initial_state: dict) -> None:
-        s = _add(
-            bag,
-            initial_state,
-            title="Root",
-            phase=ObjectivePhase.RECON,
-            description="r",
-            acceptance_criteria=["c"],
-            priority=1,
-        )
-        s = _add(
-            bag,
-            s,
-            title="Child",
-            phase=ObjectivePhase.RECON,
-            description="ch",
-            acceptance_criteria=["c"],
-            priority=2,
-            parent_id="OBJ-001",
-        )
-        objs = s["objectives"]
-        assert len(objs) == 2
-        child = next(o for o in objs if o["id"] == "OBJ-002")
-        assert child["parent_id"] == "OBJ-001"
+def _row(title: str, **extra: Any) -> dict[str, Any]:
+    return {
+        "title": title,
+        "phase": "recon",
+        "description": title,
+        "acceptance_criteria": ["Result recorded"],
+        "priority": 1,
+        **extra,
+    }
 
 
-class TestObjectiveExpand:
-    def test_creates_children(self, bag: _ToolBag, initial_state: dict) -> None:
-        s = _add(
-            bag,
-            initial_state,
-            title="Compromise AD",
-            phase=ObjectivePhase.POST_EXPLOIT,
-            description="x",
-            acceptance_criteria=["c"],
-            priority=1,
-        )
-        s, cmd = _expand(
-            bag,
-            s,
-            parent_id="OBJ-001",
-            children=[
-                {
-                    "title": "Pivot via SOCKS",
-                    "description": "Stand up chisel",
-                    "acceptance_criteria": ["socks running"],
-                },
-                {
-                    "title": "Re-scan internal subnet",
-                    "description": "rustscan",
-                    "acceptance_criteria": ["scan complete"],
-                },
+def test_agent_toolset_exposes_only_dag_plan_mutations() -> None:
+    names = {tool.name for tool in build_opplan_tools()}
+    assert {"commit_opplan", "update_objective", "record_plan_fact", "revoke_plan_fact"} <= names
+    assert {"add_objective", "objective_expand", "objective_collapse"}.isdisjoint(names)
+
+
+def test_commit_preserves_hierarchy_and_reports_ready_leaf(tmp_path: Path) -> None:
+    backend = FilesystemBackend(root_dir=tmp_path, virtual_mode=True)
+    tools = {tool.name: tool for tool in build_opplan_tools(backend)}
+    command = _invoke(
+        tools["commit_opplan"],
+        {
+            "objectives": [
+                _row("Parent"),
+                _row("Independent leaf", parent_id=0),
+                _row("Dependent leaf", parent_id=0, blocked_by=[1]),
             ],
-        )
-        assert len(s["objectives"]) == 3
-        assert "Expanded OBJ-001" in _last_message(cmd)
-        kids = [o for o in s["objectives"] if o.get("parent_id") == "OBJ-001"]
-        assert len(kids) == 2
-
-    def test_expand_unknown_parent(self, bag: _ToolBag, initial_state: dict) -> None:
-        _, cmd = _expand(
-            bag,
-            initial_state,
-            parent_id="OBJ-999",
-            children=[{"title": "x", "description": "y", "acceptance_criteria": ["z"]}],
-        )
-        assert "not found" in _last_message(cmd)
-
-    def test_expand_completed_parent_rejected(self, bag: _ToolBag, initial_state: dict) -> None:
-        s = _add(
-            bag,
-            initial_state,
-            title="Root",
-            phase=ObjectivePhase.RECON,
-            description="x",
-            acceptance_criteria=["c"],
-            priority=1,
-        )
-        # Manually flip status (avoids parent-rollup blocking us)
-        s["objectives"][0]["status"] = "completed"
-        _, cmd = _expand(
-            bag,
-            s,
-            parent_id="OBJ-001",
-            children=[{"title": "x", "description": "y", "acceptance_criteria": ["z"]}],
-        )
-        assert "Cannot expand" in _last_message(cmd)
-
-    def test_expand_empty_children_rejected(self, bag: _ToolBag, initial_state: dict) -> None:
-        s = _add(
-            bag,
-            initial_state,
-            title="Root",
-            phase=ObjectivePhase.RECON,
-            description="x",
-            acceptance_criteria=["c"],
-            priority=1,
-        )
-        _, cmd = _expand(bag, s, parent_id="OBJ-001", children=[])
-        assert "empty" in _last_message(cmd).lower()
+            "expected_revision": 0,
+            "engagement_name": "demo",
+        },
+        {"workspace_path": "/workspace", "objectives": [], "plan_revision": 0},
+    )
+    assert command.update["plan_revision"] == 1
+    parent, first, second = command.update["objectives"]
+    UUID(parent["id"])
+    UUID(first["id"])
+    UUID(second["id"])
+    assert first["parent_id"] == parent["id"]
+    assert second["blocked_by"] == [first["id"]]
+    assert first["id"] in command.update["messages"][0].content
+    assert second["id"] not in command.update["messages"][0].content.split("Status-ready: ")[1]
+    state = {
+        "workspace_path": "/workspace",
+        **{key: value for key, value in command.update.items() if key != "messages"},
+    }
+    listed = _invoke(tools["list_objectives"], {}, state)
+    assert "Task Tree" in listed.update["messages"][0].content
+    assert f"Next: {first['id']}" in listed.update["messages"][0].content
 
 
-class TestParentCompletionGuard:
-    def test_parent_cannot_complete_with_open_children(
-        self, bag: _ToolBag, initial_state: dict
-    ) -> None:
-        s = _add(
-            bag,
-            initial_state,
-            title="Root",
-            phase=ObjectivePhase.RECON,
-            description="x",
-            acceptance_criteria=["c"],
-            priority=1,
-        )
-        s, _ = _expand(
-            bag,
-            s,
-            parent_id="OBJ-001",
-            children=[{"title": "Child", "description": "y", "acceptance_criteria": ["z"]}],
-        )
-        # Move parent to in-progress
-        s = _state_from(
-            _call_tool(
-                bag.update,
-                {"objective_id": "OBJ-001", "status": "in-progress"},
-                s,
-            ),
-            s,
-        )
-        cmd = _call_tool(
-            bag.update,
-            {"objective_id": "OBJ-001", "status": "completed"},
-            s,
-        )
-        msg = _last_message(cmd)
-        assert "Cannot complete OBJ-001" in msg
-        assert "OBJ-002" in msg
-
-    def test_parent_completes_after_child_done(self, bag: _ToolBag, initial_state: dict) -> None:
-        s = _add(
-            bag,
-            initial_state,
-            title="Root",
-            phase=ObjectivePhase.RECON,
-            description="x",
-            acceptance_criteria=["c"],
-            priority=1,
-        )
-        s, _ = _expand(
-            bag,
-            s,
-            parent_id="OBJ-001",
-            children=[{"title": "Child", "description": "y", "acceptance_criteria": ["z"]}],
-        )
-        # Drive both objectives to completed
-        for obj_id in ("OBJ-001", "OBJ-002"):
-            s = _state_from(
-                _call_tool(
-                    bag.update,
-                    {"objective_id": obj_id, "status": "in-progress"},
-                    s,
-                ),
-                s,
-            )
-        # Complete child first, then parent.
-        s = _state_from(
-            _call_tool(
-                bag.update,
-                {"objective_id": "OBJ-002", "status": "completed"},
-                s,
-            ),
-            s,
-        )
-        cmd = _call_tool(
-            bag.update,
-            {"objective_id": "OBJ-001", "status": "completed"},
-            s,
-        )
-        s = _state_from(cmd, s)
-        statuses = {o["id"]: o["status"] for o in s["objectives"]}
-        assert statuses["OBJ-001"] == "completed"
-        assert statuses["OBJ-002"] == "completed"
-
-
-class TestObjectiveCollapse:
-    def test_collapse_cancels_descendants(self, bag: _ToolBag, initial_state: dict) -> None:
-        s = _add(
-            bag,
-            initial_state,
-            title="Root",
-            phase=ObjectivePhase.RECON,
-            description="x",
-            acceptance_criteria=["c"],
-            priority=1,
-        )
-        s, _ = _expand(
-            bag,
-            s,
-            parent_id="OBJ-001",
-            children=[
-                {"title": "A", "description": "x", "acceptance_criteria": ["c"]},
-                {"title": "B", "description": "x", "acceptance_criteria": ["c"]},
-            ],
-        )
-        cmd = _call_tool(bag.collapse, {"parent_id": "OBJ-001"}, s)
-        s = _state_from(cmd, s)
-        statuses = {o["id"]: o["status"] for o in s["objectives"]}
-        assert statuses["OBJ-002"] == "cancelled"
-        assert statuses["OBJ-003"] == "cancelled"
-        # Parent untouched
-        assert statuses["OBJ-001"] == "pending"
-
-    def test_collapse_unknown_parent(self, bag: _ToolBag, initial_state: dict) -> None:
-        cmd = _call_tool(bag.collapse, {"parent_id": "OBJ-999"}, initial_state)
-        assert "not found" in _last_message(cmd)
-
-
-class TestListWithTree:
-    def test_renders_tree_view(self, bag: _ToolBag, initial_state: dict) -> None:
-        s = _add(
-            bag,
-            initial_state,
-            title="Root",
-            phase=ObjectivePhase.RECON,
-            description="x",
-            acceptance_criteria=["c"],
-            priority=1,
-            engagement_name="op",
-            threat_profile="t",
-        )
-        s, _ = _expand(
-            bag,
-            s,
-            parent_id="OBJ-001",
-            children=[{"title": "Pivot", "description": "x", "acceptance_criteria": ["c"]}],
-        )
-        cmd = _call_tool(bag.list, {}, s)
-        msg = _last_message(cmd)
-        assert "Task Tree" in msg
-        assert "OBJ-001" in msg
-        assert "OBJ-002" in msg
-        # Indented child marker
-        assert "↳" in msg or "- [" in msg
-
-    def test_next_objective_uses_ready_frontier(self, bag: _ToolBag, initial_state: dict) -> None:
-        state = _add(
-            bag,
-            initial_state,
-            title="Prerequisite",
-            phase=ObjectivePhase.RECON,
-            description="Inspect scoped service",
-            acceptance_criteria=["Observation recorded"],
-            priority=2,
-        )
-        state = _add(
-            bag,
-            state,
-            title="Dependent",
-            phase=ObjectivePhase.RECON,
-            description="Test permission boundary",
-            acceptance_criteria=["Boundary tested"],
-            priority=1,
-            blocked_by=["OBJ-001"],
-        )
-
-        cmd = _call_tool(bag.list, {}, state)
-
-        assert "Next: OBJ-001" in _last_message(cmd)
-        assert "Status-ready candidates: OBJ-001" in _last_message(cmd)
-
-
-class TestObjectiveGraphGuards:
-    def test_add_rejects_child_of_completed_parent(
-        self, bag: _ToolBag, initial_state: dict
-    ) -> None:
-        state = _add(
-            bag,
-            initial_state,
-            title="Parent",
-            phase=ObjectivePhase.RECON,
-            description="Inspect surface",
-            acceptance_criteria=["Observation recorded"],
-            priority=1,
-        )
-        state["objectives"][0]["status"] = "completed"
-
-        cmd = _call_tool(
-            bag.add,
-            {
-                "title": "Child",
-                "phase": ObjectivePhase.RECON,
-                "description": "Inspect child surface",
-                "acceptance_criteria": ["Observation recorded"],
-                "priority": 2,
-                "parent_id": "OBJ-001",
-            },
-            state,
-        )
-
-        assert "Cannot add a child to completed" in _last_message(cmd)
-        assert "objectives" not in cmd.update
-
-    def test_add_rejects_missing_dependency(self, bag: _ToolBag, initial_state: dict) -> None:
-        cmd = _call_tool(
-            bag.add,
-            {
-                "title": "Recon",
-                "phase": ObjectivePhase.RECON,
-                "description": "Inspect service",
-                "acceptance_criteria": ["Observation recorded"],
-                "priority": 1,
-                "blocked_by": ["OBJ-999"],
-            },
-            initial_state,
-        )
-
-        assert "missing_dependency" in _last_message(cmd)
-        assert "objectives" not in cmd.update
-
-    def test_update_rejects_start_and_new_unresolved_dependency_together(
-        self, bag: _ToolBag, initial_state: dict
-    ) -> None:
-        state = _add(
-            bag,
-            initial_state,
-            title="First",
-            phase=ObjectivePhase.RECON,
-            description="Inspect first surface",
-            acceptance_criteria=["Observation recorded"],
-            priority=1,
-        )
-        state = _add(
-            bag,
-            state,
-            title="Second",
-            phase=ObjectivePhase.RECON,
-            description="Inspect second surface",
-            acceptance_criteria=["Observation recorded"],
-            priority=2,
-        )
-        cmd = _call_tool(
-            bag.update,
-            {
-                "objective_id": "OBJ-001",
-                "status": "in-progress",
-                "add_blocked_by": ["OBJ-002"],
-            },
-            state,
-        )
-
-        assert "blocked by unresolved objectives: OBJ-002" in _last_message(cmd)
-        assert "objectives" not in cmd.update
-
-    def test_update_rejects_new_dependency_on_running_objective(
-        self, bag: _ToolBag, initial_state: dict
-    ) -> None:
-        state = _add(
-            bag,
-            initial_state,
-            title="First",
-            phase=ObjectivePhase.RECON,
-            description="Inspect first surface",
-            acceptance_criteria=["Observation recorded"],
-            priority=1,
-        )
-        state = _add(
-            bag,
-            state,
-            title="Second",
-            phase=ObjectivePhase.RECON,
-            description="Inspect second surface",
-            acceptance_criteria=["Observation recorded"],
-            priority=2,
-        )
-        state = _state_from(
-            _call_tool(
-                bag.update,
-                {"objective_id": "OBJ-001", "status": "in-progress"},
-                state,
-            ),
-            state,
-        )
-
-        cmd = _call_tool(
-            bag.update,
-            {"objective_id": "OBJ-001", "add_blocked_by": ["OBJ-002"]},
-            state,
-        )
-
-        assert "blocked by unresolved objectives: OBJ-002" in _last_message(cmd)
-        assert "objectives" not in cmd.update
-
-    def test_update_rejects_completion_with_unresolved_dependency(
-        self, bag: _ToolBag, initial_state: dict
-    ) -> None:
-        state = _add(
-            bag,
-            initial_state,
-            title="First",
-            phase=ObjectivePhase.RECON,
-            description="Inspect first surface",
-            acceptance_criteria=["Observation recorded"],
-            priority=1,
-        )
-        state = _add(
-            bag,
-            state,
-            title="Second",
-            phase=ObjectivePhase.RECON,
-            description="Inspect second surface",
-            acceptance_criteria=["Observation recorded"],
-            priority=2,
-        )
-        state["objectives"][0]["status"] = "blocked"
-
-        cmd = _call_tool(
-            bag.update,
-            {
-                "objective_id": "OBJ-001",
-                "status": "completed",
-                "add_blocked_by": ["OBJ-002"],
-            },
-            state,
-        )
-
-        assert (
-            "Cannot set OBJ-001 to completed: blocked by unresolved objectives: OBJ-002"
-            in _last_message(cmd)
-        )
-        assert "objectives" not in cmd.update
-
-    def test_update_rejects_cycle_before_persisting(
-        self, bag: _ToolBag, initial_state: dict
-    ) -> None:
-        state = _add(
-            bag,
-            initial_state,
-            title="First",
-            phase=ObjectivePhase.RECON,
-            description="Inspect first surface",
-            acceptance_criteria=["Observation recorded"],
-            priority=1,
-        )
-        state = _add(
-            bag,
-            state,
-            title="Second",
-            phase=ObjectivePhase.RECON,
-            description="Inspect second surface",
-            acceptance_criteria=["Observation recorded"],
-            priority=2,
-            blocked_by=["OBJ-001"],
-        )
-        cmd = _call_tool(
-            bag.update,
-            {"objective_id": "OBJ-001", "add_blocked_by": ["OBJ-002"]},
-            state,
-        )
-
-        assert "dependency_cycle" in _last_message(cmd)
-        assert "objectives" not in cmd.update
-
-    def test_expand_rejects_unknown_child_dependency(
-        self, bag: _ToolBag, initial_state: dict
-    ) -> None:
-        state = _add(
-            bag,
-            initial_state,
-            title="Root",
-            phase=ObjectivePhase.RECON,
-            description="Inspect surface",
-            acceptance_criteria=["Observation recorded"],
-            priority=1,
-        )
-        _, cmd = _expand(
-            bag,
-            state,
-            parent_id="OBJ-001",
-            children=[
-                {
-                    "title": "Child",
-                    "description": "Inspect child surface",
-                    "acceptance_criteria": ["Observation recorded"],
-                    "blocked_by": ["OBJ-999"],
-                }
-            ],
-        )
-
-        assert "missing_dependency" in _last_message(cmd)
-        assert "objectives" not in cmd.update
-
-
-# Suppress unused imports
-_ = json
+def test_commit_rejects_parent_cycle(tmp_path: Path) -> None:
+    backend = FilesystemBackend(root_dir=tmp_path, virtual_mode=True)
+    tool = next(tool for tool in build_opplan_tools(backend) if tool.name == "commit_opplan")
+    command = _invoke(
+        tool,
+        {
+            "objectives": [_row("A", parent_id=1), _row("B", parent_id=0)],
+            "expected_revision": 0,
+        },
+        {"workspace_path": "/workspace", "objectives": [], "plan_revision": 0},
+    )
+    assert command.update["messages"][0].status == "error"
+    assert "cycle" in command.update["messages"][0].content.lower()
+    assert "objectives" not in command.update

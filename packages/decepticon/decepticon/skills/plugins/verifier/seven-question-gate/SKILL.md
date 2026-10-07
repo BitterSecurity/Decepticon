@@ -140,8 +140,7 @@ backlog forever.
 
 ## Integration
 
-Verifier agent loads this skill BEFORE calling `update_objective`
-on a validated finding. Specifically:
+Verifier agent loads this skill before finalizing a validated finding. Specifically:
 
 ```
 1. validate_finding(...) returns success
@@ -152,9 +151,8 @@ on a validated finding. Specifically:
                         "gate_q2_impact": "yes",
                         "gate_q3_poc_proves_impact": "yes",
                         ...})
-4. If all Q1-Q7 = yes → update_objective(status="completed")
-5. If any = no → update_objective(status="blocked",
-                  notes="seven_question_gate: <Q#> failed: <reason>")
+4. If all Q1-Q7 = yes → return a passing verdict with evidence
+5. If any = no → return a failing verdict naming the question and reason
 ```
 
 This makes the gate auditable — every finding has a written record of
