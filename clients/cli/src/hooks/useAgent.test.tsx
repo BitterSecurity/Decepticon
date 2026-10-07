@@ -107,6 +107,21 @@ describe("useAgent — engagement handoff lifecycle", () => {
     expect(result.current.runState).toBe("idle");
   });
 
+  it("reports a failed history lookup without claiming the session was loaded", async () => {
+    const client = mockState.client;
+    if (!client) throw new TypeError("Expected an initialized test client");
+    client.threads.getState.mockRejectedValueOnce(new TypeError("Session not found"));
+    const { result } = renderHook(() => useAgent());
+
+    act(() => result.current.resume("missing-thread"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+
+    const notices = result.current.events.filter((event) => event.type === "system");
+    expect(notices.at(-1)?.content).toBe(
+      "Could not restore this session. Check server availability and the session ID.",
+    );
+  });
+
   // ── 1. engagement_ready flips assistantId mid-stream ─────────────────────
   it("flips assistantId to 'decepticon' when engagement_ready fires mid-stream", async () => {
     const stream = createControllableStream();
