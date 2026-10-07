@@ -14,9 +14,7 @@ def enterprise_attack_catalog() -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def canonical_attack_annotation(
-    tactic_id: str, technique_ids: list[str]
-) -> AttackAnnotation:
+def canonical_attack_annotation(tactic_id: str, technique_ids: list[str]) -> AttackAnnotation:
     catalog = enterprise_attack_catalog()
     tactic = catalog["tactics"].get(tactic_id)
     if tactic is None:

@@ -524,15 +524,17 @@ def test_recorded_fact_unlocks_dependent_objective(tmp_path: Path) -> None:
     backend = _backend(tmp_path)
     rows = [
         {k: v for k, v in _obj_dict("producer").items() if k != "id"},
-        {k: v for k, v in _obj_dict("consumer", required_fact_ids=["FACT-001"]).items() if k != "id"},
+        {
+            k: v
+            for k, v in _obj_dict("consumer", required_fact_ids=["FACT-001"]).items()
+            if k != "id"
+        },
     ]
     committed = _call(
         "commit_opplan",
         {
             "objectives": rows,
-            "facts": [
-                {"id": "FACT-001", "producer_id": 0, "summary": "Service identified"}
-            ],
+            "facts": [{"id": "FACT-001", "producer_id": 0, "summary": "Service identified"}],
             "expected_revision": 0,
             "engagement_name": "demo",
         },

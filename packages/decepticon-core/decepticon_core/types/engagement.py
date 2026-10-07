@@ -202,7 +202,9 @@ class Finding(BaseModel):
     )
 
     # AI Agent metadata
-    objective_id: str = Field(default="", description="Server-issued OPPLAN objective ID that found this")
+    objective_id: str = Field(
+        default="", description="Server-issued OPPLAN objective ID that found this"
+    )
     phase: ObjectivePhase | None = None
     agent: str = Field(
         default="", description="Agent that discovered this: recon/exploit/postexploit"

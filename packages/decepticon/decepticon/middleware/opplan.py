@@ -460,7 +460,9 @@ class OPPLANMiddleware(AgentMiddleware):
                         raise RuntimeError(f"OPPLAN migration failed: {persist_error}")
                     plan.revision = next_revision
                 return {
-                    "objectives": [objective.model_dump(mode="json") for objective in plan.objectives],
+                    "objectives": [
+                        objective.model_dump(mode="json") for objective in plan.objectives
+                    ],
                     "plan_facts": [fact.model_dump(mode="json") for fact in plan.facts],
                     "plan_revision": plan.revision,
                     "engagement_name": plan.engagement_name,

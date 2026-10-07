@@ -124,15 +124,14 @@ def _assign_objective_ids(
     for index, row in enumerate(objectives):
         item = {**row, "id": ids[index]}
         item["blocked_by"] = [resolve(ref) for ref in row.get("blocked_by", [])]
-        item["any_of"] = [
-            [resolve(ref) for ref in group] for group in row.get("any_of", [])
-        ]
+        item["any_of"] = [[resolve(ref) for ref in group] for group in row.get("any_of", [])]
         if row.get("parent_id") is not None:
             item["parent_id"] = resolve(row["parent_id"])
         resolved.append(item)
     resolved_facts = [
         {**fact, "producer_id": resolve(fact["producer_id"])}
-        if "producer_id" in fact else dict(fact)
+        if "producer_id" in fact
+        else dict(fact)
         for fact in facts
     ]
     return resolved, resolved_facts, issued
@@ -158,20 +157,30 @@ def _canonicalize_attack_rows(
             tactic_id = annotation.get("tactic_id")
         if tactic_id is None:
             if technique_ids:
-                if previous is not None and previous.attack is None and technique_ids == previous.mitre:
-                    canonical.append({key: value for key, value in row.items() if key != "attack_tactic_id"})
+                if (
+                    previous is not None
+                    and previous.attack is None
+                    and technique_ids == previous.mitre
+                ):
+                    canonical.append(
+                        {key: value for key, value in row.items() if key != "attack_tactic_id"}
+                    )
                     continue
                 raise ValueError(
                     f"Objective {row['id']} has ATT&CK techniques but no tactic_id; "
                     "select a tactic from the v19.2 catalog"
                 )
-            canonical.append({key: value for key, value in row.items() if key != "attack_tactic_id"})
+            canonical.append(
+                {key: value for key, value in row.items() if key != "attack_tactic_id"}
+            )
             continue
         resolved = canonical_attack_annotation(tactic_id, technique_ids)
-        canonical.append({
-            **{key: value for key, value in row.items() if key != "attack_tactic_id"},
-            "attack": resolved.model_dump(mode="json"),
-        })
+        canonical.append(
+            {
+                **{key: value for key, value in row.items() if key != "attack_tactic_id"},
+                "attack": resolved.model_dump(mode="json"),
+            }
+        )
     return canonical
 
 
@@ -590,10 +599,7 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
             )
             objective_rows = _canonicalize_attack_rows(objective_rows, old)
             proposed = [Objective.model_validate(row) for row in objective_rows]
-            proposed_facts = [
-                PlanFact.model_validate(row)
-                for row in fact_rows
-            ]
+            proposed_facts = [PlanFact.model_validate(row) for row in fact_rows]
             inspection = inspect_plan(proposed, proposed_facts)
         except Exception as exc:
             return _tool_error(tool_call_id, f"Invalid OPPLAN payload: {exc}")
@@ -953,7 +959,9 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
         }
 
         try:
-            obj_dict = _canonicalize_attack_rows([obj_dict | {"attack_tactic_id": attack_tactic_id}], {})[0]
+            obj_dict = _canonicalize_attack_rows(
+                [obj_dict | {"attack_tactic_id": attack_tactic_id}], {}
+            )[0]
         except ValueError as exc:
             return _tool_error(tool_call_id, str(exc))
 
@@ -1575,7 +1583,9 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
                 "notes": "",
                 "parent_id": parent_id,
             }
-            tactic_id = child.get("attack_tactic_id") or (parent.get("attack") or {}).get("tactic_id")
+            tactic_id = child.get("attack_tactic_id") or (parent.get("attack") or {}).get(
+                "tactic_id"
+            )
             try:
                 child_dict = _canonicalize_attack_rows(
                     [child_dict | {"attack_tactic_id": tactic_id}], {}
