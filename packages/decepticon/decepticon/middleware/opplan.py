@@ -448,7 +448,9 @@ class OPPLANMiddleware(AgentMiddleware):
                     plan = OPPLAN.model_validate(self._migrate_legacy_plan(payload))
                 plan = _upgrade_unversioned_plan(self._backend, state["workspace_path"], plan)
                 return {
-                    "objectives": [objective.model_dump(mode="json") for objective in plan.objectives],
+                    "objectives": [
+                        objective.model_dump(mode="json") for objective in plan.objectives
+                    ],
                     "plan_facts": [fact.model_dump(mode="json") for fact in plan.facts],
                     "plan_revision": plan.revision,
                 }

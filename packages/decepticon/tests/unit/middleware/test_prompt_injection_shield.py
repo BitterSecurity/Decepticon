@@ -176,7 +176,15 @@ def _clear_skill_tool_cache():
 
 def test_framework_tools_are_trusted_without_registry():
     # Stable framework set is resolved directly, no registry round-trip.
-    for name in ("read_file", "write_file", "list_directory", "task", "commit_opplan", "record_plan_fact", "revoke_plan_fact"):
+    for name in (
+        "read_file",
+        "write_file",
+        "list_directory",
+        "task",
+        "commit_opplan",
+        "record_plan_fact",
+        "revoke_plan_fact",
+    ):
         assert _is_trusted_internal_tool(name) is True
 
 
