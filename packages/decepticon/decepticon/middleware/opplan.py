@@ -142,6 +142,12 @@ a stable, sorted, human-readable JSON document with a `schema_version`, a
   A parent objective is complete only when its children are completed or
   cancelled. Check the committed result for issued IDs and the new revision
   before dispatching.
+  Every objective needs `title`, `description`, `acceptance_criteria` (a list
+  of checkable strings), `phase`, and `priority`; omit `id` for new nodes.
+  Valid `phase` values are `recon`, `initial-access`, `post-exploit`, `c2`,
+  `exfiltration`, and `reporting`. `reconnaissance` is not valid. `priority`
+  must be an integer (1 is highest), not a label such as `high`. Example new
+  node: `{"title":"Review authorized scope","description":"Read the approved scope","acceptance_criteria":["Scope recorded"],"phase":"recon","priority":1}`.
 
 - For each objective, decide whether its concrete adversary behavior has a
   defensible Enterprise ATT&CK mapping. Tactics explain why, techniques explain
@@ -181,6 +187,12 @@ tools in the same model step. The middleware will reject parallel
 OPPLAN calls with an error so each call observes the previous result
 before issuing the next. This applies to read tools (`get_objective`,
 `list_objectives`) as well as mutating tools.
+Every successful versioned plan mutation advances `plan_revision`. Before
+dispatching `task`, use the revision in the live OPPLAN status below; the
+`update_objective` result does not print it. After `update_objective` or a fact
+change, do not reuse an earlier `commit_opplan` revision. Independent tasks
+dispatched together use the same latest revision, after all preceding plan
+mutations have completed.
 
 ### Workflow
 ```

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import importlib
+import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -9,6 +11,19 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 from decepticon.middleware import opplan as opplan_mod
 from decepticon.middleware.opplan import OPPLAN_SYSTEM_PROMPT, OPPLANMiddleware
+from decepticon_core.types.engagement import Objective, ObjectivePhase
+
+
+def test_opplan_instructions_describe_a_valid_commit_objective() -> None:
+    for phase in ObjectivePhase:
+        assert f"`{phase.value}`" in OPPLAN_SYSTEM_PROMPT
+    example = re.search(r"Example new\s+node: `({[^`]+})`", OPPLAN_SYSTEM_PROMPT)
+    assert example is not None
+    objective = Objective.model_validate({"id": "OBJ-001", **json.loads(example.group(1))})
+    assert objective.phase == ObjectivePhase.RECON
+    assert objective.priority == 1
+    assert "live OPPLAN status" in OPPLAN_SYSTEM_PROMPT
+    assert "do not reuse an earlier `commit_opplan` revision" in OPPLAN_SYSTEM_PROMPT
 
 
 def test_opplan_tool_instructions_have_one_prompt_source() -> None:
