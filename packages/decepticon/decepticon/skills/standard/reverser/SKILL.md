@@ -41,5 +41,5 @@ metadata:
 6. `bin_symbols_report` — risk bucket classification
 7. Version strings → `cve_lookup` + `cve_by_package`
 8. In hosted runs, import the `/workspace` binary with `ghidra_import_file`, open the program, and inspect `ghidra_analysis_status`; discover additional native tools with `ghidra_find_tools` when needed.
-9. Inspect functions and cross-references with the registered `ghidra_` MCP tools. Check GUI follow status for address-specific results. In standalone OSS, use only the local reversing tools actually registered.
+9. Inspect functions and cross-references with the registered `ghidra_` MCP tools. Check GUI follow status for address-specific results. In standalone OSS, use only local reversing tools actually registered, including `bin_r2_script` as a Radare2 fallback when available.
 10. Record every observation in the knowledge graph
