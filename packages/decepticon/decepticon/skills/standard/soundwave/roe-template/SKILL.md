@@ -6,6 +6,7 @@ metadata:
   subdomain: planning
   when_to_use: "read RoE scope authorization boundaries plan mode"
   tags: roe, scope, engagement, authorization
+  upstream_ref: "Decepticon system-managed engagement RoE and Soundwave Plan mode contract"
 ---
 
 # Rules of Engagement in Plan mode

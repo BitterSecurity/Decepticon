@@ -6,6 +6,7 @@ metadata:
   subdomain: orchestration
   when_to_use: "engagement start resume workspace authorization opplan"
   tags: startup, workspace, resume
+  upstream_ref: "Decepticon engagement context and OPPLAN middleware startup contract"
 ---
 
 # Engagement startup reference
