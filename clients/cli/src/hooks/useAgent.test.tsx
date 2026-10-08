@@ -107,6 +107,27 @@ describe("useAgent — engagement handoff lifecycle", () => {
     expect(result.current.runState).toBe("idle");
   });
 
+  it.each(["", "BENIGN_QA_OK"])("reports invalid tool calls when visible content is %j", async (content) => {
+    const client = createMockClient();
+    mockState.client = client;
+    client.runs.stream.mockReturnValueOnce(createMockStream([
+      { event: "metadata", data: { run_id: "run-invalid-tool" } },
+      { event: "values", data: { messages: [{
+        type: "ai", content,
+        invalid_tool_calls: [{ name: "format_note", args: "not-json", error: "Invalid JSON" }],
+      }] } },
+    ]));
+    const { result } = renderHook(() => useAgent());
+
+    act(() => result.current.submit("hello"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+
+    const notices = result.current.events.filter((event) => event.type === "system");
+    expect(notices).toHaveLength(1);
+    expect(notices[0]?.content).toContain("invalid tool call");
+    expect(notices[0]?.content).toContain("run-invalid-tool");
+  });
+
   it("reports a failed history lookup without claiming the session was loaded", async () => {
     const client = mockState.client;
     if (!client) throw new TypeError("Expected an initialized test client");
