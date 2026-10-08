@@ -20,12 +20,9 @@ Before any probe:
 
 1. Read the objective from the orchestrator's `task()` handoff.
 2. Note the target, scope (RoE), challenge tags (e.g. `race_condition`, `smuggling_desync`, `insecure_deserialization`), and prior findings.
-3. Decide which sub-skills apply. Available sub-skills:
-   - `load_skill("/skills/standard/recon/passive-recon/SKILL.md")`
-   - `load_skill("/skills/standard/recon/osint/SKILL.md")`
-   - `load_skill("/skills/standard/recon/cloud-recon/SKILL.md")`
-   - `load_skill("/skills/standard/recon/active-recon/SKILL.md")`
-   - `load_skill("/skills/standard/recon/web-recon/SKILL.md")` (hub: discovery, api-enumeration, cms-scanning, waf-detection, auth-mapping, cookie-audit)
+3. Select a bounded recon method for the target surface: passive, OSINT,
+   cloud, active, or web recon. Use specialist knowledge when the method or
+   technology is unfamiliar.
 
 ### Phase 2 — Scope Rules
 

@@ -364,7 +364,7 @@ class TestMiddlewareConstruction:
         monkeypatch.setattr(sk, "_backend_factory", lambda: stub)
         mw = SkillogyMiddleware.from_env(agent_phase="reconnaissance")
         assert mw._phase == "reconnaissance"
-        assert stub.moc_calls == ["reconnaissance"]
+        assert stub.moc_calls == []
 
 
 class TestPhaseBlockRender:
@@ -372,48 +372,29 @@ class TestPhaseBlockRender:
         mw = SkillogyMiddleware(agent_phase=None, backend=_StubBackend())
         assert mw._phase_block == ""
 
-    def test_phase_with_mocs_renders_bullets(self) -> None:
-        backend = _StubBackend(
-            moc_response=[
-                {"name": "passive-recon", "description": "OSINT, DNS, certs"},
-                {"name": "active-recon", "description": "scanning + service detection"},
-            ]
-        )
-        mw = SkillogyMiddleware(agent_phase="reconnaissance", backend=backend)
-        block = mw._phase_block
-        assert "[Phase context]" in block
-        assert "phase: reconnaissance" in block
-        assert "• passive-recon — OSINT" in block
-        assert "• active-recon — scanning" in block
-        # Footer points the agent at the right tool call to drill in.
-        assert 'find_skill(subdomain="reconnaissance"' in block
-
-    def test_phase_without_mocs_emits_fallback_line(self) -> None:
-        backend = _StubBackend(moc_response=[])
-        mw = SkillogyMiddleware(agent_phase="wireless", backend=backend)
-        block = mw._phase_block
-        assert "phase: wireless" in block
-        assert "no MoCs registered" in block
-        # The fallback still surfaces the phase name as a find_skill hint.
-        assert 'find_skill(subdomain="wireless"' in block
-
-    def test_backend_exception_yields_empty_block(self) -> None:
+    def test_common_skills_are_listed_without_backend_lookup(self) -> None:
         backend = _StubBackend(moc_exc=RuntimeError("driver down"))
         mw = SkillogyMiddleware(agent_phase="reconnaissance", backend=backend)
+        block = mw._phase_block
+        assert "[Skillogy quick reference]" in block
+        assert "/skills/standard/recon/passive-recon/SKILL.md" in block
+        assert "/skills/standard/recon/active-recon/SKILL.md" in block
+        assert "not required startup calls" in block
+        assert backend.moc_calls == []
+
+    def test_phase_without_common_skills_has_no_block(self) -> None:
+        backend = _StubBackend()
+        mw = SkillogyMiddleware(agent_phase="wireless", backend=backend)
         assert mw._phase_block == ""
 
-    def test_mocs_without_description_render_name_only(self) -> None:
-        backend = _StubBackend(
-            moc_response=[
-                {"name": "concept-a", "description": ""},
-                {"name": "concept-b", "description": "   "},
-            ]
+    def test_quick_reference_respects_role_scope(self) -> None:
+        mw = SkillogyMiddleware(
+            agent_phase="reconnaissance",
+            backend=_StubBackend(),
+            allowed_path_prefixes=["/skills/standard/recon/web-recon/"],
         )
-        mw = SkillogyMiddleware(agent_phase="some-phase", backend=backend)
-        block = mw._phase_block
-        assert "• concept-a" in block
-        assert "• concept-a — " not in block  # no trailing em-dash with empty desc
-        assert "• concept-b" in block
+        assert "/skills/standard/recon/web-recon/SKILL.md" in mw._phase_block
+        assert "passive-recon" not in mw._phase_block
 
 
 # ── _inject — static schema + dynamic phase block ──────────────────────
@@ -441,7 +422,7 @@ class TestInject:
         assert "Graph schema" in text
         assert "find_skill" in text
         # No phase block when phase is None.
-        assert "[Phase context]" not in text
+        assert "[Skillogy quick reference]" not in text
 
     def test_existing_system_message_blocks_preserved_and_policy_appended(
         self,
@@ -458,17 +439,17 @@ class TestInject:
         assert blocks[-1]["text"].lstrip().startswith("[Skillogy access]")
 
     def test_phase_block_concatenated_after_policy(self) -> None:
-        backend = _StubBackend(moc_response=[{"name": "passive-recon", "description": "OSINT"}])
+        backend = _StubBackend()
         mw = SkillogyMiddleware(agent_phase="reconnaissance", backend=backend)
         out = mw._inject(_FakeRequest(system_message=None))
         text = out.system_message.content[0]["text"]
         # Both blocks present, schema first, phase context second.
         idx_schema = text.find("[Skillogy access]")
-        idx_phase = text.find("[Phase context]")
+        idx_phase = text.find("[Skillogy quick reference]")
         assert 0 <= idx_schema < idx_phase, (
             "Phase block must come after the static schema cheat-sheet"
         )
-        assert "passive-recon — OSINT" in text
+        assert "passive-recon/SKILL.md" in text
 
     def test_append_policy_false_returns_request_untouched(self) -> None:
         mw = SkillogyMiddleware(
@@ -528,7 +509,7 @@ class TestMaybeInstallSkillogy:
         assert isinstance(out[1], SkillogyMiddleware)
         # The role was resolved to the right phase.
         assert out[1]._phase == "reconnaissance"
-        assert stub.moc_calls == ["reconnaissance"]
+        assert stub.moc_calls == []
 
     def test_env_enabled_unknown_role_yields_no_phase_block(
         self, monkeypatch: pytest.MonkeyPatch

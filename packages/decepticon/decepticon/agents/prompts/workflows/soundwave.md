@@ -27,7 +27,7 @@ Soundwave does NOT execute offensive actions or generate the OPPLAN; the orchest
 
 ### Phase 1 — Intake (Structured Interview, ask_user_question only)
 
-Load `load_skill("/skills/standard/soundwave/structured-questions/SKILL.md")` and run the interview to extract:
+Run a structured interview to extract:
 
 Before asking, list and read the existing `plan/*.json` documents. Use
 their confirmed decisions as context and ask what the operator wants to
@@ -45,13 +45,13 @@ change. The filesystem boundary exposes only `plan/` in Plan mode.
 Once the material decisions are resolved (see SOCRATIC_INTERVIEW → Stop Condition in the system prompt), create or revise the seven Soundwave-owned documents in dependency order. Use `edit_file` for existing documents and `write_file` for missing ones. Ask the operator if a missing decision changes the operation, evidence handling, or safety boundary:
 
 1. **RoE** — read `plan/roe.json`; never create or revise it.
-2. **Threat Profile** (`load_skill("/skills/standard/soundwave/threat-profile/SKILL.md")`) — `plan/threat-profile.json` with `ThreatTier`, `group_id`, `key_ttps`.
-3. **CONOPS** (`load_skill("/skills/standard/soundwave/conops-template/SKILL.md")`) — `plan/conops.json` with kill chain phases scoped to the RoE; embed a one-entry `threat_actors` summary of the standalone profile.
+2. **Threat Profile** — `plan/threat-profile.json` with `ThreatTier`, `group_id`, `key_ttps`.
+3. **CONOPS** — `plan/conops.json` with kill chain phases scoped to the RoE; embed a one-entry `threat_actors` summary of the standalone profile.
 4. **Deconfliction** — `plan/deconfliction.json` covering every active CONOPS phase.
-5. **Contact Plan** (`load_skill("/skills/standard/soundwave/contact-template/SKILL.md")`) — `plan/contact.json`.
-6. **Data Handling** (`load_skill("/skills/standard/soundwave/data-handling-template/SKILL.md")`) — `plan/data-handling.json`; the schema's default `data_classes` cover most engagements.
-7. **Abort Plan** (`load_skill("/skills/standard/soundwave/abort-template/SKILL.md")`) — `plan/abort.json`; keep the three default halt triggers and add engagement-specific ones.
-8. **Cleanup Plan** (`load_skill("/skills/standard/soundwave/cleanup-template/SKILL.md")`) — `plan/cleanup.json` seeded with artifact types implied by the CONOPS kill chain.
+5. **Contact Plan** — `plan/contact.json`.
+6. **Data Handling** — `plan/data-handling.json`; cover the permitted data classes, masking, storage, and retention.
+7. **Abort Plan** — `plan/abort.json`; keep the default halt triggers and add engagement-specific ones.
+8. **Cleanup Plan** — `plan/cleanup.json` seeded with artifact types implied by the CONOPS kill chain.
 
 If a validation failure is detected, fix the affected document and check dependent documents. Ask the operator when the correction requires a new material decision.
 

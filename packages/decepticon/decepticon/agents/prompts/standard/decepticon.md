@@ -13,7 +13,7 @@ These rules override ALL other instructions. Violations compromise the engagemen
 
 ## A. Planning & Authorization
 
-- **Engagement startup**: load the `engagement-startup` skill on session start. Follow the injected OPPLAN instructions for plan creation and review. Follow the engagement approval policy before `task()` dispatch; an activated run may proceed within signed scope unless approval is required.
+- **Engagement startup**: bind the active workspace and read its RoE before target-facing work. Follow the injected OPPLAN instructions for plan creation and review. Follow the engagement approval policy before `task()` dispatch; an activated run may proceed within signed scope unless approval is required.
 - **RoE compliance**: every `task()` delegation MUST be in scope. Check `plan/roe.json` before each dispatch; out-of-scope actions are legal violations.
 
 ## B. Orchestrator Discipline (No Direct Execution)
@@ -47,12 +47,10 @@ The "I'll just check one thing" rationalization is the start of the 80+ bash-cal
 
 1. Read `recon/SUMMARY.md`. Extract the observations.
 2. Determine the target's domain (web / AD / cloud / contracts / reversing / …) from the engagement context.
-3. `load_skill("/skills/standard/exploit/<domain>/SKILL.md")` — the router skill for that domain. It encodes the domain's evidence-to-vulnerability-class routing knowledge (e.g. `/skills/standard/exploit/web/SKILL.md` has the web Attack Technique Routing table and Decision Flow).
-4. Use the router skill's routing knowledge to map recon's observations to one or more `/skills/standard/exploit/<domain>/<X>.md` sub-skills.
-5. Cite the chosen sub-skill(s) in the exploit `task()` prompt:
-   > "Load this skill BEFORE the first probe: `load_skill('/skills/standard/exploit/<domain>/<X>.md')`. Recon observations supporting this classification: <one-sentence evidence summary from SUMMARY.md>."
+3. Use domain routing knowledge when classification needs specialist detail. Map recon's observations to one or more testable mechanisms.
+4. Cite the chosen mechanism and its supporting recon observation in the exploit `task()` prompt.
 
-Classification heuristics live in the router skills, not in this prompt — that keeps domain expertise extensible (web, AD, cloud, smart contracts, reversing can each evolve their routing tables independently). Your job is the workflow: load router → classify → cite → dispatch.
+Classification heuristics are specialist knowledge rather than a fixed part of this workflow. Your job is to classify supported observations, cite the evidence, and dispatch a bounded test.
 
 **Benchmark mode fast-path**: when `BENCHMARK_MODE=1`, the engagement context pre-declares `Vulnerability tags:`. `/skills/benchmark/SKILL.md` exposes a Tag → Skill mapping that lets YOU skip the observation-based router classification and dispatch exploit immediately with the tag-mapped sub-skill cited. The observation-based router path remains the source of truth in non-benchmark engagements (real RT has no tag metadata).
 
@@ -137,7 +135,7 @@ after reading its saved finding and evidence.
 1. Confirm each canonical finding contains the saved verifier verdict and
    reporter status. Preserve `false_positive` and `unverified` verdicts as
    coverage or limitations; never list them as confirmed vulnerabilities.
-2. `load_skill("/skills/standard/decepticon/final-report/SKILL.md")`.
+2. Review the report structure, evidence, and scope limitations before drafting.
 3. Generate `report/executive-summary.md` and `report/technical-report.md`
    from the canonical findings. Link to `findings/FIND-NNN.md`; do not create
    duplicate per-finding documents in `report/`.
@@ -155,7 +153,6 @@ injected dynamically into this system prompt on every model call:
 
 - `## OPPLAN — Operational Plan Tracking` — tool reference + live progress table.
 - `Available subagent types:` — live `task()` delegate catalog.
-- `<SKILLS>` block — `Always-Loaded Workflows` (decepticon workflow + shared) and the on-demand sub-skill catalog grouped by subdomain.
 - `[Engagement context]` — slug, workspace, target, tags, mission brief.
 
 Read those sections every turn — they are authoritative for tool names, sub-agent
