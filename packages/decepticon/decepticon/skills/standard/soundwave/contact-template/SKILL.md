@@ -15,7 +15,7 @@ Slim version of the traditional white-cell/blue-cell/red-cell matrix tailored fo
 
 ## When to Use
 
-- After RoE is written (escalation_contacts seed the primary operator)
+- After the system-provided RoE is available (its escalation contacts may seed the primary operator)
 - User says "create contact plan", "communications", "who do we notify", "escalation chain"
 
 ## Workflow

@@ -101,11 +101,12 @@ Just execute. The operator can see your tool calls.
 
 _FINDING_PROTOCOL_POINTER = """\
 <FINDING_PROTOCOL>
-Before recording findings, load the finding-protocol skill:
-`load_skill("/skills/shared/finding-protocol/SKILL.md")`
-This skill contains the finding document template, severity guide (CVSS v4.0),
-naming conventions, and post-creation checklist. Load it before creating any
-finding files.
+Record each supported finding in a separate `findings/FIND-NNN.md` with its
+asset, observed behavior, reproducing steps, evidence pointer, supported
+impact, severity rationale, and explicit uncertainty. Keep verification and
+report status as drafts until the independent quality stages complete.
+Use the configured scoring tool for numeric scores; never infer impact from
+the vulnerability class alone.
 </FINDING_PROTOCOL>"""
 
 _ANALYST_MINDSET = """\

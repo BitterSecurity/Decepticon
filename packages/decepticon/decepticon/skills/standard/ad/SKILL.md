@@ -28,7 +28,7 @@ metadata:
 ## Playbooks
 | Skill | Use for |
 |---|---|
-| `/skills/standard/ad/bloodhound-query/SKILL.md` | Ingest + common Cypher queries |
+| `/skills/standard/ad/bloodhound-query/SKILL.md` | Authorized collection upload, coverage, object and path analysis |
 | `/skills/standard/ad/kerberoasting/SKILL.md`    | Roast SPN users, crack with hashcat |
 | `/skills/standard/ad/asrep-roasting/SKILL.md`   | dontreqpreauth users |
 | `/skills/standard/ad/adcs-esc1/SKILL.md`        | ESC1 template abuse → domain admin |
@@ -37,17 +37,8 @@ metadata:
 | `/skills/standard/ad/netexec/SKILL.md`          | NetExec (formerly CrackMapExec) cheatsheet — SMB/WinRM/LDAP/MSSQL modules |
 
 ## Workflow
-1. Collect: `bash("bloodhound-python -u user -p pass -d DOMAIN -c all --zip")`
-2. `bh_ingest_zip("/workspace/bh.zip")`
-3. `dcsync_check` — if any principal, that's instant domain compromise
-4. `kg_query(kind="user")` and filter for `hasspn=true` → Kerberoast queue
-5. `kg_query(kind="user")` and filter for `dontreqpreauth=true` → AS-REP roast
-6. ADCS: `bash("certipy find -u user -p pass -dc-ip X -json")` then `adcs_audit`
-7. `plan_attack_chains` to see graph-computed domain compromise paths
 
-## Crown jewels to add
-```
-kg_add_node(kind="crown_jewel", label="Domain Admins group")
-kg_add_node(kind="crown_jewel", label="krbtgt account")
-kg_add_node(kind="crown_jewel", label="DC: DC01.corp.local")
-```
+1. Check the actual authorized domain, collection access, and active BloodHound runtime. In hosted engagements, delegate AD analysis to the AD operator and use the engagement-isolated `bloodhound_mcp_*` tools. Standalone OSS may instead expose `bhce_*` tools for its local instance.
+2. Upload a compatible collection ZIP and verify successful completion. A discovered hostname alone does not populate BloodHound. Inspect collection coverage before interpreting absent results.
+3. Use object profiles, exposure search, and bounded shortest paths to identify candidates. Treat replication rights, SPNs, and pre-authentication settings as leads until independently validated.
+4. Record evidence and update executable objectives through the active OPPLAN tools. BloodHound graph results alone do not authorize target-facing work or prove compromise.

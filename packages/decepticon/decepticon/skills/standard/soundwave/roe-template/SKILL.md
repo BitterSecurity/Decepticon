@@ -1,60 +1,18 @@
 ---
 name: roe-template
-description: "Rules of Engagement document creation — scope definition, prohibited/permitted actions, testing windows, escalation contacts, incident procedures."
-allowed-tools: Read Write Edit
+description: Read and interpret the system-provided Rules of Engagement while planning with the operator.
+allowed-tools: Read
 metadata:
   subdomain: planning
-  when_to_use: "create RoE, define scope, engagement boundaries, start new engagement"
-  tags: roe, scope, engagement, authorization, legal
-  upstream_ref: "Soundwave Rules of Engagement template — scope / window / escalation / incident procedures"
+  when_to_use: "read RoE scope authorization boundaries plan mode"
+  tags: roe, scope, engagement, authorization
+  upstream_ref: "Decepticon system-managed engagement RoE and Soundwave Plan mode contract"
 ---
 
-# Rules of Engagement (RoE) Generator
+# Rules of Engagement in Plan mode
 
-The RoE is the **legally binding** foundation of every red team engagement. All other documents build on it.
+The product creates `plan/roe.json` from engagement setup and manages changes through its own UI and authorization controls. Soundwave may read it, but must never create, edit, replace, or sign it with filesystem tools. If it is absent, ask the operator to complete system setup outside Plan mode before planning target-facing work. If the operator wants a scope or exclusion change, direct them to the system-managed engagement settings; do not silently widen planning documents.
 
-## When to Use
+Read the existing RoE before writing other planning documents. Use its exact in-scope and out-of-scope targets, prohibited and permitted actions, authorization source, machine-enforcement rules, and any active time constraints. Do not invent an engagement type or a testing window when the system did not supply one. Ask the operator about choices for Soundwave-owned planning documents only when those choices remain material and unconfirmed.
 
-- Starting a new engagement
-- User says "create RoE", "define scope", "set boundaries"
-- Before any other planning document can be created
-
-## Workflow
-
-### Step 1: Interview the User
-
-Use `ask_user_question` for every operator-facing question. Ask one focused question at a time, skip confirmed intake facts, and follow up when an answer leaves a material RoE boundary ambiguous. Do not compress independent decisions into one answer to meet a question count.
-
-**Identity & Scope**
-1. Engagement name + client organization (ONE combined free-form question, `allow_other=true` with a sensible guessed pair as the option)
-2. Engagement type — single-select: `external` / `internal` / `hybrid` / `assumed-breach` / `physical`
-3. Start date / end date / testing window with timezone (free-form, `allow_other=true` — suggest defaults like "Mon-Fri 09:00-18:00 client TZ")
-4. In-scope targets AND out-of-scope targets (ONE combined free-form question — "What's in scope, and what's explicitly excluded?", `allow_other=true`)
-
-**Boundaries & Escalation**
-5. Special permitted and prohibited actions — phishing, password spraying, raw-socket scans, and any custom exclusions. Confirm material restrictions with the operator.
-6. Escalation contacts and authorization reference when the product has not already supplied them.
-
-If the operator's opening message already answers a dimension (e.g. they paste a CIDR range and say "external pentest"), extract it directly instead of re-asking.
-
-### Step 2: Generate plan/roe.json
-
-Use the `RoE` schema from `decepticon.core.schemas`. Write to the engagement directory.
-
-See `references/roe-example.json` for a complete example and `../references/schema-quick-reference.md` for all required fields and valid values.
-
-### Step 3: Validate
-
-Run through the checklist in `references/validation-checklist.md` before presenting to user.
-
-## Generation Rules
-
-1. **Always include default prohibited actions** — DoS, unauthorized social engineering, unauthorized physical access, real data exfiltration, production data modification
-2. **Scope must be specific** — CIDR notation for IPs, wildcard notation for domains
-3. **Testing window must include timezone**
-4. **At least 2 escalation contacts** required
-5. **Authorization reference must not be empty**
-
-## Output
-
-Write `plan/roe.json` to the engagement directory, then present a human-readable summary to the user for confirmation.
+The RoE constrains the threat profile, CONOPS, deconfliction, contact, data handling, abort, and cleanup documents. A planning draft or `complete_engagement_planning` call does not authorize a Red run or modify the RoE.

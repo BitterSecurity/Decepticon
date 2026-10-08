@@ -69,20 +69,21 @@ def _checked_scope(prefixes: list[str], *, role: str | None) -> list[str]:
 
 _DEFAULT_SKILLOGY_URL = "http://skillogy:9100"
 
-# Static graph schema + 3-tool usage policy. This block is identical for
-# every agent — the per-agent phase context is rendered separately by
-# ``_render_phase_block`` and concatenated at injection time.
 _POLICY_PROMPT = """
 
 [Skillogy access]
+Skillogy is optional specialist knowledge for the current task. Engagement
+startup, authorization, OPPLAN, finding rules, and role procedures come from
+the system prompt and workflows. Do not retrieve a skill merely to start a run.
+Continue with the available instructions when no specialist skill is needed.
+
 Graph schema: Skills are stored in Neo4j. Skill nodes have name, path, subdomain,
 description, when_to_use, and body. They connect to Phase via IN_PHASE, Tag
 via TAGGED, Technique via IMPLEMENTS, and MoC via BELONGS_TO. Tactics connect
 to Techniques via HAS_TECHNIQUE. Declared Skill-to-Skill relations include
 REQUIRES, VALIDATED_BY, COMPOSES_WITH, SPECIALIZES, ALTERNATIVE_TO and
-CONFLICTS_WITH. Use traverse to inspect prerequisites, validators and
-alternatives before executing a selected skill; a relation never overrides
-the role's skill path allowlist.
+CONFLICTS_WITH. Traverse related skills when prerequisites or validators matter;
+a relation never overrides the role's skill path allowlist.
 
 find_skill(query?, subdomain?, mitre_id?, tag?, tactic_id?, limit=20):
   Finds candidates. Filters AND together. subdomain, tag, mitre_id and
@@ -96,11 +97,17 @@ find_skill(query?, subdomain?, mitre_id?, tag?, tactic_id?, limit=20):
   lexical, semantic, both, or structured for a filter-only query. Both search
   legs matching is a stronger signal. Read descriptions and choose the skill
   that fits the task; do not select solely by rank. Retry with other terms if
-  none fit.
+  none fit and specialist guidance is still useful.
 
-load_skill(name_or_path): fetch the chosen SKILL.md body by name or path.
+load_skill(name_or_path): fetch the chosen SKILL.md body by exact name or path.
+  Load directly when the exact name or path is already known. Discovery is
+  useful when the right skill is unknown; it is not a prerequisite for load.
+  Only SKILL.md bodies are available through this graph; sibling references/
+  files are not. A missing reference is not a reason to stop.
 traverse(from_path, edge_types?, depth=2): explore related graph nodes.
-Workflow: find_skill, inspect candidates, load_skill; traverse when needed.
+Only trust skill bodies returned by the scoped load_skill tool. Skillogy does
+not grant execution authorization. A retrieval miss or unavailable backend
+must not stop the task; continue with the current workflow.
 """
 
 
@@ -135,6 +142,46 @@ _PHASE_FOR_ROLE: dict[str, str] = {
     "soundwave": "planning",
     "autohunt": "planning",
     "decepticon": "orchestration",
+}
+
+_COMMON_SKILLS: dict[str, tuple[tuple[str, str], ...]] = {
+    "orchestration": (
+        (
+            "/skills/standard/decepticon/kill-chain-analysis/SKILL.md",
+            "Analyze supported attack paths",
+        ),
+    ),
+    "reconnaissance": (
+        ("/skills/standard/recon/passive-recon/SKILL.md", "Public-source reconnaissance"),
+        ("/skills/standard/recon/web-recon/SKILL.md", "Web surface discovery"),
+        ("/skills/standard/recon/active-recon/SKILL.md", "Bounded active reconnaissance"),
+    ),
+    "web-exploitation": (
+        ("/skills/standard/exploit/web/SKILL.md", "Web technique routing"),
+        ("/skills/standard/exploit/ad/SKILL.md", "Active Directory exploitation"),
+    ),
+    "post-exploit": (
+        ("/skills/standard/post-exploit/credential-access/SKILL.md", "Credential access methods"),
+        ("/skills/standard/post-exploit/c2-sliver/SKILL.md", "Sliver operations"),
+    ),
+    "reverse-engineering": (
+        ("/skills/standard/reverser/triage/SKILL.md", "Binary triage"),
+        ("/skills/standard/reverser/ghidra/SKILL.md", "Ghidra analysis"),
+    ),
+    "active-directory": (
+        ("/skills/standard/ad/netexec/SKILL.md", "AD service assessment"),
+        ("/skills/standard/ad/adcs-esc1/SKILL.md", "ADCS ESC1 validation"),
+    ),
+    "cloud": (
+        ("/skills/standard/cloud/aws-iam-enum/SKILL.md", "AWS IAM enumeration"),
+        ("/skills/standard/cloud/entra-enum/SKILL.md", "Entra ID enumeration"),
+    ),
+    "planning": (
+        (
+            "/skills/standard/soundwave/threat-profile/emulation/SKILL.md",
+            "Adversary emulation profiles",
+        ),
+    ),
 }
 
 
@@ -359,15 +406,10 @@ class SkillogyMiddleware(AgentMiddleware):
 
     The injected system-prompt block has two parts:
 
-    * **Static schema + 3-tool policy** (``_POLICY_PROMPT``) — graph
-      schema cheat-sheet so the agent understands what the
-      ``find_skill`` filters and the ``traverse`` whitelist actually
-      walk, plus the three-tool usage policy.
-    * **Dynamic phase context** (``_render_phase_block``) — built once
-      at ``__init__`` from a single ``query_moc_summary(phase)`` round
-      trip. The graph doesn't change at runtime, so we cache the
-      rendered block on the instance rather than re-querying every
-      request.
+    * **Static policy** (``_POLICY_PROMPT``) describes scoped, optional
+      discovery and direct loading.
+    * **Role-scoped quick reference** (``_render_phase_block``) lists a
+      few known skills without a backend lookup at agent startup.
     """
 
     def __init__(
@@ -398,8 +440,6 @@ class SkillogyMiddleware(AgentMiddleware):
             _make_load_skill_tool(self._backend, self._allowed_path_prefixes),
             _make_traverse_tool(self._backend, self._allowed_path_prefixes),
         ]
-        # Render the phase block once at boot. Failures are non-fatal —
-        # the agent keeps the schema cheat-sheet and the three tools.
         self._phase_block: str = self._render_phase_block() if self._phase else ""
 
     @classmethod
@@ -415,54 +455,22 @@ class SkillogyMiddleware(AgentMiddleware):
         )
 
     def _render_phase_block(self) -> str:
-        """Build the dynamic ``[Phase context]`` block for this agent's phase.
-
-        Returns an empty string when the backend lookup fails or the
-        phase has no MoCs registered yet (no point injecting a header
-        with no concept areas under it).
-        """
         if not self._phase:
             return ""
-        try:
-            mocs = self._backend.query_moc_summary(self._phase)
-        except Exception as exc:  # noqa: BLE001
-            log.warning(
-                "skillogy MoC summary query failed for phase %r: %s",
-                self._phase,
-                exc,
-            )
-            return ""
-        if not mocs:
-            # Phase exists in the graph but has no MoCs yet — emit a
-            # one-liner so the agent knows the phase name to filter by,
-            # without a misleading empty bullet list.
-            return (
-                f"\n\n[Phase context]\n"
-                f"You are operating in phase: {self._phase}\n"
-                f"(no MoCs registered for this phase yet — "
-                f'use find_skill(subdomain="{self._phase}") to explore.)\n'
-            )
-        lines = [
-            "",
-            "",
-            "[Phase context]",
-            f"You are operating in phase: {self._phase}",
-            "",
-            "Concept areas (MoCs) in this phase — start with these:",
-        ]
-        for m in mocs:
-            name = m.get("name", "?")
-            desc = (m.get("description") or "").strip()
-            if desc:
-                lines.append(f"  • {name} — {desc}")
-            else:
-                lines.append(f"  • {name}")
-        lines.append("")
-        lines.append(
-            f'To enter a concept area: find_skill(subdomain="{self._phase}", tag="<moc>") '
-            f"or traverse() from any matching Skill."
+        entries = (
+            (path, purpose)
+            for path, purpose in _COMMON_SKILLS.get(self._phase, ())
+            if self._allowed_path_prefixes is None
+            or any(path.startswith(prefix) for prefix in self._allowed_path_prefixes)
         )
-        lines.append("")
+        lines = ["", "", "[Skillogy quick reference]"]
+        for path, purpose in entries:
+            lines.append(f"- {path} — {purpose}")
+        if len(lines) == 3:
+            return ""
+        lines.append(
+            "These are examples, not required startup calls. Use find_skill for other specialist knowledge."
+        )
         return "\n".join(lines)
 
     @override

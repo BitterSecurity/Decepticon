@@ -17,13 +17,13 @@ The CONOPS bridges the legal RoE and the tactical OPPLAN. It must be **readable 
 
 - After `plan/roe.json` exists
 - User says "create CONOPS", "design the operation", "build threat model"
-- Before OPPLAN can be generated
+- When the operator wants to design or revise a CONOPS. A direct Red run may build OPPLAN from the system RoE without this optional document.
 
 ## Prerequisites
 
 Read `plan/roe.json` first — scope and boundaries constrain the CONOPS.
 
-See `../references/schema-quick-reference.md` for the `CONOPS`, `ThreatActor`, `KillChainPhase`, and `DeconflictionPlan` schema fields.
+Use the active planning schema and the Soundwave system prompt for `CONOPS`, `ThreatActor`, `KillChainPhase`, and `DeconflictionPlan` fields. Skillogy returns this skill body without sibling reference files.
 
 ## Workflow
 
@@ -38,7 +38,7 @@ Use the tier table and RoE Constraint→Profile Implication table in `threat-pro
    - d) Insider threat
    - e) Custom — describe
 
-Use `threat-profile/references/adversary-archetypes.md` to propose **motivation** and **initial access vector**, then confirm them when they affect the operation.
+Propose **motivation** and **initial access vector** from the operator's confirmed context, then confirm them when they affect the operation.
 
 **Question 2 — Success criteria** — the crown-jewel / measurable win condition. Required; no default (every engagement needs an explicit end-state).
 
@@ -50,14 +50,14 @@ Use `threat-profile/references/adversary-archetypes.md` to propose **motivation*
 
 ### Step 2: Design Kill Chain
 
-Based on RoE scope + threat profile, select applicable phases. See `references/kill-chain-templates.md`.
+Based on RoE scope + threat profile, select applicable phases using the active planning schema; do not depend on a sibling reference file that Skillogy cannot return.
 
 **Key rule**: Don't include phases outside RoE scope. Recon-only engagement → only `recon` phase.
 
 ### Step 3: Generate Documents
 
-1. `plan/conops.json` — matching `CONOPS` schema
-2. `plan/deconfliction.json` — matching `DeconflictionPlan` schema
+1. Create or revise `plan/conops.json` with the matching `CONOPS` schema.
+2. Create or revise `plan/deconfliction.json` only when the operator is also designing that document; otherwise keep its existing content.
 
 ### Step 4: Validate
 

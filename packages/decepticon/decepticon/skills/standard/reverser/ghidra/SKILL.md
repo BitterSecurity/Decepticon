@@ -1,69 +1,22 @@
 ---
 name: reverser-ghidra
-description: Deep binary analysis via Ghidra — headless analyzeHeadless or live MCP bridge with 245 tools. Decompilation, xrefs, function listing, batch operations, P-code emulation, convention enforcement.
+description: Analyze an authorized binary through the active Ghidra runtime and verify navigation in the mirrored GUI.
 metadata:
   subdomain: reverse-engineering
-  when_to_use: "ghidra deep binary analysis headless analyzeHeadless mcp bridge decompile xref function listing p-code"
-  upstream_ref: "NSA Ghidra reverse-engineering suite + Decepticon ghidra-mcp bridge (245 tools)"
+  when_to_use: "ghidra binary import functions decompile cross references codebrowser GUI"
+  upstream_ref: "NSA Ghidra and the active Decepticon Ghidra tool catalog"
 ---
 
-# Ghidra Deep Analysis
+# Ghidra analysis
 
-Ghidra is the primary reverse engineering backend. Two modes:
-- **MCP bridge** (preferred) — 245 tools via HTTP at `$GHIDRA_MCP_URL`
-- **Headless** (fallback) — `analyzeHeadless` + postScript for JSON output
+## Hosted engagement
 
-## Prerequisites
-```
-ghidra_status()
-```
-Check if Ghidra headless and/or MCP bridge are available.
+The isolated E2B Ghidra companion is the analysis runtime and the Run tab mirrors its actual CodeBrowser. Import a binary already under `/workspace` with `ghidra_import_file`, then select the program with `ghidra_open_program`. Check `ghidra_analysis_status` before relying on incomplete analysis. Opening the viewer alone creates or displays the project; it does not imply that a binary was imported.
 
-## 1. Full Analysis
-```
-ghidra_analyze(binary="/workspace/target.exe")
-```
-Returns: functions (up to 500), imports, exports, language, image base.
-Auto-selects MCP if running, headless otherwise.
+Use the available native `ghidra_` MCP tools. The initial catalog includes `ghidra_get_functions`, `ghidra_find_functions`, `ghidra_get_xrefs_to`, `ghidra_get_xrefs_from`, `ghidra_list_strings`, `ghidra_tool_goto_address`, and `ghidra_get_ui_cursor`. For decompilation, data types, scripts, or other tools not initially listed, call `ghidra_find_tools` with a task-specific query, inspect the returned native name and schema, and call it on the next step. Pass `program` to program-scoped calls. Do not guess tool names or invoke the MCP endpoint with shell or curl.
 
-## 2. Decompile a Function
-```
-ghidra_decompile(binary="/workspace/target.exe", function="main")
-ghidra_decompile(binary="/workspace/target.exe", function="0x401000")
-```
-Accepts symbol name or hex address. Returns C pseudocode.
+Address-specific calls should navigate the real Listing and Decompiler through the GUI follow hook. Inspect the returned GUI follow result before saying the operator saw the location. If following failed, report that analysis may have succeeded but visual confirmation did not. Record the binary hash and address with every finding.
 
-## 3. Cross-References (MCP)
-```
-ghidra_xrefs(binary="/workspace/target.exe", address="0x401000")
-```
-Returns up to 200 xrefs with source function context.
+## Standalone OSS runtime
 
-## 4. Fallback: Script Generation
-If headless/MCP are unavailable, generate a recon script and run via bash:
-```
-bin_ghidra_script(binary="/workspace/target.exe")
-```
-
-## MCP Bridge — Full 245-Tool Coverage
-When the Ghidra MCP bridge is running, the reverser also has access to
-the complete bethington/ghidra-mcp tool surface via bash + curl:
-
-- **Function analysis** — decompilation, call graphs, completeness scoring
-- **Data flow** — PCode-graph value propagation (forward / backward)
-- **Structure discovery** — struct/union/enum creation, field analysis
-- **String extraction** — regex search, quality filtering
-- **Import/export analysis** — symbol tables, ordinal resolution
-- **Memory inspection** — raw reads, byte pattern search
-- **Cross-binary documentation** — SHA-256 function hash matching
-- **P-code emulation** — run functions in isolation, brute-force API hashes
-- **Batch operations** — bulk rename, comment, type (93% fewer API calls)
-- **Script management** — create, run, update Ghidra scripts via MCP
-- **Convention enforcement** — auto-fix naming, type safety, documentation
-
-## Workflow
-1. `ghidra_status()` → check availability
-2. `ghidra_analyze()` → full triage
-3. Pick interesting functions → `ghidra_decompile()` each
-4. For xref hunting → `ghidra_xrefs()` on dangerous imports
-5. Record all findings in the knowledge graph
+A standalone run may expose different local reversing tools, including `ghidra_status` and `ghidra_analyze`. Use only tools actually registered in that runtime. These local tools do not imply that a hosted GUI was updated. Keep standalone output and hosted GUI claims distinct.
