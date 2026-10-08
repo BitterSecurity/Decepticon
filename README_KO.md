@@ -41,7 +41,8 @@
 <br/>
 
 <div align="center">
-  <video src="https://github.com/user-attachments/assets/2344d6f7-fa44-42bb-9492-1c203e56df3c" width="800" controls></video>
+  <p><strong>상용 제품 데모</strong></p>
+  <video src="https://github.com/user-attachments/assets/7a9b233c-fd72-4633-a408-03953c345a15" width="800" controls></video>
 </div>
 
 <div align="center">
@@ -54,6 +55,11 @@ Docker 설치 없이 — 브라우저에서 바로 자율 레드팀 엔게이지
   <img src="https://img.shields.io/badge/라이브%20앱%20실행하기-app.decepticon.red-FF2D55?logo=rocket&logoColor=white&style=for-the-badge" alt="app.decepticon.red 라이브 앱 실행">
 </a>
 
+</div>
+
+<div align="center">
+  <p><strong>오픈소스 CLI 데모</strong></p>
+  <video src="https://github.com/user-attachments/assets/b3fd40d8-e859-4a39-97f4-bd825694ad96" width="800" controls></video>
 </div>
 
 ---
