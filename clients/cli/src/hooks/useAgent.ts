@@ -36,6 +36,7 @@ interface LangChainMessage {
     name: string;
     args: Record<string, unknown>;
   }>;
+  readonly invalid_tool_calls?: readonly unknown[];
   tool_call_id?: string;
   status?: string; // "success" | "error" on tool messages
   response_metadata?: {
@@ -498,6 +499,15 @@ export function useAgent({
               addEvent({ type: "ai_message", content: text });
             }
 
+            const invalidToolCount = msg.invalid_tool_calls?.length ?? 0;
+            if (invalidToolCount > 0) {
+              const runReference = runIdRef.current ? ` Run: ${runIdRef.current}.` : "";
+              addEvent({
+                type: "system",
+                content: `The model returned invalid tool calls. Inspect the model response format.${runReference}`,
+              });
+            }
+
             if (msg.tool_calls?.length) {
               for (const tc of msg.tool_calls) {
                 toolCallArgs.set(tc.id, tc.args);
@@ -516,7 +526,7 @@ export function useAgent({
             } else {
               setPendingTool(null);
               completionReceived = true;
-              if (!text) {
+              if (!text && invalidToolCount === 0) {
                 const finishReason = msg.response_metadata?.finish_reason
                   ?? msg.response_metadata?.stop_reason;
                 let diagnosis = "The model returned no displayable text or tool calls; the cause is unknown.";
