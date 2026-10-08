@@ -34,14 +34,11 @@ into OPPLAN objectives.
 | **FIN7** (Carbon Spider / Sangria Tempest) | `emulation/fin7/SKILL.md` | tier-2 | Spearphishing → big-game-hunting ransomware | phish, ad, post-exploit, exploit |
 | **LockBit / RaaS affiliate** | `emulation/lockbit/SKILL.md` | tier-2 | Generic ransomware affiliate kill chain | recon, exploit/cve, ad, post-exploit |
 
-For the one-card quick reference (attribution, targets, full TTP table) on any actor, see
-`../references/apt-groups.md`. For tier archetypes when no named actor fits, see
-`../references/adversary-archetypes.md`.
+Use the loaded actor playbook and current evidence for attribution and TTP details. Skillogy does not expose sibling reference files; do not assume those cards were read.
 
 ## How to use a playbook (Soundwave Phase 2)
 
-1. **Pick the actor** from the operator's intake answer (or from the industry → actor map
-   in `../references/apt-groups.md`). One dominant actor per engagement.
+1. **Pick the actor** from the operator's intake answer and current evidence. One dominant actor per engagement.
 2. **Load the leaf**: `load_skill("/skills/standard/soundwave/threat-profile/emulation/<actor>/SKILL.md")`.
 3. **Copy the `ThreatProfile` seed** into `plan/threat-profile.json`, then prune any
    `key_ttps` / `initial_access` techniques the RoE forbids (Step 3 of the `threat-profile`

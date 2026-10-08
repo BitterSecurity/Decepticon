@@ -33,13 +33,13 @@ metadata:
 | `/skills/standard/reverser/game-security/SKILL.md`     | Self-hosted game client, protocol, replay, and server-authority research |
 
 ## Workflow
-1. `ghidra_status` — check Ghidra MCP bridge and headless availability
+1. Check which reversing tools the active runtime exposes. Hosted runs use an isolated Ghidra MCP companion and mirrored GUI; standalone OSS may expose local analysis tools.
 2. `bin_identify` — format, arch, NX/PIE
 3. `bin_packer` — entropy + signature
 4. If packed → follow the packer-unpacking skill, re-identify after unpack
 5. `bin_strings` — category=url/ip/crypto/secret/version to seed the graph
 6. `bin_symbols_report` — risk bucket classification
 7. Version strings → `cve_lookup` + `cve_by_package`
-8. `ghidra_analyze` for full analysis, or `bin_ghidra_script` / `bin_r2_script` for headless Ghidra / Radare2 fallback
-9. `ghidra_decompile` on interesting functions, `ghidra_xrefs` on dangerous imports
+8. In hosted runs, import the `/workspace` binary with `ghidra_import_file`, open the program, and inspect `ghidra_analysis_status`; discover additional native tools with `ghidra_find_tools` when needed.
+9. Inspect functions and cross-references with the registered `ghidra_` MCP tools. Check GUI follow status for address-specific results. In standalone OSS, use only the local reversing tools actually registered.
 10. Record every observation in the knowledge graph

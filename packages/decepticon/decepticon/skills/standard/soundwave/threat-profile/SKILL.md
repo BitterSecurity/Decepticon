@@ -34,7 +34,7 @@ Ask the user which tier fits. If they're unsure, recommend based on engagement t
 
 ### Step 2: Build the Profile
 
-Gather or derive these fields — see `references/adversary-archetypes.md` for pre-built tier profiles and `references/apt-groups.md` for known APT/eCrime group cards (now 19 actors + a MITRE Group-ID crosswalk). For a **named actor**, load the matching emulation playbook (`emulation/<actor>/SKILL.md`, indexed by `emulation/SKILL.md`) — it ships a ready-to-edit `ThreatProfile` seed **and** the full kill chain mapped to Decepticon skills:
+Gather or derive these fields from the operator's context and current evidence. For a **named actor**, optionally load the matching emulation playbook (`emulation/<actor>/SKILL.md`, indexed by `emulation/SKILL.md`) when that specialist detail is useful. Skillogy returns skill bodies, not sibling reference files:
 
 1. **Name/Alias** — Known group or custom archetype
 2. **Sophistication** — low / medium / high / nation-state

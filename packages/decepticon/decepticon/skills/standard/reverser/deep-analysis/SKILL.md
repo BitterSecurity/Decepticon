@@ -42,7 +42,7 @@ For each function under analysis, follow this cycle exactly:
 
 ### 2a. Decompile
 ```
-ghidra_decompile(binary="/workspace/target", function="<addr_or_name>")
+Use `ghidra_find_tools(query="decompile")` in hosted runs to discover the native decompiler tool and its argument schema; pass the imported program and target function.
 ```
 Read the full output before touching anything.
 
@@ -109,7 +109,7 @@ kg_add_node("note", "deep-analysis progress",
 ### "What does function X do?"
 
 1. Decompile X.
-2. List all callees: `ghidra_xrefs(binary=..., address=X)`.
+2. List callees with the registered `ghidra_get_xrefs_from` tool for the imported program; use `ghidra_find_tools` when another reference view is needed.
 3. For each callee, check if it's a library stub (look up import table) or
    custom code. Library stubs → infer semantics from function name. Custom
    code → recurse one level.
@@ -226,10 +226,10 @@ kg_add_node("finding", "deep-analysis complete",
 
 | Tool | Purpose |
 |------|---------|
-| `ghidra_decompile` | C pseudocode for a function |
+| Native Ghidra decompiler tool, discovered with `ghidra_find_tools` | C pseudocode for a function |
 | `ghidra_batch_rename` | Rename multiple symbols in one call |
 | `ghidra_retype` | Fix type annotations |
-| `ghidra_xrefs` | Callers / callees of an address |
+| `ghidra_get_xrefs_to` / `ghidra_get_xrefs_from` | Callers / callees of an address in hosted runs |
 | `ghidra_create_struct` | Define a data structure |
 | `capa` | High-level capability + crypto detection |
 | `pefile` / `lief` | PE/ELF structure access from Python |

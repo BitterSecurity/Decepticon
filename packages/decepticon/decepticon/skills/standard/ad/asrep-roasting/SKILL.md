@@ -16,10 +16,11 @@ TCP/UDP 88 is enough. This makes AS-REP roast more powerful than
 kerberoast in some engagements (zero-auth pre-recon win).
 
 ## 1. Identify vulnerable users
-From BloodHound:
-```
-kg_query(kind="user", filter="dontreqpreauth=true and enabled=true")
-```
+In a hosted engagement, inspect the authorized collection through
+`bloodhound_mcp_find_objects` and `bloodhound_mcp_object_profile`, or use a
+bounded read-only `bloodhound_mcp_cypher_query` when the semantic tools do not
+expose the required account flag. Confirm collection coverage first. In
+standalone OSS, use the registered `bhce_cypher` tool against that instance.
 
 Direct LDAP (if you have any cred or anonymous-bind allowed):
 ```bash

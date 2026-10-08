@@ -15,11 +15,11 @@ domain controllers to replicate. The "vulnerability" is when a
 non-DC principal has the replication-rights ACL.
 
 ## 1. Identify DCSync candidates
-From BloodHound:
-```
-kg_query(kind="user", filter="dcsync=true") +
-kg_query(kind="group", filter="dcsync=true")
-```
+In a hosted engagement, inspect the authorized collection with
+`bloodhound_mcp_exposure_finder` and `bloodhound_mcp_object_profile`, or use
+bounded read-only `bloodhound_mcp_cypher_query` for a specific principal.
+Check data quality before treating absent edges as proof of no exposure.
+Standalone OSS may use its registered `bhce_cypher` tool instead.
 
 Or Cypher direct:
 ```

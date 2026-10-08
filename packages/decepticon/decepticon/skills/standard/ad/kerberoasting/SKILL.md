@@ -14,10 +14,11 @@ metadata:
 Any valid domain user. No special privileges required.
 
 ## 1. Identify roastable accounts
-From BloodHound ingest:
-```
-kg_query(kind="user", filter="hasspn=true and enabled=true")
-```
+In a hosted engagement, inspect the authorized collection through
+`bloodhound_mcp_find_objects` and `bloodhound_mcp_object_profile`, or use a
+bounded read-only `bloodhound_mcp_cypher_query` when the semantic tools do not
+expose the SPN property. Confirm collection coverage first. In standalone OSS,
+use the registered `bhce_cypher` tool against that instance.
 Or LDAP-direct:
 ```bash
 ldapsearch -x -H ldap://DC_IP -D 'USER@DOM' -w 'PASS' \

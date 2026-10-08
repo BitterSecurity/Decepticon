@@ -43,7 +43,10 @@ bin_strings(path=web_server_binary, category_filter="secret")
 bin_strings(path=web_server_binary, category_filter="crypto")
 ```
 Also check for base64 / hex key patterns near `strcmp` calls (manual
-audit via Ghidra — use `bin_ghidra_script` to seed).
+audit via the active Ghidra runtime. Hosted runs import the extracted binary
+under `/workspace` with `ghidra_import_file`; use `ghidra_find_tools` for
+native capabilities not initially listed. Standalone runs may expose local
+script generation tools instead.)
 
 ## 5. Authentication bypass audit
 Look for:

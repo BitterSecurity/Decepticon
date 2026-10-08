@@ -1,86 +1,28 @@
 ---
 name: bloodhound-query
-description: BloodHound ingestion + canonical Cypher queries for AD attack-path enumeration. Run after collector dumps zip; promotes findings into the knowledge graph.
+description: Analyze authorized AD collection data in BloodHound CE with the active runtime's supported tools and mirrored GUI.
 metadata:
   subdomain: active-directory
-  when_to_use: "bloodhound cypher query shortest path kerberoastable unconstrained delegation"
+  when_to_use: "bloodhound collection upload object profile exposure shortest path cypher active directory"
   mitre_attack:
     - T1087.002
     - T1018
     - T1482
 ---
 
-# BloodHound Query Playbook
+# BloodHound analysis
 
-## 1. Collect
-```bash
-# Python collector (works from Linux attacker box)
-bloodhound-python -u USER -p 'PASS' -d DOMAIN -c all --zip --dns-tcp \
-  -ns DC_IP -o /workspace/bh.zip
+BloodHound analyzes collected AD data; discovering a domain or opening its viewer does not populate the graph. Work only with the authorized domain and an existing collection path. Report missing collection access rather than claiming an empty graph proves safety.
 
-# Or SharpHound from a Windows beachhead
-# Invoke-BloodHound -CollectionMethod All -ZipFileName bh.zip
-```
-If `bloodhound-python` errors on TLS, add `-gc gc.domain.local` for the
-global catalog FQDN.
+## Hosted engagement
 
-## 2. Ingest into Decepticon KG
-```
-bh_ingest_zip("/workspace/bh.zip")
-```
-This populates User / Computer / Group / GPO / OU nodes with attribute
-properties (hasspn, dontreqpreauth, enabled, admincount, sidhistory).
+1. Use the engagement-isolated BloodHound CE companion. If a compatible SharpHound ZIP already exists under `/workspace`, call `bloodhound_mcp_upload_collection(path=...)`. Check that the returned terminal status is `Complete`; report partial or failed ingest.
+2. If no ZIP exists, collect only through an authorized foothold and transfer its ZIP to `/workspace`. Alternatively, where a scoped DC is reachable and a Kerberos cache exists in `/workspace`, use `bloodhound_mcp_collect_domain` with the matching domain, DC, username, and cache. Begin with `DCOnly`; `Default` and `Session` require an explicit computer allowlist. Never pass passwords or hashes as MCP arguments.
+3. After a completed upload, check `bloodhound_mcp_data_quality` and `bloodhound_mcp_domain_overview`. Use `bloodhound_mcp_find_objects` and `bloodhound_mcp_object_profile` for specific principals; `bloodhound_mcp_exposure_finder` and `bloodhound_mcp_shortest_path` for bounded questions. Use `bloodhound_mcp_cypher_query` only when semantic tools cannot answer a read-only question. Bound returned rows and path depth.
+4. Check GUI follow status before claiming that the operator can see the selected object or path. Distinguish a candidate graph path from an action proven by independent evidence. Record confirmed results through the active engagement's finding and OPPLAN tools.
 
-## 3. Canonical Cypher queries
-Run via `bh_cypher("<query>")` or post-process `kg_query(kind=...)`:
+The hosted MCP graph is separate from any standalone BloodHound instance. Do not call `bhce_*`, `bh_ingest_zip`, `bh_cypher`, or a local `cypher-shell` for hosted analysis.
 
-| Goal | Cypher |
-|---|---|
-| Owned principals | `MATCH (u) WHERE u.owned=true RETURN u.name` |
-| Shortest path to DA | `MATCH p=shortestPath((u {owned:true})-[*1..]->(g:Group {name:'DOMAIN ADMINS@DOM'})) RETURN p` |
-| Kerberoastable users | `MATCH (u:User {hasspn:true, enabled:true}) RETURN u.name,u.spns` |
-| AS-REP roastable | `MATCH (u:User {dontreqpreauth:true, enabled:true}) RETURN u.name` |
-| DCSync candidates | `MATCH (n)-[:GetChanges|GetChangesAll]->(:Domain) RETURN n.name` |
-| Unconstrained delegation | `MATCH (c:Computer {unconstraineddelegation:true}) RETURN c.name` |
-| RBCD targets | `MATCH (n)-[:AddAllowedToAct]->(c:Computer) RETURN n.name,c.name` |
-| GenericAll on user | `MATCH (n)-[:GenericAll]->(u:User) WHERE NOT n=u RETURN n.name,u.name` |
-| ACL path to high-value | `MATCH p=shortestPath((u {owned:true})-[:GenericAll|GenericWrite|WriteOwner|WriteDacl*1..]->(t {highvalue:true})) RETURN p` |
-| Sessions on DC | `MATCH (u:User)-[:HasSession]->(c:Computer) WHERE c.name CONTAINS 'DC' RETURN u.name,c.name` |
-| Computers w/ admin from owned | `MATCH (u {owned:true})-[:AdminTo*1..2]->(c:Computer) RETURN c.name` |
-| GPO abuse | `MATCH (n)-[:GpLink]->(:OU)-[:Contains*1..]->(c:Computer) WHERE n.name CONTAINS 'unsafe' RETURN n.name,c.name` |
+## Standalone OSS runtime
 
-## 4. Auto-prioritize attack paths
-After ingest:
-```
-plan_attack_chains(promote=True)
-```
-This walks the graph from owned → high-value and surfaces:
-- Tier-0 reachability (DA / EA / krbtgt)
-- Tier-1 reachability (server admins, backup ops)
-- Lateral hops (admin → admin via AdminTo)
-
-## 5. Promote findings
-For each materialized path, add to KG:
-```
-kg_add_node(kind="attack_path", label="<owned-user> → <high-value>",
-            props={"hops":<n>, "edges":"<edge-types>", "severity":"critical"})
-kg_add_edge(src=<attack_path>, dst=<crown_jewel>, kind="reaches", weight=1.0)
-```
-
-## 6. Common collector failures
-| Symptom | Fix |
-|---|---|
-| LDAP bind error | Wrong creds or password expired — try `-p '<empty>'` for null bind |
-| Sessions: 0 | RPC blocked — add `--computerfile <list>` to skip enum |
-| ACL: 0 | Account lacks `RIGHT_DS_READ_PROPERTY` — try diff user |
-| ZIP empty | Collector crashed mid-run — check `--workers 1 -d <domain>` |
-
-## CVSS / impact
-
-| Path discovered | Severity |
-|---|---|
-| Owned → DA shortest path ≤ 3 hops | Critical (10.0) — engagement-ending |
-| Owned → server admin | High (8.0) |
-| GenericAll on high-value user | High (8.0) — single ACL = takeover |
-| Kerberoastable + offline-crackable hash | Medium-High (6-8) — needs crack |
-| Unconstrained delegation on non-DC | High (8.0) — TGT capture |
+If the hosted MCP tools are absent and the standalone `bhce_*` tools are registered, use `bhce_status` to check the local instance, `bhce_ingest_zip` for a compatible ZIP, and `bhce_cypher` for bounded read-only queries. Never treat data from another instance as the current engagement's collection.

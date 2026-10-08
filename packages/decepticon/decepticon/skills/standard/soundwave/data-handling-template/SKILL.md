@@ -15,7 +15,7 @@ The data handling plan defines **what evidence the agent collects, where it live
 
 ## When to Use
 
-- After RoE is written (RoE constraints + scope drive which data classes appear)
+- After the system-provided RoE is available (its constraints and scope drive which data classes appear)
 - User says "create data handling", "retention policy", "evidence storage", "PII handling", "compliance"
 
 ## Workflow
