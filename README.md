@@ -41,7 +41,8 @@
 <br/>
 
 <div align="center">
-  <video src="https://github.com/user-attachments/assets/b3fd40d8-e859-4a39-97f4-bd825694ad96" width="800" controls></video>
+  <p><strong>Commercial product demo</strong></p>
+  <video src="https://github.com/user-attachments/assets/7a9b233c-fd72-4633-a408-03953c345a15" width="800" controls></video>
 </div>
 
 
@@ -58,7 +59,8 @@ Skip the Docker setup — run autonomous red-team engagements right from your br
 </div>
 
 <div align="center">
-  <video src="https://github.com/user-attachments/assets/2344d6f7-fa44-42bb-9492-1c203e56df3c" width="800" controls></video>
+  <p><strong>Open-source CLI demo</strong></p>
+  <video src="https://github.com/user-attachments/assets/b3fd40d8-e859-4a39-97f4-bd825694ad96" width="800" controls></video>
 </div>
 
 ---
