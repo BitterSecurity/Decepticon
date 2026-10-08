@@ -41,42 +41,28 @@ function is fully annotated and the answer is "it delegates to X".
 For each function under analysis, follow this cycle exactly:
 
 ### 2a. Decompile
-```
-Use `ghidra_find_tools(query="decompile")` in hosted runs to discover the native decompiler tool and its argument schema; pass the imported program and target function.
-```
+In hosted runs, use `ghidra_find_tools(query="decompile")` to discover the
+native decompiler tool and its argument schema, then pass the imported program
+and target function. Do not infer a decompiler call from a local-only example.
 Read the full output before touching anything.
 
 ### 2b. Rename all locals and parameters
-As soon as you understand a variable's purpose, rename it immediately:
-```bash
-# Via Ghidra MCP batch rename (preferred — one round trip)
-# collect all your renames first, then batch:
-ghidra_batch_rename(binary="/workspace/target", renames={
-  "sub_401A20": "decrypt_config_blob",
-  "local_18": "key_len",
-  "param_1": "encrypted_buf",
-  "param_2": "buf_len"
-})
-```
+As soon as you understand a variable's purpose, rename it. Collect related
+renames and use the native rename tool discovered with
+`ghidra_find_tools(query="rename")`; inspect its schema before calling it.
 Do not leave a decompiled function with placeholder names (`param_1`,
 `local_8`, `uVar1`) if you know what they are.
 
 ### 2c. Retype parameters and locals
-Correct types catch bugs in decompiler reasoning:
-```bash
-# If param_1 is char* not int
-ghidra_retype(binary="/workspace/target", symbol="decrypt_config_blob::param_1", type="char *")
-ghidra_retype(binary="/workspace/target", symbol="decrypt_config_blob::local_18", type="uint32_t")
-```
+Correct types catch bugs in decompiler reasoning. Discover the native type
+editing operation with `ghidra_find_tools(query="type")` and use the returned
+schema for the active program.
 Pay special attention to: size_t vs int (sign confusion), pointer-as-int
 patterns, struct pointer vs void*, callback function pointers.
 
 ### 2d. Add inline comments
-At every branch point whose purpose is now understood:
-```bash
-ghidra_set_comment(binary="/workspace/target", address="0x401A3C",
-  comment="XOR-decrypts single byte: key[i % key_len] ^ buf[i]")
-```
+At every branch point whose purpose is now understood, add a comment with the
+native annotation tool discovered by `ghidra_find_tools(query="comment")`.
 
 ### 2e. Re-read the decompilation
 After rename+retype, decompile again. The output will often look
@@ -183,13 +169,10 @@ schedule location if observable.
 When you see pointer arithmetic into a struct you don't have a definition for:
 
 1. Note the maximum offset accessed (e.g. `[param_1 + 0x28]`).
-2. Create a Ghidra struct: `ghidra_create_struct(name="Config", size=0x30)`.
-3. Add fields as you discover their types:
-   ```
-   ghidra_add_field(struct="Config", offset=0x00, type="char[16]", name="key")
-   ghidra_add_field(struct="Config", offset=0x10, type="char[64]", name="c2_host")
-   ghidra_add_field(struct="Config", offset=0x50, type="uint16_t", name="c2_port")
-   ```
+2. Discover the available native struct and field operations with
+   `ghidra_find_tools(query="struct")`; inspect their schemas.
+3. Create a struct large enough to contain the greatest field offset plus its
+   width. Add fields only after validating offsets against the binary.
 4. Apply the struct type to all uses of param_1.
 5. Re-decompile — member names will appear in the pseudocode.
 
@@ -227,9 +210,8 @@ kg_add_node("finding", "deep-analysis complete",
 | Tool | Purpose |
 |------|---------|
 | Native Ghidra decompiler tool, discovered with `ghidra_find_tools` | C pseudocode for a function |
-| `ghidra_batch_rename` | Rename multiple symbols in one call |
-| `ghidra_retype` | Fix type annotations |
+| Native rename and type tools, discovered with `ghidra_find_tools` | Update symbols and type annotations |
 | `ghidra_get_xrefs_to` / `ghidra_get_xrefs_from` | Callers / callees of an address in hosted runs |
-| `ghidra_create_struct` | Define a data structure |
+| Native struct tools, discovered with `ghidra_find_tools` | Define a data structure |
 | `capa` | High-level capability + crypto detection |
 | `pefile` / `lief` | PE/ELF structure access from Python |
