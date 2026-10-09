@@ -40,6 +40,12 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked,id=sandbox-apt-cache
         netcat-openbsd \
         iputils-ping \
         subfinder \
+        httpx-toolkit \
+        katana \
+        nuclei \
+        naabu \
+        whatweb \
+        masscan \
         # ── Exploit & post-exploitation ──
         hydra \
         sqlmap \
@@ -132,7 +138,8 @@ RUN pip3 install --break-system-packages --no-cache-dir \
     "yt-dlp>=2025.1.1" \
     "pydantic>=2.0.0" \
     "pydantic-settings>=2.0.0" \
-    "typing-extensions>=4.0.0"
+    "typing-extensions>=4.0.0" \
+    "playwright>=1.48.0"
 
 # Playwright browser tier — the engine's last escalation rung for JS/WAF
 # challenges (Cloudflare Turnstile, Akamai, DataDome) that the curl_cffi grid

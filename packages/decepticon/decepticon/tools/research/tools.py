@@ -31,15 +31,24 @@ from decepticon.tools.contracts.patterns import scan_solidity_source
 from decepticon.tools.contracts.slither import ingest_slither_file
 from decepticon.tools.research import cve as cve_mod
 from decepticon.tools.research import fuzz as fuzz_mod
+from decepticon.tools.research.agent_todo import TODO_TOOLS
+from decepticon.tools.research.ai_surface import AI_SURFACE_TOOLS
 from decepticon.tools.research.chain import critical_path_score, plan_chains, promote_chain
+from decepticon.tools.research.coverage_ledger import COVERAGE_TOOLS
 from decepticon.tools.research.dedupe import kg_dedupe_findings
+from decepticon.tools.research.diff_scope import DIFF_SCOPE_TOOLS
+from decepticon.tools.research.exploit_intel import EXPLOIT_INTEL_TOOLS
 from decepticon.tools.research.health import backend_health
 from decepticon.tools.research.osint import OSINT_TOOLS
 from decepticon.tools.research.patch import PATCH_TOOLS
 from decepticon.tools.research.sarif import ingest_sarif_file
 from decepticon.tools.research.scanner_tools import SCANNER_TOOLS
 from decepticon.tools.research.secret_scanner import scan_secrets
+from decepticon.tools.research.secret_validation import SECRET_VALIDATION_TOOLS
+from decepticon.tools.research.shared_notes import NOTES_TOOLS
+from decepticon.tools.research.subdomain_takeover import SUBDOMAIN_TAKEOVER_TOOLS
 from decepticon.tools.research.tech_detection import detect_tech_stack
+from decepticon.tools.research.threat_model import THREAT_MODEL_TOOLS
 from decepticon.tools.reversing.binary import identify_binary
 from decepticon.tools.reversing.packer import detect_packer
 from decepticon.tools.reversing.strings import extract_strings, group_by_category
@@ -115,6 +124,99 @@ def _severity_from_string(value: str | None) -> Severity:
 
 def _is_web_port(port: int) -> bool:
     return port in {80, 81, 443, 3000, 5000, 7001, 8000, 8008, 8080, 8443, 8888}
+
+
+# Common port→service mapping for masscan output that lacks banner data.
+_PORT_SERVICE_MAP: dict[int, str] = {
+    21: "ftp",
+    22: "ssh",
+    23: "telnet",
+    25: "smtp",
+    53: "dns",
+    80: "http",
+    110: "pop3",
+    111: "rpcbind",
+    135: "msrpc",
+    139: "netbios-ssn",
+    143: "imap",
+    443: "https",
+    445: "microsoft-ds",
+    465: "smtps",
+    587: "submission",
+    993: "imaps",
+    995: "pop3s",
+    1433: "ms-sql-s",
+    1521: "oracle",
+    2049: "nfs",
+    3306: "mysql",
+    3389: "ms-wbt-server",
+    5432: "postgresql",
+    5900: "vnc",
+    5985: "wsman",
+    6379: "redis",
+    8000: "http-alt",
+    8008: "http-alt",
+    8080: "http-proxy",
+    8443: "https-alt",
+    8888: "http-alt",
+    9200: "elasticsearch",
+    9300: "elasticsearch",
+    27017: "mongod",
+}
+
+
+def _masscan_guess_service(port: int, proto: str) -> str:
+    """Best-effort service name when masscan lacks banner/service data."""
+    if proto == "tcp" and port in _PORT_SERVICE_MAP:
+        return _PORT_SERVICE_MAP[port]
+    return "unknown"
+
+
+# NSE script IDs (or prefixes) that indicate vulnerability findings.
+_NSE_VULN_PREFIXES = (
+    "vuln",
+    "http-vuln-",
+    "smb-vuln-",
+    "ssl-",
+    "sslv2",
+    "tls-",
+    "ftp-vuln-",
+    "rdp-vuln-",
+    "rmi-vuln-",
+    "cve",
+)
+_NSE_VULN_EXACT = {"vulners", "vulscan", "http-shellshock", "ms-sql-info"}
+
+
+def _is_nse_vuln_script(script_id: str, output: str) -> bool:
+    """Return True if this NSE script reports vulnerability data."""
+    sid = script_id.lower()
+    if sid in _NSE_VULN_EXACT:
+        return True
+    for prefix in _NSE_VULN_PREFIXES:
+        if sid.startswith(prefix):
+            return True
+    # Scripts whose output contains VULNERABLE or CVE references
+    if "VULNERABLE" in output or re.search(r"CVE-\d{4}-\d{4,}", output):
+        return True
+    return False
+
+
+def _nse_extract_severity(output: str) -> Severity:
+    """Best-effort severity from NSE script output text."""
+    upper = output.upper()
+    if "CRITICAL" in upper:
+        return Severity.CRITICAL
+    if "HIGH" in upper:
+        return Severity.HIGH
+    # "State: VULNERABLE" is the standard nmap vuln script marker
+    if "VULNERABLE" in upper:
+        return Severity.HIGH
+    if "MEDIUM" in upper:
+        return Severity.MEDIUM
+    if "LOW" in upper:
+        return Severity.LOW
+    return Severity.MEDIUM
 
 
 def _severity_threshold(sev: Severity) -> float:
@@ -815,6 +917,8 @@ def kg_ingest_nmap_xml(path: str, scanner_hint: str = "nmap") -> str:
         hosts_added = 0
         services_added = 0
         entrypoints_added = 0
+        cpes_added = 0
+        vulns_added = 0
 
         for host_el in root.findall("host"):
             status = host_el.find("status")
@@ -857,6 +961,14 @@ def kg_ingest_nmap_xml(path: str, scanner_hint: str = "nmap") -> str:
                 product = service_el.get("product") if service_el is not None else ""
                 version = service_el.get("version") if service_el is not None else ""
 
+                # Extract CPE strings from <service><cpe>...</cpe></service>
+                cpe_list: list[str] = []
+                if service_el is not None:
+                    for cpe_el in service_el.findall("cpe"):
+                        cpe_text = (cpe_el.text or "").strip()
+                        if cpe_text:
+                            cpe_list.append(cpe_text)
+
                 service = _ensure_service_node(
                     graph,
                     host=host,
@@ -867,8 +979,10 @@ def kg_ingest_nmap_xml(path: str, scanner_hint: str = "nmap") -> str:
                     service=service_name,
                     product=product,
                     version=version,
+                    **({"cpe": cpe_list} if cpe_list else {}),
                 )
                 services_added += 1
+                cpes_added += len(cpe_list)
 
                 if _is_web_port(port):
                     ep = _ensure_entrypoint_node(
@@ -881,12 +995,48 @@ def kg_ingest_nmap_xml(path: str, scanner_hint: str = "nmap") -> str:
                     graph.upsert_edge(Edge.make(ep.id, service.id, EdgeKind.HOSTS, weight=0.5))
                     entrypoints_added += 1
 
+                # Extract NSE vuln script output → vulnerability nodes
+                for script_el in port_el.findall("script"):
+                    script_id = script_el.get("id", "")
+                    script_output = script_el.get("output", "")
+                    # Match vuln-related NSE scripts (vulners, vulscan,
+                    # http-vuln-*, smb-vuln-*, ssl-*, etc.)
+                    if not _is_nse_vuln_script(script_id, script_output):
+                        continue
+                    vuln_label = f"[{scanner_hint}:nse:{script_id}] {host_label}:{port}"
+                    vuln_key = f"{scanner_hint}::nse::{script_id}::{host_label}:{port}/{proto}"
+                    vuln_severity = _nse_extract_severity(script_output)
+                    vuln = graph.upsert_node(
+                        Node.make(
+                            NodeKind.VULNERABILITY,
+                            vuln_label,
+                            key=vuln_key,
+                            scanner=scanner_hint,
+                            rule_id=script_id,
+                            severity=vuln_severity.value,
+                            output=script_output[:2000],
+                        )
+                    )
+                    graph.upsert_edge(Edge.make(service.id, vuln.id, EdgeKind.HAS_VULN, weight=0.4))
+                    vulns_added += 1
+                    # Link CVE IDs found in script output
+                    for cve_match in re.finditer(r"(CVE-\d{4}-\d{4,})", script_output):
+                        cve_id = cve_match.group(1).upper()
+                        cve_node = graph.upsert_node(
+                            Node.make(
+                                NodeKind.CVE, cve_id, key=f"cve::{cve_id}", source=scanner_hint
+                            )
+                        )
+                        graph.upsert_edge(Edge.make(vuln.id, cve_node.id, EdgeKind.MAPS_TO))
+
         return _json(
             {
                 "ingested": {
                     "hosts": hosts_added,
                     "services": services_added,
                     "entrypoints": entrypoints_added,
+                    "cpes": cpes_added,
+                    "vulns": vulns_added,
                 },
                 "stats": graph.stats(),
             }
@@ -2128,6 +2278,14 @@ def kg_ingest_masscan(path: str) -> str:
                 proto = port_row.get("proto", "tcp")
                 if port_row.get("status") and port_row.get("status") != "open":
                     continue
+                # Extract service name from masscan banner grab (ports[].service.name)
+                svc_info = (
+                    port_row.get("service") if isinstance(port_row.get("service"), dict) else {}
+                )
+                service_name = svc_info.get("name", "").strip() or ""
+                banner = svc_info.get("banner", "")
+                if not service_name:
+                    service_name = _masscan_guess_service(port, proto)
                 _ensure_service_node(
                     graph,
                     host=host,
@@ -2135,9 +2293,10 @@ def kg_ingest_masscan(path: str) -> str:
                     port=port,
                     proto=proto,
                     source="masscan",
-                    service="unknown",
+                    service=service_name,
                     product="",
                     version="",
+                    **({"banner": banner} if banner else {}),
                 )
                 services_added += 1
 
@@ -2489,4 +2648,13 @@ RESEARCH_TOOLS = [
     *SCANNER_TOOLS,
     *PATCH_TOOLS,
     *OSINT_TOOLS,
+    *SUBDOMAIN_TAKEOVER_TOOLS,
+    *AI_SURFACE_TOOLS,
+    *SECRET_VALIDATION_TOOLS,
+    *EXPLOIT_INTEL_TOOLS,
+    *COVERAGE_TOOLS,
+    *THREAT_MODEL_TOOLS,
+    *NOTES_TOOLS,
+    *TODO_TOOLS,
+    *DIFF_SCOPE_TOOLS,
 ]
