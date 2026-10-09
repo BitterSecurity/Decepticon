@@ -18,6 +18,7 @@ State is managed exclusively through Neo4j. Configure via environment:
 
 from __future__ import annotations
 
+from decepticon.tools.research.subdomain_takeover import SUBDOMAIN_TAKEOVER_TOOLS
 from decepticon_core.types.kg import (
     Edge,
     EdgeKind,
@@ -34,4 +35,5 @@ __all__ = [
     "Node",
     "NodeKind",
     "Severity",
+    "SUBDOMAIN_TAKEOVER_TOOLS",
 ]

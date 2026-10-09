@@ -1,0 +1,35 @@
+services:
+  c2-havoc:
+    image: ghcr.io/bittersecurity/decepticon-c2-havoc:${DECEPTICON_VERSION:-stable}
+    build:
+      context: .
+      dockerfile: containers/c2-havoc.Dockerfile
+    container_name: decepticon${DECEPTICON_STACK_NAME:+-${DECEPTICON_STACK_NAME}}-c2-havoc
+    profiles: ["c2-havoc"]
+    networks:
+      - sandbox-net
+    volumes:
+      - havoc-data:/opt/havoc/data
+    environment:
+      - HAVOC_PROFILE=/opt/havoc/profiles/havoc.yaotl
+    labels:
+      - "decepticon.workload=c2-havoc"
+      - "decepticon.dynamic=true"
+    healthcheck:
+      test: ["CMD", "curl", "-fsk", "https://localhost:40056/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  havoc-data:
+
+networks:
+  sandbox-net:
+    external: true
