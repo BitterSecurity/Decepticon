@@ -28,10 +28,12 @@ import json
 import logging
 import os
 from pathlib import Path
+from collections.abc import Awaitable, Callable
 from typing import Annotated, Any, NotRequired, cast
 
 from langchain.agents import AgentState
 from langchain.agents.middleware import AgentMiddleware
+from langchain.agents.middleware.types import ToolCallRequest
 from langchain_core.messages import SystemMessage, ToolMessage
 from langgraph.config import get_config
 from langgraph.types import Command
@@ -40,7 +42,37 @@ from typing_extensions import override
 from decepticon.middleware.opplan import _reduce_engagement_name, _reduce_workspace_path
 from decepticon.middleware.state_reducers import reduce_converging_value
 from decepticon.tools.bash.bash import bash_workspace
-from decepticon_core.utils.engagement_scope import set_active_engagement
+from decepticon_core.utils.engagement_scope import (
+    is_valid_engagement_label,
+    reset_active_engagement,
+    set_active_engagement,
+)
+
+
+_REPORT_SCOPE_TOOLS = frozenset({
+    "report_hackerone", "report_bugcrowd_csv", "report_executive",
+    "report_timeline", "report_sarif",
+})
+
+
+class ReportingScopeError(ValueError):
+    """Trusted report state and explicit run configuration disagree."""
+
+
+def _trusted_report_scope(request: Any) -> str:
+    state = request.state
+    if not isinstance(state, dict):
+        raise ReportingScopeError("trusted engagement state missing")
+    configurable = (request.runtime.config or {}).get("configurable", {})
+    if not isinstance(configurable, dict):
+        raise ReportingScopeError("run config invalid")
+    label = state.get("kg_engagement") or state.get("engagement_name")
+    if not isinstance(label, str) or label != label.strip() or not is_valid_engagement_label(label):
+        raise ReportingScopeError("trusted graph engagement label invalid")
+    for key in ("engagement_name", "kg_engagement", "workspace_path"):
+        if key in configurable and configurable[key] != state.get(key):
+            raise ReportingScopeError("run config and engagement state mismatch")
+    return label
 
 
 class EngagementContextState(AgentState):
@@ -400,7 +432,13 @@ class EngagementContextMiddleware(AgentMiddleware):
         return await handler(self._inject(request))
 
     @override
-    def wrap_tool_call(self, request, handler) -> ToolMessage | Command:
+    def wrap_tool_call(self, request: ToolCallRequest, handler: Callable[[ToolCallRequest], ToolMessage | Command]) -> ToolMessage | Command:
+        if request.tool and request.tool.name in _REPORT_SCOPE_TOOLS:
+            token = set_active_engagement(_trusted_report_scope(request))
+            try:
+                return handler(request)
+            finally:
+                reset_active_engagement(token)
         if request.tool and request.tool.name in {
             "bash",
             "bash_output",
@@ -413,7 +451,13 @@ class EngagementContextMiddleware(AgentMiddleware):
         return handler(request)
 
     @override
-    async def awrap_tool_call(self, request, handler) -> ToolMessage | Command:
+    async def awrap_tool_call(self, request: ToolCallRequest, handler: Callable[[ToolCallRequest], Awaitable[ToolMessage | Command]]) -> ToolMessage | Command:
+        if request.tool and request.tool.name in _REPORT_SCOPE_TOOLS:
+            token = set_active_engagement(_trusted_report_scope(request))
+            try:
+                return await handler(request)
+            finally:
+                reset_active_engagement(token)
         if request.tool and request.tool.name in {
             "bash",
             "bash_output",
