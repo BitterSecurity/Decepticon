@@ -115,6 +115,22 @@ async function createThread(engagementId: string, agentId: string): Promise<stri
   }
 }
 
+async function threadExists(threadId: string): Promise<boolean> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10000);
+  try {
+    const res = await fetch(
+      `${LANGGRAPH_API_URL}/threads/${encodeURIComponent(threadId)}`,
+      { signal: controller.signal },
+    );
+    if (res.status === 404) return false;
+    if (!res.ok) throw new Error(`Thread read: ${res.status}`);
+    return true;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 function sendJson(ws: WebSocket, payload: Record<string, unknown>): void {
   if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(payload));
 }
@@ -189,6 +205,16 @@ wss.on("connection", async (ws: WebSocket, req) => {
 
   // ── Create new session ──
   let threadId = url.searchParams.get("threadId") ?? "";
+  if (threadId) {
+    try {
+      if (!(await threadExists(threadId))) threadId = "";
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(ws, { type: "error", message: `Thread validation failed: ${message}` });
+      ws.close(1011, "Thread validation failed");
+      return;
+    }
+  }
   if (!threadId) {
     try {
       threadId = await createThread(engagementId, agentId);
@@ -197,6 +223,8 @@ wss.on("connection", async (ws: WebSocket, req) => {
       const msg = err instanceof Error ? err.message : String(err);
       console.error(`[terminal-server] Thread creation failed: ${msg}`);
       sendJson(ws, { type: "error", message: `Thread creation failed: ${msg}` });
+      ws.close(1011, "Thread creation failed");
+      return;
     }
   }
   if (threadId) {
