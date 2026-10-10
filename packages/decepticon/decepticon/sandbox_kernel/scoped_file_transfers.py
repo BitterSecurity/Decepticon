@@ -1,7 +1,7 @@
 """Opt-in transfers for a dedicated owned engagement sandbox process.
 
-Not a shared-root policy. Original execute/lifecycle methods are inherited;
-they must only run inside the separately reserved owned guest/service scope.
+Requires an operator-configured dedicated root. Daemon execution and lifecycle
+methods retain their existing behavior.
 """
 import os
 from pathlib import PurePosixPath
@@ -23,7 +23,6 @@ class BoundedOwnedDaemonSandbox(DaemonSandbox):
     """Candidate daemon read guard; fixed operator root, no symlink traversal.
 
     Actual FD traversal pins directories; size checked before and during reading.
-    No execute/tmux/cleanup method is used by the integration tests.
     """
     def __init__(self, allowed_root: str, max_bytes: int = MAX_IMPORT_BYTES, *, container_name: str = "daemon", default_timeout: int = 120) -> None:
         super().__init__(workspace_path=allowed_root, container_name=container_name, default_timeout=default_timeout)
@@ -33,7 +32,7 @@ class BoundedOwnedDaemonSandbox(DaemonSandbox):
     def download_files(self, paths: list[str]) -> list[FileDownloadResponse]:
         if len(paths) != 1:
             return [FileDownloadResponse(path=p, content=None, error='request_budget') for p in paths]
-        results = []
+        transfers = []
         for path in paths:
             descriptor = None
             try:
@@ -76,13 +75,13 @@ class BoundedOwnedDaemonSandbox(DaemonSandbox):
                     content = b''.join(chunks)
                 finally:
                     os.close(file_descriptor)
-                results.append(FileDownloadResponse(path=path, content=content, error=None))
+                transfers.append(FileDownloadResponse(path=path, content=content, error=None))
             except (ValueError, OSError) as exc:
-                results.append(FileDownloadResponse(path=path, content=None, error=str(exc)))
+                transfers.append(FileDownloadResponse(path=path, content=None, error=str(exc)))
             finally:
                 if descriptor is not None:
                     os.close(descriptor)
-        return results
+        return transfers
 
 
 class RegeneratingOwnedSandbox(BoundedOwnedDaemonSandbox):
