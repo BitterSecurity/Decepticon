@@ -24,7 +24,7 @@ import hashlib
 import json
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 from urllib.parse import urlparse
 
 import defusedxml.ElementTree as ET
@@ -469,8 +469,12 @@ def _adapt_httpx_jsonl(
     return {"parsed": parsed, "skipped": skipped, "records": records}
 
 
+class _SarifSource(Protocol):
+    def read_text(self, encoding: str = "utf-8") -> str: ...
+
+
 def _adapt_sarif(
-    path: Path,
+    path: _SarifSource,
     store: KGStore,
     engagement: str,
     created_by: str,
