@@ -174,7 +174,7 @@ const SUPPORTED_MODELS: Record<string, string[]> = {
     "cfgateway/anthropic/claude-haiku-4-5",
   ],
   // Local
-  "Ollama (local)": ["ollama_chat/qwen3-coder:30b (or your OLLAMA_MODEL)"],
+  "Ollama (local)": ["ollama_chat/qwen3-coder:30b"],
   "Ollama Cloud": ["ollama_chat/<your OLLAMA_CLOUD_MODEL>"],
   "LM Studio (local)": ["lm_studio/<your LMSTUDIO_MODEL>"],
   "Custom OpenAI Endpoint": ["custom/<your CUSTOM_OPENAI_MODEL>"],
