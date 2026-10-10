@@ -60,9 +60,9 @@ def ingest_sarif_scoped(path: str, *, store: KGStore, state: dict[str, Any], con
     replies = backend.download_files([path])
     if len(replies) != 1 or replies[0].path != path or replies[0].error:
         raise ReportingScopeError("sandbox read failed: " + str(replies[0].error if replies else "missing response"))
-    data = _SarifBytes(replies[0].content)
-    result = _adapt_sarif(data, store, engagement, created_by, source_episode_id)
-    return {"scanner": "sarif", "path": path, **result}
+    sarif_source = _SarifBytes(replies[0].content)
+    ingest_summary = _adapt_sarif(sarif_source, store, engagement, created_by, source_episode_id)
+    return {"scanner": "sarif", "path": path, **ingest_summary}
 
 
 def render_sarif_scoped(engagement_id: str, output_path: str, *, state: dict[str, Any], config: RunnableConfig | None) -> dict[str, Any]:
@@ -72,10 +72,10 @@ def render_sarif_scoped(engagement_id: str, output_path: str, *, state: dict[str
     real_path = EngagementFilesystemBackend(backend, workspace)._real(output_path)
     graph = load_engagement_graph(engagement)
     text = render_sarif(graph, engagement_id=engagement_id)
-    data = text.encode("utf-8")
-    if len(data) > MAX_OUTPUT_BYTES:
+    sarif_bytes = text.encode("utf-8")
+    if len(sarif_bytes) > MAX_OUTPUT_BYTES:
         raise ReportingScopeError("SARIF output byte budget exceeded")
-    replies = backend.upload_files([(real_path, data)])
+    replies = backend.upload_files([(real_path, sarif_bytes)])
     if len(replies) != 1 or replies[0].path != real_path or replies[0].error:
         raise ReportingScopeError("sandbox write failed: " + str(replies[0].error if replies else "missing response"))
-    return {"engagement_id": engagement_id, "path": output_path, "bytes": len(data), "results": len(json.loads(text)["runs"][0]["results"])}
+    return {"engagement_id": engagement_id, "path": output_path, "bytes": len(sarif_bytes), "results": len(json.loads(text)["runs"][0]["results"])}

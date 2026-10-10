@@ -12,7 +12,6 @@ empty graph and the agent can recover.
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from typing import Annotated, Any
 
 from langchain_core.runnables import RunnableConfig
@@ -23,7 +22,6 @@ from decepticon.tools.reporting.bugcrowd import render_bugcrowd_csv
 from decepticon.tools.reporting.executive import render_executive_summary
 from decepticon.tools.reporting.hackerone import render_hackerone_markdown
 from decepticon.tools.reporting.kg_adapter import load_engagement_graph
-from decepticon.tools.reporting.sarif import render_sarif
 from decepticon.tools.reporting.timeline import extract_timeline
 from decepticon_core.types.kg import KnowledgeGraph
 from decepticon_core.utils.engagement_scope import get_active_engagement
