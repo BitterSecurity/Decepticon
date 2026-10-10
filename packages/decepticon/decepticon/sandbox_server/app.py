@@ -193,7 +193,11 @@ def _get_backend() -> DaemonSandbox:
         # never invokes `docker exec` — but the value still shows up
         # in tmux session names and `.id`, so make it informative.
         sandbox_name = os.environ.get("SANDBOX_CONTAINER_NAME", "local")
-        _backend = DaemonSandbox(
+        backend_class = DaemonSandbox
+        if os.environ.get("SANDBOX_BOUNDED_FILE_TRANSFERS") == "1":
+            from decepticon.sandbox_kernel.scoped_file_transfers import OwnedFileTransferSandbox
+            backend_class = OwnedFileTransferSandbox
+        _backend = backend_class(
             container_name=sandbox_name,
             default_timeout=timeout,
             workspace_path=workspace_path,
