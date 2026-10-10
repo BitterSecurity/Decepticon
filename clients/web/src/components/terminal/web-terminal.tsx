@@ -17,6 +17,8 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import { cn } from "@/lib/utils";
 
+import { terminalWebSocketUrl } from "@/lib/browser-routes";
+
 const TERMINAL_WS_URL = process.env.NEXT_PUBLIC_TERMINAL_WS_URL ?? "ws://localhost:3003";
 const MAX_RECONNECT_DELAY = 4000;
 const INITIAL_RECONNECT_DELAY = 1000;
@@ -138,14 +140,14 @@ export function WebTerminal({
     const targetValue = targetValueRef.current;
     const authorizationConfirmed = authorizationConfirmedRef.current;
 
-    let wsUrl =
-      `${TERMINAL_WS_URL}?engagementId=${encodeURIComponent(eid)}` +
-      `&engagementSlug=${encodeURIComponent(slug)}` +
-      `&agentId=${encodeURIComponent(aid)}` +
-      `&targetType=${encodeURIComponent(targetType)}` +
-      `&targetValue=${encodeURIComponent(targetValue)}` +
-      `&authorizationConfirmed=${authorizationConfirmed}`;
-    if (tid) wsUrl += `&threadId=${encodeURIComponent(tid)}`;
+    const wsUrl = terminalWebSocketUrl(window.location, TERMINAL_WS_URL);
+    wsUrl.searchParams.set("engagementId", eid);
+    wsUrl.searchParams.set("engagementSlug", slug);
+    wsUrl.searchParams.set("agentId", aid);
+    wsUrl.searchParams.set("targetType", targetType);
+    wsUrl.searchParams.set("targetValue", targetValue);
+    wsUrl.searchParams.set("authorizationConfirmed", String(authorizationConfirmed));
+    if (tid) wsUrl.searchParams.set("threadId", tid);
 
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
