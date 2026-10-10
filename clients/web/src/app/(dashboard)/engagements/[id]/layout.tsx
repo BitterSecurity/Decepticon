@@ -28,6 +28,7 @@ export default function EngagementLayout({
   } | null>(null);
   const [agentId, setAgentId] = useState<"soundwave" | "decepticon" | null>(null);
   const [threadId, setThreadId] = useState<string | null>(null);
+  const [threadConfirmed, setThreadConfirmed] = useState(false);
   const isLivePath = pathname.endsWith("/live");
   const [terminalActivated, setTerminalActivated] = useState(isLivePath);
 
@@ -58,7 +59,10 @@ export default function EngagementLayout({
         setAgentId(pickAssistant(planDocs));
         // Seed the observer from the persisted thread so the dashboard attaches
         // to the engagement's real thread on load, not a brand-new empty one.
-        if (eng.threadId) setThreadId(eng.threadId);
+        if (eng.threadId) {
+          setThreadId(eng.threadId);
+          setThreadConfirmed(false);
+        }
       } catch (err) {
         console.error("[EngagementLayout] Failed to resolve engagement:", err);
       }
@@ -67,8 +71,14 @@ export default function EngagementLayout({
     return () => { cancelled = true; };
   }, [engagementId]);
 
-  // Observe persisted runs independently of opening a terminal.
-  const { events, isRunning, activeRunId } = useRunObserver({ threadId });
+  const confirmThreadId = (id: string) => {
+    setThreadId(id);
+    setThreadConfirmed(true);
+  };
+  // Wait for the terminal server to confirm a usable thread before polling.
+  const { events, isRunning, activeRunId } = useRunObserver({
+    threadId: terminalActivated && threadConfirmed ? threadId : null,
+  });
 
   // Don't render terminal until we know the slug and assistant
   const terminalReady = terminalActivated && engagement != null && agentId != null;
@@ -79,7 +89,7 @@ export default function EngagementLayout({
       engagementSlug={engagement?.name ?? ""}
       agentId={agentId ?? "soundwave"}
       threadId={threadId}
-      setThreadId={setThreadId}
+      setThreadId={confirmThreadId}
       events={events}
       isRunning={isRunning}
       activeRunId={activeRunId}
@@ -105,7 +115,7 @@ export default function EngagementLayout({
               agentId={agentId!}
               threadId={threadId ?? undefined}
               className="h-full"
-              onThreadId={setThreadId}
+              onThreadId={confirmThreadId}
             />
           )}
         </div>
