@@ -14,6 +14,7 @@ import {
   Loader2, CheckCircle2, XCircle, Clock, AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { RenderStructuredDocument } from "@/components/plan/structured-document";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -21,9 +22,14 @@ import { cn } from "@/lib/utils";
 
 const DOC_META = [
   { key: "opplan", label: "OPPLAN", desc: "Operations Plan", icon: Target, color: "text-amber-400" },
-  { key: "conops", label: "CONOPS", desc: "Concept of Operations", icon: FileText, color: "text-cyan-400" },
   { key: "roe", label: "ROE", desc: "Rules of Engagement", icon: Shield, color: "text-emerald-400" },
+  { key: "threat-profile", label: "Threat Profile", desc: "Adversary Persona and TTPs", icon: Target, color: "text-red-400" },
+  { key: "conops", label: "CONOPS", desc: "Concept of Operations", icon: FileText, color: "text-cyan-400" },
   { key: "deconfliction", label: "Deconfliction", desc: "Deconfliction Plan", icon: Radio, color: "text-purple-400" },
+  { key: "contact", label: "Contacts", desc: "Contact and Escalation Plan", icon: FileText, color: "text-blue-400" },
+  { key: "data-handling", label: "Data Handling", desc: "Evidence Retention and Custody", icon: Shield, color: "text-teal-400" },
+  { key: "abort", label: "Abort Plan", desc: "Emergency Halt Conditions", icon: AlertTriangle, color: "text-orange-400" },
+  { key: "cleanup", label: "Cleanup Plan", desc: "Artifact Removal Plan", icon: CheckCircle2, color: "text-lime-400" },
 ] as const;
 
 // ── Status helpers ─────────────────────────────────────────────────
@@ -574,6 +580,11 @@ const renderers: Record<string, React.FC<{ data: any }>> = {
   conops: RenderConops,
   roe: RenderRoe,
   deconfliction: RenderDeconfliction,
+  "threat-profile": RenderStructuredDocument,
+  contact: RenderStructuredDocument,
+  "data-handling": RenderStructuredDocument,
+  abort: RenderStructuredDocument,
+  cleanup: RenderStructuredDocument,
 };
 
 // ── Page ───────────────────────────────────────────────────────────
