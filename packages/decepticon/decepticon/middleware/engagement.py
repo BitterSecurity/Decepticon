@@ -28,10 +28,12 @@ import json
 import logging
 import os
 from pathlib import Path
+from collections.abc import Awaitable, Callable
 from typing import Annotated, Any, NotRequired, cast
 
 from langchain.agents import AgentState
 from langchain.agents.middleware import AgentMiddleware
+from langchain.agents.middleware.types import ToolCallRequest
 from langchain_core.messages import SystemMessage, ToolMessage
 from langgraph.config import get_config
 from langgraph.types import Command
@@ -430,7 +432,7 @@ class EngagementContextMiddleware(AgentMiddleware):
         return await handler(self._inject(request))
 
     @override
-    def wrap_tool_call(self, request, handler) -> ToolMessage | Command:
+    def wrap_tool_call(self, request: ToolCallRequest, handler: Callable[[ToolCallRequest], ToolMessage | Command]) -> ToolMessage | Command:
         if request.tool and request.tool.name in _REPORT_SCOPE_TOOLS:
             token = set_active_engagement(_trusted_report_scope(request))
             try:
@@ -449,7 +451,7 @@ class EngagementContextMiddleware(AgentMiddleware):
         return handler(request)
 
     @override
-    async def awrap_tool_call(self, request, handler) -> ToolMessage | Command:
+    async def awrap_tool_call(self, request: ToolCallRequest, handler: Callable[[ToolCallRequest], Awaitable[ToolMessage | Command]]) -> ToolMessage | Command:
         if request.tool and request.tool.name in _REPORT_SCOPE_TOOLS:
             token = set_active_engagement(_trusted_report_scope(request))
             try:
