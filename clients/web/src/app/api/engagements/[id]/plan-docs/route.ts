@@ -8,7 +8,8 @@ import { createHash } from "node:crypto";
 
 const WORKSPACE = process.env.WORKSPACE_PATH ?? path.join(process.env.HOME ?? "", ".decepticon", "workspace");
 
-const PLAN_DOCS = ["opplan", "conops", "roe", "deconfliction"] as const;
+const PLAN_DOCS = ["opplan", "roe", "threat-profile", "conops", "deconfliction",
+  "contact", "data-handling", "abort", "cleanup"] as const;
 const BUNDLE_DOCS = [
   "roe.json", "threat-profile.json", "conops.json", "deconfliction.json",
   "contact.json", "data-handling.json", "abort.json", "cleanup.json",
