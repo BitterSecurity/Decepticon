@@ -28,6 +28,12 @@ export default function EngagementLayout({
   } | null>(null);
   const [agentId, setAgentId] = useState<"soundwave" | "decepticon" | null>(null);
   const [threadId, setThreadId] = useState<string | null>(null);
+  const isLivePath = pathname.endsWith("/live");
+  const [terminalActivated, setTerminalActivated] = useState(isLivePath);
+
+  useEffect(() => {
+    if (isLivePath) setTerminalActivated(true);
+  }, [isLivePath]);
 
   // Resolve engagement metadata — determines agentId and slug for WS
   useEffect(() => {
@@ -61,13 +67,11 @@ export default function EngagementLayout({
     return () => { cancelled = true; };
   }, [engagementId]);
 
-  // Persistent observer — survives tab navigation
+  // Observe persisted runs independently of opening a terminal.
   const { events, isRunning, activeRunId } = useRunObserver({ threadId });
 
-  const isLivePath = pathname.endsWith("/live");
-
   // Don't render terminal until we know the slug and assistant
-  const terminalReady = engagement != null && agentId != null;
+  const terminalReady = terminalActivated && engagement != null && agentId != null;
 
   return (
     <EngagementProvider
@@ -84,7 +88,7 @@ export default function EngagementLayout({
         <div className="flex-1 min-w-0 overflow-auto">
           {children}
         </div>
-        {/* Terminal: always mounted, visibility controlled by route */}
+        {/* Activate on first Live visit, then preserve the terminal across tabs. */}
         <div
           className={cn(
             "shrink-0 overflow-hidden border-l border-white/[0.08] transition-[width] duration-200",
