@@ -11,6 +11,11 @@
 
 <div align="center">
 
+<a href="https://trendshift.io/repositories/15987?utm_source=repository-badge&amp;utm_medium=badge&amp;utm_campaign=badge-repository-15987" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/repositories/15987" alt="BitterSecurity%2FDecepticon | Trendshift" width="250" height="55"/></a>
+<a href="https://trendshift.io/repositories/15987?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-15987" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/15987/daily?language=Python" alt="BitterSecurity%2FDecepticon | Trendshift" width="250" height="55"/></a>
+
+<br/>
+
 <a href="https://github.com/PurpleAILAB/Decepticon/blob/main/LICENSE">
   <img src="https://img.shields.io/github/license/PurpleAILAB/Decepticon?style=for-the-badge&color=blue" alt="License: Apache 2.0">
 </a>
