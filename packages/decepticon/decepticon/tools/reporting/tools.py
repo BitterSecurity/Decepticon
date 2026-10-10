@@ -13,9 +13,11 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
 
+from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
+from langgraph.prebuilt import InjectedState
 
 from decepticon.tools.reporting.bugcrowd import render_bugcrowd_csv
 from decepticon.tools.reporting.executive import render_executive_summary
@@ -85,28 +87,20 @@ def report_timeline() -> str:
 
 
 @tool
-def report_sarif(engagement_id: str, output_path: str) -> str:
-    """Render the engagement graph as SARIF v2.1.0 JSON for GitHub code scanning / DefectDojo / SARIF aggregators.
+def report_sarif(
+    engagement_id: str,
+    output_path: str,
+    state: Annotated[dict, InjectedState],
+    *,
+    config: RunnableConfig,
+) -> str:
+    """Render the current graph to SARIF in the owned sandbox workspace.
 
-    Writes UTF-8 to ``output_path`` (parent directories are created) and
-    returns a JSON summary with the engagement id, written path, byte
-    count, and number of result entries emitted.
+    Creates parent directories and regenerates existing owned regular outputs.
+    The required public arguments are unchanged; no output default is added.
     """
-    graph, _ = _load()
-    sarif = render_sarif(graph, engagement_id=engagement_id)
-    path = Path(output_path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(sarif, encoding="utf-8")
-    payload = json.loads(sarif)
-    results = payload["runs"][0]["results"]
-    return _json(
-        {
-            "engagement_id": engagement_id,
-            "path": str(path),
-            "bytes": len(sarif.encode("utf-8")),
-            "results": len(results),
-        }
-    )
+    from decepticon.middleware.scoped_reporting_io import render_sarif_scoped
+    return _json(render_sarif_scoped(engagement_id, output_path, state=state, config=config))
 
 
 REPORTING_TOOLS = [
