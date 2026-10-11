@@ -6,6 +6,21 @@ follows [Semantic Versioning](https://semver.org/) from `1.0.0`
 onward (the `0.x` cycle is pre-stable per the core/framework/sdk split
 design spec, §13.4).
 
+## [1.3.0] — 2026-10-12
+
+### Added
+
+- Use a dedicated REA/Ghidra service for the reversing agent. The agent can
+  discover the available REA tools, analyze binaries in its engagement
+  workspace, and retain the original Evidence bundle and integrity manifest.
+  (#913)
+- Port 30 capabilities, including 69 tools and six middleware components.
+  (#884)
+
+### Fixed
+
+- Distinguish invalid model tool calls from empty CLI responses. (#882)
+
 ## [1.2.2] — 2026-10-03
 
 This feature-bearing patch version was selected by the maintainer.
@@ -933,5 +948,6 @@ The following legacy import paths keep working but emit a
   atomic release.
 - Downstream plugin package lockstep migration.
 
+[1.3.0]: https://github.com/BitterSecurity/Decepticon/compare/v1.2.5...v1.3.0
 [1.2.2]: https://github.com/BitterSecurity/Decepticon/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/BitterSecurity/Decepticon/compare/v1.2.0...v1.2.1
