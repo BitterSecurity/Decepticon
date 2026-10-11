@@ -17,7 +17,7 @@ def test_orchestrator_dispatches_reverser_for_no_workload_triage() -> None:
     prompt = (_PROMPTS / "decepticon.md").read_text()
 
     assert "Basic triage / Radare2 work still goes to `reverser`" in prompt
-    assert "only for Ghidra MCP / headless decompilation" in prompt
+    assert "uses the REA/Ghidra workload for native analysis" in prompt
     assert 'Do NOT block binary triage just because `ops_start("reversing")` fails' in prompt
 
 

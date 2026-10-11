@@ -256,7 +256,7 @@ services:
       - NEO4J_USER=neo4j
       - NEO4J_PASSWORD=${NEO4J_PASSWORD:-decepticon-graph}
       - GHIDRA_INSTALL_DIR=/opt/ghidra
-      - GHIDRA_MCP_URL=http://ghidra-mcp:8089
+      - GHIDRA_MCP_URL=http://127.0.0.1:8089
     volumes:
       # Bind is engagement-scoped. The launcher sets DECEPTICON_ENGAGEMENT_WORKSPACE
       # to <home>/workspace/<slug> after the engagement picker, so the agent only
@@ -285,51 +285,15 @@ services:
     logging: *default-logging
 
 
-  # Ghidra MCP — optional 245-tool reverse engineering bridge for the
-  # Reverser agent. Only built and started when the `reversing` profile is
-  # active. The headless backend in decepticon/tools/reversing/ghidra.py
-  # works inside the sandbox container without this sidecar; the sidecar
-  # adds richer real-time queries (xrefs, batch decompile, P-code) via the
-  # bethington/ghidra-mcp plugin.
-  #
-  # Building this service builds the sandbox image with INSTALL_REVERSING=
-  # true (adds JDK 21 + Ghidra 12.1 + radare2 + binwalk, ~500 MB) so it
-  # has the analyzeHeadless binary needed below.
-  #
-  # NOTE: the bethington/ghidra-mcp plugin install is intentionally NOT
-  # baked into sandbox.Dockerfile yet — the plugin's release-artifact
-  # layout is not stable across Ghidra versions and the integration needs
-  # a follow-up PR to pin both sides together. Until then, this service
-  # boots Ghidra in headless mode but the MCP HTTP listener will not bind;
-  # ghidra_available() will report mcp=false and the tools will fall back
-  # to the headless-only path. Tracked separately from #279.
-  ghidra-mcp:
+  rea-mcp:
     build:
       context: .
-      dockerfile: containers/sandbox.Dockerfile
-      args:
-        INSTALL_REVERSING: "true"
-        # SHA-256 pin for the Ghidra 12.1 / 20260513 release. Set this on
-        # the build-arg side rather than baking it into the Dockerfile so
-        # an upgrade is a single-line change here. To verify, see
-        # https://github.com/NationalSecurityAgency/ghidra/releases.
-        GHIDRA_SHA256: ""
-    image: decepticon-sandbox-reversing:${DECEPTICON_VERSION:-stable}
-    container_name: decepticon${DECEPTICON_STACK_NAME:+-${DECEPTICON_STACK_NAME}}-ghidra-mcp
-    # Keep the container alive with a long-running analyzeHeadless that
-    # imports a placeholder binary. The MCP plugin (when installed) auto-
-    # starts its HTTP listener on import.
-    entrypoint:
-      - /opt/ghidra/support/analyzeHeadless
-      - /tmp/ghidra_project
-      - dcp
-      - -import
-      - /bin/true
-      - -deleteProject
-      - -noanalysis
-    environment:
-      - GHIDRA_MCP_PORT=8089
-      - JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+      dockerfile: containers/rea.Dockerfile
+    image: ghcr.io/bittersecurity/decepticon-rea:${DECEPTICON_VERSION:-stable}
+    platform: linux/amd64
+    container_name: decepticon${DECEPTICON_STACK_NAME:+-${DECEPTICON_STACK_NAME}}-rea-mcp
+    volumes:
+      - ${DECEPTICON_ENGAGEMENT_WORKSPACE:-${DECEPTICON_HOME:-~/.decepticon}/workspace}:/workspace
     networks:
       - sandbox-net
     mem_limit: 4g
@@ -383,6 +347,7 @@ services:
       # 9999 is the FastAPI daemon baked into the sandbox image (see
       # ``containers/sandbox-entrypoint.sh`` — daemon mode is the default).
       - SANDBOX_URL=http://sandbox:9999
+      - DECEPTICON_REA_URL=http://rea-mcp:8082
       - DECEPTICON_NEO4J_URI=bolt://neo4j:7687
       - DECEPTICON_NEO4J_USER=neo4j
       - DECEPTICON_NEO4J_PASSWORD=${NEO4J_PASSWORD:-decepticon-graph}
