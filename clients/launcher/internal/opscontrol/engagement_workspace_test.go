@@ -13,9 +13,13 @@ func TestEngagementWorkspaceBindsSelectedDirectory(t *testing.T) {
 	if err := os.MkdirAll(wanted, 0o700); err != nil {
 		t.Fatal(err)
 	}
+	resolved, err := filepath.EvalSymlinks(wanted)
+	if err != nil {
+		t.Fatal(err)
+	}
 	got, err := engagementWorkspace("sample-engagement")
-	if err != nil || got != wanted {
-		t.Fatalf("engagementWorkspace() = %q, %v; want %q", got, err, wanted)
+	if err != nil || got != resolved {
+		t.Fatalf("engagementWorkspace() = %q, %v; want %q", got, err, resolved)
 	}
 }
 

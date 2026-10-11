@@ -24,13 +24,27 @@ async def test_rea_find_tools_preserves_binary_and_page(monkeypatch: pytest.Monk
         return json.dumps({"tools": [{"name": "analyze_function"}], "nextCursor": 30})
 
     monkeypatch.setattr(rea, "_request", request)
-    result = await rea.rea_find_tools.ainvoke({
-        "binary_path": "/workspace/sample", "query": "function", "cursor": 20, "limit": 10,
-    })
+    result = await rea.rea_find_tools.ainvoke(
+        {
+            "binary_path": "/workspace/sample",
+            "query": "function",
+            "cursor": 20,
+            "limit": 10,
+        }
+    )
     assert json.loads(result)["nextCursor"] == 30
-    assert calls == [("POST", "/find", {
-        "binary_path": "/workspace/sample", "query": "function", "cursor": 20, "limit": 10,
-    })]
+    assert calls == [
+        (
+            "POST",
+            "/find",
+            {
+                "binary_path": "/workspace/sample",
+                "query": "function",
+                "cursor": 20,
+                "limit": 10,
+            },
+        )
+    ]
 
 
 @pytest.mark.asyncio
@@ -42,15 +56,25 @@ async def test_rea_call_tool_passes_exact_arguments(monkeypatch: pytest.MonkeyPa
         return json.dumps({"evidence": {"evidence_id": "ev_example"}})
 
     monkeypatch.setattr(rea, "_request", request)
-    result = await rea.rea_call_tool.ainvoke({
-        "binary_path": "/workspace/sample", "name": "analyze_function",
-        "arguments_json": '{"procedure":"main"}',
-    })
+    result = await rea.rea_call_tool.ainvoke(
+        {
+            "binary_path": "/workspace/sample",
+            "name": "analyze_function",
+            "arguments_json": '{"procedure":"main"}',
+        }
+    )
     assert json.loads(result)["evidence"]["evidence_id"] == "ev_example"
-    assert calls == [("POST", "/call", {
-        "binary_path": "/workspace/sample", "name": "analyze_function",
-        "arguments": {"procedure": "main"},
-    })]
+    assert calls == [
+        (
+            "POST",
+            "/call",
+            {
+                "binary_path": "/workspace/sample",
+                "name": "analyze_function",
+                "arguments": {"procedure": "main"},
+            },
+        )
+    ]
 
 
 @pytest.mark.asyncio
@@ -59,10 +83,13 @@ async def test_rea_call_tool_rejects_non_object_arguments(monkeypatch: pytest.Mo
         raise AssertionError("invalid arguments reached the REA service")
 
     monkeypatch.setattr(rea, "_request", request)
-    result = await rea.rea_call_tool.ainvoke({
-        "binary_path": "/workspace/sample", "name": "analyze_function",
-        "arguments_json": "[]",
-    })
+    result = await rea.rea_call_tool.ainvoke(
+        {
+            "binary_path": "/workspace/sample",
+            "name": "analyze_function",
+            "arguments_json": "[]",
+        }
+    )
     assert json.loads(result)["error"] == "arguments_json must be a JSON object"
 
 
@@ -78,7 +105,13 @@ async def test_rea_provider_diagnostic_reaches_agent(monkeypatch: pytest.MonkeyP
             super().__init__(transport=httpx.MockTransport(respond), **kwargs)
 
     monkeypatch.setattr(rea.httpx, "AsyncClient", Client)
-    result = json.loads(await rea.rea_call_tool.ainvoke({
-        "binary_path": "/workspace/sample", "name": "analyze_function", "arguments_json": "{}",
-    }))
+    result = json.loads(
+        await rea.rea_call_tool.ainvoke(
+            {
+                "binary_path": "/workspace/sample",
+                "name": "analyze_function",
+                "arguments_json": "{}",
+            }
+        )
+    )
     assert result == {"isError": True, "diagnostic": ["provider_timeout"], "statusCode": 422}
