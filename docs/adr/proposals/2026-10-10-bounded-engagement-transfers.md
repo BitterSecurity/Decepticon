@@ -21,6 +21,12 @@ regular-file ownership checks. Keep the current backend as the default.
 Approve the topology, response-error contract and environment switch before
 treating this implementation sketch as a supported backend.
 
+The operator must provision trusted ancestors of the dedicated root. The root
+leaf and descriptor-relative children reject symlinks; this does not confine a
+process able to rename or replace the root's ancestors. A failed temporary-file
+cleanup returns a held error and closes descriptors while retaining the file
+for explicit owned reconciliation; publication failures are never success.
+
 ## Consequences
 
 - **Easier:** Bound transfer reads and regenerate owned report outputs.

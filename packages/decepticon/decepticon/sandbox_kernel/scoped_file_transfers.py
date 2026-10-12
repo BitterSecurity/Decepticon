@@ -24,9 +24,10 @@ class FileTransferError(ValueError):
 
 
 class BoundedOwnedDaemonSandbox(DaemonSandbox):
-    """Candidate daemon read guard; fixed operator root, no symlink traversal.
+    """Read guard for a fixed operator root with trusted directory ancestors.
 
-    Actual FD traversal pins directories; size checked before and during reading.
+    Root leaf and FD-relative children reject symlinks; size is checked before
+    and during reading. Provisioning the root's ancestors is an operator duty.
     """
 
     def __init__(
@@ -149,6 +150,7 @@ class RegeneratingOwnedSandbox(BoundedOwnedDaemonSandbox):
         directory_fd = temporary_fd = None
         temporary_name = None
         committed = False
+        response = FileUploadResponse(path=path, error=None)
         try:
             prefix = self.allowed_root.rstrip("/") + "/"
             if not isinstance(path, str) or not path.startswith(prefix):
@@ -237,9 +239,8 @@ class RegeneratingOwnedSandbox(BoundedOwnedDaemonSandbox):
                 committed = True
             temporary_name = None
             os.fsync(directory_fd)
-            return FileUploadResponse(path=path, error=None)
         except (OSError, ValueError) as exc:
-            return FileUploadResponse(
+            response = FileUploadResponse(
                 path=path, error=("commit_outcome_unknown:" if committed else "") + str(exc)
             )
         finally:
@@ -250,8 +251,19 @@ class RegeneratingOwnedSandbox(BoundedOwnedDaemonSandbox):
                     os.unlink(temporary_name, dir_fd=directory_fd)
                 except FileNotFoundError:
                     pass
+                except OSError as exc:
+                    # Retain the original failure and publication classification.
+                    # A held temporary file requires owned reconciliation; its
+                    # cleanup failure must not escape or skip directory FD close.
+                    response = FileUploadResponse(
+                        path=path,
+                        error=(response.error or "")
+                        + ";temporary_cleanup_failed:"
+                        + type(exc).__name__,
+                    )
             if directory_fd is not None:
                 os.close(directory_fd)
+        return response
 
 
 class OwnedFileTransferSandbox(RegeneratingOwnedSandbox):
