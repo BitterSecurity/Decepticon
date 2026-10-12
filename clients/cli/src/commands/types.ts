@@ -13,6 +13,7 @@ export interface CommandContext {
   clearEvents: () => void;
   /** Submit a message to the agent. */
   submit: (input: string) => void;
+  selectAssistant?: (assistantId: string) => boolean;
   /** Resume a paused run with optional feedback. */
   resume: (value?: string) => void;
   /** Exit the application. */

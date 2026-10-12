@@ -111,6 +111,15 @@ function monitorUrl(): string {
   return process.env.BLUE_MONITOR_URL ?? "http://127.0.0.1:18085";
 }
 
+export async function blueMonitorReady(): Promise<boolean> {
+  try {
+    const response = await fetch(`${monitorUrl()}/metrics`, { signal: AbortSignal.timeout(5000) });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 async function query<T>(path: string): Promise<T> {
   const response = await fetch(`${sensorUrl()}${path}`, {
     signal: AbortSignal.timeout(5000),
@@ -224,6 +233,10 @@ const blue: Command = {
     const [action = "status", value = ""] = args.trim().split(/\s+/);
     try {
       if (action === "up") {
+        if (process.env.DECEPTICON_WEB_TERMINAL === "true") {
+          context.addSystemEvent("Start the local Blue sensor from the host CLI with /blue up, then select Blue in the web dashboard.");
+          return;
+        }
         const { upstream, logDir } = parseBlueUpArgs(args);
         const gateway = await hostGatewayIp();
         const project = process.env.DECEPTICON_COMPOSE_PROJECT ?? "decepticon";
@@ -239,11 +252,23 @@ const blue: Command = {
         return;
       }
       if (action === "stop" || action === "down") {
+        if (process.env.DECEPTICON_WEB_TERMINAL === "true") {
+          context.addSystemEvent("Stop the Blue sensor from the host CLI with /blue stop.");
+          return;
+        }
         await runCompose(["down"], process.env);
         context.addSystemEvent("Blue sensor stopped. Stored events and bodies remain in Docker volumes.");
         return;
       }
       if (action === "status") {
+        if (process.env.DECEPTICON_WEB_TERMINAL === "true") {
+          const [monitor, sensor] = await Promise.all([
+            queryMonitor<{ watch_enabled: boolean; watch_backlog: number }>("/metrics"),
+            query<SensorMetrics>("/metrics"),
+          ]);
+          context.addSystemEvent(`Blue sensor: connected; events=${sensor.events_total}; AI watch=${monitor.watch_enabled ? "running" : "disabled"}; backlog=${monitor.watch_backlog}. Use /blue metrics for collection health.`);
+          return;
+        }
         const output = await runCompose(["ps"], process.env);
         let watch = "";
         let coverage: string;
@@ -323,8 +348,12 @@ const blue: Command = {
       }
       if (action === "analyze") {
         await queryMonitor<Record<string, number>>("/metrics");
+        if (context.selectAssistant && !context.selectAssistant("blue_cell")) {
+          context.addSystemEvent("Wait for the current run to finish before switching to Blue.");
+          return;
+        }
         setAssistantOverride("blue_cell");
-        context.addSystemEvent("Blue Cell is investigating live target events. The automatic monitor continues independently; use /agent clear to return.");
+        context.addSystemEvent("Blue Cell is investigating live target events. The automatic monitor continues independently; use /mode red to return.");
         context.submit("Inspect the latest local target telemetry with blue_sensor_scan, investigate noteworthy events with blue_sensor_body when useful, and report evidence, uncertainty, and immediate defensive actions.");
         return;
       }

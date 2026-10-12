@@ -32,16 +32,25 @@ export async function planningBundleDigest(root: string): Promise<string> {
 export async function approveRedMode(): Promise<void> {
   const root = workspaceRoot();
   if (!root) return;
+  let roe: Buffer;
+  try {
+    roe = await readFile(path.join(root, "plan", "roe.json"));
+  } catch {
+    throw new Error("Red requires an authorized target. Create an engagement with a target and authorization before selecting Red.");
+  }
+  const approved = (await readFile(path.join(root, ".red-approved"), "utf-8").catch(() => "")).trim();
+  const directDigest = `roe:${createHash("sha256").update(roe).digest("hex")}`;
+  if (approved === directDigest) return;
   let current: string;
-  let draft: string;
   try {
     current = await planningBundleDigest(root);
-    draft = (await readFile(path.join(root, ".planning-draft-ready"), "utf-8")).trim();
   } catch {
-    throw new Error("Complete and validate the eight-document Interview plan before selecting Red.");
+    throw new Error("Red authorization is missing or its RoE changed. Review and approve the current scope before selecting Red.");
   }
+  if (approved === current) return;
+  const draft = (await readFile(path.join(root, ".planning-draft-ready"), "utf-8").catch(() => "")).trim();
   if (draft !== current) {
-    throw new Error("Planning documents changed after validation. Finish Interview validation again.");
+    throw new Error("Planning documents changed after validation. Finish Plan validation and approve the current scope.");
   }
   await writeFile(path.join(root, ".red-approved"), current, { mode: 0o600 });
 }

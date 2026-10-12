@@ -1,4 +1,5 @@
 import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -21,7 +22,7 @@ describe("Red mode approval", () => {
     vi.stubEnv("DECEPTICON_WORKSPACE_PATH", root);
 
     expect(await planningBundleDigest(root)).toBe(DIGEST);
-    await expect(approveRedMode()).rejects.toThrow("Complete and validate");
+    await expect(approveRedMode()).rejects.toThrow("Planning documents changed");
     await writeFile(path.join(root, ".planning-draft-ready"), DIGEST);
     await approveRedMode();
     expect(await readFile(path.join(root, ".red-approved"), "utf-8")).toBe(DIGEST);
@@ -30,5 +31,18 @@ describe("Red mode approval", () => {
     await expect(approveRedMode()).rejects.toThrow("Planning documents changed");
     await revokeRedMode();
     await expect(readFile(path.join(root, ".red-approved"), "utf-8")).rejects.toThrow();
+  });
+
+  it("accepts a direct RoE approval only while its bytes match", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "decepticon-direct-mode-"));
+    await mkdir(path.join(root, "plan"));
+    const roe = '{"in_scope":[{"target":"example.com"}]}';
+    await writeFile(path.join(root, "plan", "roe.json"), roe);
+    await writeFile(path.join(root, ".red-approved"), `roe:${createHash("sha256").update(roe).digest("hex")}`);
+    vi.stubEnv("DECEPTICON_ENGAGEMENT", "direct");
+    vi.stubEnv("DECEPTICON_WORKSPACE_PATH", root);
+    await expect(approveRedMode()).resolves.toBeUndefined();
+    await writeFile(path.join(root, "plan", "roe.json"), '{"in_scope":[]}');
+    await expect(approveRedMode()).rejects.toThrow("authorization is missing");
   });
 });
