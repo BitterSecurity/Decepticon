@@ -22,6 +22,7 @@ from decepticon.sandbox_kernel.scoped_file_transfers import (
     RegeneratingOwnedSandbox,
 )
 
+
 @pytest.fixture
 def owned(tmp_path: Path) -> tuple[Path, RegeneratingOwnedSandbox]:
     root = tmp_path / "owned"
