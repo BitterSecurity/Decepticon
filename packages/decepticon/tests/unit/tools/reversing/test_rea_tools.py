@@ -48,6 +48,33 @@ async def test_rea_find_tools_preserves_binary_and_page(monkeypatch: pytest.Monk
 
 
 @pytest.mark.asyncio
+async def test_rea_find_tools_keeps_complete_schema_as_model_safe_text(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    schema = {
+        "name": "analyze_function",
+        "description": "Analyze a function",
+        "inputSchema": {
+            "properties": {"procedure": {"$ref": "#/$defs/procedure"}},
+            "$defs": {"procedure": {"type": "string"}},
+        },
+    }
+
+    async def request(_method: str, _path: str, _payload: dict | None = None) -> str:
+        return json.dumps({"total": 1, "nextCursor": None, "tools": [schema]})
+
+    monkeypatch.setattr(rea, "_request", request)
+    result = json.loads(
+        await rea.rea_find_tools.ainvoke({"binary_path": "/workspace/sample", "query": "analyze"})
+    )
+    assert result["total"] == 1
+    assert result["nextCursor"] is None
+    assert result["tools"][0]["name"] == "analyze_function"
+    assert "inputSchema" not in result["tools"][0]
+    assert json.loads(result["tools"][0]["toolSchemaJson"]) == schema
+
+
+@pytest.mark.asyncio
 async def test_rea_call_tool_passes_exact_arguments(monkeypatch: pytest.MonkeyPatch) -> None:
     calls = []
 

@@ -34,12 +34,10 @@ async def rea_status() -> str:
 
 
 @tool(
-    description="Open a binary found in /workspace with REA and search every Ghidra-session-available REA tool. Use cursor to page through all matches; this call preserves the active analysis session and automatically pins the binary bytes."
+    description="Open a binary found in /workspace with REA and search Ghidra-session-available tools. Use a specific query, then cursor to page through all matches. Each tool's complete schema is returned as JSON text; this call preserves the session and pins the binary bytes."
 )
-async def rea_find_tools(
-    binary_path: str, query: str = "", cursor: int = 0, limit: int = 20
-) -> str:
-    return await _request(
+async def rea_find_tools(binary_path: str, query: str = "", cursor: int = 0, limit: int = 5) -> str:
+    raw = await _request(
         "POST",
         "/find",
         {
@@ -49,6 +47,18 @@ async def rea_find_tools(
             "limit": limit,
         },
     )
+    result = json.loads(raw)
+    if isinstance(result, dict) and isinstance(result.get("tools"), list):
+        result["tools"] = [
+            {
+                "name": item.get("name"),
+                "description": item.get("description"),
+                "toolSchemaJson": json.dumps(item, ensure_ascii=False, separators=(",", ":")),
+            }
+            for item in result["tools"]
+            if isinstance(item, dict)
+        ]
+    return json.dumps(result, ensure_ascii=False)
 
 
 @tool(

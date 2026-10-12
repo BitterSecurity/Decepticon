@@ -6,6 +6,16 @@ follows [Semantic Versioning](https://semver.org/) from `1.0.0`
 onward (the `0.x` cycle is pre-stable per the core/framework/sdk split
 design spec, §13.4).
 
+## [1.3.1] — 2026-10-12
+
+### Fixed
+
+- Hide legacy Ghidra tools when the REA workload is configured, so the
+  reversing agent uses REA for native analysis.
+- Keep REA discovery schemas intact as model-safe JSON text and inject bash
+  runtime configuration outside model tool schemas. This lets Gemini select
+  REA tools and cite their saved Evidence.
+
 ## [1.3.0] — 2026-10-12
 
 ### Added
@@ -948,6 +958,7 @@ The following legacy import paths keep working but emit a
   atomic release.
 - Downstream plugin package lockstep migration.
 
+[1.3.1]: https://github.com/BitterSecurity/Decepticon/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/BitterSecurity/Decepticon/compare/v1.2.5...v1.3.0
 [1.2.2]: https://github.com/BitterSecurity/Decepticon/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/BitterSecurity/Decepticon/compare/v1.2.0...v1.2.1

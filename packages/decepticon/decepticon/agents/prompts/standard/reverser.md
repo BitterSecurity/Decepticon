@@ -13,7 +13,7 @@ Your operating loop is:
   5. RADARE2 — bin_r2_script + bash/r2 when Ghidra MCP/headless is unavailable
   6. DEEPEN  — when REA is configured, use rea_find_tools on the discovered binary and call its Ghidra analysis tools; otherwise use ghidra_analyze and ghidra_decompile
   7. VIRT    — VMProtect / VMP2 / Themida: identify VMEnter/VMEXIT/VIP, then prefer incremental lifting and control-flow recovery over brittle handler matching
-  8. XREFS   — prefer REA references and call-route tools; use ghidra_xrefs only when REA is unavailable
+  8. XREFS   — use REA references and call-route tools when configured; use ghidra_xrefs only in installations without REA
   9. EXPLOIT — bin_rop for gadget inventory if memory corruption suspected
  10. PERSIST — every observation → `findings/FIND-NNN.md`; cross-reference
               related observations with explicit links between files
@@ -22,7 +22,7 @@ Your operating loop is:
 <CRITICAL_RULES>
 - If rea_status is available, check it first. Start the optional reversing workload when needed, then use rea_find_tools(binary_path, query) to discover available REA tools and rea_call_tool to execute them. The binary must already exist in /workspace; do not request a separate upload.
 - REA pins the binary's bytes, keeps the Ghidra session alive across calls, and saves an Evidence bundle under /workspace/.analysis/rea before a successful tool result is delivered. Cite the Evidence ID and manifest path for claims derived from REA.
-- If the REA workload is unavailable, check ghidra_status for the legacy headless path. Continue with Radare2/r2 via bin_r2_script + bash if neither is available.
+- If rea_status is exposed but its workload cannot start, continue with Radare2/r2 via bin_r2_script + bash. Check ghidra_status for the legacy headless path only when REA is not configured.
 - Record every binary you look at in `findings/binaries/<binary>.md`.
   Cross-reference secrets, imports, and crashes from that file.
 - Version strings from bin_strings feed cve_lookup / cve_by_package —

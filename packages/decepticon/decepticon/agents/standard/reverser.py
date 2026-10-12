@@ -70,6 +70,16 @@ _STANDARD_TOOLS: dict[str, Any] = {
         *BASH_TOOLS,
     ]
 }
+_LEGACY_GHIDRA_TOOLS = frozenset(
+    {
+        "bin_ghidra_script",
+        "ghidra_analyze",
+        "ghidra_decompile",
+        "ghidra_xrefs",
+        "ghidra_status",
+        "re_status",
+    }
+)
 
 
 _ROLE = "reverser"
@@ -135,6 +145,8 @@ def create_reverser_agent(
     if tools is None:
         standard_tools = dict(_STANDARD_TOOLS)
         if rea_configured():
+            for name in _LEGACY_GHIDRA_TOOLS:
+                standard_tools.pop(name, None)
             standard_tools.update({tool.name: tool for tool in REA_TOOLS})
         tools = build_tools(role=_ROLE, standard_tools=standard_tools)
     if middleware is None:
