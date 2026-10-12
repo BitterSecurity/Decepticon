@@ -42,8 +42,8 @@ export default function EngagementLayout({
       try {
         const [engRes, planRes, threadsRes] = await Promise.all([
           fetch(`/api/engagements/${engagementId}`),
-          fetch(`/api/engagements/${engagementId}/plan-docs`),
-          fetch(`/api/engagements/${engagementId}/threads`),
+          fetch(`/api/engagements/${engagementId}/plan-docs`).catch(() => null),
+          fetch(`/api/engagements/${engagementId}/threads`).catch(() => null),
         ]);
         if (!engRes.ok) return;
         const eng = (await engRes.json()) as {
@@ -53,7 +53,7 @@ export default function EngagementLayout({
           authorizationConfirmed: boolean;
           threadId?: string | null;
         };
-        const planDocs = planRes.ok ? ((await planRes.json()) as Record<string, unknown>) : {};
+        const planDocs = planRes?.ok ? ((await planRes.json()) as Record<string, unknown>) : {};
         if (cancelled) return;
         setEngagement(eng);
         const approved = planDocs.redApproved === true;
@@ -63,7 +63,7 @@ export default function EngagementLayout({
           ? requested : approved ? "red" : "plan";
         setMode(next);
         setVisitedModes([next]);
-        if (threadsRes.ok) {
+        if (threadsRes?.ok) {
           const threads = await threadsRes.json() as Array<{ thread_id: string; metadata?: { decepticon_assistant?: string } }>;
           const restored: Partial<Record<RunMode, string>> = {};
           for (const entry of threads) {
@@ -83,31 +83,35 @@ export default function EngagementLayout({
 
   async function switchMode(next: RunMode) {
     if (next === mode) return;
-    if (next === "red") {
-      const response = await fetch(`/api/engagements/${engagementId}/plan-docs`);
-      const docs = response.ok ? await response.json() as { redApproved?: boolean } : {};
-      if (!docs.redApproved) {
-        if (!window.confirm("Approve the validated Plan documents for Red? Review the Plan tab before continuing.")) return;
-        const approval = await fetch(`/api/engagements/${engagementId}/plan-docs`, { method: "POST" });
-        if (!approval.ok) {
-          const detail = await approval.json().catch(() => ({})) as { error?: string };
-          setModeNotice(detail.error ?? "Red needs an approved scope.");
+    try {
+      if (next === "red") {
+        const response = await fetch(`/api/engagements/${engagementId}/plan-docs`);
+        const docs = response.ok ? await response.json() as { redApproved?: boolean } : {};
+        if (!docs.redApproved) {
+          if (!window.confirm("Approve the validated Plan documents for Red? Review the Plan tab before continuing.")) return;
+          const approval = await fetch(`/api/engagements/${engagementId}/plan-docs`, { method: "POST" });
+          if (!approval.ok) {
+            const detail = await approval.json().catch(() => ({})) as { error?: string };
+            setModeNotice(detail.error ?? "Red needs an approved scope.");
+            return;
+          }
+        }
+        setRedApproved(true);
+      }
+      if (next === "blue") {
+        const response = await fetch("/api/blue/status");
+        if (!response.ok) {
+          setModeNotice("Blue needs a connected local sensor. Start it from the host CLI with /blue up.");
           return;
         }
       }
-      setRedApproved(true);
+      setModeNotice(null);
+      setMode(next);
+      setVisitedModes((current) => current.includes(next) ? current : [...current, next]);
+      window.history.replaceState(null, "", `${pathname}?mode=${next}`);
+    } catch (error) {
+      setModeNotice(error instanceof Error ? error.message : "Mode switch failed");
     }
-    if (next === "blue") {
-      const response = await fetch("/api/blue/status");
-      if (!response.ok) {
-        setModeNotice("Blue needs a connected local sensor. Start it from the host CLI with /blue up.");
-        return;
-      }
-    }
-    setModeNotice(null);
-    setMode(next);
-    setVisitedModes((current) => current.includes(next) ? current : [...current, next]);
-    window.history.replaceState(null, "", `${pathname}?mode=${next}`);
   }
 
   // Persistent observer — survives tab navigation

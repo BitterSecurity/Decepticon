@@ -59,7 +59,7 @@ const agent: Command = {
   argumentHint: "[<name> | clear]",
   execute(args, ctx) {
     const arg = args.trim();
-    if (process.env.DECEPTICON_WEB_TERMINAL === "true" && ["soundwave", "decepticon", "blue_cell", "clear", "off", "none"].includes(arg)) {
+    if (process.env.DECEPTICON_WEB_TERMINAL === "true" && ["soundwave", "decepticon", "blue_cell"].includes(arg)) {
       ctx.addSystemEvent("Use the Plan, Red, or Blue controls above the web terminal to switch modes.");
       return;
     }

@@ -61,13 +61,9 @@ From the terminal UI, run `/web` (or `/web up`) to start the dashboard. It is th
 ## First Real Engagement
 
 1. Launch Decepticon (`decepticon`). To use the browser UI, run `/web` and open <http://localhost:3000>.
-2. The **Soundwave** agent interviews you to define the engagement:
-   - Target scope (IP range, URL, Git repo, file upload, or local path)
-   - Threat actor profile
-   - Rules of Engagement (authorized scope, timing, exclusions)
-3. Soundwave writes the eight-document engagement bundle (RoE, Threat Profile, CONOPS, Deconfliction, Contact, Data Handling, Abort, Cleanup)
-4. The orchestrator builds the OPPLAN from the bundle — you review and approve it
-5. The autonomous loop begins
+2. Create an engagement with one root HTTP(S) URL, host, or CIDR target and an authorization reference. Choose **Red** to start with a direct, machine-enforced RoE, or **Plan** for deeper planning.
+3. In Plan mode, Soundwave interviews you and writes the eight-document bundle. Review it, then select Red and approve the validated bundle.
+4. The Red orchestrator builds objectives under the approved RoE and runs specialist agents. Use `/mode plan|red|blue` in the CLI, or the mode selector in the web live view. Blue requires a connected local sensor.
 
 > **Important**: Only run Decepticon against systems you own or have explicit written authorization to test. See the disclaimer in the main README.
 

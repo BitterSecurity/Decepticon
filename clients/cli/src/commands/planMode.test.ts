@@ -14,6 +14,11 @@ const DIGEST = "23bb0ad057e96e5098d6c8ef731ce1afadd9e1957f6adf6b720196ad35409418
 describe("Red mode approval", () => {
   afterEach(() => vi.unstubAllEnvs());
 
+  it("refuses Red outside an engagement workspace", async () => {
+    vi.stubEnv("DECEPTICON_ENGAGEMENT", "");
+    await expect(approveRedMode()).rejects.toThrow("engagement workspace");
+  });
+
   it("requires a validated draft and invalidates changed documents", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "decepticon-mode-"));
     await mkdir(path.join(root, "plan"));

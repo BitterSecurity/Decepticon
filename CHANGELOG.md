@@ -12,6 +12,13 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+### Added
+
+- Add explicit Plan, Red, and Blue modes to the OSS launcher, CLI, and web
+  dashboard. Red accepts a directly approved target; Soundwave's eight-document
+  interview is optional Plan mode. Keep mode-specific sessions and check Red
+  scope approval and Blue sensor availability before switching.
+
 ## [1.4.0] — 2026-10-12
 
 ### Added

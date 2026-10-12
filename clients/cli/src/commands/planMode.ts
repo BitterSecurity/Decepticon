@@ -31,7 +31,7 @@ export async function planningBundleDigest(root: string): Promise<string> {
 
 export async function approveRedMode(): Promise<void> {
   const root = workspaceRoot();
-  if (!root) return;
+  if (!root) throw new Error("Red requires an engagement workspace with an authorized target.");
   let roe: Buffer;
   try {
     roe = await readFile(path.join(root, "plan", "roe.json"));

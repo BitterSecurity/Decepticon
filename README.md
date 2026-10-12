@@ -47,9 +47,11 @@
 
 ## What the OSS agent does
 
-- **Plans within scope:** Soundwave prepares the engagement rules and eight
-  planning documents; the orchestrator builds a dependency-aware OPPLAN and
-  dispatches objectives under those rules. [Engagement workflow](docs/engagement-workflow.md).
+- **Choose Plan, Red, or Blue:** Red can start directly with one confirmed target
+  and authorization reference. Optional Plan mode uses Soundwave to prepare and
+  review eight planning documents before Red; Blue investigates local sensor
+  events. The CLI `/mode` command and web mode selector switch between them.
+  [Engagement workflow](docs/engagement-workflow.md).
 - **Runs specialist operations:** agents cover reconnaissance, vulnerability
   research, exploitation, Active Directory, cloud, and other domains. They
   execute in an isolated sandbox; BloodHound CE, Sliver C2, and other specialist
@@ -177,7 +179,7 @@ The "AI + hacking" space is full of demos that run nmap and print a report. That
 
 **Decepticon is a professional autonomous Red Team agent.** It executes realistic attack chains — reconnaissance, exploitation, privilege escalation, lateral movement, C2 — the way a real adversary would, not the way a scanner does.
 
-But more importantly: it operates under the discipline that separates red teamers from script kiddies. Before a single packet leaves the wire, Decepticon generates a complete engagement package — **RoE**, **ConOps**, **Deconfliction Plan**, and **OPPLAN** with MITRE ATT&CK mapping — and every action runs inside those defined rules.
+Every Red engagement starts with an approved target and machine-enforced RoE. Optional Plan mode adds Soundwave's interview and the full **RoE**, **ConOps**, **Deconfliction Plan**, and **OPPLAN** package with MITRE ATT&CK mapping before Red execution.
 
 → **[Engagement workflow deep dive](docs/engagement-workflow.md)**
 

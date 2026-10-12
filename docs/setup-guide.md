@@ -843,19 +843,21 @@ Once running, you have:
 
 ```bash
 # Decepticon shows the engagement picker after launch
-# Select "New engagement" → type a slug → Soundwave starts interviewing you
+# Select "New engagement", enter a target and authorization reference, then choose Red, Plan, or Blue
 ```
 
 **Option B — Web Dashboard:**
 
 1. Open `http://localhost:3000`
 2. Click "New Engagement"
-3. Enter: name, target type (IP range, URL, Git repo, file, local path), target value
-4. Click "Create" → opens the live terminal with Soundwave
+3. Enter a name, one root URL or IP/CIDR target, and an authorization reference
+4. Confirm authorization, choose Red, Plan, or Blue, and click "Create"
 
-### Step 6: The Soundwave Interview
+### Step 6: Optional Soundwave Plan
 
-Soundwave conducts a structured interview to generate the engagement package:
+Red starts directly with a machine-enforced RoE for the confirmed target. In
+Plan mode, Soundwave conducts a structured interview to generate the full
+engagement package:
 
 ```
 Questions you'll answer:
@@ -886,7 +888,8 @@ mapping) from the bundle — Soundwave does not write it.
 
 ### Step 7: Autonomous Execution
 
-After you approve the OPPLAN, Decepticon takes over:
+After direct Red authorization or approval of the optional Plan bundle,
+Decepticon can build the OPPLAN and begin execution:
 
 ```
 Decepticon (Orchestrator)

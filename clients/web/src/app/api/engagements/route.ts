@@ -89,9 +89,10 @@ export async function POST(req: NextRequest) {
     }
 
     let roeBytes: Buffer;
+    let normalizedTarget: string;
     try {
-      validateDirectTarget(targetType, targetValue);
-      roeBytes = Buffer.from(`${JSON.stringify(directRoe(name, targetType, targetValue, authorizationReference ?? ""), null, 2)}\n`);
+      normalizedTarget = validateDirectTarget(targetType, targetValue);
+      roeBytes = Buffer.from(`${JSON.stringify(directRoe(name, targetType, normalizedTarget, authorizationReference ?? ""), null, 2)}\n`);
     } catch (error) {
       return NextResponse.json({ error: error instanceof Error ? error.message : "Invalid direct scope" }, { status: 400 });
     }
@@ -145,7 +146,7 @@ export async function POST(req: NextRequest) {
         data: {
           name,
           targetType,
-          targetValue,
+          targetValue: normalizedTarget,
           userId,
           workspacePath: wsPath,
           authorizationConfirmed,

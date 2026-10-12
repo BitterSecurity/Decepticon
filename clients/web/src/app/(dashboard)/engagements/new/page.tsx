@@ -153,12 +153,12 @@ export default function NewEngagementPage() {
                 <Label htmlFor="ip">IP Range</Label>
                 <Input
                   id="ip"
-                  placeholder="192.168.1.0/24 or 10.0.0.1-10.0.0.255"
+                  placeholder="192.168.1.0/24"
                   value={targetValue}
                   onChange={(e) => setTargetValue(e.target.value)}
                 />
                 <p className="text-xs text-muted-foreground">
-                  CIDR notation or IP range to scan
+                  One IP address or CIDR range to scan
                 </p>
               </div>
             </TabsContent>
