@@ -5,8 +5,8 @@ The reporting tools read the engagement KG that ``KGMiddleware`` and
 no longer use the legacy ``tools/research/_state`` shim. The
 engagement label is resolved from the ``EngagementContextMiddleware``
 contextvar; if it is not set (e.g. agent invoked outside the standard
-middleware stack), every report tool returns the structure for an
-empty graph and the agent can recover.
+middleware stack), reports using ``_load`` return an empty graph.
+SARIF requires matching injected workspace and graph scope before file IO.
 """
 
 from __future__ import annotations

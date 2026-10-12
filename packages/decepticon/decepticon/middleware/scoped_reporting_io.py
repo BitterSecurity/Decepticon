@@ -8,7 +8,7 @@ from typing import Any
 from langchain_core.runnables import RunnableConfig
 
 from decepticon.backends.factory import build_sandbox_backend
-from decepticon.middleware.filesystem import EngagementFilesystemBackend
+from decepticon.middleware.filesystem import LOCKED_ROE_ERROR, EngagementFilesystemBackend
 from decepticon.middleware.kg_internal.ingest import _adapt_sarif
 from decepticon.middleware.kg_internal.store import KGStore
 from decepticon.tools.reporting.sarif import render_sarif
@@ -95,7 +95,10 @@ def render_sarif_scoped(
 
     engagement, workspace = resolve_owned_scope(state, config)
     backend = build_sandbox_backend(config)
-    real_path = EngagementFilesystemBackend(backend, workspace)._real(output_path)
+    scoped_backend = EngagementFilesystemBackend(backend, workspace)
+    real_path = scoped_backend._real(output_path)
+    if scoped_backend._roe_locked(real_path):
+        raise ReportingScopeError(LOCKED_ROE_ERROR)
     graph = load_engagement_graph(engagement)
     text = render_sarif(graph, engagement_id=engagement_id)
     sarif_bytes = text.encode("utf-8")

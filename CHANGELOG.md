@@ -12,6 +12,12 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+### Added
+
+- Route SARIF imports and report outputs through the engagement sandbox using
+  injected workspace and graph scope, while preserving protected workspace files.
+  ([#911](https://github.com/BitterSecurity/Decepticon/pull/911))
+
 ## [1.4.0] — 2026-10-13
 
 ### Added
