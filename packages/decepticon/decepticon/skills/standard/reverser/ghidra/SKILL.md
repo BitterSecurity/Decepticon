@@ -11,12 +11,12 @@ metadata:
 
 ## Hosted engagement
 
-The isolated E2B Ghidra companion is the analysis runtime and the Run tab mirrors its actual CodeBrowser. Import a binary already under `/workspace` with `ghidra_import_file`, then select the program with `ghidra_open_program`. Check `ghidra_analysis_status` before relying on incomplete analysis. Opening the viewer alone creates or displays the project; it does not imply that a binary was imported.
+The isolated E2B REA/Ghidra companion is the analysis runtime and the Run tab can mirror its CodeBrowser. The engagement agent discovers a binary under `/workspace` and opens it through `rea_open_binary`; the product pins its source digest and analysis run. Opening the viewer alone does not imply that a binary was analyzed.
 
-Use the available native `ghidra_` MCP tools. The initial catalog includes `ghidra_get_functions`, `ghidra_find_functions`, `ghidra_get_xrefs_to`, `ghidra_get_xrefs_from`, `ghidra_list_strings`, `ghidra_tool_goto_address`, and `ghidra_get_ui_cursor`. For decompilation, data types, scripts, or other tools not initially listed, call `ghidra_find_tools` with a task-specific query, inspect the returned native name and schema, and call it on the next step. Pass `program` to program-scoped calls. Do not guess tool names or invoke the MCP endpoint with shell or curl.
+Use `rea_find_tools` with a task-specific query to inspect the available native name and schema before calling it. REA provides a source-bound Evidence result and marks unresolved or derived observations. Do not infer tool availability from the full package catalog.
 
-Address-specific calls should navigate the real Listing and Decompiler through the GUI follow hook. Inspect the returned GUI follow result before saying the operator saw the location. If following failed, report that analysis may have succeeded but visual confirmation did not. Record the binary hash and address with every finding.
+Address-specific calls can navigate the real Listing and Decompiler through the GUI mirror. Inspect the GUI result before saying the operator saw the location. If following failed, keep the REA analysis result and report the lack of visual confirmation separately. Record the binary hash, Evidence ID, and address with every finding.
 
 ## Standalone OSS runtime
 
-A standalone run may expose different local reversing tools, including `ghidra_status` and `ghidra_analyze`. Use only tools actually registered in that runtime. These local tools do not imply that a hosted GUI was updated. Keep standalone output and hosted GUI claims distinct.
+A standalone run starts the optional `reversing` workload and uses `rea_status`, `rea_find_tools(binary_path, query)`, and `rea_call_tool(binary_path, name, arguments_json)`. The binary must be under the engagement's `/workspace`; no separate upload is needed. The sidecar pins the bytes and persists the original Evidence bundle under `/workspace/.analysis/rea/<runId>/` before delivering a successful result. The complete available Ghidra-session tool set is pageable through `rea_find_tools`. Legacy headless tools remain a fallback when REA is unavailable; standalone output does not imply a hosted GUI update.

@@ -135,6 +135,7 @@ model_list:
     litellm_params:
       model: openai/gpt-6-astra
       api_key: os.environ/OPENAI_API_KEY
+      allowed_openai_params: ["reasoning_effort", "tool_choice"]
       additional_drop_params: ["temperature", "top_p", "top_logprobs", "logprobs"]
     model_info:
       mode: responses
@@ -146,6 +147,7 @@ model_list:
     litellm_params:
       model: openai/gpt-6.1-sol
       api_key: os.environ/OPENAI_API_KEY
+      allowed_openai_params: ["reasoning_effort", "tool_choice"]
       additional_drop_params: ["temperature", "top_p", "top_logprobs", "logprobs"]
     model_info:
       mode: responses
@@ -157,6 +159,7 @@ model_list:
     litellm_params:
       model: openai/gpt-6-sol
       api_key: os.environ/OPENAI_API_KEY
+      allowed_openai_params: ["reasoning_effort", "tool_choice"]
       additional_drop_params: ["temperature", "top_p", "top_logprobs", "logprobs"]
     model_info:
       mode: responses
@@ -168,6 +171,7 @@ model_list:
     litellm_params:
       model: openai/gpt-6-luna
       api_key: os.environ/OPENAI_API_KEY
+      allowed_openai_params: ["reasoning_effort", "tool_choice"]
       additional_drop_params: ["temperature", "top_p", "top_logprobs", "logprobs"]
     model_info:
       mode: responses
@@ -390,6 +394,27 @@ model_list:
     model_info:
       input_cost_per_token: 0.000001
       output_cost_per_token: 0.000005
+
+  - model_name: auth/claude-opus-5
+    litellm_params:
+      model: auth/claude-opus-5
+      additional_drop_params: ["temperature"]
+    model_info:
+      input_cost_per_token: 0.000005
+      output_cost_per_token: 0.000025
+      cache_read_input_token_cost: 0.0000005
+      cache_creation_input_token_cost: 0.00000625
+      supports_prompt_caching: true
+
+  - model_name: auth/claude-sonnet-5
+    litellm_params:
+      model: auth/claude-sonnet-5
+    model_info:
+      input_cost_per_token: 0.000002
+      output_cost_per_token: 0.000010
+      cache_read_input_token_cost: 0.0000002
+      cache_creation_input_token_cost: 0.0000025
+      supports_prompt_caching: true
 
   # ── DeepSeek ─────────────────────────────────────────────────────────
   # V4 models (released 2026-04-24, 1M context, thinking + non-thinking).
