@@ -4,6 +4,8 @@ import { SLUG_RE, VALID_TARGET_TYPES } from "@/lib/workspace";
 import { NextRequest, NextResponse } from "next/server";
 import * as fs from "fs/promises";
 import * as path from "path";
+import { directApproval, directRoe, validateDirectTarget } from "@/lib/direct-scope";
+import { isValidEngagementSlug } from "@/lib/engagement-slug";
 
 const WORKSPACE = process.env.WORKSPACE_PATH ?? path.join(process.env.HOME ?? "", ".decepticon", "workspace");
 
@@ -68,7 +70,7 @@ export async function POST(req: NextRequest) {
     const { userId } = await requireAuth();
 
     const body = await req.json();
-    const { name, targetType, targetValue, authorizationConfirmed } = body;
+    const { name, targetType, targetValue, authorizationConfirmed, authorizationReference, initialMode } = body;
 
     if (!name || !targetType || !targetValue) {
       return NextResponse.json(
@@ -83,6 +85,26 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (initialMode !== undefined && !["plan", "red", "blue"].includes(initialMode)) {
+      return NextResponse.json({ error: "Invalid initial mode" }, { status: 400 });
+    }
+
+    if (!isValidEngagementSlug(name)) {
+      return NextResponse.json(
+        { error: "Invalid engagement name — must be 3-64 chars, lowercase letters / digits / internal hyphens" },
+        { status: 400 },
+      );
+    }
+
+    let roeBytes: Buffer;
+    let normalizedTarget: string;
+    try {
+      normalizedTarget = validateDirectTarget(targetType, targetValue);
+      roeBytes = Buffer.from(`${JSON.stringify(directRoe(name, targetType, normalizedTarget, authorizationReference ?? ""), null, 2)}\n`);
+    } catch (error) {
+      return NextResponse.json({ error: error instanceof Error ? error.message : "Invalid direct scope" }, { status: 400 });
+    }
+
     if (!VALID_TARGET_TYPES.includes(targetType)) {
       return NextResponse.json(
         { error: `Invalid targetType. Must be one of: ${VALID_TARGET_TYPES.join(", ")}` },
@@ -90,18 +112,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Engagement name doubles as the workspace slug. Enforce the same regex
-    // the launcher uses so a name created here works as a folder name and a
-    // future "Resume <slug>" picker entry without further escaping.
-    if (!SLUG_RE.test(name)) {
-      return NextResponse.json(
-        {
-          error:
-            "Invalid engagement name — must be 3-64 chars, lowercase letters / digits / internal hyphens",
-        },
-        { status: 400 }
-      );
-    }
     const existing = await prisma.engagement.findFirst({
       where: { name, userId },
     });
@@ -111,30 +121,43 @@ export async function POST(req: NextRequest) {
         { status: 409 },
       );
     }
-    const wsPath = path.join(WORKSPACE, name);
-
-    const engagement = await prisma.engagement.create({
-      data: {
-        name,
-        targetType,
-        targetValue,
-        userId,
-        workspacePath: wsPath,
-        authorizationConfirmed,
-      },
-    });
-
-    // Create only the planning root. Phase artifact directories are created
-    // lazily when an agent writes a real artifact there.
+    const workspaceRoot = path.resolve(WORKSPACE);
+    const wsPath = path.resolve(workspaceRoot, name);
+    const workspacePrefix = workspaceRoot.endsWith(path.sep) ? workspaceRoot : workspaceRoot + path.sep;
+    if (!wsPath.startsWith(workspacePrefix) || path.dirname(wsPath) !== workspaceRoot) {
+      return NextResponse.json({ error: "Invalid engagement workspace path" }, { status: 400 });
+    }
+    await fs.mkdir(workspaceRoot, { recursive: true });
     try {
-      await Promise.all(
-        WORKSPACE_SUBDIRS.map((sub) => fs.mkdir(path.join(wsPath, sub), { recursive: true }))
-      );
-    } catch {
-      // Non-fatal — workspace creation failure doesn't block engagement creation
+      await fs.mkdir(wsPath, { recursive: false, mode: 0o700 });
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "EEXIST") {
+        return NextResponse.json({ error: "An engagement workspace with this name already exists" }, { status: 409 });
+      }
+      throw error;
     }
 
-    return NextResponse.json(engagement, { status: 201 });
+    try {
+      await Promise.all(WORKSPACE_SUBDIRS.map((sub) => fs.mkdir(path.join(wsPath, sub), { mode: 0o700 })));
+      await fs.writeFile(path.join(wsPath, "plan", "roe.json"), roeBytes, { flag: "wx", mode: 0o600 });
+      if (initialMode !== "plan" && initialMode !== "blue") {
+        await fs.writeFile(path.join(wsPath, ".red-approved"), directApproval(roeBytes), { flag: "wx", mode: 0o600 });
+      }
+      const engagement = await prisma.engagement.create({
+        data: {
+          name,
+          targetType,
+          targetValue: normalizedTarget,
+          userId,
+          workspacePath: wsPath,
+          authorizationConfirmed,
+        },
+      });
+      return NextResponse.json(engagement, { status: 201 });
+    } catch (error) {
+      await fs.rm(wsPath, { recursive: true, force: true });
+      throw error;
+    }
   } catch (e) {
     if (e instanceof AuthError) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

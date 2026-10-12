@@ -63,7 +63,7 @@ OPERATIONAL_ONLY: frozenset[str] = frozenset(
     {
         "sandbox",
         "c2-sliver",
-        "ghidra-mcp",
+        "rea-mcp",
     }
 )
 
@@ -108,7 +108,7 @@ def _rendered_compose() -> dict:
     """Return the post-interpolation compose document as a dict.
 
     Uses ``--profiles`` so that profile-gated services
-    (c2-sliver, ghidra-mcp, cli) are present in the render and
+    (c2-sliver, rea-mcp, cli) are present in the render and
     therefore subject to the same invariants as the always-on
     services.
     """
@@ -175,7 +175,7 @@ def _service_volumes(service: dict) -> list[str]:
 
 
 def test_operational_services_never_on_management_network():
-    """sandbox, c2-sliver, ghidra-mcp must never appear on decepticon-net.
+    """sandbox, c2-sliver, rea-mcp must never appear on decepticon-net.
 
     A regression here collapses the management/operational boundary —
     a compromised target-facing container would gain a path to LiteLLM

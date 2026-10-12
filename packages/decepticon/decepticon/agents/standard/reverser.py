@@ -54,6 +54,7 @@ from decepticon.backends import build_sandbox_backend, make_agent_backend
 from decepticon.llm import LLMFactory
 from decepticon.tools.bash import BASH_TOOLS
 from decepticon.tools.bash.bash import set_sandbox
+from decepticon.tools.reversing.rea import REA_TOOLS, rea_configured
 from decepticon.tools.reversing.tools import REVERSING_TOOLS
 from decepticon_core.plugin_loader import SubAgentSpec, is_bundle_enabled, load_plugin_callbacks
 
@@ -69,6 +70,16 @@ _STANDARD_TOOLS: dict[str, Any] = {
         *BASH_TOOLS,
     ]
 }
+_LEGACY_GHIDRA_TOOLS = frozenset(
+    {
+        "bin_ghidra_script",
+        "ghidra_analyze",
+        "ghidra_decompile",
+        "ghidra_xrefs",
+        "ghidra_status",
+        "re_status",
+    }
+)
 
 
 _ROLE = "reverser"
@@ -132,7 +143,12 @@ def create_reverser_agent(
         backend = make_agent_backend(sandbox)
 
     if tools is None:
-        tools = build_tools(role=_ROLE, standard_tools=_STANDARD_TOOLS)
+        standard_tools = dict(_STANDARD_TOOLS)
+        if rea_configured():
+            for name in _LEGACY_GHIDRA_TOOLS:
+                standard_tools.pop(name, None)
+            standard_tools.update({tool.name: tool for tool in REA_TOOLS})
+        tools = build_tools(role=_ROLE, standard_tools=standard_tools)
     if middleware is None:
         middleware = build_middleware(
             role=_ROLE,
@@ -169,8 +185,8 @@ SUBAGENT_SPEC = SubAgentSpec(
         "Binary reversing specialist. Use for ELF/PE/Mach-O/firmware triage, "
         "packer detection, classified string extraction, symbol risk reports, "
         "ROP gadget inventories, and Radare2-assisted basic triage without the reversing workload. "
-        "Use Ghidra headless + MCP bridge only for deep decompilation, "
-        "cross-references, P-code emulation, batch analysis, and 245-tool workflows. "
+        "When the REA workload is available, use its Ghidra provider for decompilation, "
+        "cross-references, P-code analysis, and source-bound Evidence. "
         "Ideal for thick clients, IoT firmware, game cheats, malware triage, "
         "and exploit dev hand-offs."
     ),

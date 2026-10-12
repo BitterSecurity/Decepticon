@@ -1,10 +1,9 @@
 """Decepticon — autonomous red team coordinator agent.
 
-Engagement-ready agent that builds the OPPLAN from existing RoE/CONOPS
-documents and executes the kill chain by delegating to specialist sub-agents.
-The launcher selects this assistant when the operator picks an existing
-engagement; for fresh engagements it picks the standalone soundwave assistant
-instead, which writes the planning documents this agent then consumes.
+Engagement-ready agent that builds the OPPLAN from an approved RoE and optional
+Plan documents, then executes the kill chain by delegating to specialist
+sub-agents. The launcher selects this assistant for Red mode, including fresh
+direct-scope engagements. Soundwave is selected only for optional Plan mode.
 
 Middleware stack (selected for orchestration):
   1. EngagementContextMiddleware — inject engagement metadata (slug, target, RoE)
@@ -48,8 +47,7 @@ cleanly:
 
 SubAgent / OPPLAN (orchestrator — delegates all work via task()).
 No SandboxNotification (bash lives on sub-agents). Soundwave is NOT a
-sub-agent: the launcher routes to its standalone assistant when document
-generation is needed.
+sub-agent: the launcher routes to its standalone assistant in Plan mode.
 """
 
 from __future__ import annotations

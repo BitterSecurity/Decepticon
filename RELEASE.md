@@ -24,7 +24,9 @@ Docker images. There is no version-bump commit to make before tagging.
    ```
    Optionally run `make dogfood` for a full launcher → onboard → up smoke test.
 3. In [CHANGELOG.md](CHANGELOG.md), move the `[Unreleased]` entries under a new
-   `[X.Y.Z] — YYYY-MM-DD` heading and add the compare link at the bottom.
+   `[X.Y.Z] — YYYY-MM-DD` heading, check them against merged PRs, and add the
+   compare link at the bottom. Keep an empty `[Unreleased]` heading for the
+   next release.
 4. Commit the changelog (`docs: release vX.Y.Z`).
 5. Tag and push:
    ```bash
@@ -34,41 +36,11 @@ Docker images. There is no version-bump commit to make before tagging.
 
 Pushing a `v*` tag triggers `.github/workflows/release.yml`.
 
-## Automated releases (auto-tag on merge)
-
-You usually don't tag by hand. `.github/workflows/auto-tag.yml` runs on every
-push to `main` and, when the [Conventional Commits](https://www.conventionalcommits.org/)
-since the last tag warrant it, computes the next version
-(`scripts/next_version.py`) and pushes the `vX.Y.Z` tag for you:
-
-| Commits since last tag | Bump |
-|------------------------|------|
-| `feat:` / `feat(scope):` | minor |
-| `fix:` / `perf:` / `revert:` | patch |
-| `type!:` or a `BREAKING CHANGE:` footer | major |
-| only `docs` / `chore` / `ci` / `test` / `refactor` | no release |
-
-The pushed tag then drives the same `release.yml` pipeline below — auto-tag
-never builds or publishes, so release atomicity is unchanged.
-
-**One-time setup for fully-automatic releases:** GitHub suppresses workflow
-triggers from tags pushed with the default `GITHUB_TOKEN`. Add a repo secret
-**`RELEASE_PLEASE_TOKEN`** (a fine-grained PAT with `contents: write`) so the
-auto-tag's tag triggers `release.yml`. Without the PAT the tag is still created
-correctly, but `release.yml` will **not** build it on its own — a
-`GITHUB_TOKEN`-pushed tag does not trigger workflows. To build such a tag,
-re-push it from a credential that does (a maintainer's manual push):
-
-```bash
-git push origin :refs/tags/vX.Y.Z   # delete the remote tag
-git push origin vX.Y.Z              # re-push → triggers release.yml
-```
-
-`release-recover.yml` does **not** help here — it only verifies already-built
-images and finalizes the release, it never builds one (see
-[Recovering a failed release](#recovering-a-failed-release)). Once the PAT is
-configured, every future auto-tag builds automatically. The manual `git tag`
-flow above also still works for out-of-band releases.
+The repository currently has no auto-tag workflow. A maintainer selects the
+version after checking the merged changes and pushes the tag. The tag starts
+`release.yml`; wait for its publish gate before announcing a release.
+`release-recover.yml` verifies existing images and finalizes a failed release,
+but does not build missing images.
 
 ## What the release workflow does
 
@@ -77,9 +49,9 @@ flow above also still works for out-of-band releases.
 | `publish-pypi` | Builds the wheel + sdist and publishes the `decepticon` package to PyPI via Trusted Publishing (OIDC — no API token). |
 | `launcher` | Builds the Go launcher binaries with GoReleaser (which drafts the GitHub release) and uploads `config-checksums.txt`, a SHA-256 integrity manifest for `docker-compose.yml`, `config/litellm.yaml`, and `.env.example`. |
 | `docker` | Builds and pushes the multi-arch `litellm`, `langgraph`, `cli`, and `skillogy` images. |
-| `docker-heavy` / `docker-heavy-merge` | Builds `sandbox` and `c2-sliver` on native amd64/arm64 runners (the Kali base is too slow under QEMU), then merges the per-arch digests into manifests. |
+| `docker-heavy` / `docker-heavy-merge` | Builds `sandbox` and `c2-sliver` on native amd64/arm64 runners, plus the REA image on amd64, then merges the per-arch digests into manifests. |
 | `docker-web` / `docker-web-merge` | Builds and merges the `web` image the same way. |
-| `publish-release` | Verifies all seven `:<version>` images exist on GHCR, promotes them to `:latest`, and flips the GitHub release from draft to published. |
+| `publish-release` | Verifies all eight `:<version>` images exist on GHCR, promotes final releases to `:latest`, and flips the GitHub release from draft to published. |
 
 Every image is signed with Cosign (keyless OIDC) and ships a CycloneDX SBOM.
 The `:latest` tag and the published release appear only *after* every image is

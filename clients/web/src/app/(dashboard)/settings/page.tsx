@@ -20,18 +20,18 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AgentConfig } from "@/lib/agents";
+import {
+  type EngagementSummary,
+  isAgentConfig,
+  isEngagementSummary,
+  readCollectionResponse,
+} from "@/lib/settings-data";
 
 interface ServiceStatus {
   name: string;
   status: "ok" | "error" | "loading";
   detail: string;
   icon: typeof Server;
-}
-
-interface Engagement {
-  id: string;
-  name: string;
-  status: string;
 }
 
 function StatusDot({ status }: { status: "ok" | "error" | "loading" }) {
@@ -56,8 +56,11 @@ export default function SettingsPage() {
     { name: "Sandbox", status: "ok", detail: "decepticon-sandbox", icon: Box },
   ]);
   const [agents, setAgents] = useState<AgentConfig[]>([]);
-  const [engagements, setEngagements] = useState<Engagement[]>([]);
+  const [engagements, setEngagements] = useState<EngagementSummary[]>([]);
   const [loadingAgents, setLoadingAgents] = useState(true);
+  const [loadingEngagements, setLoadingEngagements] = useState(true);
+  const [agentsError, setAgentsError] = useState<string | null>(null);
+  const [engagementsError, setEngagementsError] = useState<string | null>(null);
   // Check all services via server-side health API
 
   useEffect(() => {
@@ -91,10 +94,16 @@ export default function SettingsPage() {
   // Fetch agents
   useEffect(() => {
     let active = true;
+    setAgentsError(null);
     fetch("/api/agents")
-      .then((res) => res.json())
-      .then((data: AgentConfig[]) => { if (active) setAgents(data); })
-      .catch(() => {})
+      .then((res) => readCollectionResponse(res, "Agents", isAgentConfig))
+      .then((data) => { if (active) setAgents(data); })
+      .catch((error: unknown) => {
+        if (active) {
+          setAgents([]);
+          setAgentsError(error instanceof Error ? error.message : "Agents request failed");
+        }
+      })
       .finally(() => { if (active) setLoadingAgents(false); });
     return () => { active = false; };
   }, []);
@@ -103,10 +112,17 @@ export default function SettingsPage() {
   // Fetch engagements
   useEffect(() => {
     let active = true;
+    setEngagementsError(null);
     fetch("/api/engagements")
-      .then((res) => res.json())
-      .then((data: Engagement[]) => { if (active) setEngagements(data); })
-      .catch(() => {});
+      .then((res) => readCollectionResponse(res, "Engagements", isEngagementSummary))
+      .then((data) => { if (active) setEngagements(data); })
+      .catch((error: unknown) => {
+        if (active) {
+          setEngagements([]);
+          setEngagementsError(error instanceof Error ? error.message : "Engagements request failed");
+        }
+      })
+      .finally(() => { if (active) setLoadingEngagements(false); });
     return () => { active = false; };
   }, []);
 
@@ -156,20 +172,30 @@ export default function SettingsPage() {
           <CardTitle className="text-base">Engagement Statistics</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-5 gap-4 text-center">
-            {([
-              ["Total", statusCounts.total, "text-foreground"],
-              ["Running", statusCounts.running, "text-amber-400"],
-              ["Completed", statusCounts.completed, "text-emerald-400"],
-              ["Planning", statusCounts.planning, "text-violet-400"],
-              ["Draft", statusCounts.draft, "text-zinc-400"],
-            ] as const).map(([label, count, color]) => (
-              <div key={label}>
-                <p className={cn("text-2xl font-bold", color)}>{count}</p>
-                <p className="text-xs text-muted-foreground">{label}</p>
-              </div>
-            ))}
-          </div>
+          {loadingEngagements ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : engagementsError ? (
+            <p role="status" className="py-6 text-center text-sm text-red-400">
+              {engagementsError}
+            </p>
+          ) : (
+            <div className="grid grid-cols-5 gap-4 text-center">
+              {([
+                ["Total", statusCounts.total, "text-foreground"],
+                ["Running", statusCounts.running, "text-amber-400"],
+                ["Completed", statusCounts.completed, "text-emerald-400"],
+                ["Planning", statusCounts.planning, "text-violet-400"],
+                ["Draft", statusCounts.draft, "text-zinc-400"],
+              ] as const).map(([label, count, color]) => (
+                <div key={label}>
+                  <p className={cn("text-2xl font-bold", color)}>{count}</p>
+                  <p className="text-xs text-muted-foreground">{label}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -187,6 +213,10 @@ export default function SettingsPage() {
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
+          ) : agentsError ? (
+            <p role="status" className="py-6 text-center text-sm text-red-400">
+              {agentsError}
+            </p>
           ) : (
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {agents.map((agent) => (
