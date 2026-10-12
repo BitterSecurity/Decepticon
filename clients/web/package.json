@@ -12,7 +12,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --import tsx --test \"src/**/*.test.ts\"",
+    "test": "node --import tsx --test \"src/**/*.test.ts\" \"src/**/*.test.tsx\"",
 
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",

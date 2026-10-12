@@ -28,7 +28,10 @@
 import { WebSocketServer, WebSocket } from "ws";
 import * as pty from "node-pty";
 import { resolve, dirname } from "path";
+import { join } from "path";
 import { fileURLToPath } from "url";
+import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -65,8 +68,30 @@ interface Session {
 
 const sessions = new Map<string, Session>();
 
-function sessionKey(slug: string): string {
-  return slug;
+function sessionKey(slug: string, assistant: string): string {
+  return `${slug}:${assistant}`;
+}
+
+const PLAN_DOCUMENTS = ["roe.json", "threat-profile.json", "conops.json", "deconfliction.json", "contact.json", "data-handling.json", "abort.json", "cleanup.json"];
+
+async function approvedScope(slug: string): Promise<{ target: string; type: string; redApproved: boolean } | null> {
+  const root = join(process.env.WORKSPACE_PATH ?? "/workspace", slug);
+  try {
+    const roeBytes = await readFile(join(root, "plan", "roe.json"));
+    const roe = JSON.parse(roeBytes.toString()) as { in_scope?: Array<{ target?: string; type?: string }>; authorization_reference?: string };
+    const target = roe.in_scope?.[0]?.target;
+    if (!target || !roe.authorization_reference?.trim()) return null;
+    const marker = (await readFile(join(root, ".red-approved"), "utf-8").catch(() => "")).trim();
+    const direct = `roe:${createHash("sha256").update(roeBytes).digest("hex")}`;
+    const bundle = createHash("sha256");
+    let bundleComplete = true;
+    for (const filename of PLAN_DOCUMENTS) {
+      try {
+        bundle.update(filename).update("\0").update(await readFile(join(root, "plan", filename))).update("\0");
+      } catch { bundleComplete = false; break; }
+    }
+    return { target, type: roe.in_scope?.[0]?.type ?? "", redApproved: marker === direct || (bundleComplete && marker === bundle.digest("hex")) };
+  } catch { return null; }
 }
 
 function appendScrollback(session: Session, data: string): void {
@@ -143,12 +168,21 @@ wss.on("connection", async (ws: WebSocket, req) => {
   const targetType = url.searchParams.get("targetType") ?? "";
   const targetValue = url.searchParams.get("targetValue") ?? "";
   const authorizationConfirmed = url.searchParams.get("authorizationConfirmed") === "true";
-  if (!engagementSlug) {
-    ws.close(1008, "Missing engagementSlug");
+  if (!/^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/.test(engagementSlug)) {
+    ws.close(1008, "Invalid engagementSlug");
     return;
   }
 
-  const key = sessionKey(engagementSlug);
+  if (!["soundwave", "decepticon", "blue_cell"].includes(agentId)) {
+    ws.close(1008, "Unsupported run mode");
+    return;
+  }
+  const scope = await approvedScope(engagementSlug);
+  if (agentId === "decepticon" && !scope?.redApproved) {
+    ws.close(1008, "Red scope is not approved");
+    return;
+  }
+  const key = sessionKey(engagementSlug, agentId);
   let session = sessions.get(key);
 
   // ── Reattach to existing session ──
@@ -209,12 +243,13 @@ wss.on("connection", async (ws: WebSocket, req) => {
     TERM: "xterm-256color",
     FORCE_COLOR: "1",
     DECEPTICON_ASSISTANT_ID: agentId,
+    DECEPTICON_WEB_TERMINAL: "true",
     DECEPTICON_ENGAGEMENT: engagementSlug,
     DECEPTICON_WORKSPACE_PATH: engagementSlug ? `/workspace/${engagementSlug}` : "/workspace",
     DECEPTICON_API_URL: LANGGRAPH_API_URL,
-    DECEPTICON_TARGET_TYPE: targetType,
-    DECEPTICON_TARGET: targetValue,
-    DECEPTICON_AUTHORIZATION_CONFIRMED: authorizationConfirmed ? "true" : "false",
+    DECEPTICON_TARGET_TYPE: scope?.type ?? targetType,
+    DECEPTICON_TARGET: scope?.target ?? targetValue,
+    DECEPTICON_AUTHORIZATION_CONFIRMED: scope ? "true" : authorizationConfirmed ? "true" : "false",
   };
   if (threadId) env.DECEPTICON_THREAD_ID = threadId;
 

@@ -26,6 +26,8 @@ import {
 } from "@decepticon/streaming";
 import { getModelOverride } from "../commands/modelOverride.js";
 import { getAssistantOverride } from "../commands/assistantOverride.js";
+import { blueMonitorReady } from "../commands/blue.js";
+import { assertRedApproved } from "../commands/planMode.js";
 
 interface LangChainMessage {
   type: string; // "human", "ai", "tool"
@@ -103,12 +105,9 @@ interface UseAgentReturn {
   error: string | null;
   clearEvents: () => void;
   addSystemEvent: (content: string) => void;
+  selectAssistant: (assistantId: string) => boolean;
 }
 
-// Initial assistant_id from the launcher's engagement picker:
-// - "soundwave" for new engagements (interview lane)
-// - "decepticon" for resuming an existing engagement
-// Defaults to "decepticon" when launched directly (legacy / dev workflows).
 const INITIAL_ASSISTANT_ID =
   process.env.DECEPTICON_ASSISTANT_ID || "decepticon";
 let _nextEventId = 0;
@@ -151,7 +150,11 @@ export function useAgent({
   const askedQuestionIds = useRef<Set<string>>(new Set());
   const assistantIdRef = useRef<string>(INITIAL_ASSISTANT_ID);
   const threadAssistantRef = useRef<string>(INITIAL_ASSISTANT_ID);
-  const pendingHandoffRef = useRef<boolean>(false);
+  const modeSessionsRef = useRef(new Map<string, {
+    threadId: string | null;
+    events: AgentEvent[];
+    lastCount: number;
+  }>());
 
   // Derived for backward compatibility
   const isStreaming = runState === "streaming" || runState === "connecting";
@@ -328,37 +331,16 @@ export function useAgent({
             addEvent({
               type: "system",
               content:
-                "Planning draft ready for review. Interview remains active; use /agent decepticon after approving the plan.",
+                "Planning draft ready for review. Plan remains active; use /mode red after reviewing the documents.",
             });
             break;
           }
 
           case "engagement_ready": {
-            // Soundwave finished writing the planning bundle. Flip the
-            // active assistant so the next submit() lands on decepticon.
-            // The current run continues to completion (soundwave's closing
-            // message); thread handoff fires from handleStreamComplete.
-            // Pure boolean signal — the engagement slug travels independently
-            // via config.configurable from the launcher's env.
-            //
-            // When the operator has explicitly picked another orchestrator
-            // via /agent (e.g. "vulnresearch"), skip this auto-handoff —
-            // their explicit choice beats the soundwave→decepticon default.
-            if (getAssistantOverride()) {
-              addEvent({
-                type: "system",
-                content:
-                  "Engagement planning complete — keeping operator-chosen orchestrator (use /agent to switch).",
-              });
-              break;
-            }
-            pendingHandoffRef.current = true;
-            assistantIdRef.current = "decepticon";
-            setAssistantId("decepticon");
             addEvent({
               type: "system",
               content:
-                "Engagement planning complete — Decepticon will pick up your next message.",
+                "Planning complete. Review the scope, then use /mode red to start Red explicitly.",
             });
             break;
           }
@@ -620,13 +602,6 @@ export function useAgent({
       runIdRef.current = null;
       resetStreamState();
 
-      if (pendingHandoffRef.current) {
-        threadIdRef.current = null;
-        lastCountRef.current = 0;
-        askedQuestionIds.current.clear();
-        pendingHandoffRef.current = false;
-      }
-
       // Auto-submit queued message
       const pending = queuedMessageRef.current;
       if (pending) {
@@ -706,6 +681,27 @@ export function useAgent({
     setRunState("idle");
   }, []);
 
+  const selectAssistant = useCallback((next: string): boolean => {
+    if (runStateRef.current !== "idle" || abortRef.current) return false;
+    const current = assistantIdRef.current;
+    if (next === current) return true;
+    modeSessionsRef.current.set(current, {
+      threadId: threadIdRef.current,
+      events: [...eventsRef.current],
+      lastCount: lastCountRef.current,
+    });
+    const saved = modeSessionsRef.current.get(next);
+    threadIdRef.current = saved?.threadId ?? null;
+    lastCountRef.current = saved?.lastCount ?? 0;
+    eventsRef.current = [...(saved?.events ?? [])];
+    setEvents(eventsRef.current);
+    askedQuestionIds.current.clear();
+    assistantIdRef.current = next;
+    threadAssistantRef.current = next;
+    setAssistantId(next);
+    return true;
+  }, []);
+
   // ── Submit (only when idle or paused) ──────────────────────────
 
   const submit = useCallback(
@@ -748,6 +744,26 @@ export function useAgent({
       const runStream = async () => {
         const client = clientRef.current;
         setError(null);
+
+        if (selectedAssistant === "blue_cell" && !(await blueMonitorReady())) {
+          const unavailable = "Blue sensor is unavailable. Use /blue up 127.0.0.1:3000 before sending in Blue mode.";
+          setError(unavailable);
+          addEvent({ type: "system", content: unavailable });
+          handleStreamComplete(abortController);
+          return;
+        }
+
+        if (selectedAssistant === "decepticon" && process.env.DECEPTICON_ENGAGEMENT) {
+          try {
+            await assertRedApproved();
+          } catch (error) {
+            const denied = error instanceof Error ? error.message : "Red scope is not approved.";
+            setError(denied);
+            addEvent({ type: "system", content: denied });
+            handleStreamComplete(abortController);
+            return;
+          }
+        }
 
         // Create thread if needed (retry for server startup race condition)
         if (!threadIdRef.current) {
@@ -1055,5 +1071,6 @@ export function useAgent({
     error,
     clearEvents,
     addSystemEvent,
+    selectAssistant,
   };
 }

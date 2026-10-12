@@ -60,7 +60,11 @@ Use the [Feature Request](https://github.com/PurpleAILAB/Decepticon/issues/new?t
    - `docs:` — documentation only
    - `chore:` — maintenance
    - `refactor:` — code restructuring
-5. **Open a PR** against `main` with a clear description of what and why.
+5. **Record user-visible changes** under `[Unreleased]` in
+   [CHANGELOG.md](CHANGELOG.md), with a link to the PR. Maintainers move these
+   entries to a dated version when cutting the release. Internal-only changes
+   can omit a changelog entry.
+6. **Open a PR** against `main` with a clear description of what and why.
 
 ## Code Conventions
 

@@ -30,6 +30,10 @@ vi.mock("../commands/modelOverride.js", () => ({
   getModelOverride: () => undefined,
 }));
 
+vi.mock("../commands/planMode.js", () => ({
+  assertRedApproved: vi.fn(async () => {}),
+}));
+
 // ── Module-level binding (reset per test via dynamic import) ─────────────────
 // useAgent reads INITIAL_ASSISTANT_ID = process.env.DECEPTICON_ASSISTANT_ID at
 // module load time. Static import would capture the value before vi.stubEnv()
@@ -48,6 +52,7 @@ const engagementReadyEvent: StreamEvent = {
 describe("useAgent — engagement handoff lifecycle", () => {
   beforeEach(async () => {
     vi.resetModules();
+    vi.clearAllMocks();
     vi.useFakeTimers();
     vi.stubEnv("DECEPTICON_API_URL", "http://localhost:2024");
     vi.stubEnv("DECEPTICON_ASSISTANT_ID", "soundwave");
@@ -143,8 +148,7 @@ describe("useAgent — engagement handoff lifecycle", () => {
     );
   });
 
-  // ── 1. engagement_ready flips assistantId mid-stream ─────────────────────
-  it("flips assistantId to 'decepticon' when engagement_ready fires mid-stream", async () => {
+  it("keeps Plan active when a legacy engagement_ready event arrives", async () => {
     const stream = createControllableStream();
     (mockState.client!.runs.stream as Mock).mockReturnValueOnce(stream);
 
@@ -165,8 +169,8 @@ describe("useAgent — engagement handoff lifecycle", () => {
       await stream.emit(engagementReadyEvent);
     });
 
-    // assistantId state should have flipped; stream has NOT ended yet
-    expect(result.current.assistantId).toBe("decepticon");
+    expect(result.current.assistantId).toBe("soundwave");
+    expect(result.current.events.at(-1)?.content).toContain("/mode red");
 
     // Clean up — end stream so the hook reaches an idle state
     await act(async () => {
@@ -175,8 +179,7 @@ describe("useAgent — engagement handoff lifecycle", () => {
     });
   });
 
-  // ── 2. Handoff auto-submits enqueued message on fresh decepticon thread ───
-  it("auto-submits enqueued message on a fresh decepticon thread after handoff", async () => {
+  it("keeps a queued Plan message in Plan after the legacy completion event", async () => {
     const firstStream = createControllableStream();
     const secondStream = createMockStream([noopValuesEvent]);
     const mc = mockState.client!;
@@ -189,7 +192,6 @@ describe("useAgent — engagement handoff lifecycle", () => {
 
     const { result } = renderHook(() => useAgent());
 
-    // Start soundwave run
     act(() => {
       result.current.submit("start engagement");
     });
@@ -197,13 +199,11 @@ describe("useAgent — engagement handoff lifecycle", () => {
       await vi.runAllTimersAsync();
     });
 
-    // Queue a follow-up while the soundwave stream is still active
     act(() => {
       result.current.enqueue("queued follow-up");
     });
     expect(result.current.queuedMessage).toBe("queued follow-up");
 
-    // Emit handoff signal, then end stream to trigger handleStreamComplete
     await act(async () => {
       await firstStream.emit(engagementReadyEvent);
     });
@@ -215,13 +215,10 @@ describe("useAgent — engagement handoff lifecycle", () => {
     const streamCalls = (mc.runs.stream as Mock).mock.calls;
     const createCalls = (mc.threads.create as Mock).mock.calls;
 
-    // New thread created for the decepticon run
-    expect(createCalls.length).toBe(2);
-
-    // Second stream call targets decepticon assistant on the fresh thread
+    expect(createCalls.length).toBe(1);
     expect(streamCalls.length).toBe(2);
-    expect(streamCalls[1][0]).toBe("thread-decepticon"); // new thread, not original
-    expect(streamCalls[1][1]).toBe("decepticon");
+    expect(streamCalls[1][0]).toBe("thread-soundwave");
+    expect(streamCalls[1][1]).toBe("soundwave");
 
     // Second stream call's input carries the queued message
     const secondInput = streamCalls[1][2].input as { messages: Array<{ content: string }> };
@@ -367,12 +364,13 @@ describe("useAgent — engagement handoff lifecycle", () => {
     ]));
   });
 
-  it("opens a new thread when the operator selects Red", async () => {
+  it("keeps separate Plan and Red threads and restores the Plan transcript", async () => {
     const mc = mockState.client!;
     (mc.threads.create as Mock)
       .mockResolvedValueOnce({ thread_id: "interview-thread" })
       .mockResolvedValueOnce({ thread_id: "red-thread" });
     (mc.runs.stream as Mock)
+      .mockReturnValueOnce(createMockStream([noopValuesEvent]))
       .mockReturnValueOnce(createMockStream([noopValuesEvent]))
       .mockReturnValueOnce(createMockStream([noopValuesEvent]));
     const { setAssistantOverride } = await import("../commands/assistantOverride.js");
@@ -380,6 +378,7 @@ describe("useAgent — engagement handoff lifecycle", () => {
 
     act(() => result.current.submit("prepare plan"));
     await act(async () => { await vi.runAllTimersAsync(); });
+    act(() => expect(result.current.selectAssistant("decepticon")).toBe(true));
     setAssistantOverride("decepticon");
     act(() => result.current.submit("begin approved Red work"));
     await act(async () => { await vi.runAllTimersAsync(); });
@@ -389,6 +388,41 @@ describe("useAgent — engagement handoff lifecycle", () => {
     expect(calls[0][0]).not.toBe(calls[1][0]);
     expect(calls[1][1]).toBe("decepticon");
     expect(result.current.assistantId).toBe("decepticon");
+    expect(result.current.events.some((event) => event.content === "prepare plan")).toBe(false);
+
+    act(() => expect(result.current.selectAssistant("soundwave")).toBe(true));
+    setAssistantOverride("soundwave");
+    expect(result.current.events.some((event) => event.content === "prepare plan")).toBe(true);
+    expect(result.current.events.some((event) => event.content === "begin approved Red work")).toBe(false);
+    act(() => result.current.submit("revise plan"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    expect(mc.threads.create).toHaveBeenCalledTimes(2);
+    expect((mc.runs.stream as Mock).mock.calls[2][0]).toBe("interview-thread");
+  });
+
+  it("does not stream a Red message after scope approval becomes stale", async () => {
+    const { assertRedApproved } = await import("../commands/planMode.js");
+    vi.mocked(assertRedApproved).mockRejectedValueOnce(new Error("Red scope changed"));
+    const { result } = renderHook(() => useAgent());
+
+    act(() => expect(result.current.selectAssistant("decepticon")).toBe(true));
+    act(() => result.current.submit("continue Red work"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+
+    expect(mockState.client!.runs.stream).not.toHaveBeenCalled();
+    expect(result.current.error).toContain("Red scope changed");
+    expect(result.current.runState).toBe("idle");
+  });
+
+  it("does not switch the visible mode during a live run", async () => {
+    const stream = createControllableStream();
+    (mockState.client!.runs.stream as Mock).mockReturnValueOnce(stream);
+    const { result } = renderHook(() => useAgent());
+    act(() => result.current.submit("plan"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    act(() => expect(result.current.selectAssistant("blue_cell")).toBe(false));
+    expect(result.current.assistantId).toBe("soundwave");
+    await act(async () => { stream.end(); await vi.runAllTimersAsync(); });
   });
 
   it("recovers after thread creation retries are exhausted", async () => {
@@ -431,8 +465,7 @@ describe("useAgent — engagement handoff lifecycle", () => {
     expect(result.current.runState).toBe("idle");
   });
 
-  // ── 5. engagement_ready alone does not clear queuedMessage ───────────────
-  it("keeps queuedMessage intact after engagement_ready — only handleStreamComplete handoff branch clears it", async () => {
+  it("keeps queuedMessage intact after a legacy engagement_ready event", async () => {
     const firstStream = createControllableStream();
     const secondStream = createMockStream([noopValuesEvent]);
     const mc = mockState.client!;

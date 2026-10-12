@@ -636,17 +636,17 @@ Complete list of all supported LLM providers and their pre-configured models:
 |----------|--------|-----------|------|
 | **Subscriptions (OAuth — no API billing)** | | | |
 | Claude Max/Pro/Team | Opus, Sonnet, Haiku | OAuth | $20–$100/mo |
-| ChatGPT Pro/Plus/Team | `auth/gpt-5.5`, `auth/gpt-5.4`, `auth/gpt-5.4-mini` (+ `auth/gpt-5.3-codex` for code agents) | OAuth | $20–$200/mo |
+| ChatGPT Pro/Plus/Team | `auth/gpt-5.6-sol`, `auth/gpt-5.6-terra`, `auth/gpt-5.6-luna`, plus GPT-5.5/5.4 routes | OAuth | $20–$200/mo |
 | Gemini Advanced | Gemini 2.5 Pro/Flash | OAuth | $20/mo |
 | Copilot Pro | `copilot/gpt-5.5`, `copilot/claude-sonnet-4-6`, `copilot/gpt-5.4-mini` (+ `copilot/gpt-5.3-codex`) | OAuth | $20/mo |
 | SuperGrok | Grok 4.3, Grok 4-1 Fast Reasoning | OAuth | X Premium+ |
 | Perplexity Pro | Sonar Pro, Sonar | OAuth | $20/mo |
 | **API Key Providers (pay-per-token)** | | | |
-| Anthropic | Claude Opus 4.7, Sonnet 4.6, Haiku 4.5 | API key | Per token |
-| OpenAI | GPT-5.5, GPT-5.4, GPT-5-nano (+ GPT-5.3-Codex for code agents) | API key | Per token |
-| DeepSeek | DeepSeek Chat, DeepSeek Reasoner | API key | Per token |
-| Google | Gemini 2.5 Flash, Gemini 2.5 Pro | API key | Per token |
-| xAI | Grok 4.3, Grok 4-1 Fast Reasoning | API key | Per token |
+| Anthropic | Claude Opus 5.5, Sonnet 5.5, Haiku 4.5, earlier routes | API key | Per token |
+| OpenAI | GPT-6 Astra/6.1 Sol/6 Luna, GPT-5.6 family, earlier routes | API key | Per token |
+| DeepSeek | DeepSeek V4 Pro/Flash, Chat, Reasoner | API key | Per token |
+| Google | Gemini 3.8 Flash, Gemini 3.7/3.6 Flash, Gemini 2.5 family | API key | Per token |
+| xAI | Grok 4.7/4.5/4.3, Grok 4-1 Fast Reasoning | API key | Per token |
 | Mistral | Mistral Large, Codestral | API key | Per token |
 | Cohere | Command R+, Command R | API key | Per token |
 | Groq | Llama 3.3 70B, Llama 3.1 8B | API key | Per token |
@@ -663,6 +663,15 @@ Complete list of all supported LLM providers and their pre-configured models:
 | Custom Gateway | Any OpenAI-compatible server | API key + base URL | Varies |
 
 **Adding models not in the static config:**
+
+Current production LiteLLM routes missing from the base config are included in
+`config/litellm_prod_catalog.json`. At startup, OSS registers a catalog
+route when its provider API key is configured in `~/.decepticon/.env`;
+`runyour/*` also needs `RUNYOUR_API_BASE`. The `/model` command lists
+the current model IDs. A listed route still requires its provider credential
+and provider-side access. The catalog omits SaaS tenant and admin aliases.
+The existing tier defaults stay in place; select a current route with
+`/model <model-id>` or `DECEPTICON_MODEL_<ROLE>`.
 
 Set `DECEPTICON_MODEL` or `DECEPTICON_LITELLM_MODELS` and Decepticon auto-generates the LiteLLM route at container startup:
 
@@ -834,19 +843,21 @@ Once running, you have:
 
 ```bash
 # Decepticon shows the engagement picker after launch
-# Select "New engagement" → type a slug → Soundwave starts interviewing you
+# Select "New engagement", enter a target and authorization reference, then choose Red, Plan, or Blue
 ```
 
 **Option B — Web Dashboard:**
 
 1. Open `http://localhost:3000`
 2. Click "New Engagement"
-3. Enter: name, target type (IP range, URL, Git repo, file, local path), target value
-4. Click "Create" → opens the live terminal with Soundwave
+3. Enter a name, one root URL or IP/CIDR target, and an authorization reference
+4. Confirm authorization, choose Red, Plan, or Blue, and click "Create"
 
-### Step 6: The Soundwave Interview
+### Step 6: Optional Soundwave Plan
 
-Soundwave conducts a structured interview to generate the engagement package:
+Red starts directly with a machine-enforced RoE for the confirmed target. In
+Plan mode, Soundwave conducts a structured interview to generate the full
+engagement package:
 
 ```
 Questions you'll answer:
@@ -877,7 +888,8 @@ mapping) from the bundle — Soundwave does not write it.
 
 ### Step 7: Autonomous Execution
 
-After you approve the OPPLAN, Decepticon takes over:
+After direct Red authorization or approval of the optional Plan bundle,
+Decepticon can build the OPPLAN and begin execution:
 
 ```
 Decepticon (Orchestrator)

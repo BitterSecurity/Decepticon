@@ -72,19 +72,22 @@ Runs the Next.js dev server locally on the host while infra (postgres, neo4j, li
 
 ### Engagement Setup
 
-Create a new engagement by providing a target. Five input types:
+Create an engagement with one target and authorization reference. Choose Red
+for direct execution, Plan for optional Soundwave planning, or Blue for local
+sensor investigation. The current direct-scope form accepts:
 
 | Type | Example |
 |------|---------|
 | IP range | `10.0.0.0/24` |
 | Web URL | `https://app.example.com` |
-| Git repository | `https://github.com/org/repo` |
-| File upload | Binary, archive, or source tree |
-| Local path | `/path/to/target` |
 
 ### Soundwave Interview
 
-After creating an engagement, Soundwave interviews you to define the threat actor profile, scope, exclusions, and testing window. The interview streams in real time in the browser. When complete, Soundwave generates the full engagement document package (RoE, ConOps, Deconfliction Plan, OPPLAN).
+Plan mode runs Soundwave's interview in the terminal and builds the eight-document
+bundle. Red mode can start without this interview from the confirmed direct RoE.
+To move from Plan to Red, review the documents and approve the validated bundle
+with the mode selector. Blue mode checks the local sensor before opening its
+defensive agent. Each mode keeps its own terminal session and LangGraph thread.
 
 ### Execution Streaming
 
