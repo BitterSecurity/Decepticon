@@ -56,14 +56,17 @@ class BoundedOwnedDaemonSandbox(DaemonSandbox):
             descriptor = None
             try:
                 prefix = self.allowed_root.rstrip("/") + "/"
-                if not isinstance(path, str) or not path.startswith(prefix):
+                if not isinstance(path, str):
                     raise FileTransferError("foreign_path")
-                suffix = path[len(prefix) :]
+                canonical_path = os.path.normpath(path)
+                if not canonical_path.startswith(prefix):
+                    raise FileTransferError("foreign_path")
+                suffix = canonical_path[len(prefix) :]
                 components = suffix.split("/")
                 if (
                     not suffix
-                    or any(c in {"", ".", ".."} for c in components)
-                    or str(PurePosixPath(path)) != path
+                    or canonical_path != path
+                    or any(c in {"", ".", ".."} or "\x00" in c for c in components)
                 ):
                     raise FileTransferError("invalid_path")
                 descriptor = os.open(
@@ -173,6 +176,8 @@ class RegeneratingOwnedSandbox(BoundedOwnedDaemonSandbox):
                 try:
                     os.mkdir(component, mode=0o700, dir_fd=directory_fd)
                 except FileExistsError:
+                    # Reuse is allowed only if the following O_DIRECTORY |
+                    # O_NOFOLLOW open accepts the existing directory entry.
                     pass
                 following = os.open(
                     component, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=directory_fd
@@ -250,6 +255,8 @@ class RegeneratingOwnedSandbox(BoundedOwnedDaemonSandbox):
                 try:
                     os.unlink(temporary_name, dir_fd=directory_fd)
                 except FileNotFoundError:
+                    # The temporary entry is already absent; other cleanup
+                    # errors retain an explicit held failure below.
                     pass
                 except OSError as exc:
                     # Retain the original failure and publication classification.
