@@ -98,6 +98,7 @@ def report_sarif(
     The required public arguments are unchanged; no output default is added.
     """
     from decepticon.middleware.scoped_reporting_io import render_sarif_scoped
+
     return _json(render_sarif_scoped(engagement_id, output_path, state=state, config=config))
 
 

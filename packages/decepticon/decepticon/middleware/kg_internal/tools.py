@@ -169,8 +169,12 @@ def build_kg_tools(
             try:
                 if scanner_kind == "sarif":
                     from decepticon.middleware.scoped_reporting_io import ingest_sarif_scoped
+
                     result = ingest_sarif_scoped(
-                        path, store=store, state=state, config=config,
+                        path,
+                        store=store,
+                        state=state,
+                        config=config,
                         created_by=_resolve_created_by(state),
                         source_episode_id=tool_call_id or "no-tool-call-id",
                     )

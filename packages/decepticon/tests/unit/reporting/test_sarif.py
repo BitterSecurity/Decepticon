@@ -5,10 +5,18 @@ from __future__ import annotations
 import asyncio
 import json
 from pathlib import Path
+from typing import Annotated, Any, TypedDict
 from unittest.mock import patch
 
 import pytest
+from deepagents.backends.filesystem import FilesystemBackend
+from langchain_core.messages import AIMessage, BaseMessage
+from langchain_core.runnables import RunnableConfig
+from langgraph.graph import END, START, StateGraph
+from langgraph.graph.message import add_messages
+from langgraph.prebuilt import ToolNode
 
+from decepticon.middleware.scoped_reporting_io import ReportingScopeError
 from decepticon.tools.reporting.sarif import (
     SARIF_SCHEMA,
     SARIF_VERSION,
@@ -199,27 +207,149 @@ class TestStableRuleId:
         assert rid == node.id or rid == "rule"
 
 
+class _SarifToolState(TypedDict, total=False):
+    messages: Annotated[list[BaseMessage], add_messages]
+    engagement_name: str
+    kg_engagement: str
+    workspace_path: str
+
+
+def _invoke_report_tool(state: dict[str, Any], config: RunnableConfig | None = None) -> Any:
+    """A compiled native graph supplies the runtime used by current ToolNode."""
+    graph = StateGraph(_SarifToolState)
+    graph.add_node("tools", ToolNode([report_sarif], handle_tool_errors=False))
+    graph.add_edge(START, "tools")
+    graph.add_edge("tools", END)
+    return asyncio.run(graph.compile().ainvoke(state, config=config))
+
+
 class TestReportSarifTool:
+    @staticmethod
+    def _dispatch(tmp_path: Path, output_path: str, engagement_id: str) -> str:
+        """Use real tool-state injection and file IO under an owned test root."""
+        backend = FilesystemBackend(root_dir=tmp_path, virtual_mode=True)
+        state = {
+            "engagement_name": "sarif-case",
+            "kg_engagement": "sarif-graph",
+            "workspace_path": "/workspace/sarif-case",
+            "messages": [
+                AIMessage(
+                    content="",
+                    tool_calls=[
+                        {
+                            "name": "report_sarif",
+                            "args": {"engagement_id": engagement_id, "output_path": output_path},
+                            "id": "sarif-call",
+                            "type": "tool_call",
+                        }
+                    ],
+                ),
+            ],
+        }
+        config = {
+            "configurable": {
+                key: state[key] for key in ("engagement_name", "kg_engagement", "workspace_path")
+            }
+        }
+        with (
+            patch(
+                "decepticon.middleware.scoped_reporting_io.build_sandbox_backend",
+                return_value=backend,
+            ) as select_backend,
+            patch(
+                "decepticon.tools.reporting.kg_adapter.load_engagement_graph",
+                return_value=_seeded_graph(),
+            ) as load_graph,
+        ):
+            result = _invoke_report_tool(state, config=config)
+        load_graph.assert_called_once_with("sarif-graph")
+        assert select_backend.call_args.args[0]["configurable"]["workspace_path"] == (
+            "/workspace/sarif-case"
+        )
+        message = result["messages"][-1]
+        assert message.tool_call_id == "sarif-call"
+        assert message.name == "report_sarif"
+        assert message.status == "success"
+        assert isinstance(message.content, str)
+        return message.content
+
     def test_writes_sarif_to_disk_and_reports_metadata(self, tmp_path: Path) -> None:
-        out = tmp_path / "out" / "decepticon.sarif"
-        g = _seeded_graph()
-        with patch("decepticon.tools.reporting.tools._load", return_value=(g, None)):
-            result = asyncio.run(
-                report_sarif.ainvoke({"engagement_id": "eng-X", "output_path": str(out)})
-            )
+        out = tmp_path / "workspace" / "sarif-case" / "out" / "decepticon.sarif"
+        result = self._dispatch(tmp_path, "/workspace/out/decepticon.sarif", "eng-X")
 
         assert out.exists()
         payload = json.loads(out.read_text(encoding="utf-8"))
         assert payload["version"] == SARIF_VERSION
         info = json.loads(result)
         assert info["engagement_id"] == "eng-X"
-        assert info["path"] == str(out)
+        assert info["path"] == "/workspace/out/decepticon.sarif"
         assert info["bytes"] > 0
         assert info["results"] == 2
 
     def test_creates_parent_directories(self, tmp_path: Path) -> None:
-        out = tmp_path / "nested" / "deeper" / "decepticon.sarif"
-        g = _seeded_graph()
-        with patch("decepticon.tools.reporting.tools._load", return_value=(g, None)):
-            asyncio.run(report_sarif.ainvoke({"engagement_id": "eng-Y", "output_path": str(out)}))
+        out = tmp_path / "workspace" / "sarif-case" / "nested" / "deeper" / "decepticon.sarif"
+        self._dispatch(tmp_path, "/workspace/nested/deeper/decepticon.sarif", "eng-Y")
         assert out.exists()
+
+    def test_model_schema_exposes_only_public_arguments(self) -> None:
+        schema = report_sarif.tool_call_schema.model_json_schema()
+        assert set(schema["properties"]) == {"engagement_id", "output_path"}
+        assert set(schema["required"]) == {"engagement_id", "output_path"}
+
+    @pytest.mark.parametrize(
+        "scope",
+        [
+            {},
+            {"engagement_name": "sarif-case", "workspace_path": "/workspace/other-case"},
+        ],
+    )
+    def test_missing_or_foreign_scope_refuses_before_io(self, scope: dict) -> None:
+        state = {
+            **scope,
+            "messages": [
+                AIMessage(
+                    content="",
+                    tool_calls=[
+                        {
+                            "name": "report_sarif",
+                            "args": {
+                                "engagement_id": "eng-X",
+                                "output_path": "/workspace/out.sarif",
+                            },
+                            "id": "refused-call",
+                            "type": "tool_call",
+                        }
+                    ],
+                )
+            ],
+        }
+        with (
+            patch("decepticon.middleware.scoped_reporting_io.build_sandbox_backend") as backend,
+            patch("decepticon.tools.reporting.kg_adapter.load_engagement_graph") as graph,
+            pytest.raises(ReportingScopeError),
+        ):
+            _invoke_report_tool(state)
+        backend.assert_not_called()
+        graph.assert_not_called()
+
+    def test_run_config_disagreement_refuses_before_io(self) -> None:
+        with (
+            patch("decepticon.middleware.scoped_reporting_io.build_sandbox_backend") as backend,
+            patch("decepticon.tools.reporting.kg_adapter.load_engagement_graph") as graph,
+            pytest.raises(ReportingScopeError, match="run config and engagement state mismatch"),
+        ):
+            asyncio.run(
+                report_sarif.ainvoke(
+                    {
+                        "engagement_id": "eng-X",
+                        "output_path": "/workspace/out.sarif",
+                        "state": {
+                            "engagement_name": "sarif-case",
+                            "workspace_path": "/workspace/sarif-case",
+                        },
+                    },
+                    config={"configurable": {"workspace_path": "/workspace/other-case"}},
+                )
+            )
+        backend.assert_not_called()
+        graph.assert_not_called()
