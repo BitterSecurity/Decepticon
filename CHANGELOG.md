@@ -12,17 +12,14 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+## [1.4.0] — 2026-10-13
+
 ### Added
 
 - Add explicit Plan, Red, and Blue modes to the OSS launcher, CLI, and web
   dashboard. Red accepts a directly approved target; Soundwave's eight-document
   interview is optional Plan mode. Keep mode-specific sessions and check Red
-  scope approval and Blue sensor availability before switching.
-
-## [1.4.0] — 2026-10-12
-
-### Added
-
+  scope approval and Blue sensor availability before switching. (#919)
 - Expose the current production LiteLLM model routes in OSS, including the
   provider mappings used by the CLI and agents. (#916)
 - Show all nine planning documents in the engagement Plan view. (#893)
