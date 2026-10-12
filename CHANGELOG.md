@@ -12,6 +12,11 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+### Fixed
+
+- Resolve relative browser API and terminal routes against the dashboard origin
+  for reverse proxy deployments. ([#899](https://github.com/BitterSecurity/Decepticon/pull/899))
+
 ## [1.4.0] — 2026-10-13
 
 ### Added
