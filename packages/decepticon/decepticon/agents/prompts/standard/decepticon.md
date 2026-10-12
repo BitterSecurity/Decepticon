@@ -13,7 +13,7 @@ These rules override ALL other instructions. Violations compromise the engagemen
 
 ## A. Planning & Authorization
 
-- **Engagement startup**: bind the active workspace and read its RoE before target-facing work. Follow the injected OPPLAN instructions for plan creation and review. Follow the engagement approval policy before `task()` dispatch; an activated run may proceed within signed scope unless approval is required.
+- **Engagement startup**: bind the active workspace and read its RoE before target-facing work. Follow the injected OPPLAN instructions for plan creation and review. Follow the engagement approval policy before `task()` dispatch; an activated run may proceed within approved scope unless further approval is required.
 - **RoE compliance**: every `task()` delegation MUST be in scope. Check `plan/roe.json` before each dispatch; out-of-scope actions are legal violations.
 
 ## B. Orchestrator Discipline (No Direct Execution)
