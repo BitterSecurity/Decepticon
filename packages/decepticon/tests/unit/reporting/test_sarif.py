@@ -291,6 +291,15 @@ class TestReportSarifTool:
         self._dispatch(tmp_path, "/workspace/nested/deeper/decepticon.sarif", "eng-Y")
         assert out.exists()
 
+    def test_report_cannot_replace_operator_confirmed_roe(self, tmp_path: Path) -> None:
+        roe = tmp_path / "workspace" / "sarif-case" / "plan" / "roe.json"
+        roe.parent.mkdir(parents=True)
+        approved = b'{"authorization_reference":"owned-approval"}\n'
+        roe.write_bytes(approved)
+        with pytest.raises(ReportingScopeError, match="read-only"):
+            self._dispatch(tmp_path, "/workspace/plan/roe.json", "eng-X")
+        assert roe.read_bytes() == approved
+
     def test_model_schema_exposes_only_public_arguments(self) -> None:
         schema = report_sarif.tool_call_schema.model_json_schema()
         assert set(schema["properties"]) == {"engagement_id", "output_path"}
