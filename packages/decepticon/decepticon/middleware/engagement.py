@@ -27,8 +27,8 @@ from __future__ import annotations
 import json
 import logging
 import os
-from pathlib import Path
 from collections.abc import Awaitable, Callable
+from pathlib import Path
 from typing import Annotated, Any, NotRequired, cast
 
 from langchain.agents import AgentState
@@ -48,11 +48,15 @@ from decepticon_core.utils.engagement_scope import (
     set_active_engagement,
 )
 
-
-_REPORT_SCOPE_TOOLS = frozenset({
-    "report_hackerone", "report_bugcrowd_csv", "report_executive",
-    "report_timeline", "report_sarif",
-})
+_REPORT_SCOPE_TOOLS = frozenset(
+    {
+        "report_hackerone",
+        "report_bugcrowd_csv",
+        "report_executive",
+        "report_timeline",
+        "report_sarif",
+    }
+)
 
 
 class ReportingScopeError(ValueError):
@@ -432,7 +436,9 @@ class EngagementContextMiddleware(AgentMiddleware):
         return await handler(self._inject(request))
 
     @override
-    def wrap_tool_call(self, request: ToolCallRequest, handler: Callable[[ToolCallRequest], ToolMessage | Command]) -> ToolMessage | Command:
+    def wrap_tool_call(
+        self, request: ToolCallRequest, handler: Callable[[ToolCallRequest], ToolMessage | Command]
+    ) -> ToolMessage | Command:
         if request.tool and request.tool.name in _REPORT_SCOPE_TOOLS:
             token = set_active_engagement(_trusted_report_scope(request))
             try:
@@ -451,7 +457,11 @@ class EngagementContextMiddleware(AgentMiddleware):
         return handler(request)
 
     @override
-    async def awrap_tool_call(self, request: ToolCallRequest, handler: Callable[[ToolCallRequest], Awaitable[ToolMessage | Command]]) -> ToolMessage | Command:
+    async def awrap_tool_call(
+        self,
+        request: ToolCallRequest,
+        handler: Callable[[ToolCallRequest], Awaitable[ToolMessage | Command]],
+    ) -> ToolMessage | Command:
         if request.tool and request.tool.name in _REPORT_SCOPE_TOOLS:
             token = set_active_engagement(_trusted_report_scope(request))
             try:
