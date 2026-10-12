@@ -6,6 +6,34 @@ follows [Semantic Versioning](https://semver.org/) from `1.0.0`
 onward (the `0.x` cycle is pre-stable per the core/framework/sdk split
 design spec, §13.4).
 
+Add user-visible changes to **Unreleased** when their PR is merged. At release,
+move those entries into a dated version section, link the PRs, and add a
+comparison link. Keep proposed and unmerged changes out of released sections.
+
+## [Unreleased]
+
+## [1.4.0] — 2026-10-12
+
+### Added
+
+- Expose the current production LiteLLM model routes in OSS, including the
+  provider mappings used by the CLI and agents. (#916)
+- Show all nine planning documents in the engagement Plan view. (#893)
+
+### Fixed
+
+- Keep the listed local Ollama model ID directly selectable in the CLI. (#905)
+- Count the complete LiteLLM model response and show concise service health
+  details instead of truncating the response before counting. (#897)
+- Show Settings collection request and validation failures; report HTTP errors
+  even when the error body is not JSON. (#895)
+- Bind each report tool call to the current engagement graph partition and
+  restore the prior scope after the call. (#907)
+
+### Validation
+
+- Run the web unit tests in CI, including tests written in `.test.tsx` files.
+
 ## [1.3.1] — 2026-10-12
 
 ### Fixed
@@ -958,6 +986,8 @@ The following legacy import paths keep working but emit a
   atomic release.
 - Downstream plugin package lockstep migration.
 
+[Unreleased]: https://github.com/BitterSecurity/Decepticon/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/BitterSecurity/Decepticon/compare/v1.3.1...v1.4.0
 [1.3.1]: https://github.com/BitterSecurity/Decepticon/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/BitterSecurity/Decepticon/compare/v1.2.5...v1.3.0
 [1.2.2]: https://github.com/BitterSecurity/Decepticon/compare/v1.2.1...v1.2.2
