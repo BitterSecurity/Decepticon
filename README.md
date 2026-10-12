@@ -16,14 +16,14 @@
 
 <br/>
 
-<a href="https://github.com/PurpleAILAB/Decepticon/blob/main/LICENSE">
-  <img src="https://img.shields.io/github/license/PurpleAILAB/Decepticon?style=for-the-badge&color=blue" alt="License: Apache 2.0">
+<a href="https://github.com/BitterSecurity/Decepticon/blob/main/LICENSE">
+  <img src="https://img.shields.io/github/license/BitterSecurity/Decepticon?style=for-the-badge&color=blue" alt="License: Apache 2.0">
 </a>
-<a href="https://github.com/PurpleAILAB/Decepticon/stargazers">
-  <img src="https://img.shields.io/github/stars/PurpleAILAB/Decepticon?style=for-the-badge&color=yellow" alt="Stargazers">
+<a href="https://github.com/BitterSecurity/Decepticon/stargazers">
+  <img src="https://img.shields.io/github/stars/BitterSecurity/Decepticon?style=for-the-badge&color=yellow" alt="Stargazers">
 </a>
-<a href="https://github.com/PurpleAILAB/Decepticon/graphs/contributors">
-  <img src="https://img.shields.io/github/contributors/PurpleAILAB/Decepticon?style=for-the-badge&color=orange" alt="Contributors">
+<a href="https://github.com/BitterSecurity/Decepticon/graphs/contributors">
+  <img src="https://img.shields.io/github/contributors/BitterSecurity/Decepticon?style=for-the-badge&color=orange" alt="Contributors">
 </a>
 
 <br/>
@@ -47,6 +47,14 @@
 
 ## What the OSS agent does
 
+- **Plans within scope:** Soundwave prepares the engagement rules and eight
+  planning documents; the orchestrator builds a dependency-aware OPPLAN and
+  dispatches objectives under those rules. [Engagement workflow](docs/engagement-workflow.md).
+- **Runs specialist operations:** agents cover reconnaissance, vulnerability
+  research, exploitation, Active Directory, cloud, and other domains. They
+  execute in an isolated sandbox; BloodHound CE, Sliver C2, and other specialist
+  workloads start when needed. [Agent roster](docs/agents.md) ·
+  [Architecture](docs/architecture.md).
 - **Autonomous reverse engineering:** when a binary found during an engagement
   needs deeper analysis, the Reverser starts the optional REA workload and
   uses its **Ghidra provider** through discovered MCP tools. REA keeps the
@@ -57,10 +65,10 @@
   suspicious events and reports incidents in the CLI alongside the Red
   engagement. It observes and reports; it does not automatically block traffic.
   [Blue Cell setup and coverage](docs/features/blue-cell.md).
-- **Controlled red-team operations:** the orchestrator follows engagement rules
-  and an OPPLAN, dispatches specialist agents, and runs operational commands
-  in an isolated sandbox. [Engagement workflow](docs/engagement-workflow.md) ·
-  [Architecture](docs/architecture.md).
+- **Makes work reviewable:** the workspace and knowledge graph retain findings
+  and attack context. The optional web dashboard streams agent activity and
+  shows the plan, findings, and attack graph. [Web dashboard](docs/web-dashboard.md) ·
+  [Knowledge graph](docs/knowledge-graph.md).
 
 <div align="center">
   <p><strong>Commercial product demo</strong></p>
@@ -252,7 +260,7 @@ Configure via `decepticon onboard`. → **[Full model reference & fallback examp
 ## Contributing
 
 ```bash
-git clone https://github.com/PurpleAILAB/Decepticon.git
+git clone https://github.com/BitterSecurity/Decepticon.git
 cd Decepticon
 make dogfood  # Full OSS UX (launcher → onboard → CLI) on local code
 make dev      # Backend hot-reload (compose watch) — daily dev loop

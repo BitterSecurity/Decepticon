@@ -36,8 +36,9 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 
 ### Documentation
 
-- Explain REA/Ghidra reversing and Blue Cell on the English and Korean README
-  entry pages, with links to their setup and behavior guides.
+- Explain planning, specialist execution, REA/Ghidra reversing, Blue Cell,
+  and operator review on the English and Korean README entry pages, with
+  links to the current behavior guides.
 
 ## [1.3.1] — 2026-10-12
 

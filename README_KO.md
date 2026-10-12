@@ -11,14 +11,14 @@
 
 <div align="center">
 
-<a href="https://github.com/PurpleAILAB/Decepticon/blob/main/LICENSE">
-  <img src="https://img.shields.io/github/license/PurpleAILAB/Decepticon?style=for-the-badge&color=blue" alt="License: Apache 2.0">
+<a href="https://github.com/BitterSecurity/Decepticon/blob/main/LICENSE">
+  <img src="https://img.shields.io/github/license/BitterSecurity/Decepticon?style=for-the-badge&color=blue" alt="License: Apache 2.0">
 </a>
-<a href="https://github.com/PurpleAILAB/Decepticon/stargazers">
-  <img src="https://img.shields.io/github/stars/PurpleAILAB/Decepticon?style=for-the-badge&color=yellow" alt="Stargazers">
+<a href="https://github.com/BitterSecurity/Decepticon/stargazers">
+  <img src="https://img.shields.io/github/stars/BitterSecurity/Decepticon?style=for-the-badge&color=yellow" alt="Stargazers">
 </a>
-<a href="https://github.com/PurpleAILAB/Decepticon/graphs/contributors">
-  <img src="https://img.shields.io/github/contributors/PurpleAILAB/Decepticon?style=for-the-badge&color=orange" alt="Contributors">
+<a href="https://github.com/BitterSecurity/Decepticon/graphs/contributors">
+  <img src="https://img.shields.io/github/contributors/BitterSecurity/Decepticon?style=for-the-badge&color=orange" alt="Contributors">
 </a>
 
 <br/>
@@ -42,6 +42,13 @@
 
 ## OSS 에이전트의 핵심 기능
 
+- **범위 안에서 계획:** Soundwave가 인게이지먼트 규칙과 계획 문서 8종을
+  작성하고, 오케스트레이터가 의존 관계가 있는 OPPLAN을 구성해 그 규칙에
+  따라 목표를 배정합니다. [인게이지먼트 흐름](docs/engagement-workflow.md).
+- **전문 에이전트 운영:** 정찰, 취약점 연구, 익스플로잇, Active Directory,
+  클라우드 등 도메인별 에이전트가 격리된 샌드박스에서 작업합니다.
+  BloodHound CE와 Sliver C2 같은 전문 워크로드는 필요할 때 시작합니다.
+  [에이전트 목록](docs/agents.md) · [아키텍처](docs/architecture.md).
 - **자율 리버스 엔지니어링:** 인게이지먼트 중 발견한 바이너리에
   심층 분석이 필요하면 Reverser가 선택형 REA 워크로드를 시작하고
   **Ghidra 프로바이더**의 MCP 도구를 찾아 사용합니다. REA는 바이너리에
@@ -51,10 +58,10 @@
   선택적으로 애플리케이션 로그를 수집합니다. 상주 방어 에이전트가
   의심 이벤트를 조사하고 Red 인게이지먼트와 함께 CLI에 알립니다.
   자동 차단은 수행하지 않습니다. [Blue Cell 설정과 관찰 범위](docs/features/blue-cell.md).
-- **통제된 레드팀 운영:** 오케스트레이터가 인게이지먼트 규칙과
-  OPPLAN에 따라 전문 에이전트를 호출하고, 운영 명령은 격리된
-  샌드박스에서 실행합니다. [인게이지먼트 흐름](docs/engagement-workflow.md) ·
-  [아키텍처](docs/architecture.md).
+- **검토 가능한 결과:** 워크스페이스와 지식 그래프에 발견 사항과 공격
+  문맥을 보존합니다. 선택형 웹 대시보드에서는 에이전트 활동을 실시간으로
+  보고 계획·발견 사항·공격 그래프를 검토할 수 있습니다.
+  [웹 대시보드](docs/web-dashboard.md) · [지식 그래프](docs/knowledge-graph.md).
 
 <div align="center">
   <p><strong>상용 제품 데모</strong></p>
@@ -220,7 +227,7 @@ Tier 기반 자격증명-aware 폴백 체인. 사용 가능한 자격증명을 �
 ## 기여하기
 
 ```bash
-git clone https://github.com/PurpleAILAB/Decepticon.git
+git clone https://github.com/BitterSecurity/Decepticon.git
 cd Decepticon
 make dev     # 핫 리로드로 시작
 make cli     # 인터랙티브 CLI 열기 (별도 터미널)
