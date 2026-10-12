@@ -67,6 +67,23 @@ def test_owned_nested_upload_download_and_regeneration(owned) -> None:
     assert not list(root.rglob(".owned-report-*"))
 
 
+@pytest.mark.parametrize("name", ["résumé 2026.txt", ".hidden", "v1..draft", r"a\b:report"])
+def test_canonical_posix_filename_compatibility(owned, name: str) -> None:
+    root, sandbox = owned
+    target = root / "reports with spaces" / name
+    assert sandbox.upload_files([(str(target), b"literal filename")])[0].error is None
+    reply = sandbox.download_files([str(target)])[0]
+    assert reply.error is None and reply.content == b"literal filename"
+
+
+@pytest.mark.parametrize("suffix", ["/bad\x00leaf", "/bad\x00parent/leaf"])
+def test_download_rejects_nul_components_before_open(owned, descriptors, suffix: str) -> None:
+    root, sandbox = owned
+    reply = sandbox.download_files([str(root) + suffix])[0]
+    assert reply.error == "invalid_path" and reply.content is None
+    assert not descriptors[0] and not descriptors[1]
+
+
 @pytest.mark.parametrize("suffix", ["relative.txt", "../outside", "/../outside", "/./out", "//out"])
 def test_upload_and_download_refuse_noncanonical_paths(owned, suffix: str) -> None:
     root, sandbox = owned
