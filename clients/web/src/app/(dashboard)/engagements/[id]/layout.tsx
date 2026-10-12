@@ -83,6 +83,10 @@ export default function EngagementLayout({
 
   async function switchMode(next: RunMode) {
     if (next === mode) return;
+    if (isRunning) {
+      setModeNotice("Wait for the current agent run to finish before switching modes.");
+      return;
+    }
     try {
       if (next === "red") {
         const response = await fetch(`/api/engagements/${engagementId}/plan-docs`);
