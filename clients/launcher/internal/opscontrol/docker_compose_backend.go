@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 
@@ -31,7 +32,7 @@ type DockerComposeBackend struct {
 	// notes BHCE cold-start is ~30s; we default to 180s to absorb
 	// goose migrations and dawgs index build.
 	WaitTimeoutSeconds int
-	runs sync.Map
+	runs               sync.Map
 }
 
 // NewDockerComposeBackend constructs a backend with the launcher's
@@ -67,8 +68,6 @@ func (b *DockerComposeBackend) baseArgs() []string {
 	return args
 }
 
-
-
 type workloadRun struct {
 	engagement string
 	runID      string
@@ -80,6 +79,31 @@ func newRunID() (string, error) {
 		return "", fmt.Errorf("generate workload run id: %w", err)
 	}
 	return hex.EncodeToString(bytes[:]), nil
+}
+
+var engagementSlug = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$`)
+
+func engagementWorkspace(slug string) (string, error) {
+	if !engagementSlug.MatchString(slug) {
+		return "", fmt.Errorf("invalid engagement slug %q", slug)
+	}
+	root, err := filepath.EvalSymlinks(filepath.Join(config.DecepticonHome(), "workspace"))
+	if err != nil {
+		return "", fmt.Errorf("resolve workspace root: %w", err)
+	}
+	path, err := filepath.EvalSymlinks(filepath.Join(root, slug))
+	if err != nil {
+		return "", fmt.Errorf("resolve engagement workspace: %w", err)
+	}
+	relative, err := filepath.Rel(root, path)
+	if err != nil || relative != slug {
+		return "", fmt.Errorf("engagement workspace escaped workspace root")
+	}
+	info, err := os.Stat(path)
+	if err != nil || !info.IsDir() {
+		return "", fmt.Errorf("engagement workspace is unavailable")
+	}
+	return path, nil
 }
 
 func labeledComposeOverride(services []string, workload, engagement, runID string) (string, error) {
@@ -112,6 +136,7 @@ func labeledComposeOverride(services []string, workload, engagement, runID strin
 	}
 	return file.Name(), nil
 }
+
 // Start runs `docker compose --profile <workload> up -d --wait`. The
 // caller (server.go) has already taken the per-workload mutex, so
 // concurrent calls on the same workload are serialized.
@@ -129,6 +154,14 @@ func labeledComposeOverride(services []string, workload, engagement, runID strin
 func (b *DockerComposeBackend) Start(ctx context.Context, workload, engagementID string) (Handle, error) {
 	if engagementID == "" {
 		return Handle{}, fmt.Errorf("workload %s requires an engagement id", workload)
+	}
+	workspace := ""
+	if workload == "reversing" {
+		var err error
+		workspace, err = engagementWorkspace(engagementID)
+		if err != nil {
+			return Handle{}, err
+		}
 	}
 	services, err := b.profileExclusiveServices(ctx, workload)
 	if err != nil {
@@ -151,6 +184,9 @@ func (b *DockerComposeBackend) Start(ctx context.Context, workload, engagementID
 	)
 	cmd := exec.CommandContext(ctx, "docker", args...)
 	cmd.Env = ComposeCommandEnv()
+	if workspace != "" {
+		cmd.Env = append(cmd.Env, "DECEPTICON_ENGAGEMENT_WORKSPACE="+workspace)
+	}
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return Handle{}, fmt.Errorf("compose up --profile %s: %w: %s", workload, err, strings.TrimSpace(string(out)))

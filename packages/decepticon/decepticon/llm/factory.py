@@ -1022,9 +1022,10 @@ def _model_drops_temperature(model: str) -> bool:
     """
     slug = model.rsplit("/", 1)[-1].lower()
     return (
-        slug.startswith(("claude-opus-4", "claude-opus-5", "claude-sonnet-5-5", "claude-fable-5"))
+        slug.startswith(("claude-opus-4", "claude-opus-5", "claude-sonnet-5", "claude-fable-5"))
         or _model_is_kimi_coding(model)
         or model.endswith("/gemini-3.8-flash")
+        or model.startswith("openai/gpt-5.6-")
         or _model_uses_responses_api(model)
     )
 
