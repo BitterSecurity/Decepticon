@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { liteLlmModelCount, serviceHealthDetail } from "@/lib/health-data";
 
 const LANGGRAPH_URL = process.env.LANGGRAPH_API_URL ?? "http://langgraph:2024";
 const LITELLM_URL = process.env.LITELLM_URL ?? "http://litellm:4000";
@@ -31,8 +32,8 @@ async function checkService(
     });
     const latency = Date.now() - start;
     if (res.ok) {
-      const data = await res.json().catch(() => ({}));
-      return { name, status: "ok", detail: JSON.stringify(data).slice(0, 200), latencyMs: latency };
+      const data: unknown = await res.json().catch(() => null);
+      return { name, status: "ok", detail: serviceHealthDetail(name, data), latencyMs: latency };
     }
     return { name, status: "error", detail: `HTTP ${res.status}`, latencyMs: latency };
   } catch (err) {
@@ -64,35 +65,63 @@ async function checkPostgres(): Promise<ServiceHealth> {
   }
 }
 
-export async function GET() {
-  const litellmHeaders: Record<string, string> = LITELLM_KEY
-    ? { Authorization: `Bearer ${LITELLM_KEY}` }
-    : {};
+async function checkLiteLlm(): Promise<{ health: ServiceHealth; modelCount: number }> {
+  if (!LITELLM_KEY) {
+    return {
+      health: {
+        name: "litellm",
+        status: "error",
+        detail: "LITELLM_API_KEY not configured",
+      },
+      modelCount: 0,
+    };
+  }
 
-  const [langgraph, litellm, neo4j, postgres] = await Promise.all([
+  const start = Date.now();
+  try {
+    const res = await fetch(`${LITELLM_URL}/v1/models`, {
+      headers: { Authorization: `Bearer ${LITELLM_KEY}` },
+      signal: AbortSignal.timeout(5000),
+    });
+    const latencyMs = Date.now() - start;
+    if (!res.ok) {
+      return {
+        health: { name: "litellm", status: "error", detail: `HTTP ${res.status}`, latencyMs },
+        modelCount: 0,
+      };
+    }
+    const payload: unknown = await res.json().catch(() => null);
+    const modelCount = liteLlmModelCount(payload);
+    return {
+      health: {
+        name: "litellm",
+        status: "ok",
+        detail: `${modelCount} models loaded`,
+        latencyMs,
+      },
+      modelCount,
+    };
+  } catch (err) {
+    return {
+      health: {
+        name: "litellm",
+        status: "error",
+        detail: err instanceof Error ? err.message : "Unreachable",
+      },
+      modelCount: 0,
+    };
+  }
+}
+
+export async function GET() {
+  const [langgraph, litellmResult, neo4j, postgres] = await Promise.all([
     checkService("langgraph", `${LANGGRAPH_URL}/info`),
-    LITELLM_KEY
-      ? checkService("litellm", `${LITELLM_URL}/v1/models`, litellmHeaders)
-      : Promise.resolve<ServiceHealth>({
-          name: "litellm",
-          status: "error",
-          detail: "LITELLM_API_KEY not configured",
-        }),
+    checkLiteLlm(),
     checkService("neo4j", `${NEO4J_HTTP_URL}/`),
     checkPostgres(),
   ]);
 
-  // Extract model count from litellm response
-  let modelCount = 0;
-  if (litellm.status === "ok") {
-    try {
-      const parsed = JSON.parse(litellm.detail);
-      modelCount = parsed.data?.length ?? 0;
-      litellm.detail = `${modelCount} models loaded`;
-    } catch {
-      // keep original detail
-    }
-  }
+  const { health: litellm, modelCount } = litellmResult;
 
   const services: ServiceHealth[] = [langgraph, litellm, neo4j, postgres];
   const allOk = services.every((s) => s.status === "ok");

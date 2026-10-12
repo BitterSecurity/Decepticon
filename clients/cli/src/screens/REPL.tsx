@@ -90,10 +90,11 @@ export function REPL({ initialMessage, resumeThread }: REPLProps) {
       addSystemEvent: agent.addSystemEvent,
       clearEvents: agent.clearEvents,
       submit: agent.submit,
+      selectAssistant: agent.selectAssistant,
       resume: agent.resume,
       exit,
     }),
-    [agent.addSystemEvent, agent.clearEvents, agent.submit, agent.resume, exit],
+    [agent.addSystemEvent, agent.clearEvents, agent.submit, agent.selectAssistant, agent.resume, exit],
   );
 
   const handleSubmit = useCallback(

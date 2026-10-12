@@ -38,14 +38,14 @@ func TestScanEngagements_NoWorkspace(t *testing.T) {
 	}
 }
 
-func TestScanEngagements_ReadyAndInProgress(t *testing.T) {
+func TestScanEngagements_ApprovedAndUnapproved(t *testing.T) {
 	home := t.TempDir()
 
-	// Full bundle → ready.
-	mkPlan(t, home, "alpha", "roe.json", "conops.json", "deconfliction.json")
-	// Only roe → in progress.
+	mkPlan(t, home, "alpha")
+	if err := writeDirectScope(filepath.Join(home, "workspace", "alpha"), "alpha", "example.com", "signed contract", true); err != nil {
+		t.Fatal(err)
+	}
 	mkPlan(t, home, "bravo", "roe.json")
-	// Empty engagement directory (no plan/) → still in progress.
 	mkBareDir(t, home, "charlie")
 
 	got, err := ScanEngagements(home)
@@ -85,7 +85,7 @@ func TestScanEngagements_IgnoresHiddenWorkspaceDirs(t *testing.T) {
 	}
 }
 
-func TestScanEngagements_ReadyEngagementsBubbleUp(t *testing.T) {
+func TestScanEngagements_ApprovedEngagementsBubbleUp(t *testing.T) {
 	home := t.TempDir()
 	now := time.Now()
 
@@ -98,8 +98,10 @@ func TestScanEngagements_ReadyEngagementsBubbleUp(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Ready, OLDEST.
-	mkPlan(t, home, "old-ready", "roe.json", "conops.json", "deconfliction.json")
+	mkPlan(t, home, "old-ready")
+	if err := writeDirectScope(filepath.Join(home, "workspace", "old-ready"), "old-ready", "example.com", "signed contract", true); err != nil {
+		t.Fatal(err)
+	}
 	old := now.Add(-2 * time.Hour)
 	if err := os.Chtimes(
 		filepath.Join(home, "workspace", "old-ready", "plan", "roe.json"),
@@ -123,19 +125,15 @@ func TestScanEngagements_ReadyEngagementsBubbleUp(t *testing.T) {
 	}
 }
 
-func TestIsReady(t *testing.T) {
+func TestUnapprovedBundleDoesNotEnableRed(t *testing.T) {
 	home := t.TempDir()
 	mkPlan(t, home, "complete", "roe.json", "conops.json", "deconfliction.json")
 	mkPlan(t, home, "partial", "roe.json", "conops.json")
 
-	if !isReady(home, "complete") {
-		t.Errorf("complete should be ready")
-	}
-	if isReady(home, "partial") {
-		t.Errorf("partial should not be ready")
-	}
-	if isReady(home, "missing") {
-		t.Errorf("nonexistent dir should not be ready")
+	for _, slug := range []string{"complete", "partial", "missing"} {
+		if isRedApproved(home, slug) {
+			t.Errorf("unapproved %s enabled Red", slug)
+		}
 	}
 }
 
@@ -154,6 +152,38 @@ func TestIsRedApprovedRequiresMatchingBundle(t *testing.T) {
 	}
 	if isRedApproved(home, "reviewed") {
 		t.Fatal("changed bundle retained Red approval")
+	}
+}
+
+func TestDirectScopePinsTargetAndRoE(t *testing.T) {
+	home := t.TempDir()
+	root := filepath.Join(home, "workspace", "direct")
+	if err := os.MkdirAll(filepath.Join(root, "plan"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := writeDirectScope(root, "direct", "https://example.com", "signed contract 123", true); err != nil {
+		t.Fatal(err)
+	}
+	if !isRedApproved(home, "direct") {
+		t.Fatal("direct approval was not recognized")
+	}
+	if target, confirmed := readScopeTarget(root); target != "https://example.com" || !confirmed {
+		t.Fatalf("scope target was not restored: %q confirmed=%v", target, confirmed)
+	}
+	roe := filepath.Join(root, "plan", "roe.json")
+	if err := os.WriteFile(roe, []byte(`{"changed":true}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if isRedApproved(home, "direct") {
+		t.Fatal("changed RoE retained approval")
+	}
+}
+
+func TestDirectTargetRejectsBroadOrUnsupportedScope(t *testing.T) {
+	for _, target := range []string{"", "*", "*.example.com", "https://example.com/admin", "https://example.com:8443", "example.com other.com"} {
+		if err := validateDirectTarget(target); err == nil {
+			t.Errorf("accepted %q", target)
+		}
 	}
 }
 

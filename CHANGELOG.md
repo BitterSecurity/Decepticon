@@ -6,6 +6,69 @@ follows [Semantic Versioning](https://semver.org/) from `1.0.0`
 onward (the `0.x` cycle is pre-stable per the core/framework/sdk split
 design spec, §13.4).
 
+Add user-visible changes to **Unreleased** when their PR is merged. At release,
+move those entries into a dated version section, link the PRs, and add a
+comparison link. Keep proposed and unmerged changes out of released sections.
+
+## [Unreleased]
+
+## [1.4.0] — 2026-10-13
+
+### Added
+
+- Add explicit Plan, Red, and Blue modes to the OSS launcher, CLI, and web
+  dashboard. Red accepts a directly approved target; Soundwave's eight-document
+  interview is optional Plan mode. Keep mode-specific sessions and check Red
+  scope approval and Blue sensor availability before switching. (#919)
+- Expose the current production LiteLLM model routes in OSS, including the
+  provider mappings used by the CLI and agents. (#916)
+- Show all nine planning documents in the engagement Plan view. (#893)
+
+### Fixed
+
+- Keep the listed local Ollama model ID directly selectable in the CLI. (#905)
+- Count the complete LiteLLM model response and show concise service health
+  details instead of truncating the response before counting. (#897)
+- Show Settings collection request and validation failures; report HTTP errors
+  even when the error body is not JSON. (#895)
+- Bind each report tool call to the current engagement graph partition and
+  restore the prior scope after the call. (#907)
+
+### Validation
+
+- Run the web unit tests in CI, including tests written in `.test.tsx` files.
+
+### Documentation
+
+- Explain planning, specialist execution, REA/Ghidra reversing, Blue Cell,
+  and operator review on the English and Korean README entry pages, with
+  links to the current behavior guides.
+
+## [1.3.1] — 2026-10-12
+
+### Fixed
+
+- Hide legacy Ghidra tools when the REA workload is configured, so the
+  reversing agent uses REA for native analysis.
+- Keep REA discovery schemas intact as model-safe JSON text and inject bash
+  runtime configuration outside model tool schemas. This lets Gemini select
+  REA tools and cite their saved Evidence.
+
+## [1.3.0] — 2026-10-12
+
+### Added
+
+- Use a dedicated REA/Ghidra service for the reversing agent. The agent can
+  discover the available REA tools, analyze binaries in its engagement
+  workspace, and retain the original Evidence bundle and integrity manifest.
+  (#913)
+- Port 30 capabilities, including 69 tools and six middleware components.
+  (#884)
+
+### Fixed
+
+- Distinguish invalid model tool calls from empty CLI responses. (#882)
+
 ## [1.2.2] — 2026-10-03
 
 This feature-bearing patch version was selected by the maintainer.
@@ -933,5 +996,9 @@ The following legacy import paths keep working but emit a
   atomic release.
 - Downstream plugin package lockstep migration.
 
+[Unreleased]: https://github.com/BitterSecurity/Decepticon/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/BitterSecurity/Decepticon/compare/v1.3.1...v1.4.0
+[1.3.1]: https://github.com/BitterSecurity/Decepticon/compare/v1.3.0...v1.3.1
+[1.3.0]: https://github.com/BitterSecurity/Decepticon/compare/v1.2.5...v1.3.0
 [1.2.2]: https://github.com/BitterSecurity/Decepticon/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/BitterSecurity/Decepticon/compare/v1.2.0...v1.2.1
