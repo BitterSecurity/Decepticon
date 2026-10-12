@@ -1,5 +1,18 @@
-import { describe, expect, it } from "vitest";
-import { assessBlueCoverage, parseBlueUpArgs, parseLocalUpstream } from "./blue.js";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { assessBlueCoverage, blueMonitorReady, parseBlueUpArgs, parseLocalUpstream } from "./blue.js";
+
+describe("Blue mode readiness", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("requires both the monitor and sensor", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true })
+      .mockResolvedValueOnce({ ok: false });
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(blueMonitorReady()).resolves.toBe(false);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
 
 describe("Blue local target boundary", () => {
   it.each([

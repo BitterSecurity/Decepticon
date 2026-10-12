@@ -11,14 +11,14 @@
 
 <div align="center">
 
-<a href="https://github.com/PurpleAILAB/Decepticon/blob/main/LICENSE">
-  <img src="https://img.shields.io/github/license/PurpleAILAB/Decepticon?style=for-the-badge&color=blue" alt="License: Apache 2.0">
+<a href="https://github.com/BitterSecurity/Decepticon/blob/main/LICENSE">
+  <img src="https://img.shields.io/github/license/BitterSecurity/Decepticon?style=for-the-badge&color=blue" alt="License: Apache 2.0">
 </a>
-<a href="https://github.com/PurpleAILAB/Decepticon/stargazers">
-  <img src="https://img.shields.io/github/stars/PurpleAILAB/Decepticon?style=for-the-badge&color=yellow" alt="Stargazers">
+<a href="https://github.com/BitterSecurity/Decepticon/stargazers">
+  <img src="https://img.shields.io/github/stars/BitterSecurity/Decepticon?style=for-the-badge&color=yellow" alt="Stargazers">
 </a>
-<a href="https://github.com/PurpleAILAB/Decepticon/graphs/contributors">
-  <img src="https://img.shields.io/github/contributors/PurpleAILAB/Decepticon?style=for-the-badge&color=orange" alt="Contributors">
+<a href="https://github.com/BitterSecurity/Decepticon/graphs/contributors">
+  <img src="https://img.shields.io/github/contributors/BitterSecurity/Decepticon?style=for-the-badge&color=orange" alt="Contributors">
 </a>
 
 <br/>
@@ -39,6 +39,30 @@
 </div>
 
 <br/>
+
+## OSS 에이전트의 핵심 기능
+
+- **Plan·Red·Blue 선택:** Red는 승인한 단일 대상과 승인 참조로 바로 시작할
+  수 있습니다. 선택형 Plan에서는 Soundwave가 인터뷰와 계획 문서 8종을
+  준비·검토하고, Blue에서는 로컬 센서 이벤트를 조사합니다. CLI `/mode`
+  명령과 웹 모드 선택기로 전환합니다. [인게이지먼트 흐름](docs/engagement-workflow.md).
+- **전문 에이전트 운영:** 정찰, 취약점 연구, 익스플로잇, Active Directory,
+  클라우드 등 도메인별 에이전트가 격리된 샌드박스에서 작업합니다.
+  BloodHound CE와 Sliver C2 같은 전문 워크로드는 필요할 때 시작합니다.
+  [에이전트 목록](docs/agents.md) · [아키텍처](docs/architecture.md).
+- **자율 리버스 엔지니어링:** 인게이지먼트 중 발견한 바이너리에
+  심층 분석이 필요하면 Reverser가 선택형 REA 워크로드를 시작하고
+  **Ghidra 프로바이더**의 MCP 도구를 찾아 사용합니다. REA는 바이너리에
+  결합된 분석 세션을 유지하고, 결과를 에이전트에 전달하기 전에 원본
+  Evidence bundle을 저장합니다. [REA 리버싱 동작](docs/features/rea-reversing.md).
+- **Blue Cell 방어 관찰:** 로컬 센서가 웹 서비스로 들어오는 요청과
+  선택적으로 애플리케이션 로그를 수집합니다. 상주 방어 에이전트가
+  의심 이벤트를 조사하고 Red 인게이지먼트와 함께 CLI에 알립니다.
+  자동 차단은 수행하지 않습니다. [Blue Cell 설정과 관찰 범위](docs/features/blue-cell.md).
+- **검토 가능한 결과:** 워크스페이스와 지식 그래프에 발견 사항과 공격
+  문맥을 보존합니다. 선택형 웹 대시보드에서는 에이전트 활동을 실시간으로
+  보고 계획·발견 사항·공격 그래프를 검토할 수 있습니다.
+  [웹 대시보드](docs/web-dashboard.md) · [지식 그래프](docs/knowledge-graph.md).
 
 <div align="center">
   <p><strong>상용 제품 데모</strong></p>
@@ -71,7 +95,7 @@ Docker 설치 없이 — 브라우저에서 바로 자율 레드팀 엔게이지
 ```bash
 curl -fsSL https://decepticon.red/install | bash
 decepticon onboard   # 대화형 설정 위자드 (프로바이더, API 키, 모델 프로필)
-decepticon           # 전체 실행: 터미널 CLI + 웹 대시보드 (http://localhost:3000)
+decepticon           # 코어 서비스와 터미널 CLI 실행; 웹 대시보드는 CLI에서 /web
 ```
 
 → **[빠른 시작](docs/getting-started.md)** · **[전체 셋업 가이드](docs/setup-guide.md)**
@@ -121,7 +145,7 @@ AI + 해킹 도구들은 대부분 nmap 돌리고 리포트 출력하는 데모�
 
 **Decepticon은 전문 자율 레드팀 에이전트입니다.** 실제 공격자처럼 현실적인 공격 체인을 실행합니다 — 정찰, 초기 침투, 권한 상승, 횡이동, C2 — 스캐너가 아닌 실제 공격자의 방식으로.
 
-더 중요한 것은: 스크립트 키디와 레드티머를 구분하는 전문성을 갖추고 있다는 점입니다. 첫 번째 패킷이 나가기 전에 Decepticon은 완전한 인게이지먼트 패키지 — **RoE**, **ConOps**, **디컨플릭션 플랜**, MITRE ATT&CK 매핑이 포함된 **OPPLAN** — 을 생성하고, 모든 행동은 그 규칙 안에서만 동작합니다.
+모든 Red 작업은 승인한 대상과 기계적으로 적용되는 RoE에서 시작합니다. 선택형 Plan 모드에서는 Soundwave 인터뷰를 거쳐 **RoE**, **ConOps**, **디컨플릭션 플랜**, MITRE ATT&CK 매핑이 포함된 **OPPLAN**까지 구성한 뒤 Red로 전환할 수 있습니다.
 
 → **[인게이지먼트 워크플로 상세](docs/engagement-workflow.md)**
 
@@ -145,7 +169,7 @@ AI + 해킹 도구들은 대부분 nmap 돌리고 리포트 출력하는 데모�
   <img src="assets/decepticon_infra.svg" alt="Decepticon Infrastructure" width="680">
 </div>
 
-두 개의 네트워크로 분리된 설계 — 관리 서비스(LiteLLM, PostgreSQL, LangGraph, Web)는 `decepticon-net`, 샌드박스 / C2 서버 / 타깃은 `sandbox-net`. Neo4j는 양 네트워크에 듀얼-홈으로 두어 관리망의 에이전트가 샌드박스 내부에서 기록한 발견 사항을 영속화할 수 있게 합니다.
+두 개의 네트워크로 분리된 설계입니다. 기본 관리 서비스(LiteLLM, PostgreSQL, Skillogy, LangGraph)와 샌드박스는 유지하고, 웹 대시보드는 CLI의 `/web` 명령으로, BloodHound CE·Sliver C2·REA/Ghidra 등 전문 워크로드는 필요할 때 시작합니다. Neo4j는 관리망과 샌드박스망에 연결되어 발견 사항을 영속화합니다.
 
 → **[아키텍처 상세](docs/architecture.md)** · **[지식 그래프](docs/knowledge-graph.md)**
 
@@ -187,6 +211,8 @@ Tier 기반 자격증명-aware 폴백 체인. 사용 가능한 자격증명을 �
 | 모든 CLI 커맨드와 단축키 | [CLI 레퍼런스](docs/cli-reference.md) |
 | 모든 `make` 타깃 | [Makefile 레퍼런스](docs/makefile-reference.md) |
 | 에이전트 목록 및 미들웨어 | [에이전트](docs/agents.md) |
+| REA/Ghidra 리버스 엔지니어링 | [REA 리버싱](docs/features/rea-reversing.md) |
+| 로컬 방어 관찰 | [Blue Cell](docs/features/blue-cell.md) |
 | 모델 프로필과 폴백 체인 | [모델](docs/models.md) |
 | 스킬 시스템과 포맷 스펙 | [스킬](docs/skills.md) |
 | 웹 대시보드 기능 및 설정 | [웹 대시보드](docs/web-dashboard.md) |
@@ -194,6 +220,7 @@ Tier 기반 자격증명-aware 폴백 체인. 사용 가능한 자격증명을 �
 | Neo4j 지식 그래프 | [지식 그래프](docs/knowledge-graph.md) |
 | 엔드투엔드 인게이지먼트 워크플로 | [인게이지먼트 워크플로](docs/engagement-workflow.md) |
 | 공격형 백신 루프 | [공격형 백신](docs/offensive-vaccine.md) |
+| 릴리즈 변경 내역 | [Changelog](CHANGELOG.md) |
 | Decepticon 기여하기 | [기여 가이드](docs/contributing.md) |
 
 ---
@@ -201,7 +228,7 @@ Tier 기반 자격증명-aware 폴백 체인. 사용 가능한 자격증명을 �
 ## 기여하기
 
 ```bash
-git clone https://github.com/PurpleAILAB/Decepticon.git
+git clone https://github.com/BitterSecurity/Decepticon.git
 cd Decepticon
 make dev     # 핫 리로드로 시작
 make cli     # 인터랙티브 CLI 열기 (별도 터미널)

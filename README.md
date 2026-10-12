@@ -16,14 +16,14 @@
 
 <br/>
 
-<a href="https://github.com/PurpleAILAB/Decepticon/blob/main/LICENSE">
-  <img src="https://img.shields.io/github/license/PurpleAILAB/Decepticon?style=for-the-badge&color=blue" alt="License: Apache 2.0">
+<a href="https://github.com/BitterSecurity/Decepticon/blob/main/LICENSE">
+  <img src="https://img.shields.io/github/license/BitterSecurity/Decepticon?style=for-the-badge&color=blue" alt="License: Apache 2.0">
 </a>
-<a href="https://github.com/PurpleAILAB/Decepticon/stargazers">
-  <img src="https://img.shields.io/github/stars/PurpleAILAB/Decepticon?style=for-the-badge&color=yellow" alt="Stargazers">
+<a href="https://github.com/BitterSecurity/Decepticon/stargazers">
+  <img src="https://img.shields.io/github/stars/BitterSecurity/Decepticon?style=for-the-badge&color=yellow" alt="Stargazers">
 </a>
-<a href="https://github.com/PurpleAILAB/Decepticon/graphs/contributors">
-  <img src="https://img.shields.io/github/contributors/PurpleAILAB/Decepticon?style=for-the-badge&color=orange" alt="Contributors">
+<a href="https://github.com/BitterSecurity/Decepticon/graphs/contributors">
+  <img src="https://img.shields.io/github/contributors/BitterSecurity/Decepticon?style=for-the-badge&color=orange" alt="Contributors">
 </a>
 
 <br/>
@@ -44,6 +44,33 @@
 </div>
 
 <br/>
+
+## What the OSS agent does
+
+- **Choose Plan, Red, or Blue:** Red can start directly with one confirmed target
+  and authorization reference. Optional Plan mode uses Soundwave to prepare and
+  review eight planning documents before Red; Blue investigates local sensor
+  events. The CLI `/mode` command and web mode selector switch between them.
+  [Engagement workflow](docs/engagement-workflow.md).
+- **Runs specialist operations:** agents cover reconnaissance, vulnerability
+  research, exploitation, Active Directory, cloud, and other domains. They
+  execute in an isolated sandbox; BloodHound CE, Sliver C2, and other specialist
+  workloads start when needed. [Agent roster](docs/agents.md) ·
+  [Architecture](docs/architecture.md).
+- **Autonomous reverse engineering:** when a binary found during an engagement
+  needs deeper analysis, the Reverser starts the optional REA workload and
+  uses its **Ghidra provider** through discovered MCP tools. REA keeps the
+  binary-bound analysis session and saves the original Evidence bundle before
+  results reach the agent. [How REA reversing works](docs/features/rea-reversing.md).
+- **Blue Cell defense:** a local sensor observes requests to your web service
+  and optional application logs. A resident defensive agent investigates
+  suspicious events and reports incidents in the CLI alongside the Red
+  engagement. It observes and reports; it does not automatically block traffic.
+  [Blue Cell setup and coverage](docs/features/blue-cell.md).
+- **Makes work reviewable:** the workspace and knowledge graph retain findings
+  and attack context. The optional web dashboard streams agent activity and
+  shows the plan, findings, and attack graph. [Web dashboard](docs/web-dashboard.md) ·
+  [Knowledge graph](docs/knowledge-graph.md).
 
 <div align="center">
   <p><strong>Commercial product demo</strong></p>
@@ -82,7 +109,7 @@ decepticon onboard   # Interactive setup wizard (provider, API key, model profil
 decepticon           # Start the core stack and drop into the terminal CLI
 ```
 
-The default start brings up the core management plane (LiteLLM, PostgreSQL, Neo4j, Skillogy, LangGraph, sandbox) and launches the terminal CLI. Specialist workloads (BloodHound CE, Sliver C2, Ghidra MCP, …) and the web dashboard come up on demand — the orchestrator spawns specialists via `ops_start("ad")` etc., and you bring up the dashboard from inside the CLI with `/web` (see [Web Dashboard](docs/web-dashboard.md)).
+The default start brings up the core management plane (LiteLLM, PostgreSQL, Neo4j, Skillogy, LangGraph, sandbox) and launches the terminal CLI. Specialist workloads (BloodHound CE, Sliver C2, REA/Ghidra, …) and the web dashboard come up on demand — the orchestrator spawns specialists via `ops_start("ad")` etc., and you bring up the dashboard from inside the CLI with `/web` (see [Web Dashboard](docs/web-dashboard.md)).
 
 **Windows (PowerShell, native)**
 ```powershell
@@ -152,7 +179,7 @@ The "AI + hacking" space is full of demos that run nmap and print a report. That
 
 **Decepticon is a professional autonomous Red Team agent.** It executes realistic attack chains — reconnaissance, exploitation, privilege escalation, lateral movement, C2 — the way a real adversary would, not the way a scanner does.
 
-But more importantly: it operates under the discipline that separates red teamers from script kiddies. Before a single packet leaves the wire, Decepticon generates a complete engagement package — **RoE**, **ConOps**, **Deconfliction Plan**, and **OPPLAN** with MITRE ATT&CK mapping — and every action runs inside those defined rules.
+Every Red engagement starts with an approved target and machine-enforced RoE. Optional Plan mode adds Soundwave's interview and the full **RoE**, **ConOps**, **Deconfliction Plan**, and **OPPLAN** package with MITRE ATT&CK mapping before Red execution.
 
 → **[Engagement workflow deep dive](docs/engagement-workflow.md)**
 
@@ -176,7 +203,7 @@ But more importantly: it operates under the discipline that separates red teamer
   <img src="assets/decepticon_infra.svg" alt="Decepticon Infrastructure" width="680">
 </div>
 
-Two-network design. The **always-on** management plane (LiteLLM, PostgreSQL, Skillogy, LangGraph) and the always-on sandbox plane stay up across the whole engagement; everything else is **dynamic-spawn** — the Web dashboard comes up on `/web` from the CLI, and specialist workloads (BloodHound CE, Sliver C2, Ghidra MCP, …) come up only when the orchestrator calls `ops_start(...)` (see [ADR-0006](docs/adr/0006-agent-driven-container-lifecycle.md)). Networks: management on `decepticon-net`; sandbox + C2 server + targets on `sandbox-net`. Neo4j is dual-homed so the agent (on management) can persist findings written from inside the sandbox.
+Two-network design. The **always-on** management plane (LiteLLM, PostgreSQL, Skillogy, LangGraph) and the always-on sandbox plane stay up across the whole engagement; everything else is **dynamic-spawn** — the Web dashboard comes up on `/web` from the CLI, and specialist workloads (BloodHound CE, Sliver C2, REA/Ghidra, …) come up only when the orchestrator calls `ops_start(...)` (see [ADR-0006](docs/adr/0006-agent-driven-container-lifecycle.md)). Networks: management on `decepticon-net`; sandbox + C2 server + targets on `sandbox-net`. Neo4j is dual-homed so the agent (on management) can persist findings written from inside the sandbox.
 
 → **[Architecture deep dive](docs/architecture.md)** · **[Knowledge graph](docs/knowledge-graph.md)**
 
@@ -218,6 +245,8 @@ Configure via `decepticon onboard`. → **[Full model reference & fallback examp
 | All CLI commands and keyboard shortcuts | [CLI Reference](docs/cli-reference.md) |
 | All `make` targets | [Makefile Reference](docs/makefile-reference.md) |
 | Agent roster and middleware | [Agents](docs/agents.md) |
+| REA/Ghidra reverse engineering | [REA Reversing](docs/features/rea-reversing.md) |
+| Local defensive monitoring | [Blue Cell](docs/features/blue-cell.md) |
 | Model profiles and fallback chain | [Models](docs/models.md) |
 | Skill system and format spec | [Skills](docs/skills.md) |
 | Web dashboard features and setup | [Web Dashboard](docs/web-dashboard.md) |
@@ -225,6 +254,7 @@ Configure via `decepticon onboard`. → **[Full model reference & fallback examp
 | Neo4j knowledge graph | [Knowledge Graph](docs/knowledge-graph.md) |
 | End-to-end engagement workflow | [Engagement Workflow](docs/engagement-workflow.md) |
 | Offensive Vaccine loop | [Offensive Vaccine](docs/offensive-vaccine.md) |
+| Release history | [Changelog](CHANGELOG.md) |
 | Contributing to Decepticon | [Contributing](docs/contributing.md) |
 
 ---
@@ -232,7 +262,7 @@ Configure via `decepticon onboard`. → **[Full model reference & fallback examp
 ## Contributing
 
 ```bash
-git clone https://github.com/PurpleAILAB/Decepticon.git
+git clone https://github.com/BitterSecurity/Decepticon.git
 cd Decepticon
 make dogfood  # Full OSS UX (launcher → onboard → CLI) on local code
 make dev      # Backend hot-reload (compose watch) — daily dev loop

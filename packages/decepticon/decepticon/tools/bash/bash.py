@@ -447,7 +447,7 @@ async def bash(
     background: bool = False,
     *,
     description: str,
-    config: RunnableConfig | None = None,
+    config: RunnableConfig,
 ) -> str:
     """Execute a bash command in a persistent tmux session inside the Docker sandbox.
 
@@ -542,7 +542,7 @@ async def bash(
 
 
 @tool
-async def bash_output(session: str = "main", config: RunnableConfig | None = None) -> str:
+async def bash_output(session: str = "main", *, config: RunnableConfig) -> str:
     """Retrieve new output from a sandbox session since the last call.
 
     WHEN TO USE:
@@ -615,7 +615,7 @@ async def bash_output(session: str = "main", config: RunnableConfig | None = Non
 
 
 @tool
-async def bash_kill(session: str, config: RunnableConfig | None = None) -> str:
+async def bash_kill(session: str, *, config: RunnableConfig) -> str:
     """Forcefully terminate a sandbox session.
 
     Sends Ctrl+C, kills the tmux session, and clears local job tracking.
@@ -646,7 +646,7 @@ async def bash_kill(session: str, config: RunnableConfig | None = None) -> str:
 
 
 @tool
-async def bash_status(config: RunnableConfig | None = None) -> str:
+async def bash_status(*, config: RunnableConfig) -> str:
     """List all known sandbox sessions with running and completed jobs.
 
     Use before launching a new background job to spot conflicts, or to
