@@ -6,7 +6,7 @@ import type { SubagentCustomEvent } from "@decepticon/streaming";
 interface EngagementContextValue {
   engagementId: string;
   engagementSlug: string;
-  agentId: "soundwave" | "decepticon";
+  agentId: "soundwave" | "decepticon" | "blue_cell";
   threadId: string | null;
   setThreadId: (id: string) => void;
   events: SubagentCustomEvent[];
@@ -26,7 +26,7 @@ interface EngagementProviderProps {
   children: ReactNode;
   engagementId: string;
   engagementSlug: string;
-  agentId: "soundwave" | "decepticon";
+  agentId: "soundwave" | "decepticon" | "blue_cell";
   threadId: string | null;
   setThreadId: (id: string) => void;
   events: SubagentCustomEvent[];

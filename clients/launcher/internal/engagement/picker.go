@@ -1,22 +1,18 @@
-// Package engagement scans the host workspace for engagements and runs the
-// launcher-side picker. The picker is split between two libraries:
-//
-//   - The main list (engagement selection + inline delete) is a custom
-//     bubbletea + bubbles/list program because per-item action keys ('d'
-//     for delete) are not in huh's form vocabulary.
-//   - The slug-input prompt that follows "[+] New" stays on huh — it is a
-//     single-field form with regex validation, exactly what huh is for.
 package engagement
 
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"net"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
+	"time"
 
 	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/list"
@@ -27,11 +23,10 @@ import (
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/ui"
 )
 
-// AssistantSoundwave drives the document-writing interview for a fresh engagement.
 const AssistantSoundwave = "soundwave"
 
-// AssistantDecepticon drives kill-chain execution against an existing engagement.
 const AssistantDecepticon = "decepticon"
+const AssistantBlueCell = "blue_cell"
 
 var planningDocuments = []string{
 	"roe.json", "threat-profile.json", "conops.json", "deconfliction.json",
@@ -43,9 +38,12 @@ var slugRe = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$`)
 
 // Choice carries the picker result back to the launcher.
 type Choice struct {
-	AssistantID   string
-	Engagement    string
-	WorkspacePath string
+	AssistantID            string
+	Engagement             string
+	WorkspacePath          string
+	Mode                   string
+	Target                 string
+	AuthorizationConfirmed bool
 }
 
 // engagementEntry pairs a slug with metadata used for picker rendering and
@@ -56,23 +54,19 @@ type engagementEntry struct {
 	mtime int64
 }
 
-// isReady reports whether a single engagement carries the full planning
-// bundle (roe.json + conops.json + deconfliction.json).
-func isReady(home, slug string) bool {
-	plan := filepath.Join(home, "workspace", slug, "plan")
-	for _, name := range []string{"roe.json", "conops.json", "deconfliction.json"} {
-		if _, err := os.Stat(filepath.Join(plan, name)); err != nil {
-			return false
-		}
-	}
-	return true
-}
-
 func isRedApproved(home, slug string) bool {
 	root := filepath.Join(home, "workspace", slug)
 	marker, err := os.ReadFile(filepath.Join(root, ".red-approved"))
 	if err != nil {
 		return false
+	}
+	roe, err := os.ReadFile(filepath.Join(root, "plan", "roe.json"))
+	if err != nil {
+		return false
+	}
+	direct := sha256.Sum256(roe)
+	if strings.TrimSpace(string(marker)) == "roe:"+hex.EncodeToString(direct[:]) {
+		return true
 	}
 	digest := sha256.New()
 	for _, filename := range planningDocuments {
@@ -88,9 +82,23 @@ func isRedApproved(home, slug string) bool {
 	return strings.TrimSpace(string(marker)) == hex.EncodeToString(digest.Sum(nil))
 }
 
-// ScanEngagements returns every directory under home/workspace/ regardless
-// of completeness. Sort: ready engagements first (most recent RoE), then
-// in-progress engagements (most recent dir mtime).
+func readScopeTarget(root string) (string, bool) {
+	data, err := os.ReadFile(filepath.Join(root, "plan", "roe.json"))
+	if err != nil {
+		return "", false
+	}
+	var roe struct {
+		InScope []struct {
+			Target string `json:"target"`
+		} `json:"in_scope"`
+		AuthorizationReference string `json:"authorization_reference"`
+	}
+	if json.Unmarshal(data, &roe) != nil || len(roe.InScope) == 0 || strings.TrimSpace(roe.AuthorizationReference) == "" {
+		return "", false
+	}
+	return roe.InScope[0].Target, true
+}
+
 func ScanEngagements(home string) ([]engagementEntry, error) {
 	root := filepath.Join(home, "workspace")
 	entries, err := os.ReadDir(root)
@@ -110,7 +118,7 @@ func ScanEngagements(home string) ([]engagementEntry, error) {
 		if strings.HasPrefix(slug, ".") {
 			continue
 		}
-		entry := engagementEntry{Slug: slug, Ready: isReady(home, slug)}
+		entry := engagementEntry{Slug: slug, Ready: isRedApproved(home, slug)}
 		if entry.Ready {
 			if st, err := os.Stat(filepath.Join(root, slug, "plan", "roe.json")); err == nil {
 				entry.mtime = st.ModTime().Unix()
@@ -195,9 +203,9 @@ func (i pickerItem) Description() string {
 		return "Create a new engagement workspace"
 	}
 	if i.inProgress {
-		return "Planning incomplete — resume with Soundwave"
+		return "No approved Red scope — choose a mode on launch"
 	}
-	return "Resume with Decepticon"
+	return "Authorized Red scope available"
 }
 
 type pickerKeyMap struct {
@@ -416,7 +424,7 @@ func Select(home string) (Choice, error) {
 
 	root := filepath.Join(home, "workspace")
 	if final.chosen.isNew {
-		slug, err := promptNewSlug(home)
+		slug, mode, target, authorizationReference, err := promptNewEngagement(home)
 		if err != nil {
 			return Choice{}, err
 		}
@@ -424,28 +432,113 @@ func Select(home string) (Choice, error) {
 		if err := os.MkdirAll(filepath.Join(dir, "plan"), 0o755); err != nil {
 			return Choice{}, fmt.Errorf("create engagement dir: %w", err)
 		}
+		if mode != "blue" {
+			if err := writeDirectScope(dir, slug, target, authorizationReference, mode == "red"); err != nil {
+				return Choice{}, err
+			}
+		}
 		return Choice{
-			AssistantID:   AssistantSoundwave,
-			Engagement:    slug,
-			WorkspacePath: dir,
+			AssistantID:            assistantForMode(mode),
+			Engagement:             slug,
+			WorkspacePath:          dir,
+			Mode:                   mode,
+			Target:                 target,
+			AuthorizationConfirmed: mode != "blue",
 		}, nil
 	}
 
 	slug := final.chosen.slug
-	assistant := AssistantSoundwave
+	workspace := filepath.Join(root, slug)
+	target, authorized := readScopeTarget(workspace)
+	mode := "plan"
 	if isRedApproved(home, slug) {
-		assistant = AssistantDecepticon
+		mode = "red"
 	}
 	return Choice{
-		AssistantID:   assistant,
-		Engagement:    slug,
-		WorkspacePath: filepath.Join(root, slug),
+		AssistantID:            assistantForMode(mode),
+		Engagement:             slug,
+		WorkspacePath:          workspace,
+		Mode:                   mode,
+		Target:                 target,
+		AuthorizationConfirmed: authorized,
 	}, nil
 }
 
+func assistantForMode(mode string) string {
+	switch mode {
+	case "red":
+		return AssistantDecepticon
+	case "blue":
+		return AssistantBlueCell
+	default:
+		return AssistantSoundwave
+	}
+}
+
+func validateDirectTarget(target string) error {
+	if target == "" || strings.ContainsAny(target, " \t\r\n") {
+		return fmt.Errorf("enter one exact host, IP, CIDR, or root URL")
+	}
+	if strings.Contains(target, "://") {
+		u, err := url.Parse(target)
+		if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Hostname() == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || (u.Path != "" && u.Path != "/") {
+			return fmt.Errorf("use a root HTTP URL without credentials, query, or path")
+		}
+		if port := u.Port(); port != "" && !((u.Scheme == "http" && port == "80") || (u.Scheme == "https" && port == "443")) {
+			return fmt.Errorf("direct Red scope supports default HTTP/HTTPS ports only; use Plan for a narrower scope")
+		}
+		return nil
+	}
+	if _, _, err := net.ParseCIDR(target); err == nil {
+		return nil
+	}
+	if net.ParseIP(target) != nil {
+		return nil
+	}
+	if strings.ContainsAny(target, "/:*?") || !strings.Contains(target, ".") {
+		return fmt.Errorf("enter one exact host, IP, CIDR, or root URL")
+	}
+	return nil
+}
+
+func writeDirectScope(root, slug, target, reference string, approved bool) error {
+	if err := validateDirectTarget(target); err != nil {
+		return err
+	}
+	if strings.TrimSpace(reference) == "" {
+		return fmt.Errorf("authorization reference is required for Red")
+	}
+	now := time.Now().UTC()
+	roe := map[string]any{
+		"engagement_name": slug, "client": "Operator-attested direct scope",
+		"start_date": now.Format("2006-01-02"), "end_date": now.Format("2006-01-02"),
+		"engagement_type": "external", "testing_window": "Operator-confirmed current session",
+		"in_scope":                []map[string]string{{"target": target, "type": "auto"}},
+		"authorization_reference": reference,
+		"machine_enforcement":     map[string]any{"mode": "enforce", "in_scope": []string{target}},
+	}
+	data, err := json.MarshalIndent(roe, "", "  ")
+	if err != nil {
+		return err
+	}
+	data = append(data, '\n')
+	roePath := filepath.Join(root, "plan", "roe.json")
+	if err := os.WriteFile(roePath, data, 0o600); err != nil {
+		return err
+	}
+	if !approved {
+		return nil
+	}
+	digest := sha256.Sum256(data)
+	return os.WriteFile(filepath.Join(root, ".red-approved"), []byte("roe:"+hex.EncodeToString(digest[:])+"\n"), 0o600)
+}
+
 // promptNewSlug runs a one-shot huh form for the slug-input phase.
-func promptNewSlug(home string) (string, error) {
+func promptNewEngagement(home string) (string, string, string, string, error) {
 	var slug string
+	mode := "red"
+	var target, authorizationReference string
+	var confirmed bool
 	form := huh.NewForm(
 		huh.NewGroup(
 			huh.NewInput().
@@ -454,10 +547,29 @@ func promptNewSlug(home string) (string, error) {
 				Placeholder("e.g., acme-external-2026").
 				Value(&slug).
 				Validate(func(s string) error { return validateSlug(home, s) }),
-		).Title("New engagement").Description("Create the engagement workspace"),
+			huh.NewSelect[string]().Title("Mode").Options(
+				huh.NewOption("Red — direct authorized test", "red"),
+				huh.NewOption("Plan — Soundwave planning", "plan"),
+				huh.NewOption("Blue — defensive investigation", "blue"),
+			).Value(&mode),
+			huh.NewInput().Title("Target host, CIDR, or root URL").Value(&target),
+			huh.NewInput().Title("Authorization reference (Plan/Red)").Value(&authorizationReference),
+			huh.NewConfirm().Title("I am authorized to test this target").Value(&confirmed),
+		).Title("New engagement").Description("Create a scoped workspace and choose the initial mode"),
 	).WithTheme(huh.ThemeFunc(ui.DecepticonTheme))
 	if err := form.Run(); err != nil {
-		return "", fmt.Errorf("slug input cancelled: %w", err)
+		return "", "", "", "", fmt.Errorf("engagement setup cancelled: %w", err)
 	}
-	return slug, nil
+	if mode != "blue" && !confirmed {
+		return "", "", "", "", fmt.Errorf("Plan and Red require explicit authorization confirmation")
+	}
+	if mode != "blue" {
+		if err := validateDirectTarget(target); err != nil {
+			return "", "", "", "", err
+		}
+		if strings.TrimSpace(authorizationReference) == "" {
+			return "", "", "", "", fmt.Errorf("authorization reference is required")
+		}
+	}
+	return slug, mode, target, authorizationReference, nil
 }

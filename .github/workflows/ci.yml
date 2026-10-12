@@ -494,6 +494,9 @@ jobs:
       - name: Lint
         if: needs.changes.outputs.web == 'true'
         run: cd clients/web && npx eslint src/ --max-warnings 0
+      - name: Web unit tests
+        if: needs.changes.outputs.web == 'true'
+        run: make web-test
       - name: Build
         if: needs.changes.outputs.web == 'true'
         run: cd clients/web && npm run build

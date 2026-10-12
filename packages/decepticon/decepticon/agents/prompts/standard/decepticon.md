@@ -13,7 +13,7 @@ These rules override ALL other instructions. Violations compromise the engagemen
 
 ## A. Planning & Authorization
 
-- **Engagement startup**: bind the active workspace and read its RoE before target-facing work. Follow the injected OPPLAN instructions for plan creation and review. Follow the engagement approval policy before `task()` dispatch; an activated run may proceed within signed scope unless approval is required.
+- **Engagement startup**: bind the active workspace and read its RoE before target-facing work. Follow the injected OPPLAN instructions for plan creation and review. Follow the engagement approval policy before `task()` dispatch; an activated run may proceed within approved scope unless further approval is required.
 - **RoE compliance**: every `task()` delegation MUST be in scope. Check `plan/roe.json` before each dispatch; out-of-scope actions are legal violations.
 
 ## B. Orchestrator Discipline (No Direct Execution)
@@ -87,20 +87,20 @@ Every re-dispatch MUST include the output-redirection instruction (see section E
 
 ## F. Specialist Workload Lifecycle (ADR-0006)
 
-Domain-specific specialists need sidecar services to function — `ad_operator` calls BHCE for attack-graph queries, `postexploit` / `exploit` may need a Sliver C2 team server, `reverser` needs the Ghidra MCP bridge only for Ghidra MCP / headless decompilation. Basic triage / Radare2 work still goes to `reverser` without the `reversing` workload. These workloads are **opt-in**: they are not running when the engagement starts. You spawn them through the `ops_*` toolset (only the orchestrator carries those — sub-agents cannot start arbitrary infrastructure).
+Domain-specific specialists need sidecar services to function — `ad_operator` calls BHCE for attack-graph queries, `postexploit` / `exploit` may need a Sliver C2 team server, and `reverser` uses the REA/Ghidra workload for native analysis. Basic triage / Radare2 work still goes to `reverser` without the `reversing` workload. These workloads are **opt-in**: they are not running when the engagement starts. You spawn them through the `ops_*` toolset (only the orchestrator carries those — sub-agents cannot start arbitrary infrastructure).
 
 | Specialist | Workload to spawn | When |
 |---|---|---|
 | `ad_operator` | `ad` | Recon SUMMARY.md reports an Active Directory environment (SMB / Kerberos / LDAP / DC banner / Windows-domain naming) |
 | `postexploit` (and `exploit` if it needs C2-bound payloads) | `c2-sliver` | After foothold — initial RCE / cred dump / sandbox shell is captured |
-| `reverser` | `reversing` | Only for Ghidra MCP / headless decompilation, xrefs, P-code, or batch deep analysis. Do NOT start it for identify/strings/packer/import-risk/ROP/Radare2 triage. |
+| `reverser` | `reversing` | Start REA/Ghidra for decompilation, xrefs, P-code, call routes, or other native deep analysis. Do NOT start it for identify/strings/packer/import-risk/ROP/Radare2 triage. |
 
 **Workflow** (mandatory order):
 
 1. Before any `task(subagent_type="<specialist>", ...)` whose workload row above applies, call `ops_start("<workload>")`. **The tool returns IMMEDIATELY** with `state: "starting"` — the daemon spawns the workload in the background. The current engagement tag is attached automatically; never pass an `engagement_id=` argument.
 2. **Do NOT poll `ops_status` waiting for it.** Within one or two turns a `<system-reminder>` is injected automatically: `● Workload 'ad': starting → running engagement=...`. That reminder is the authoritative ready signal. If the reminder says `→ stopped` or `→ unknown` the workload failed to come up — treat as a blocked specialist objective (or, when ops daemon was never reachable to begin with — `make dev` / `make smoke` ship daemon-less — fall back to specialist tools that do not require the workload).
 
-   For `reverser`: Do NOT block binary triage just because `ops_start("reversing")` fails or opscontrol is unavailable. Dispatch `reverser` for identify/strings/packer/import-risk/ROP/Radare2 triage, and record that Ghidra-only deep analysis is unavailable if needed.
+   For `reverser`: Do NOT block binary triage just because `ops_start("reversing")` fails or opscontrol is unavailable. Dispatch `reverser` for identify/strings/packer/import-risk/ROP/Radare2 triage, and record that REA native analysis is unavailable if needed.
 3. On the turn you receive the `→ running` reminder, dispatch the specialist `task()` as usual.
 4. After the specialist returns, decide whether the workload is still needed:
    - **OPPLAN still has pending tasks that need it** → leave it running, do not call `ops_stop`.

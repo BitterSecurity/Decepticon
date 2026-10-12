@@ -33,13 +33,13 @@ metadata:
 | `/skills/standard/reverser/game-security/SKILL.md`     | Self-hosted game client, protocol, replay, and server-authority research |
 
 ## Workflow
-1. Check which reversing tools the active runtime exposes. Hosted runs use an isolated Ghidra MCP companion and mirrored GUI; standalone OSS may expose local analysis tools.
+1. Check which reversing tools the active runtime exposes. Hosted runs use an isolated REA/Ghidra companion and mirrored GUI; standalone OSS starts the `reversing` workload for REA native analysis.
 2. `bin_identify` — format, arch, NX/PIE
 3. `bin_packer` — entropy + signature
 4. If packed → follow the packer-unpacking skill, re-identify after unpack
 5. `bin_strings` — category=url/ip/crypto/secret/version to seed the graph
 6. `bin_symbols_report` — risk bucket classification
 7. Version strings → `cve_lookup` + `cve_by_package`
-8. In hosted runs, import the `/workspace` binary with `ghidra_import_file`, open the program, and inspect `ghidra_analysis_status`; discover additional native tools with `ghidra_find_tools` when needed.
-9. Inspect functions and cross-references with the registered `ghidra_` MCP tools. Check GUI follow status for address-specific results. In standalone OSS, use only local reversing tools actually registered, including `bin_r2_script` as a Radare2 fallback when available.
+8. In hosted runs, the engagement agent passes a discovered `/workspace` binary to `rea_open_binary` and discovers available native tools with `rea_find_tools`. In standalone OSS, call `rea_find_tools(binary_path, query)` to pin the binary and discover the active Ghidra provider's tools.
+9. Inspect functions and cross-references with REA native tools, preserving each Evidence ID and bundle manifest. Hosted GUI visibility is a separate readback claim. In standalone OSS, use `rea_call_tool` for deep analysis and `bin_r2_script` as a fallback when REA is unavailable.
 10. Record every observation in the knowledge graph

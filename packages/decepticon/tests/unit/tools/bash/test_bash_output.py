@@ -14,6 +14,11 @@ from decepticon.tools.bash.bash import (
 )
 
 
+def test_runtime_config_is_not_part_of_model_tool_schemas():
+    for tool in (bash, bash_output, bash_kill, bash_status):
+        assert "config" not in tool.tool_call_schema.model_json_schema()["properties"]
+
+
 def _fake_sandbox():
     sandbox = MagicMock()
     sandbox._jobs = BackgroundJobTracker()

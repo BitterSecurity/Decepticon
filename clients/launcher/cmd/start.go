@@ -318,7 +318,15 @@ func runStart(cmd *cobra.Command, args []string) error {
 	cliEnv := map[string]string{
 		"DECEPTICON_VERSION":      version,
 		"DECEPTICON_ASSISTANT_ID": choice.AssistantID,
+		"DECEPTICON_RUN_MODE":     choice.Mode,
 		"DECEPTICON_ENGAGEMENT":   choice.Engagement,
+	}
+	if choice.Target != "" {
+		cliEnv["DECEPTICON_TARGET"] = choice.Target
+		cliEnv["DECEPTICON_TARGET_TYPE"] = "direct_scope"
+	}
+	if choice.AuthorizationConfirmed {
+		cliEnv["DECEPTICON_AUTHORIZATION_CONFIRMED"] = "true"
 	}
 	if port := config.Get(env, "WEB_PORT", "3000"); port != "" {
 		cliEnv["WEB_PORT"] = port

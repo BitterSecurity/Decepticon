@@ -16,9 +16,10 @@ import plugins from "./plugins.js";
 import agent from "./agent.js";
 import web from "./web.js";
 import blue from "./blue.js";
+import mode from "./mode.js";
 
 /** All registered commands. Add new commands here. */
-const COMMANDS: Command[] = [help, clear, file, quit, resume, model, plugins, agent, web, blue];
+const COMMANDS: Command[] = [help, clear, file, quit, resume, model, plugins, mode, agent, web, blue];
 
 /** Get all registered commands. */
 export function getCommands(): Command[] {

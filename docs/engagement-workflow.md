@@ -1,24 +1,29 @@
 # Engagement Workflow
 
-A Decepticon engagement runs in two phases: **Planning** (operator + Soundwave) and **Execution** (autonomous loop). Here's the complete flow from first launch to final report.
+An OSS engagement starts in a chosen mode. **Red** runs the authorized test directly, **Plan** adds Soundwave's deeper planning, and **Blue** investigates events from a connected local sensor. The launcher and web creation form offer all three; use `/mode plan|red|blue` in the CLI or the web live-view selector to switch.
 
 ---
 
-## Phase 1: Planning
+## Start an engagement
 
 ### 1. Define the target
 
-When you start a new engagement, Soundwave asks for the target. Five input types are supported:
+Declare one exact target and an authorization reference before Plan or Red. The direct-scope form accepts:
 
 | Type | Example |
 |------|---------|
-| IP range | `192.168.1.0/24`, `10.0.0.1-10.0.0.50` |
-| Web URL | `https://app.example.com` |
-| Git repository | `https://github.com/org/repo` |
-| File upload | Upload a binary, archive, or source tree |
-| Local path | `/path/to/target/app` |
+| IP address or CIDR | `192.168.1.10`, `192.168.1.0/24` |
+| Root web URL | `https://app.example.com` |
+| Hostname (CLI) | `app.example.com` |
 
-### 2. Soundwave interview
+Red creates a direct RoE with machine-enforced scope and an approval marker tied
+to its content. You can work with Red immediately. Plan creates the scoped RoE
+without Red approval. Blue needs the local sensor and monitor; run `/blue up`
+from the host CLI before sending Blue messages.
+
+## Optional Plan mode
+
+### Soundwave interview
 
 Soundwave conducts a structured interview to understand the engagement:
 
@@ -34,7 +39,7 @@ Soundwave conducts a structured interview to understand the engagement:
 
 The interview streams in real time — you respond to each question.
 
-### 3. Document generation
+### Document generation
 
 From the interview, Soundwave writes an eight-document engagement bundle to
 `<engagement>/plan/` as JSON:
@@ -53,7 +58,7 @@ From the interview, Soundwave writes an eight-document engagement bundle to
 The **OPPLAN** (Operations Plan) is not written by Soundwave — the orchestrator
 (Decepticon) builds it from the bundle once planning completes.
 
-### 4. OPPLAN structure
+### OPPLAN structure
 
 Each OPPLAN objective carries:
 
@@ -72,15 +77,20 @@ OPSEC levels: `loud` → `standard` → `careful` → `quiet` → `silent`
 
 Phases: `recon` → `initial-access` → `post-exploit` → `c2` → `exfiltration`
 
-### 5. Operator review
+### Operator review
 
-You review the generated documents. If anything is wrong — scope is too broad, wrong threat actor, missing exclusions — you can edit the documents or ask Soundwave to regenerate sections before approving.
+Review the generated documents before switching to Red. Plan validates the eight
+documents and records their digest. The CLI or web selector asks you to approve
+that exact bundle; edits after validation require a new validation. If scope is
+too broad or exclusions are missing, edit or regenerate the affected documents.
 
 ---
 
-## Phase 2: Execution
+## Red mode: execution
 
-Once the OPPLAN is approved, the autonomous loop begins.
+Once the direct RoE or optional Plan bundle is approved, the autonomous loop can
+begin. The orchestrator can build an OPPLAN from the approved scope during Red
+execution.
 
 ### The orchestration loop
 
@@ -145,9 +155,12 @@ Upgrade vsftpd to 2.3.5 or later.
 
 ---
 
-## Phase 3: Offensive Vaccine (planned)
+## Blue mode and Offensive Vaccine
 
-The defense feedback loop is planned for a future implementation. See [Offensive Vaccine](offensive-vaccine.md).
+Blue Cell's local sensor and resident agent observe web requests and optional
+application logs, investigate incidents, and report findings. The broader
+automated attack → defend → verify loop remains planned. See [Blue Cell](features/blue-cell.md)
+and [Offensive Vaccine](offensive-vaccine.md).
 
 ---
 
@@ -157,7 +170,8 @@ Everything an engagement produces lands under its workspace directory:
 
 | Path | Contents |
 |------|----------|
-| `plan/*.json` | The planning bundle — `roe`, `threat-profile`, `conops`, `deconfliction`, `contact`, `data-handling`, `abort`, `cleanup`, plus the orchestrator's `opplan` |
+| `plan/roe.json` | Direct or planned machine-enforced scope |
+| `plan/*.json` | Optional Soundwave bundle — `threat-profile`, `conops`, `deconfliction`, `contact`, `data-handling`, `abort`, `cleanup`, plus the orchestrator's `opplan` |
 | `findings/FIND-NNN.md` | Individual vulnerability findings |
 | `recon/`, `exploit/`, `post-exploit/` | Per-phase artifacts, created lazily as agents write to them |
 | `report/` | Executive summary and technical report |
