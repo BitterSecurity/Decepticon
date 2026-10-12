@@ -27,6 +27,7 @@ import {
 import { getModelOverride } from "../commands/modelOverride.js";
 import { getAssistantOverride } from "../commands/assistantOverride.js";
 import { blueMonitorReady } from "../commands/blue.js";
+import { assertRedApproved } from "../commands/planMode.js";
 
 interface LangChainMessage {
   type: string; // "human", "ai", "tool"
@@ -750,6 +751,18 @@ export function useAgent({
           addEvent({ type: "system", content: unavailable });
           handleStreamComplete(abortController);
           return;
+        }
+
+        if (selectedAssistant === "decepticon" && process.env.DECEPTICON_ENGAGEMENT) {
+          try {
+            await assertRedApproved();
+          } catch (error) {
+            const denied = error instanceof Error ? error.message : "Red scope is not approved.";
+            setError(denied);
+            addEvent({ type: "system", content: denied });
+            handleStreamComplete(abortController);
+            return;
+          }
         }
 
         // Create thread if needed (retry for server startup race condition)

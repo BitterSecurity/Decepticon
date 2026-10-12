@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { approveRedMode, planningBundleDigest, revokeRedMode } from "./planMode.js";
+import { approveRedMode, assertRedApproved, planningBundleDigest, revokeRedMode } from "./planMode.js";
 
 const DOCS = [
   "roe.json", "threat-profile.json", "conops.json", "deconfliction.json",
@@ -31,9 +31,11 @@ describe("Red mode approval", () => {
     await writeFile(path.join(root, ".planning-draft-ready"), DIGEST);
     await approveRedMode();
     expect(await readFile(path.join(root, ".red-approved"), "utf-8")).toBe(DIGEST);
+    await expect(assertRedApproved()).resolves.toBeUndefined();
 
     await writeFile(path.join(root, "plan", "roe.json"), '{"changed":true}');
     await expect(approveRedMode()).rejects.toThrow("Planning documents changed");
+    await expect(assertRedApproved()).rejects.toThrow("scope changed");
     await revokeRedMode();
     await expect(readFile(path.join(root, ".red-approved"), "utf-8")).rejects.toThrow();
   });
@@ -47,7 +49,9 @@ describe("Red mode approval", () => {
     vi.stubEnv("DECEPTICON_ENGAGEMENT", "direct");
     vi.stubEnv("DECEPTICON_WORKSPACE_PATH", root);
     await expect(approveRedMode()).resolves.toBeUndefined();
+    await expect(assertRedApproved()).resolves.toBeUndefined();
     await writeFile(path.join(root, "plan", "roe.json"), '{"in_scope":[]}');
     await expect(approveRedMode()).rejects.toThrow("authorization is missing");
+    await expect(assertRedApproved()).rejects.toThrow("scope changed");
   });
 });

@@ -55,6 +55,18 @@ export async function approveRedMode(): Promise<void> {
   await writeFile(path.join(root, ".red-approved"), current, { mode: 0o600 });
 }
 
+export async function assertRedApproved(): Promise<void> {
+  const root = workspaceRoot();
+  if (!root) throw new Error("Red requires an engagement workspace with an authorized target.");
+  const roe = await readFile(path.join(root, "plan", "roe.json")).catch(() => null);
+  if (!roe) throw new Error("Red scope is unavailable. Create an authorized engagement before sending.");
+  const approved = (await readFile(path.join(root, ".red-approved"), "utf-8").catch(() => "")).trim();
+  if (approved === `roe:${createHash("sha256").update(roe).digest("hex")}`) return;
+  const bundle = await planningBundleDigest(root).catch(() => null);
+  if (bundle && approved === bundle) return;
+  throw new Error("Red scope changed or is not approved. Review the current Plan and select /mode red again.");
+}
+
 export async function revokeRedMode(): Promise<void> {
   const root = workspaceRoot();
   if (!root) return;

@@ -30,6 +30,10 @@ vi.mock("../commands/modelOverride.js", () => ({
   getModelOverride: () => undefined,
 }));
 
+vi.mock("../commands/planMode.js", () => ({
+  assertRedApproved: vi.fn(async () => {}),
+}));
+
 // ── Module-level binding (reset per test via dynamic import) ─────────────────
 // useAgent reads INITIAL_ASSISTANT_ID = process.env.DECEPTICON_ASSISTANT_ID at
 // module load time. Static import would capture the value before vi.stubEnv()
@@ -48,6 +52,7 @@ const engagementReadyEvent: StreamEvent = {
 describe("useAgent — engagement handoff lifecycle", () => {
   beforeEach(async () => {
     vi.resetModules();
+    vi.clearAllMocks();
     vi.useFakeTimers();
     vi.stubEnv("DECEPTICON_API_URL", "http://localhost:2024");
     vi.stubEnv("DECEPTICON_ASSISTANT_ID", "soundwave");
@@ -393,6 +398,20 @@ describe("useAgent — engagement handoff lifecycle", () => {
     await act(async () => { await vi.runAllTimersAsync(); });
     expect(mc.threads.create).toHaveBeenCalledTimes(2);
     expect((mc.runs.stream as Mock).mock.calls[2][0]).toBe("interview-thread");
+  });
+
+  it("does not stream a Red message after scope approval becomes stale", async () => {
+    const { assertRedApproved } = await import("../commands/planMode.js");
+    vi.mocked(assertRedApproved).mockRejectedValueOnce(new Error("Red scope changed"));
+    const { result } = renderHook(() => useAgent());
+
+    act(() => expect(result.current.selectAssistant("decepticon")).toBe(true));
+    act(() => result.current.submit("continue Red work"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+
+    expect(mockState.client!.runs.stream).not.toHaveBeenCalled();
+    expect(result.current.error).toContain("Red scope changed");
+    expect(result.current.runState).toBe("idle");
   });
 
   it("does not switch the visible mode during a live run", async () => {
