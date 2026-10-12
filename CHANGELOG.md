@@ -17,7 +17,8 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 - Propose opt-in dedicated-root sandbox file transfers with 64 KiB imports,
   1 MiB outputs, owned regular-file checks and held publication/cleanup errors.
   The default daemon is unchanged; operator topology and maintainer acceptance
-  remain pending in the proposed ADR. (#909)
+  remain pending in the proposed ADR.
+  ([#909](https://github.com/BitterSecurity/Decepticon/pull/909))
 
 ## [1.4.0] — 2026-10-13
 

@@ -22,9 +22,6 @@ from decepticon.sandbox_kernel.scoped_file_transfers import (
     RegeneratingOwnedSandbox,
 )
 
-pytestmark = pytest.mark.skipif(os.name == "nt", reason="The daemon uses POSIX file descriptors")
-
-
 @pytest.fixture
 def owned(tmp_path: Path) -> tuple[Path, RegeneratingOwnedSandbox]:
     root = tmp_path / "owned"
