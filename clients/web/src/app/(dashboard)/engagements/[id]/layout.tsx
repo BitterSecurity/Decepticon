@@ -16,10 +16,16 @@ export default function EngagementLayout({
   children,
 }: {
   children: React.ReactNode;
-}) {
+}): React.ReactNode {
   const params = useParams();
   const pathname = usePathname();
   const engagementId = params.id as string;
+  const isLivePath = pathname.endsWith("/live");
+  const [terminalActivated, setTerminalActivated] = useState(isLivePath);
+
+  useEffect(() => {
+    if (isLivePath) setTerminalActivated(true);
+  }, [isLivePath]);
 
   const [engagement, setEngagement] = useState<{
     name: string;
@@ -121,10 +127,8 @@ export default function EngagementLayout({
   // Persistent observer — survives tab navigation
   const { events, isRunning, activeRunId } = useRunObserver({ threadId });
 
-  const isLivePath = pathname.endsWith("/live");
-
   // Don't render terminal until we know the slug and assistant
-  const terminalReady = engagement != null;
+  const terminalReady = terminalActivated && engagement != null;
 
   return (
     <EngagementProvider

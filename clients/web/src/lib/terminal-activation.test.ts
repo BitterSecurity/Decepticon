@@ -48,9 +48,9 @@ test("Plan does not mount terminals; Live activation persists across tabs and ru
   const compiled = ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX },
   }).outputText;
-  const module = { exports: {} as { default: React.ComponentType<{ children?: React.ReactNode }> } };
+  const layoutModule = { exports: {} as { default: React.ComponentType<{ children?: React.ReactNode }> } };
   vm.runInNewContext(compiled, {
-    module, exports: module.exports,
+    module: layoutModule, exports: layoutModule.exports,
     require: (name: string) => Object.hasOwn(modules, name) ? modules[name] : require(name),
     window: dom.window, URLSearchParams, console,
     fetch: async (url: string) => ({
@@ -62,17 +62,17 @@ test("Plan does not mount terminals; Live activation persists across tabs and ru
   });
   const root = createRoot(dom.window.document.getElementById("root")!);
   try {
-    await act(async () => { root.render(React.createElement(module.exports.default)); });
+    await act(async () => { root.render(React.createElement(layoutModule.exports.default)); });
     assert.equal(mounts, 0, "metadata on Plan must not create a terminal");
     pathname = "/engagements/owned/live";
-    await act(async () => { root.render(React.createElement(module.exports.default)); });
+    await act(async () => { root.render(React.createElement(layoutModule.exports.default)); });
     assert.equal(mounts, 1);
     const blue = [...dom.window.document.querySelectorAll("button")].find(button => button.textContent === "blue")!;
     await act(async () => { blue.click(); });
     assert.equal(mounts, 2, "the new mode gets its own terminal");
     assert.equal(unmounts, 0, "the previous mode terminal remains mounted");
     pathname = "/engagements/owned/plan";
-    await act(async () => { root.render(React.createElement(module.exports.default)); });
+    await act(async () => { root.render(React.createElement(layoutModule.exports.default)); });
     assert.equal(mounts, 2);
     assert.equal(unmounts, 0, "tab navigation preserves activated mode terminals");
   } finally {

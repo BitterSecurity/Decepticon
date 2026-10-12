@@ -12,6 +12,11 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+### Fixed
+
+- Create engagement terminals on the first Live visit and preserve them across
+  tab changes and run modes. ([#901](https://github.com/BitterSecurity/Decepticon/pull/901))
+
 ## [1.4.0] — 2026-10-13
 
 ### Added
