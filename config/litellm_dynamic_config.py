@@ -42,12 +42,12 @@ def current_model_routes(env: Mapping[str, str] | None = None) -> list[dict[str,
         required = [
             value.removeprefix("os.environ/")
             for field in ("api_key", "api_base")
-            if isinstance(value := params.get(field), str)
-            and value.startswith("os.environ/")
+            if isinstance(value := params.get(field), str) and value.startswith("os.environ/")
         ]
         if all(_configured_credential(source.get(name)) for name in required):
             enabled.append(copy.deepcopy(route))
     return enabled
+
 
 # Common LiteLLM provider prefix -> environment variable containing the API key.
 # Unknown providers fall back to ``<PROVIDER>_API_KEY`` after normalization, which

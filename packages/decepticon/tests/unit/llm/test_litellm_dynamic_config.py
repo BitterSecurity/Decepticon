@@ -40,9 +40,7 @@ def test_current_prod_catalog_is_oss_safe() -> None:
     assert "runyour/qwen3.8-max" in names
     assert "openrouter/anthropic/claude-sonnet-5.5" in names
     assert not any(name.startswith(("subscription/", "admin/", "auth/")) for name in names)
-    assert not any(
-        "byok-required" in str(route["litellm_params"]) for route in routes
-    )
+    assert not any("byok-required" in str(route["litellm_params"]) for route in routes)
 
 
 def test_current_prod_routes_require_real_provider_credentials() -> None:
@@ -50,8 +48,7 @@ def test_current_prod_routes_require_real_provider_credentials() -> None:
     assert current_model_routes({"OPENAI_API_KEY": "your-openai-key-here"}) == []
 
     names = {
-        route["model_name"]
-        for route in current_model_routes({"OPENAI_API_KEY": "sk-test-key"})
+        route["model_name"] for route in current_model_routes({"OPENAI_API_KEY": "sk-test-key"})
     }
     assert "openai/gpt-5.6-sol" in names
     assert "anthropic/claude-sonnet-5" not in names
@@ -68,7 +65,9 @@ def test_current_prod_routes_merge_without_duplicates() -> None:
     assert len(names) == len(set(names))
     assert "openai/gpt-5.6-sol" in names
     assert "openai/gpt-6.1-sol" in names
-    route = next(route for route in merged["model_list"] if route["model_name"] == "openai/gpt-5.6-sol")
+    route = next(
+        route for route in merged["model_list"] if route["model_name"] == "openai/gpt-5.6-sol"
+    )
     assert route["litellm_params"]["api_key"] == "os.environ/OPENAI_API_KEY"
     assert route["litellm_params"]["additional_drop_params"] == ["temperature"]
 
