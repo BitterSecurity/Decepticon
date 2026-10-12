@@ -123,7 +123,8 @@ export async function POST(req: NextRequest) {
     }
     const workspaceRoot = path.resolve(WORKSPACE);
     const wsPath = path.resolve(workspaceRoot, name);
-    if (path.dirname(wsPath) !== workspaceRoot) {
+    const workspacePrefix = workspaceRoot.endsWith(path.sep) ? workspaceRoot : workspaceRoot + path.sep;
+    if (!wsPath.startsWith(workspacePrefix) || path.dirname(wsPath) !== workspaceRoot) {
       return NextResponse.json({ error: "Invalid engagement workspace path" }, { status: 400 });
     }
     await fs.mkdir(workspaceRoot, { recursive: true });
