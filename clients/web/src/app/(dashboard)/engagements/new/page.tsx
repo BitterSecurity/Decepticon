@@ -15,7 +15,9 @@ export default function NewEngagementPage() {
   const [targetType, setTargetType] = useState("web_url");
   const [name, setName] = useState("");
   const [targetValue, setTargetValue] = useState("");
+  const [initialMode, setInitialMode] = useState<"plan" | "red" | "blue">("red");
   const [authorizationConfirmed, setAuthorizationConfirmed] = useState(false);
+  const [authorizationReference, setAuthorizationReference] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,8 +28,8 @@ export default function NewEngagementPage() {
       : null;
 
   async function handleSubmit() {
-    if (!nameValid || !targetValue.trim() || !authorizationConfirmed) {
-      setError("Enter one target and confirm explicit authorization before creating an engagement");
+    if (!nameValid || !targetValue.trim() || !authorizationConfirmed || !authorizationReference.trim()) {
+      setError("Enter one target and authorization reference, then confirm authorization");
       return;
     }
 
@@ -38,7 +40,7 @@ export default function NewEngagementPage() {
       const res = await fetch("/api/engagements", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, targetType, targetValue, authorizationConfirmed }),
+        body: JSON.stringify({ name, targetType, targetValue, authorizationConfirmed, authorizationReference, initialMode }),
       });
 
       if (!res.ok) {
@@ -47,7 +49,7 @@ export default function NewEngagementPage() {
       }
 
       const engagement = await res.json();
-      router.push(`/engagements/${engagement.id}/live?new=true`);
+      router.push(`/engagements/${engagement.id}/live?mode=${initialMode}`);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
@@ -92,6 +94,17 @@ export default function NewEngagementPage() {
                 letters / digits with internal hyphens
               </p>
             )}
+          </div>
+          <div className="space-y-2">
+            <Label>Starting mode</Label>
+            <div className="grid grid-cols-3 gap-2" role="group" aria-label="Starting mode">
+              {(["plan", "red", "blue"] as const).map((mode) => (
+                <Button key={mode} type="button" variant={initialMode === mode ? "default" : "outline"} onClick={() => setInitialMode(mode)} aria-pressed={initialMode === mode}>
+                  {mode === "plan" ? "Plan" : mode === "red" ? "Red" : "Blue"}
+                </Button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">Plan opens Soundwave for deeper planning. Red starts from the authorized target. Blue needs a connected local sensor.</p>
           </div>
         </CardContent>
       </Card>
@@ -158,6 +171,10 @@ export default function NewEngagementPage() {
           <CardTitle className="text-base">Authorization</CardTitle>
         </CardHeader>
         <CardContent>
+          <div className="mb-4 space-y-2">
+            <Label htmlFor="authorization-reference">Authorization reference</Label>
+            <Input id="authorization-reference" value={authorizationReference} onChange={(event) => setAuthorizationReference(event.target.value)} placeholder="e.g., signed engagement agreement ID" />
+          </div>
           <label className="flex cursor-pointer items-start gap-3 text-sm">
             <input
               type="checkbox"
@@ -178,7 +195,7 @@ export default function NewEngagementPage() {
         <Button variant="outline" onClick={() => router.back()}>
           Cancel
         </Button>
-        <Button onClick={handleSubmit} disabled={submitting || !nameValid || !authorizationConfirmed}>
+        <Button onClick={handleSubmit} disabled={submitting || !nameValid || !authorizationConfirmed || !authorizationReference.trim()}>
           {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Create Engagement
         </Button>

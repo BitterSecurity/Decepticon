@@ -432,6 +432,8 @@ services:
       - NEXT_PUBLIC_TERMINAL_WS_URL=ws://localhost:${TERMINAL_PORT:-3003}
       - DATABASE_URL=postgresql://decepticon:${POSTGRES_PASSWORD:-decepticon}@postgres:5432/decepticon_web
       - WORKSPACE_PATH=/workspace
+      - BLUE_SENSOR_URL=http://blue-receiver:8082
+      - BLUE_MONITOR_URL=http://blue-monitor:8085
     volumes:
       - ${DECEPTICON_HOME:-~/.decepticon}/workspace:/workspace
     depends_on:
