@@ -113,8 +113,11 @@ function monitorUrl(): string {
 
 export async function blueMonitorReady(): Promise<boolean> {
   try {
-    const response = await fetch(`${monitorUrl()}/metrics`, { signal: AbortSignal.timeout(5000) });
-    return response.ok;
+    const [monitor, sensor] = await Promise.all([
+      fetch(`${monitorUrl()}/metrics`, { signal: AbortSignal.timeout(5000) }),
+      fetch(`${sensorUrl()}/metrics`, { signal: AbortSignal.timeout(5000) }),
+    ]);
+    return monitor.ok && sensor.ok;
   } catch {
     return false;
   }
