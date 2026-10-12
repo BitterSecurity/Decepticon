@@ -11,18 +11,12 @@
  * ModelOverrideMiddleware on the server side. No restart, no rebuild —
  * just type the command and the next prompt routes to the new model.
  *
- * The list of supported models is the same matrix
- * decepticon/llm/models.py uses: every (AuthMethod, Tier) pair that
- * resolves to a real LiteLLM model id, grouped by AuthMethod.
  */
 
 import type { Command } from "./types.js";
 import { setModelOverride, getModelOverride } from "./modelOverride.js";
+import { CURRENT_PROD_MODELS } from "./currentProdModels.js";
 
-/** Static catalog mirroring decepticon/llm/models.py::METHOD_MODELS.
- * Kept here (instead of fetched live) so /model works offline before
- * the agent stack is up and so completion is instant. Edit this list
- * whenever METHOD_MODELS gains entries. */
 const SUPPORTED_MODELS: Record<string, string[]> = {
   // Cloud Anthropic
   "Anthropic API": [
@@ -178,10 +172,11 @@ const SUPPORTED_MODELS: Record<string, string[]> = {
   "Ollama Cloud": ["ollama_chat/<your OLLAMA_CLOUD_MODEL>"],
   "LM Studio (local)": ["lm_studio/<your LMSTUDIO_MODEL>"],
   "Custom OpenAI Endpoint": ["custom/<your CUSTOM_OPENAI_MODEL>"],
+  ...CURRENT_PROD_MODELS,
 };
 
 function flatten(): string[] {
-  return Object.values(SUPPORTED_MODELS).flat();
+  return [...new Set(Object.values(SUPPORTED_MODELS).flat())];
 }
 
 function isKnown(id: string): boolean {
@@ -210,9 +205,15 @@ const model: Command = {
       );
       lines.push("");
       lines.push("Supported models (group → ids):");
+      const listed = new Set<string>();
       for (const [group, ids] of Object.entries(SUPPORTED_MODELS)) {
+        const fresh = ids.filter((id) => !listed.has(id));
+        if (fresh.length === 0) continue;
         lines.push(`  ${group}:`);
-        for (const id of ids) lines.push(`    ${id}`);
+        for (const id of fresh) {
+          lines.push(`    ${id}`);
+          listed.add(id);
+        }
       }
       lines.push("");
       lines.push("Usage:");
