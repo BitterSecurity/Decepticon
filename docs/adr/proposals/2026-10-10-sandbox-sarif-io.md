@@ -30,6 +30,11 @@ renderer; use a private read-text protocol to accept downloaded bytes.
   The import size check runs after download and does not bound transport memory.
 - **Migration:** No deployment changes. The default backend must support the
   existing protocol; the separate bounded-transfer proposal is not a dependency.
+- **Filesystem bounds:** Reuse the maintained protected-workspace path policy.
+  Other upload/download semantics remain those of the selected backend. The
+  current daemon follows native filesystem links; this proposal does not add
+  link confinement, atomic replacement or transport-size limits. Deployment
+  topology and remote failure/regeneration behavior still need qualification.
 
 ## Alternatives considered
 

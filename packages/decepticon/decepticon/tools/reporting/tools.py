@@ -94,7 +94,8 @@ def report_sarif(
 ) -> str:
     """Render the current graph to SARIF in the owned sandbox workspace.
 
-    Creates parent directories and regenerates existing owned regular outputs.
+    Creates parent directories and regenerates outputs through the sandbox backend.
+    Protected workspace paths are refused; other file semantics follow that backend.
     The required public arguments are unchanged; no output default is added.
     """
     from decepticon.middleware.scoped_reporting_io import render_sarif_scoped
