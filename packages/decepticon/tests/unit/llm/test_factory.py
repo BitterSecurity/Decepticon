@@ -916,7 +916,11 @@ class TestTemperatureDrop:
     def test_current_claude_models_drop_temperature(self):
         assert self._drops("anthropic/claude-fable-5-1") is True
         assert self._drops("anthropic/claude-opus-5-5") is True
+        assert self._drops("anthropic/claude-sonnet-5") is True
         assert self._drops("anthropic/claude-sonnet-5-5") is True
+
+    def test_gpt_5_6_drops_temperature(self):
+        assert self._drops("openai/gpt-5.6-sol") is True
 
     def test_ollama_keeps_temperature(self):
         assert self._drops("ollama_chat/qwen3-coder:30b") is False

@@ -158,7 +158,7 @@ service is a Decepticon-built image) one row in
 | `ad` | `ad_operator` | `[ad]` | `bhce`, `bhce-neo4j` | `decepticon-net` |
 | `c2-sliver` | `postexploit`, `exploit` | `[c2-sliver]` | `c2-sliver` | `decepticon-net` |
 | `c2-havoc` *(future)* | `postexploit`, `exploit` | `[c2-havoc]` | havoc team server + agent profile | `decepticon-net` |
-| `reversing` | `reverser` | `[reversing]` | `ghidra-mcp` (sandbox-derivative image) | `sandbox-net` |
+| `reversing` | `reverser` | `[reversing]` | `rea-mcp` (REA/Ghidra image) | `sandbox-net` |
 | `phishing` *(future)* | `phisher` | `[phishing]` | `gophish`, `evilginx2`, lookalike-domain proxy | `decepticon-net` |
 | `mobile` *(future)* | `mobile_operator` | `[mobile]` | Android emulator + Frida server | `sandbox-net` |
 | `wireless` *(future)* | `wireless_operator` | `[wireless]` | HackRF / wifi rig (host-attached) | `sandbox-net` |
