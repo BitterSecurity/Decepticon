@@ -49,6 +49,20 @@ test("settings collections reject API error objects before render", async () => 
     ),
     /Engagements request failed \(HTTP 500\)/,
   );
+  await assert.rejects(
+    readCollectionResponse(
+      {
+        ok: false,
+        status: 502,
+        async json() {
+          throw new SyntaxError("upstream returned HTML");
+        },
+      },
+      "Agents",
+      isAgentConfig,
+    ),
+    /Agents request failed \(HTTP 502\)/,
+  );
 });
 
 test("settings collections reject successful non-array and malformed payloads", async () => {

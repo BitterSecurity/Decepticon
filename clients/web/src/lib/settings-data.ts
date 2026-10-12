@@ -39,6 +39,10 @@ export async function readCollectionResponse<T>(
   label: string,
   isItem: (value: unknown) => value is T,
 ): Promise<T[]> {
+  if (!response.ok) {
+    throw new Error(`${label} request failed (HTTP ${response.status})`);
+  }
+
   let payload: unknown;
   try {
     payload = await response.json();
@@ -46,9 +50,6 @@ export async function readCollectionResponse<T>(
     throw new Error(`${label} returned invalid JSON`);
   }
 
-  if (!response.ok) {
-    throw new Error(`${label} request failed (HTTP ${response.status})`);
-  }
   if (!Array.isArray(payload)) {
     throw new Error(`${label} returned an invalid response`);
   }
