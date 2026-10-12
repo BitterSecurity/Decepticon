@@ -165,16 +165,6 @@ ENV INSANE_CHROMIUM_PATH=/usr/bin/chromium
 # Gated by a build ARG so the default sandbox image stays lean
 # (~500 MB lighter without JDK 21 + Ghidra). Enable with:
 #   docker build --build-arg INSTALL_REVERSING=true ...
-# or, via docker-compose, set INSTALL_REVERSING=true in .env when running
-# with COMPOSE_PROFILES=reversing. The ghidra-mcp sidecar service in
-# docker-compose.yml builds this image with the ARG set to true.
-#
-# When disabled (default), ghidra_available() returns False and the
-# tools/reversing/tools.py @tool wrappers surface a clean "Ghidra not
-# installed — enable the reversing profile" error to the agent rather
-# than crashing. The MCP path (http://ghidra-mcp:8089) is still wired
-# up — agents can use the sidecar without the host sandbox having
-# Ghidra installed locally.
 #
 # Pinned to the 20260513 build of Ghidra 12.1 so the image is
 # reproducible. To upgrade: bump the URL + verify the SHA-256 against
@@ -205,7 +195,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked,id=sandbox-apt-cache
     fi
 
 ENV GHIDRA_INSTALL_DIR=/opt/ghidra \
-    GHIDRA_MCP_URL=http://ghidra-mcp:8089 \
+    GHIDRA_MCP_URL=http://127.0.0.1:8089 \
     JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
 
 # Ship only the modules the daemon actually imports:

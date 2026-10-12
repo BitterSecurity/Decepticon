@@ -33,7 +33,7 @@ jobs:
           set -euo pipefail
           # GITHUB_REF_NAME is the tag (e.g. v1.1.42) for a release event.
           version="${GITHUB_REF_NAME#v}"
-          images="decepticon-litellm decepticon-langgraph decepticon-cli decepticon-skillogy decepticon-sandbox decepticon-c2-sliver decepticon-web"
+          images="decepticon-litellm decepticon-langgraph decepticon-cli decepticon-skillogy decepticon-sandbox decepticon-c2-sliver decepticon-rea decepticon-web"
           : > image-digests.txt
           for image in ${images}; do
             ref="ghcr.io/bittersecurity/${image}:${version}"
