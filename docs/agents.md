@@ -46,7 +46,7 @@ Sub-agents of the **Vulnresearch** orchestrator. State flows between stages via 
 | **AD Operator** | Active Directory attacks — Kerberoasting, AS-REP roasting, ADCS ESC1-ESC15, DCSync, BloodHound path analysis. |
 | **Cloud Hunter** | Cloud infrastructure attacks — IAM privilege escalation, S3 bucket exposure, Kubernetes RBAC escapes, metadata service abuse. |
 | **Contract Auditor** | Solidity / EVM smart contract audits — reentrancy, oracle manipulation, flash loan abuse, access control. |
-| **Reverser** | Binary analysis and reverse engineering — ELF/PE/Mach-O triage, packer detection, ROP gadget inventories, Ghidra/radare2 recon. |
+| **Reverser** | Binary analysis and reverse engineering — ELF/PE/Mach-O triage, packer detection, ROP gadget inventories, and REA/Ghidra static analysis when its optional workload is configured. [REA reversing](features/rea-reversing.md). |
 | **Analyst** | Vulnerability research and reporting — source code review, static analysis (semgrep/bandit/gitleaks), dependency CVE sweeps, multi-hop exploit chain construction. |
 | **Phisher** | Initial-access via phishing / social engineering (MITRE T1566.\*) — GoPhish campaigns, evilginx2 MFA-bypass token capture, M365/O365 OAuth device-code harvest, lookalike domains, pretext engineering. Mandatory lure deconfliction with the blue team before sending. |
 | **Mobile Operator** | Android / iOS application attacks — static analysis (apktool/jadx/class-dump), dynamic instrumentation (frida/objection), SSL pinning + root/jailbreak bypass, exported-component abuse, WebView JS bridge exploitation, MobSF. |

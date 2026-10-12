@@ -45,6 +45,23 @@
 
 <br/>
 
+## What the OSS agent does
+
+- **Autonomous reverse engineering:** when a binary found during an engagement
+  needs deeper analysis, the Reverser starts the optional REA workload and
+  uses its **Ghidra provider** through discovered MCP tools. REA keeps the
+  binary-bound analysis session and saves the original Evidence bundle before
+  results reach the agent. [How REA reversing works](docs/features/rea-reversing.md).
+- **Blue Cell defense:** a local sensor observes requests to your web service
+  and optional application logs. A resident defensive agent investigates
+  suspicious events and reports incidents in the CLI alongside the Red
+  engagement. It observes and reports; it does not automatically block traffic.
+  [Blue Cell setup and coverage](docs/features/blue-cell.md).
+- **Controlled red-team operations:** the orchestrator follows engagement rules
+  and an OPPLAN, dispatches specialist agents, and runs operational commands
+  in an isolated sandbox. [Engagement workflow](docs/engagement-workflow.md) ·
+  [Architecture](docs/architecture.md).
+
 <div align="center">
   <p><strong>Commercial product demo</strong></p>
   <video src="https://github.com/user-attachments/assets/7a9b233c-fd72-4633-a408-03953c345a15" width="800" controls></video>
@@ -218,6 +235,8 @@ Configure via `decepticon onboard`. → **[Full model reference & fallback examp
 | All CLI commands and keyboard shortcuts | [CLI Reference](docs/cli-reference.md) |
 | All `make` targets | [Makefile Reference](docs/makefile-reference.md) |
 | Agent roster and middleware | [Agents](docs/agents.md) |
+| REA/Ghidra reverse engineering | [REA Reversing](docs/features/rea-reversing.md) |
+| Local defensive monitoring | [Blue Cell](docs/features/blue-cell.md) |
 | Model profiles and fallback chain | [Models](docs/models.md) |
 | Skill system and format spec | [Skills](docs/skills.md) |
 | Web dashboard features and setup | [Web Dashboard](docs/web-dashboard.md) |
@@ -225,6 +244,7 @@ Configure via `decepticon onboard`. → **[Full model reference & fallback examp
 | Neo4j knowledge graph | [Knowledge Graph](docs/knowledge-graph.md) |
 | End-to-end engagement workflow | [Engagement Workflow](docs/engagement-workflow.md) |
 | Offensive Vaccine loop | [Offensive Vaccine](docs/offensive-vaccine.md) |
+| Release history | [Changelog](CHANGELOG.md) |
 | Contributing to Decepticon | [Contributing](docs/contributing.md) |
 
 ---

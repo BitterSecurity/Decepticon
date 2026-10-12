@@ -34,6 +34,11 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 
 - Run the web unit tests in CI, including tests written in `.test.tsx` files.
 
+### Documentation
+
+- Explain REA/Ghidra reversing and Blue Cell on the English and Korean README
+  entry pages, with links to their setup and behavior guides.
+
 ## [1.3.1] — 2026-10-12
 
 ### Fixed

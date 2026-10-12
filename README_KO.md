@@ -40,6 +40,22 @@
 
 <br/>
 
+## OSS 에이전트의 핵심 기능
+
+- **자율 리버스 엔지니어링:** 인게이지먼트 중 발견한 바이너리에
+  심층 분석이 필요하면 Reverser가 선택형 REA 워크로드를 시작하고
+  **Ghidra 프로바이더**의 MCP 도구를 찾아 사용합니다. REA는 바이너리에
+  결합된 분석 세션을 유지하고, 결과를 에이전트에 전달하기 전에 원본
+  Evidence bundle을 저장합니다. [REA 리버싱 동작](docs/features/rea-reversing.md).
+- **Blue Cell 방어 관찰:** 로컬 센서가 웹 서비스로 들어오는 요청과
+  선택적으로 애플리케이션 로그를 수집합니다. 상주 방어 에이전트가
+  의심 이벤트를 조사하고 Red 인게이지먼트와 함께 CLI에 알립니다.
+  자동 차단은 수행하지 않습니다. [Blue Cell 설정과 관찰 범위](docs/features/blue-cell.md).
+- **통제된 레드팀 운영:** 오케스트레이터가 인게이지먼트 규칙과
+  OPPLAN에 따라 전문 에이전트를 호출하고, 운영 명령은 격리된
+  샌드박스에서 실행합니다. [인게이지먼트 흐름](docs/engagement-workflow.md) ·
+  [아키텍처](docs/architecture.md).
+
 <div align="center">
   <p><strong>상용 제품 데모</strong></p>
   <video src="https://github.com/user-attachments/assets/7a9b233c-fd72-4633-a408-03953c345a15" width="800" controls></video>
@@ -71,7 +87,7 @@ Docker 설치 없이 — 브라우저에서 바로 자율 레드팀 엔게이지
 ```bash
 curl -fsSL https://decepticon.red/install | bash
 decepticon onboard   # 대화형 설정 위자드 (프로바이더, API 키, 모델 프로필)
-decepticon           # 전체 실행: 터미널 CLI + 웹 대시보드 (http://localhost:3000)
+decepticon           # 코어 서비스와 터미널 CLI 실행; 웹 대시보드는 CLI에서 /web
 ```
 
 → **[빠른 시작](docs/getting-started.md)** · **[전체 셋업 가이드](docs/setup-guide.md)**
@@ -145,7 +161,7 @@ AI + 해킹 도구들은 대부분 nmap 돌리고 리포트 출력하는 데모�
   <img src="assets/decepticon_infra.svg" alt="Decepticon Infrastructure" width="680">
 </div>
 
-두 개의 네트워크로 분리된 설계 — 관리 서비스(LiteLLM, PostgreSQL, LangGraph, Web)는 `decepticon-net`, 샌드박스 / C2 서버 / 타깃은 `sandbox-net`. Neo4j는 양 네트워크에 듀얼-홈으로 두어 관리망의 에이전트가 샌드박스 내부에서 기록한 발견 사항을 영속화할 수 있게 합니다.
+두 개의 네트워크로 분리된 설계입니다. 기본 관리 서비스(LiteLLM, PostgreSQL, Skillogy, LangGraph)와 샌드박스는 유지하고, 웹 대시보드는 CLI의 `/web` 명령으로, BloodHound CE·Sliver C2·REA/Ghidra 등 전문 워크로드는 필요할 때 시작합니다. Neo4j는 관리망과 샌드박스망에 연결되어 발견 사항을 영속화합니다.
 
 → **[아키텍처 상세](docs/architecture.md)** · **[지식 그래프](docs/knowledge-graph.md)**
 
@@ -187,6 +203,8 @@ Tier 기반 자격증명-aware 폴백 체인. 사용 가능한 자격증명을 �
 | 모든 CLI 커맨드와 단축키 | [CLI 레퍼런스](docs/cli-reference.md) |
 | 모든 `make` 타깃 | [Makefile 레퍼런스](docs/makefile-reference.md) |
 | 에이전트 목록 및 미들웨어 | [에이전트](docs/agents.md) |
+| REA/Ghidra 리버스 엔지니어링 | [REA 리버싱](docs/features/rea-reversing.md) |
+| 로컬 방어 관찰 | [Blue Cell](docs/features/blue-cell.md) |
 | 모델 프로필과 폴백 체인 | [모델](docs/models.md) |
 | 스킬 시스템과 포맷 스펙 | [스킬](docs/skills.md) |
 | 웹 대시보드 기능 및 설정 | [웹 대시보드](docs/web-dashboard.md) |
@@ -194,6 +212,7 @@ Tier 기반 자격증명-aware 폴백 체인. 사용 가능한 자격증명을 �
 | Neo4j 지식 그래프 | [지식 그래프](docs/knowledge-graph.md) |
 | 엔드투엔드 인게이지먼트 워크플로 | [인게이지먼트 워크플로](docs/engagement-workflow.md) |
 | 공격형 백신 루프 | [공격형 백신](docs/offensive-vaccine.md) |
+| 릴리즈 변경 내역 | [Changelog](CHANGELOG.md) |
 | Decepticon 기여하기 | [기여 가이드](docs/contributing.md) |
 
 ---
