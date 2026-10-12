@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 from pathlib import Path
 
 import pytest
@@ -18,6 +19,7 @@ _spec.loader.exec_module(_module)
 collect_requested_models = _module.collect_requested_models
 build_model_entry = _module.build_model_entry
 merge_dynamic_models = _module.merge_dynamic_models
+current_model_routes = _module.current_model_routes
 validate_model_name = _module.validate_model_name
 OPENAI_COMPAT_GATEWAYS = _module.OPENAI_COMPAT_GATEWAYS
 ALLOWED_DYNAMIC_PROVIDERS = _module.ALLOWED_DYNAMIC_PROVIDERS
@@ -26,6 +28,49 @@ _provider_prefix = _module._provider_prefix
 _NO_API_KEY_PROVIDERS = _module._NO_API_KEY_PROVIDERS
 PROVIDER_KEY_ENV_ALIASES = _module.PROVIDER_KEY_ENV_ALIASES
 PROVIDER_EXTRA_PARAMS = _module.PROVIDER_EXTRA_PARAMS
+
+
+def test_current_prod_catalog_is_oss_safe() -> None:
+    catalog = json.loads((_MODULE_PATH.parent / "litellm_prod_catalog.json").read_text())
+    routes = catalog["routes"]
+    names = [route["model_name"] for route in routes]
+    assert len(routes) == 132
+    assert len(names) == len(set(names))
+    assert "openai/gpt-5.6-sol" in names
+    assert "runyour/qwen3.8-max" in names
+    assert "openrouter/anthropic/claude-sonnet-5.5" in names
+    assert not any(name.startswith(("subscription/", "admin/", "auth/")) for name in names)
+    assert not any(
+        "byok-required" in str(route["litellm_params"]) for route in routes
+    )
+
+
+def test_current_prod_routes_require_real_provider_credentials() -> None:
+    assert current_model_routes({}) == []
+    assert current_model_routes({"OPENAI_API_KEY": "your-openai-key-here"}) == []
+
+    names = {
+        route["model_name"]
+        for route in current_model_routes({"OPENAI_API_KEY": "sk-test-key"})
+    }
+    assert "openai/gpt-5.6-sol" in names
+    assert "anthropic/claude-sonnet-5" not in names
+    assert "runyour/qwen3.8-max" not in names
+
+    missing_base = current_model_routes({"RUNYOUR_API_KEY": "sk-test-key"})
+    assert not any(route["model_name"].startswith("runyour/") for route in missing_base)
+
+
+def test_current_prod_routes_merge_without_duplicates() -> None:
+    config = yaml.safe_load((_MODULE_PATH.parent / "litellm.yaml").read_text())
+    merged = merge_dynamic_models(config, {"OPENAI_API_KEY": "sk-test-key"})
+    names = [route["model_name"] for route in merged["model_list"]]
+    assert len(names) == len(set(names))
+    assert "openai/gpt-5.6-sol" in names
+    assert "openai/gpt-6.1-sol" in names
+    route = next(route for route in merged["model_list"] if route["model_name"] == "openai/gpt-5.6-sol")
+    assert route["litellm_params"]["api_key"] == "os.environ/OPENAI_API_KEY"
+    assert route["litellm_params"]["additional_drop_params"] == ["temperature"]
 
 
 @pytest.mark.parametrize(
@@ -52,6 +97,11 @@ def test_current_api_models_have_proxy_routes(
     assert route["litellm_params"]["model"] == model
     assert route["litellm_params"]["api_key"] == f"os.environ/{key_env}"
     assert (route.get("model_info", {}).get("mode") == "responses") is response_mode
+    if model.startswith("openai/gpt-6"):
+        assert route["litellm_params"]["allowed_openai_params"] == [
+            "reasoning_effort",
+            "tool_choice",
+        ]
     if model == "gemini/gemini-3.8-flash":
         assert route["litellm_params"]["additional_drop_params"] == [
             "temperature",

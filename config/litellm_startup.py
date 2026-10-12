@@ -18,6 +18,7 @@ from pathlib import Path
 sys.path.insert(0, "/app")
 from litellm_dynamic_config import (  # noqa: E402
     collect_requested_models,
+    current_model_routes,
     has_subscription_routes,
     write_dynamic_config,
 )
@@ -57,17 +58,10 @@ def _egress_probe() -> None:
 
 
 def _replace_config_arg() -> None:
-    """Append env-requested model routes to the LiteLLM config before boot.
-
-    Also injects subscription OAuth routes (auth/gpt-*) when the
-    corresponding ``DECEPTICON_AUTH_*`` flag is enabled, even if no
-    ``DECEPTICON_MODEL*`` override is set. Without this second branch a
-    user who only enabled ChatGPT subscription auth would never see
-    ``auth/gpt-*`` registered and every request would 400.
-    """
     requested = collect_requested_models()
     needs_subscription = has_subscription_routes()
-    if not requested and not needs_subscription:
+    current_routes = current_model_routes()
+    if not requested and not needs_subscription and not current_routes:
         return
 
     config_path: str | None = None
@@ -103,6 +97,8 @@ def _replace_config_arg() -> None:
         parts.append(f"{len(requested)} model override(s)")
     if needs_subscription:
         parts.append("subscription OAuth route(s)")
+    if current_routes:
+        parts.append(f"{len(current_routes)} current model route(s)")
     print(f"[decepticon] registered dynamic config: {', '.join(parts)}", flush=True)
 
 
@@ -145,6 +141,19 @@ def _probe_ollama_if_configured() -> None:
 _probe_ollama_if_configured()
 
 import litellm  # noqa: E402
+
+litellm.register_model(
+    model_cost={
+        model: {
+            "litellm_provider": "openai",
+            "mode": "chat",
+            "supports_reasoning": True,
+            "supports_xhigh_reasoning_effort": True,
+        }
+        for model in ("gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna")
+    }
+)
+
 from auth_handler import auth_handler_instance  # noqa: E402
 from codex_chatgpt_handler import codex_chatgpt_handler_instance  # noqa: E402
 from copilot_handler import copilot_handler_instance  # noqa: E402

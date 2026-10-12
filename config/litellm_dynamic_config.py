@@ -25,6 +25,30 @@ from typing import Any
 
 import yaml
 
+_CURRENT_MODEL_CATALOG = Path(__file__).with_name("litellm_prod_catalog.json")
+
+
+def _configured_credential(value: str | None) -> bool:
+    candidate = (value or "").strip()
+    return bool(candidate and not candidate.startswith(("your-", "YOUR-")))
+
+
+def current_model_routes(env: Mapping[str, str] | None = None) -> list[dict[str, Any]]:
+    source = env if env is not None else os.environ
+    catalog = json.loads(_CURRENT_MODEL_CATALOG.read_text(encoding="utf-8"))
+    enabled: list[dict[str, Any]] = []
+    for route in catalog["routes"]:
+        params = route["litellm_params"]
+        required = [
+            value.removeprefix("os.environ/")
+            for field in ("api_key", "api_base")
+            if isinstance(value := params.get(field), str)
+            and value.startswith("os.environ/")
+        ]
+        if all(_configured_credential(source.get(name)) for name in required):
+            enabled.append(copy.deepcopy(route))
+    return enabled
+
 # Common LiteLLM provider prefix -> environment variable containing the API key.
 # Unknown providers fall back to ``<PROVIDER>_API_KEY`` after normalization, which
 # covers most LiteLLM providers without requiring a code change.
@@ -1026,6 +1050,11 @@ def merge_dynamic_models(
 
     model_list = list(merged.get("model_list") or [])
     existing = {entry.get("model_name") for entry in model_list if isinstance(entry, dict)}
+
+    for route in current_model_routes(env):
+        if route["model_name"] not in existing:
+            model_list.append(route)
+            existing.add(route["model_name"])
 
     for model_name in sorted(collect_requested_models(env)):
         if model_name in existing:
