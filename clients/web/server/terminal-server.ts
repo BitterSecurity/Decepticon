@@ -42,6 +42,7 @@ const CLI_PATH = resolve(__dirname, "../../cli/src/index.tsx");
 const LANGGRAPH_API_URL = process.env.LANGGRAPH_API_URL ?? "http://localhost:2024";
 const ORPHAN_TTL = 60_000; // Kill orphaned PTYs after 60s with no WS
 const SCROLLBACK_LIMIT = 50_000; // chars of recent output to buffer for reattach
+const THREAD_VALIDATION_TIMEOUT_MS = 10_000; // Match thread creation's request timeout.
 
 const ALLOWED_ORIGINS = new Set(
   (process.env.TERMINAL_ALLOWED_ORIGINS ?? `http://localhost:${WEB_PORT},http://127.0.0.1:${WEB_PORT}`)
@@ -140,6 +141,22 @@ async function createThread(engagementId: string, agentId: string): Promise<stri
   }
 }
 
+async function threadExists(threadId: string): Promise<boolean> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), THREAD_VALIDATION_TIMEOUT_MS);
+  try {
+    const res = await fetch(
+      `${LANGGRAPH_API_URL}/threads/${encodeURIComponent(threadId)}`,
+      { signal: controller.signal },
+    );
+    if (res.status === 404) return false;
+    if (!res.ok) throw new Error(`Thread read: ${res.status}`);
+    return true;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 function sendJson(ws: WebSocket, payload: Record<string, unknown>): void {
   if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(payload));
 }
@@ -223,6 +240,16 @@ wss.on("connection", async (ws: WebSocket, req) => {
 
   // ── Create new session ──
   let threadId = url.searchParams.get("threadId") ?? "";
+  if (threadId) {
+    try {
+      if (!(await threadExists(threadId))) threadId = "";
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(ws, { type: "error", message: `Thread validation failed: ${message}` });
+      ws.close(1011, "Thread validation failed");
+      return;
+    }
+  }
   if (!threadId) {
     try {
       threadId = await createThread(engagementId, agentId);
@@ -231,6 +258,8 @@ wss.on("connection", async (ws: WebSocket, req) => {
       const msg = err instanceof Error ? err.message : String(err);
       console.error(`[terminal-server] Thread creation failed: ${msg}`);
       sendJson(ws, { type: "error", message: `Thread creation failed: ${msg}` });
+      ws.close(1011, "Thread creation failed");
+      return;
     }
   }
   if (threadId) {

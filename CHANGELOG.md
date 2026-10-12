@@ -12,6 +12,11 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+### Fixed
+
+- Replace missing engagement threads before starting a terminal and stop terminal
+  creation when the thread service fails. ([#903](https://github.com/BitterSecurity/Decepticon/pull/903))
+
 ## [1.4.0] — 2026-10-13
 
 ### Added
