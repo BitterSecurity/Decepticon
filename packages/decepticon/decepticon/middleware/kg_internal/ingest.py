@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from abc import abstractmethod
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any, Protocol
@@ -470,7 +471,9 @@ def _adapt_httpx_jsonl(
 
 
 class _SarifSource(Protocol):
-    def read_text(self, encoding: str = "utf-8") -> str: ...
+    @abstractmethod
+    def read_text(self, encoding: str = "utf-8") -> str:
+        """Return the SARIF source decoded using the requested encoding."""
 
 
 def _adapt_sarif(
