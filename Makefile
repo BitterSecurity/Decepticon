@@ -58,7 +58,7 @@ export CODEX_AUTH_VOLUME ?= $(shell test -f $(HOME)/.codex/auth.json && echo $(H
         dev cli-dev web-dev infra \
         quality quality-strict quality-cli test test-local lint lint-fix \
         ci-lint ci-test ci-test-coverage ci-test-coverage-report \
-        web-build web-hotswap web-lint web-migrate \
+        web-build web-hotswap web-lint web-test web-migrate \
         status logs health clean \
         node-install web-db-ensure \
 		benchmark terminal-bench recreate-litellm
@@ -292,13 +292,13 @@ quality-cli: node-install
 
 ## PR gate — mirrors CI PR lane (errors-only typecheck + fast pytest + CLI + Web).
 ## Use before opening a PR; passing this guarantees CI will pass.
-quality: ci-lint ci-test quality-cli web-lint web-build
+quality: ci-lint ci-test quality-cli web-lint web-test web-build
 	@echo ""
 	@echo "OK — PR gates passed (mirrors CI PR lane)"
 
 ## Release gate — mirrors CI main-push lane (coverage 60%) + full basedpyright
 ## audit (warnings + info). Run before tagging a release.
-quality-strict: ci-lint ci-test-coverage quality-cli web-lint web-build
+quality-strict: ci-lint ci-test-coverage quality-cli web-lint web-test web-build
 	@echo ""
 	@echo "==> basedpyright (full — warning + info audit, non-blocking)"
 	uv run basedpyright
@@ -322,6 +322,9 @@ web-hotswap: node-install web-build
 
 web-lint: node-install
 	cd $(WEB_DIR) && npx eslint src/ --max-warnings 0
+
+web-test: node-install
+	npm run test --workspace=web
 
 web-migrate: node-install
 	cd $(WEB_DIR) && npx prisma migrate dev --name $(or $(NAME),init)
