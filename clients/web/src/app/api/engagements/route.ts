@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import * as fs from "fs/promises";
 import * as path from "path";
 import { directApproval, directRoe, validateDirectTarget } from "@/lib/direct-scope";
+import { isValidEngagementSlug } from "@/lib/engagement-slug";
 
 const WORKSPACE = process.env.WORKSPACE_PATH ?? path.join(process.env.HOME ?? "", ".decepticon", "workspace");
 
@@ -88,6 +89,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid initial mode" }, { status: 400 });
     }
 
+    if (!isValidEngagementSlug(name)) {
+      return NextResponse.json(
+        { error: "Invalid engagement name — must be 3-64 chars, lowercase letters / digits / internal hyphens" },
+        { status: 400 },
+      );
+    }
+
     let roeBytes: Buffer;
     let normalizedTarget: string;
     try {
@@ -104,18 +112,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Engagement name doubles as the workspace slug. Enforce the same regex
-    // the launcher uses so a name created here works as a folder name and a
-    // future "Resume <slug>" picker entry without further escaping.
-    if (!SLUG_RE.test(name)) {
-      return NextResponse.json(
-        {
-          error:
-            "Invalid engagement name — must be 3-64 chars, lowercase letters / digits / internal hyphens",
-        },
-        { status: 400 }
-      );
-    }
     const existing = await prisma.engagement.findFirst({
       where: { name, userId },
     });
@@ -125,8 +121,12 @@ export async function POST(req: NextRequest) {
         { status: 409 },
       );
     }
-    const wsPath = path.join(WORKSPACE, name);
-    await fs.mkdir(WORKSPACE, { recursive: true });
+    const workspaceRoot = path.resolve(WORKSPACE);
+    const wsPath = path.resolve(workspaceRoot, name);
+    if (path.dirname(wsPath) !== workspaceRoot) {
+      return NextResponse.json({ error: "Invalid engagement workspace path" }, { status: 400 });
+    }
+    await fs.mkdir(workspaceRoot, { recursive: true });
     try {
       await fs.mkdir(wsPath, { recursive: false, mode: 0o700 });
     } catch (error) {

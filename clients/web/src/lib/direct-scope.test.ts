@@ -21,3 +21,7 @@ test("direct Red scope rejects unsupported target shapes", () => {
     assert.throws(() => validateDirectTarget(type, target));
   }
 });
+
+test("direct Red scope rejects control characters in authorization references", () => {
+  assert.throws(() => directRoe("test-engagement", "web_url", "https://example.com", "agreement-1\nadmin"));
+});

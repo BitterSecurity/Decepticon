@@ -27,7 +27,10 @@ export function validateDirectTarget(type: string, value: string): string {
 
 export function directRoe(name: string, type: string, value: string, reference: string) {
   const target = validateDirectTarget(type, value);
-  if (!reference.trim()) throw new Error("Authorization reference is required");
+  const authorizationReference = reference.trim();
+  if (!authorizationReference || authorizationReference.length > 200 || /[\u0000-\u001f\u007f]/.test(authorizationReference)) {
+    throw new Error("Authorization reference must be 1–200 characters without control characters");
+  }
   const today = new Date().toISOString().slice(0, 10);
   return {
     engagement_name: name,
@@ -37,7 +40,7 @@ export function directRoe(name: string, type: string, value: string, reference: 
     engagement_type: "external",
     testing_window: "Operator-confirmed current session",
     in_scope: [{ target, type }],
-    authorization_reference: reference.trim(),
+    authorization_reference: authorizationReference,
     machine_enforcement: { mode: "enforce", in_scope: [target] },
   };
 }
