@@ -18,6 +18,7 @@ import {
   Box,
   Loader2,
 } from "lucide-react";
+import { useBrowserConfig } from "@/lib/browser-config-context";
 import { cn } from "@/lib/utils";
 import type { AgentConfig } from "@/lib/agents";
 import {
@@ -47,7 +48,8 @@ const SERVICE_NAME_MAP: Record<string, string> = {
   postgres: "PostgreSQL",
 };
 
-export default function SettingsPage() {
+export default function SettingsPage(): React.ReactNode {
+  const config = useBrowserConfig();
   const [services, setServices] = useState<ServiceStatus[]>([
     { name: "LangGraph API", status: "loading", detail: "Checking...", icon: Activity },
     { name: "LiteLLM Proxy", status: "loading", detail: "Checking...", icon: Server },
@@ -249,7 +251,7 @@ export default function SettingsPage() {
           <div className="space-y-2 text-sm">
             {[
               ["Edition", "Open Source (OSS)"],
-              ["LangGraph API (internal)", process.env.NEXT_PUBLIC_LANGGRAPH_API_URL ?? "http://localhost:2024"],
+              ["LangGraph API (browser)", config.langGraphApiUrl],
               ["Model Profile", "eco (per-agent tier)"],
               ["C2 Framework", "Sliver"],
             ].map(([label, value]) => (

@@ -16,8 +16,9 @@
 
 import { useEffect, useRef, useCallback, useState } from "react";
 import { cn } from "@/lib/utils";
+import { terminalWebSocketUrl } from "@/lib/browser-config";
+import { useBrowserConfig } from "@/lib/browser-config-context";
 
-const TERMINAL_WS_URL = process.env.NEXT_PUBLIC_TERMINAL_WS_URL ?? "ws://localhost:3003";
 const MAX_RECONNECT_DELAY = 4000;
 const INITIAL_RECONNECT_DELAY = 1000;
 const MAX_RECONNECT_ATTEMPTS = 15;
@@ -61,7 +62,10 @@ export function WebTerminal({
   threadId,
   className,
   onThreadId,
-}: WebTerminalProps) {
+}: WebTerminalProps): React.ReactNode {
+  const config = useBrowserConfig();
+  const terminalEndpointRef = useRef(config.terminalWsUrl);
+  terminalEndpointRef.current = config.terminalWsUrl;
   const containerRef = useRef<HTMLDivElement>(null);
   const [connState, setConnState] = useState<ConnectionState>("connecting");
 
@@ -138,14 +142,14 @@ export function WebTerminal({
     const targetValue = targetValueRef.current;
     const authorizationConfirmed = authorizationConfirmedRef.current;
 
-    let wsUrl =
-      `${TERMINAL_WS_URL}?engagementId=${encodeURIComponent(eid)}` +
-      `&engagementSlug=${encodeURIComponent(slug)}` +
-      `&agentId=${encodeURIComponent(aid)}` +
-      `&targetType=${encodeURIComponent(targetType)}` +
-      `&targetValue=${encodeURIComponent(targetValue)}` +
-      `&authorizationConfirmed=${authorizationConfirmed}`;
-    if (tid) wsUrl += `&threadId=${encodeURIComponent(tid)}`;
+    const wsUrl = terminalWebSocketUrl(window.location, terminalEndpointRef.current);
+    wsUrl.searchParams.set("engagementId", eid);
+    wsUrl.searchParams.set("engagementSlug", slug);
+    wsUrl.searchParams.set("agentId", aid);
+    wsUrl.searchParams.set("targetType", targetType);
+    wsUrl.searchParams.set("targetValue", targetValue);
+    wsUrl.searchParams.set("authorizationConfirmed", String(authorizationConfirmed));
+    if (tid) wsUrl.searchParams.set("threadId", tid);
 
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;

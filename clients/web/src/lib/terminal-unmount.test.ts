@@ -34,6 +34,8 @@ test("unmount during xterm loading does not allocate abandoned terminal resource
   let finishImport!: (module: { Terminal: typeof Terminal }) => void;
   const pendingImport = new Promise<{ Terminal: typeof Terminal }>((resolve) => { finishImport = resolve; });
   const modules: Record<string, unknown> = {
+    "@/lib/browser-config": require("./browser-config.ts"),
+    "@/lib/browser-config-context": { useBrowserConfig: () => ({ terminalWsUrl: "ws://localhost:3003" }) },
     "@/lib/utils": { cn: (...values: string[]) => values.join(" ") },
     "xterm": pendingImport,
     "@xterm/addon-fit": { FitAddon: class {} },
