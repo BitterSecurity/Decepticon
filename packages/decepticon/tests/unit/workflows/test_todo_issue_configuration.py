@@ -1,7 +1,8 @@
-"""Check the scanner's local language contract without running third-party code."""
+"""Prevent the five reported task-documentation false positives without changing scan syntax."""
 
 from __future__ import annotations
 
+import ast
 import json
 import re
 from pathlib import Path
@@ -11,6 +12,7 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
 WORKFLOW = REPO_ROOT / ".github/workflows/todo-to-issue.yml"
+SOURCE = REPO_ROOT / "packages/decepticon/decepticon/tools/research/agent_todo.py"
 ACTION = "alstr/todo-to-issue-action@64aca8fda7023259aada83ba44ad988c4c443657"
 
 
@@ -22,64 +24,51 @@ def scanner_inputs() -> dict:
     )
 
 
-@pytest.fixture
-def python_language(scanner_inputs: dict) -> dict:
-    definitions = json.loads((REPO_ROOT / scanner_inputs["LANGUAGES"]).read_text(encoding="utf-8"))
-    assert [definition["language"] for definition in definitions] == ["Python"]
-    return definitions[0]
-
-
-def test_python_override_uses_only_hash_line_comments(python_language: dict) -> None:
-    assert python_language["markers"] == [{"type": "line", "pattern": "#"}]
-
-
-@pytest.mark.parametrize("identifier", ["TODO", "FIXME", "HACK"])
-def test_python_markers_recognize_explicit_task_comments(
-    python_language: dict, identifier: str
+@pytest.mark.parametrize(
+    ("owner", "prefix"),
+    [
+        ("module", "Each agent maintains"),
+        ("create_todo", "agent_name:"),
+        ("list_todos", "List "),
+        ("mark_todo_done", "todo_id:"),
+        ("delete_todo", "todo_id:"),
+    ],
+)
+def test_reported_docstring_lines_contain_no_task_marker(
+    scanner_inputs: dict, owner: str, prefix: str
 ) -> None:
-    comment = f"    # {identifier}(#889): scanner regression fixture"
-    assert any(re.search(marker["pattern"], comment) for marker in python_language["markers"])
+    module = ast.parse(SOURCE.read_text(encoding="utf-8"))
+    node = (
+        module
+        if owner == "module"
+        else next(
+            child
+            for child in module.body
+            if isinstance(child, ast.FunctionDef) and child.name == owner
+        )
+    )
+    docstring = ast.get_docstring(node)
+    assert docstring is not None
+    line = next(line.strip() for line in docstring.splitlines() if line.strip().startswith(prefix))
+    for identifier in json.loads(scanner_inputs["IDENTIFIERS"]):
+        assert not re.search(r"\b" + re.escape(identifier["name"]) + r"\b", line, re.IGNORECASE)
+
+
+def test_scanner_retains_default_python_filename_and_comment_mapping(scanner_inputs: dict) -> None:
+    assert "LANGUAGES" not in scanner_inputs
+    assert scanner_inputs.get("NO_STANDARD", False) is False
+    assert not (REPO_ROOT / ".github/todo-python-language.json").exists()
 
 
 @pytest.mark.parametrize(
-    "prose",
-    [
-        "Each agent maintains its own TODO list persisted at",
-        "        agent_name: The agent creating this TODO (defaults to 'default')",
-        '    """List TODO items for an agent.',
-        "        todo_id: The ID of the TODO to complete",
-        "        todo_id: The ID of the TODO to delete",
-    ],
+    "path", [".github/workflows/todo-to-issue.yml", ".github/todo-python-language.json"]
 )
-def test_python_markers_reject_reported_tool_docstrings(python_language: dict, prose: str) -> None:
-    # This checks configured comment markers, not the external action's parser.
-    assert not any(re.search(marker["pattern"], prose) for marker in python_language["markers"])
-
-
-def test_python_override_keeps_existing_extension_coverage(python_language: dict) -> None:
-    assert set(python_language["extensions"]) == {
-        ".py",
-        ".cgi",
-        ".fcgi",
-        ".gyp",
-        ".gypi",
-        ".lmi",
-        ".py3",
-        ".pyde",
-        ".pyi",
-        ".pyp",
-        ".pyt",
-        ".pyw",
-        ".rpy",
-        ".spec",
-        ".tac",
-        ".wsgi",
-        ".xpy",
-    }
-
-
-def test_scanner_keeps_standard_languages_enabled(scanner_inputs: dict) -> None:
-    assert scanner_inputs.get("NO_STANDARD", False) is False
+def test_scanner_configuration_changes_trigger_python_ci(path: str) -> None:
+    workflow = yaml.safe_load((REPO_ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8"))
+    app_filter = next(
+        step for step in workflow["jobs"]["changes"]["steps"] if step.get("id") == "app"
+    )
+    assert path in yaml.safe_load(app_filter["with"]["filters"])["python"]
 
 
 def test_scanner_preserves_marker_labels(scanner_inputs: dict) -> None:
