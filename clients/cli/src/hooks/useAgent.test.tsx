@@ -26,10 +26,6 @@ vi.mock("../utils/threadStore.js", () => ({
   loadThreadByIndex: vi.fn(async () => null),
 }));
 
-vi.mock("../commands/modelOverride.js", () => ({
-  getModelOverride: () => undefined,
-}));
-
 vi.mock("../commands/planMode.js", () => ({
   assertRedApproved: vi.fn(async () => {}),
 }));
@@ -71,6 +67,48 @@ describe("useAgent — engagement handoff lifecycle", () => {
     vi.unstubAllEnvs();
     vi.restoreAllMocks();
   });
+
+  it("sends the selected model through graph input on set, repeat, change and clear", async () => {
+    const { setModelOverride } = await import("../commands/modelOverride.js");
+    const { result } = renderHook(() => useAgent());
+    const selections = ["auth/gpt-6-luna", "auth/gpt-6-luna", "auth/gpt-6.1-sol", ""];
+    for (const selected of selections) {
+      setModelOverride(selected);
+      act(() => result.current.submit("hello"));
+      await act(async () => { await vi.runAllTimersAsync(); });
+    }
+    const requests = (mockState.client!.runs.stream as Mock).mock.calls.map((call) => call[2]);
+    expect(requests.map((request) => request.input.model_override)).toEqual(selections);
+    expect(requests.every((request) => request.context === undefined)).toBe(true);
+    expect(requests.every((request) => request.config?.configurable.model_override === undefined)).toBe(true);
+  });
+
+  it.each(["resume", "answerQuestion"] as const)(
+    "%s updates the checkpoint with the current model, including clear", async (method) => {
+      const { setModelOverride } = await import("../commands/modelOverride.js");
+      const stream = mockState.client!.runs.stream as Mock;
+      const { result } = renderHook(() => useAgent());
+      for (const selected of ["auth/gpt-6.1-sol", ""]) {
+        const pausedStream = createControllableStream();
+        stream.mockReturnValueOnce(pausedStream);
+        act(() => result.current.submit("hello"));
+        await act(async () => { await vi.runAllTimersAsync(); });
+        await act(async () => {
+          await pausedStream.emit({
+            event: "custom", data: { type: "ask_user_question", question: "Continue?" },
+          });
+        });
+        await act(async () => { pausedStream.end(); await vi.runAllTimersAsync(); });
+        expect(result.current.runState).toBe("paused");
+        setModelOverride(selected);
+        act(() => result.current[method]("yes"));
+        await act(async () => { await vi.runAllTimersAsync(); });
+        expect(stream.mock.calls.at(-1)?.[2].command).toEqual({
+          resume: "yes", update: { model_override: selected },
+        });
+      }
+    },
+  );
 
   it.each([
     [{ finish_reason: "length" }, "output token limit"],
