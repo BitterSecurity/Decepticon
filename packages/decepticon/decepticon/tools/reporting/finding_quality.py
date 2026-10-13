@@ -1,6 +1,11 @@
 """Structural quality check for a canonical finding before reporting completes."""
 
-from __future__ import annotations
+# Deliberately no `from __future__ import annotations`: it stringifies the
+# `ToolRuntime` annotation on `check_finding_report` below, and langchain's
+# injected-argument detection reads the raw signature rather than resolving
+# type hints. With a stringified annotation `runtime` is not recognised as an
+# injected argument, so it is validated as a model-supplied argument instead
+# of being passed through on the injection path.
 
 import json
 import re

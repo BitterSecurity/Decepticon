@@ -17,6 +17,12 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 - Transfer SARIF imports and reports through the run sandbox with trusted graph
   and workspace scope, preserving protected files.
   ([#936](https://github.com/BitterSecurity/Decepticon/pull/936))
+- Attach the image digest manifest before publishing a release; GitHub Actions
+  does not start a second workflow from a release published with `GITHUB_TOKEN`.
+- Restore injected runtime handling for OPPLAN task dispatch and finding-quality
+  checks. ([#923](https://github.com/BitterSecurity/Decepticon/pull/923))
+- Give LangGraph access to the engagement workspace for planning validation and
+  readiness markers. ([#924](https://github.com/BitterSecurity/Decepticon/pull/924))
 - Recover missing terminal threads before PTY startup and stop safely on backend
   errors or disconnected startup. ([#935](https://github.com/BitterSecurity/Decepticon/pull/935))
 - Stop terminal initialization after navigation unmounts it while xterm is loading,
