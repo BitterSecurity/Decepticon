@@ -17,6 +17,7 @@ from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode
 
 from decepticon.backends.factory import _shared_sandbox, build_sandbox_backend
+from decepticon.middleware.kg_internal.store import KGStore
 from decepticon.middleware.kg_internal.tools import build_kg_tools
 from decepticon.sandbox_kernel.daemon import DaemonSandbox
 from decepticon.tools.reporting.tools import report_sarif
@@ -28,6 +29,13 @@ class ToolState(TypedDict, total=False):
     engagement_name: str
     kg_engagement: str
     workspace_path: str
+
+
+class RemoteFixture(TypedDict):
+    roots: dict[str, Path]
+    requests: list[tuple[str, str]]
+    partitions: list[str]
+    graph: KnowledgeGraph
 
 
 class RecordingStore:
@@ -172,6 +180,36 @@ def test_per_run_endpoint_and_partition_override(remote: dict) -> None:
         assert (remote["roots"][host] / "workspace/owned-run/out.sarif").exists()
     assert remote["partitions"] == ["first-graph", "second-graph"]
     assert [host for host, _ in remote["requests"]] == ["sandbox-a", "sandbox-b"]
+
+
+def test_registered_sarif_override_keeps_path_adapter_contract(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, remote: RemoteFixture
+) -> None:
+    ingest = importlib.import_module("decepticon.middleware.kg_internal.ingest")
+    monkeypatch.setattr(ingest, "_REGISTRY", dict(ingest._REGISTRY))
+    source = tmp_path / "custom.sarif"
+    source.write_text("plugin-owned input", encoding="utf-8")
+
+    def custom_adapter(
+        path: Path, store: KGStore, engagement: str, created_by: str, episode: str
+    ) -> dict[str, str | int]:
+        return {"ingested": 1, "contents": path.read_text(encoding="utf-8"), "engagement": engagement}
+
+    ingest.register_adapter("sarif", custom_adapter)
+    state, config = scope("/workspace/owned-run")
+    result = dispatch(
+        build_kg_tools(RecordingStore(), enabled={"kg_ingest"})[0],
+        {"scanner_kind": "sarif", "path": str(source)},
+        state,
+        config,
+    )
+    assert result == {
+        "scanner": "sarif",
+        "path": str(source),
+        "ingested": 1,
+        "contents": "plugin-owned input",
+        "engagement": "analyst-graph",
+    }
 
 
 @pytest.mark.parametrize(
