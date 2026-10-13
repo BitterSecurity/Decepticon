@@ -12,31 +12,39 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+## [1.4.1] — 2026-10-14
+
 ### Fixed
 
 - Require matching release versions of Core and framework dependencies in
   published Python packages so upgrades include their sibling fixes.
+  ([#955](https://github.com/BitterSecurity/Decepticon/pull/955))
 - Reject duplicate CVSS metrics, unsupported version labels, and empty vector
-  segments before scoring. (#942)
+  segments before scoring. ([#948](https://github.com/BitterSecurity/Decepticon/pull/948))
 - Complete planning-document schema guidance, detect model/table drift, and
   report all invalid documents in one validation attempt.
   ([#929](https://github.com/BitterSecurity/Decepticon/pull/929))
 - Transfer SARIF imports and reports through the run sandbox with trusted graph
-  and workspace scope, preserving protected files.
+  and workspace scope, preserving protected files, MCP-started workspaces,
+  and registered SARIF adapter overrides.
   ([#936](https://github.com/BitterSecurity/Decepticon/pull/936))
 - Attach the image digest manifest before publishing a release; GitHub Actions
   does not start a second workflow from a release published with `GITHUB_TOKEN`.
+  ([#938](https://github.com/BitterSecurity/Decepticon/pull/938))
 - Require successful terminal completion of finding checks and their negative
-  controls; retain bounded baseline output, exit status, and hash. (#944)
+  controls; retain bounded baseline output, exit status, and hash.
+  ([#953](https://github.com/BitterSecurity/Decepticon/pull/953))
 - Restore injected runtime handling for OPPLAN task dispatch and finding-quality
   checks. ([#923](https://github.com/BitterSecurity/Decepticon/pull/923))
 - Bind tmux command completion to the submitted shell command, preserving printed
-  prompt markers and waiting for the final exit status of multiline commands. (#945)
+  prompt markers and waiting for the final exit status of multiline commands.
+  ([#951](https://github.com/BitterSecurity/Decepticon/pull/951))
 - Buffer Ollama tool-bound requests on the wire as well as in the response
   parser, while preserving text streaming, token callbacks, and usage accounting.
-  ([#940](https://github.com/BitterSecurity/Decepticon/issues/940))
+  ([#947](https://github.com/BitterSecurity/Decepticon/pull/947))
 - Preserve LangGraph threads and checkpoints across container recreation by
   storing development runtime state in a Compose project volume.
+  ([#954](https://github.com/BitterSecurity/Decepticon/pull/954))
 - Give LangGraph access to the engagement workspace for planning validation and
   readiness markers. ([#924](https://github.com/BitterSecurity/Decepticon/pull/924))
 - Recover missing terminal threads before PTY startup and stop safely on backend
@@ -45,7 +53,8 @@ comparison link. Keep proposed and unmerged changes out of released sections.
   avoiding abandoned terminal resources. ([#932](https://github.com/BitterSecurity/Decepticon/pull/932))
 
 - Discover all registered `/agent` orchestrators across assistant catalog pages,
-  retaining the current selection if discovery fails or times out. (#943)
+  retaining the current selection if discovery fails or times out.
+  ([#949](https://github.com/BitterSecurity/Decepticon/pull/949))
 - Start engagement terminals only after opening Live, preserving visited mode
   terminals across tab navigation. ([#934](https://github.com/BitterSecurity/Decepticon/pull/934))
 
@@ -53,9 +62,10 @@ comparison link. Keep proposed and unmerged changes out of released sections.
   prebuilt image supports relative reverse-proxy routes across deployments.
   ([#931](https://github.com/BitterSecurity/Decepticon/pull/931))
 - Stop disconnected terminal startup before it can replace an attached session
-  or spawn an orphan PTY. (#930)
+  or spawn an orphan PTY. ([#930](https://github.com/BitterSecurity/Decepticon/pull/930))
 - Route ChatGPT OAuth profiles through current Codex models (GPT-6 Astra,
   GPT-6.1 Sol, GPT-6 Luna), and remove retired OAuth routes from the model picker.
+  ([#950](https://github.com/BitterSecurity/Decepticon/pull/950))
 - Follow renamed-repository redirects during installer release lookup, pin
   explicit-version config downloads to the matching release, and correct the
   version recovery command. ([#927](https://github.com/BitterSecurity/Decepticon/pull/927))
@@ -63,8 +73,17 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 - Apply CLI `/model` selection and clearing through persisted graph state,
   including Soundwave, specialists, and resumed runs, while preserving
   provider-specific model settings.
+  ([#952](https://github.com/BitterSecurity/Decepticon/pull/952))
 - Allow freshly onboarded installations to start without a legacy credential
   migration backup; continue reporting unreadable backup files.
+  ([#946](https://github.com/BitterSecurity/Decepticon/pull/946))
+
+### Upgrade notes
+
+- LangGraph history is retained after the new volume is in use. Existing
+  unmounted container history is not automatically migrated or recovered;
+  back it up before replacing that container if it must be retained.
+  Development-runtime persistence does not guarantee crash durability.
 
 ## [1.4.0] — 2026-10-13
 
@@ -1050,7 +1069,8 @@ The following legacy import paths keep working but emit a
   atomic release.
 - Downstream plugin package lockstep migration.
 
-[Unreleased]: https://github.com/BitterSecurity/Decepticon/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/BitterSecurity/Decepticon/compare/v1.4.1...HEAD
+[1.4.1]: https://github.com/BitterSecurity/Decepticon/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/BitterSecurity/Decepticon/compare/v1.3.1...v1.4.0
 [1.3.1]: https://github.com/BitterSecurity/Decepticon/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/BitterSecurity/Decepticon/compare/v1.2.5...v1.3.0

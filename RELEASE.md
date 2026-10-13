@@ -31,7 +31,7 @@ Docker images. There is no version-bump commit to make before tagging.
 5. Tag and push:
    ```bash
    git tag vX.Y.Z
-   git push origin main --tags
+   git push origin vX.Y.Z
    ```
 
 Pushing a `v*` tag triggers `.github/workflows/release.yml`.
@@ -46,7 +46,7 @@ but does not build missing images.
 
 | Job | Output |
 |-----|--------|
-| `publish-pypi` | Builds the wheel + sdist and publishes the `decepticon` package to PyPI via Trusted Publishing (OIDC — no API token). |
+| `publish-pypi` | Builds wheels and sdists for `decepticon-core`, `decepticon`, and `decepticon-sdk`, pins sibling dependencies to the release version, and publishes via Trusted Publishing (OIDC — no API token). |
 | `launcher` | Builds the Go launcher binaries with GoReleaser (which drafts the GitHub release) and uploads `config-checksums.txt`, a SHA-256 integrity manifest for `docker-compose.yml`, `config/litellm.yaml`, and `.env.example`. |
 | `docker` | Builds and pushes the multi-arch `litellm`, `langgraph`, `cli`, and `skillogy` images. |
 | `docker-heavy` / `docker-heavy-merge` | Builds `sandbox` and `c2-sliver` on native amd64/arm64 runners, plus the REA image on amd64, then merges the per-arch digests into manifests. |
@@ -59,9 +59,11 @@ verified, so a half-finished release never moves the `:latest` tag.
 
 ## Digest pinning
 
-`pin-digests.yml` runs on every published release and uploads
+The release workflow uploads
 `image-digests.txt` — one line per image, `ghcr.io/bittersecurity/<image>:<version>@sha256:<digest>` —
-as a release asset. Operators who want immutable, tamper-evident deploys pin
+as a release asset before publishing. This also covers releases published with
+`GITHUB_TOKEN`, which do not trigger a second release-event workflow.
+Operators who want immutable, tamper-evident deploys pin
 their compose stack to the digest form instead of the moving `:stable` /
 `:latest` channel tags:
 
