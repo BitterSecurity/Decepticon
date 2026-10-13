@@ -72,3 +72,28 @@ Before writing `plan/abort.json`:
 ## Output
 
 Write to `plan/abort.json` validating against `decepticon.core.schemas.AbortPlan`.
+
+## Document schema (derived from the validator's model)
+
+`plan/abort.json` must validate against `AbortPlan`. Fields not listed here are not part of the model and are ignored by the validator.
+
+| field | type | required | allowed values / nested keys |
+| --- | --- | --- | --- |
+| `engagement_name` | str | yes |  |
+| `halt_triggers` | list[AbortTrigger] | no | each object: `condition`, `severity`, `response_action`, `auto_halt` |
+| `abort_signal_channel` | str | no |  |
+| `recovery_procedure` | str | no |  |
+| `hallucination_threshold` | int | no |  |
+| `destructive_action_gate` | bool | no |  |
+| `output_validation` | str | no |  |
+| `version` | str | no |  |
+| `last_updated` | str | no |  |
+
+`AbortTrigger` object:
+
+| field | type | required | allowed values |
+| --- | --- | --- | --- |
+| `condition` | str | yes |  |
+| `severity` | TriggerSeverity | yes | one of `info`, `warning`, `critical`, `emergency` |
+| `response_action` | str | yes |  |
+| `auto_halt` | bool | no |  |
