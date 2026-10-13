@@ -1,3 +1,4 @@
+import os
 import subprocess
 import sys
 
@@ -19,4 +20,9 @@ def test_research_tools_do_not_import_neo4j_at_module_load(
         "import decepticon.tools.research.tools; "
         "assert 'neo4j' not in sys.modules, sorted(m for m in sys.modules if 'neo4j' in m)"
     )
-    subprocess.run([sys.executable, "-c", code], check=True)
+    unconfigured_env = {
+        key: value
+        for key, value in os.environ.items()
+        if not key.startswith("DECEPTICON_NEO4J_")
+    }
+    subprocess.run([sys.executable, "-c", code], check=True, env=unconfigured_env)
