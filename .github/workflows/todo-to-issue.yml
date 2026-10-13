@@ -58,6 +58,11 @@ jobs:
         # trufflehog, scorecard) — satisfies OpenSSF Scorecard Pinned-Dependencies.
         uses: alstr/todo-to-issue-action@64aca8fda7023259aada83ba44ad988c4c443657 # v5.1.14
         with:
+          # Python docstrings describe task-list tools (#885–#889); scanning
+          # them as block comments creates false issues. Track Python tasks
+          # only in hash comments, not bare markers inside docstrings.
+          # Other languages retain the action's standard syntax definitions.
+          LANGUAGES: .github/todo-python-language.json
           IDENTIFIERS: >-
             [
               {"name": "TODO",  "labels": ["todo"]},
