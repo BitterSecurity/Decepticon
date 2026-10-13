@@ -1,3 +1,5 @@
+"""Verify that release stamping requires matching sibling package versions."""
+
 import os
 import shutil
 import subprocess
