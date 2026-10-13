@@ -214,6 +214,22 @@ class TestLLMFactory:
         assert model.streaming is True
         assert model.disable_streaming == "tool_calling"
 
+        text_payload = model._get_request_payload("hello")
+        assert text_payload["stream"] is True
+        tool_payload = model._get_request_payload(
+            "hello",
+            tools=[
+                {
+                    "type": "function",
+                    "function": {"name": "read_status", "parameters": {"type": "object"}},
+                }
+            ],
+            stream=True,
+            stream_options={"include_usage": True},
+        )
+        assert tool_payload["stream"] is False
+        assert "stream_options" not in tool_payload
+
     def test_gpt6_agent_calls_use_responses_api(self) -> None:
         for model_id in (
             "openai/gpt-6-astra",

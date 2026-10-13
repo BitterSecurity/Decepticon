@@ -14,8 +14,8 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 
 ### Fixed
 
-- Discover all registered `/agent` orchestrators across assistant catalog pages,
-  retaining the current selection if discovery fails or times out. (#943)
+- Reject duplicate CVSS metrics, unsupported version labels, and empty vector
+  segments before scoring. (#942)
 - Complete planning-document schema guidance, detect model/table drift, and
   report all invalid documents in one validation attempt.
   ([#929](https://github.com/BitterSecurity/Decepticon/pull/929))
@@ -26,6 +26,9 @@ comparison link. Keep proposed and unmerged changes out of released sections.
   does not start a second workflow from a release published with `GITHUB_TOKEN`.
 - Restore injected runtime handling for OPPLAN task dispatch and finding-quality
   checks. ([#923](https://github.com/BitterSecurity/Decepticon/pull/923))
+- Buffer Ollama tool-bound requests on the wire as well as in the response
+  parser, while preserving text streaming, token callbacks, and usage accounting.
+  ([#940](https://github.com/BitterSecurity/Decepticon/issues/940))
 - Give LangGraph access to the engagement workspace for planning validation and
   readiness markers. ([#924](https://github.com/BitterSecurity/Decepticon/pull/924))
 - Recover missing terminal threads before PTY startup and stop safely on backend
@@ -33,6 +36,8 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 - Stop terminal initialization after navigation unmounts it while xterm is loading,
   avoiding abandoned terminal resources. ([#932](https://github.com/BitterSecurity/Decepticon/pull/932))
 
+- Discover all registered `/agent` orchestrators across assistant catalog pages,
+  retaining the current selection if discovery fails or times out. (#943)
 - Start engagement terminals only after opening Live, preserving visited mode
   terminals across tab navigation. ([#934](https://github.com/BitterSecurity/Decepticon/pull/934))
 
