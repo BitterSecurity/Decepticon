@@ -26,6 +26,7 @@ from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import InjectedToolCallId, tool
 from langgraph.prebuilt import InjectedState
 
+from decepticon.middleware.kg_internal import ingest as scanner_adapters
 from decepticon.middleware.kg_internal.ingest import ingest as _ingest_dispatch
 from decepticon.middleware.kg_internal.store import KGStore
 
@@ -152,8 +153,8 @@ def build_kg_tools(
             ``scanner_kind`` selects an adapter from the registry. Built-ins:
               nmap_xml, nuclei_jsonl, httpx_jsonl, sarif.
 
-            SARIF paths address the run's sandbox workspace; other adapters
-            retain their process-local path behavior. Examples:
+            Built-in SARIF paths address the run's sandbox workspace; custom
+            and other adapters retain their process-local path behavior. Examples:
               kg_ingest("nmap_xml", "/workspace/scan.xml")
               kg_ingest("sarif",    "/workspace/semgrep.sarif")
 
@@ -167,7 +168,10 @@ def build_kg_tools(
                 return _err(_ENGAGEMENT_UNSET)
 
             try:
-                if scanner_kind == "sarif":
+                if (
+                    scanner_kind == "sarif"
+                    and scanner_adapters._REGISTRY.get("sarif") is scanner_adapters._adapt_sarif
+                ):
                     from decepticon.middleware.scoped_reporting_io import ingest_sarif_scoped
 
                     result = ingest_sarif_scoped(

@@ -193,7 +193,11 @@ def test_registered_sarif_override_keeps_path_adapter_contract(
     def custom_adapter(
         path: Path, store: KGStore, engagement: str, created_by: str, episode: str
     ) -> dict[str, str | int]:
-        return {"ingested": 1, "contents": path.read_text(encoding="utf-8"), "engagement": engagement}
+        return {
+            "ingested": 1,
+            "contents": path.read_text(encoding="utf-8"),
+            "engagement": engagement,
+        }
 
     ingest.register_adapter("sarif", custom_adapter)
     state, config = scope("/workspace/owned-run")

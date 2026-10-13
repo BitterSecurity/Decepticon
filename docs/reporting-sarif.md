@@ -2,8 +2,9 @@
 
 `report_sarif(engagement_id, output_path)` writes to the same sandbox that the
 current run uses. `kg_ingest(scanner_kind="sarif", path=...)` downloads from
-that sandbox before parsing. Other scanner adapters retain their existing
-process-local IO. This fixes the separated-filesystem mismatch described in
+that sandbox before parsing with the built-in adapter. Registered SARIF adapter
+overrides and other scanner adapters retain their existing process-local IO.
+This fixes the separated-filesystem mismatch described in
 [#910](https://github.com/BitterSecurity/Decepticon/issues/910).
 
 The implementation follows the direction proposed by @ChazyTheBest in
@@ -19,6 +20,7 @@ transport, deployment topology, dependencies, or public model arguments.
   the engagement name. Explicit invalid labels are refused.
 - Both the launcher's `/workspace` and the web's `/workspace/<engagement-name>`
   layout are supported. Paths use the existing engagement-filesystem mapping.
+- MCP-started runs supply `/workspace` in both initial state and run config.
 - Conflicting explicit run scope is refused before graph loading or file IO.
   Per-run `sandbox_url` and `sandbox_token` select the backend, including when
   a subagent has no ambient engagement context.
