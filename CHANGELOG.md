@@ -17,6 +17,11 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 - Load browser API and terminal endpoints from the running web server so one
   prebuilt image supports relative reverse-proxy routes across deployments.
   ([#931](https://github.com/BitterSecurity/Decepticon/pull/931))
+- Stop disconnected terminal startup before it can replace an attached session
+  or spawn an orphan PTY. (#930)
+- Follow renamed-repository redirects during installer release lookup, pin
+  explicit-version config downloads to the matching release, and correct the
+  version recovery command. ([#927](https://github.com/BitterSecurity/Decepticon/pull/927))
 
 ## [1.4.0] — 2026-10-13
 
