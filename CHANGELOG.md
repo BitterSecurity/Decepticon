@@ -12,6 +12,12 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+### Fixed
+
+- Follow renamed-repository redirects during installer release lookup, pin
+  explicit-version config downloads to the matching release, and correct the
+  version recovery command. ([#927](https://github.com/BitterSecurity/Decepticon/pull/927))
+
 ## [1.4.0] — 2026-10-13
 
 ### Added
