@@ -14,6 +14,8 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 
 ### Fixed
 
+- Require matching release versions of Core and framework dependencies in
+  published Python packages so upgrades include their sibling fixes.
 - Reject duplicate CVSS metrics, unsupported version labels, and empty vector
   segments before scoring. (#942)
 - Complete planning-document schema guidance, detect model/table drift, and

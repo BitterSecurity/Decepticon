@@ -52,6 +52,11 @@ jobs:
               packages/decepticon-core/pyproject.toml \
               packages/decepticon/pyproject.toml \
               packages/decepticon-sdk/pyproject.toml
+          sed -i 's/"decepticon-core"/"decepticon-core=='"$version"'"/' \
+              packages/decepticon/pyproject.toml \
+              packages/decepticon-sdk/pyproject.toml
+          sed -i 's/"decepticon"/"decepticon=='"$version"'"/' \
+              packages/decepticon-sdk/pyproject.toml
 
       - name: Build three workspace wheels + sdists
         run: |
