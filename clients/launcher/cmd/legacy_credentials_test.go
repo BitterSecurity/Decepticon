@@ -49,6 +49,27 @@ func TestMigrateLegacyCredentialsPreservesConfiguredDatabasePasswords(t *testing
 	}
 }
 
+func TestFreshCredentialsStartWithoutLegacyBackup(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("DECEPTICON_HOME", home)
+	path := filepath.Join(home, ".env")
+	seed := "LITELLM_MASTER_KEY=fresh-master\nLITELLM_SALT_KEY=fresh-salt\nPOSTGRES_PASSWORD=fresh-postgres\nNEO4J_PASSWORD=fresh-neo4j\n"
+	if err := os.WriteFile(path, []byte(seed), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	env, err := config.LoadEnv(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := migrateLegacyCredentials(env); err != nil {
+		t.Fatalf("fresh installation requires no migration backup: %v", err)
+	}
+	saved, err := os.ReadFile(path)
+	if err != nil || string(saved) != seed {
+		t.Fatal("fresh installation credentials were changed")
+	}
+}
+
 func TestLegacyCredentialsUpgradeEveryStackSharingOneHome(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("DECEPTICON_HOME", home)
