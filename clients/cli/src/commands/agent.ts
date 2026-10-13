@@ -30,6 +30,9 @@ interface AssistantRow {
   name: string;
 }
 
+const CATALOG_PAGE_SIZE = 100;
+const CATALOG_TIMEOUT_MS = 10_000;
+
 function apiBase(): string {
   return process.env.DECEPTICON_API_URL || "http://localhost:2024";
 }
@@ -39,18 +42,22 @@ function apiBase(): string {
  * Returns deduplicated graph_ids registered on the server.
  */
 async function listOrchestrators(): Promise<string[]> {
-  const res = await fetch(`${apiBase()}/assistants/search`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({}),
-  });
-  if (!res.ok) {
-    throw new Error(`assistants/search HTTP ${res.status}: ${await res.text()}`);
+  const signal = AbortSignal.timeout(CATALOG_TIMEOUT_MS);
+  const graphIds = new Set<string>();
+  for (let offset = 0; ; offset += CATALOG_PAGE_SIZE) {
+    const res = await fetch(`${apiBase()}/assistants/search`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ limit: CATALOG_PAGE_SIZE, offset }),
+      signal,
+    });
+    if (!res.ok) {
+      throw new Error(`assistants/search HTTP ${res.status}: ${await res.text()}`);
+    }
+    const assistants = (await res.json()) as AssistantRow[];
+    for (const assistant of assistants) graphIds.add(assistant.graph_id);
+    if (assistants.length < CATALOG_PAGE_SIZE) return [...graphIds];
   }
-  const data = (await res.json()) as AssistantRow[];
-  // Deduplicate by graph_id — the server may return multiple assistants
-  // sharing the same graph (e.g. per-thread forks).
-  return [...new Set(data.map((a) => a.graph_id))];
 }
 
 const agent: Command = {

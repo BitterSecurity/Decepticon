@@ -14,6 +14,8 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 
 ### Fixed
 
+- Discover all registered `/agent` orchestrators across assistant catalog pages,
+  retaining the current selection if discovery fails or times out. (#943)
 - Complete planning-document schema guidance, detect model/table drift, and
   report all invalid documents in one validation attempt.
   ([#929](https://github.com/BitterSecurity/Decepticon/pull/929))
