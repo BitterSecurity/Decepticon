@@ -71,6 +71,9 @@ jobs:
               - 'tests/**'
               - 'docker-compose.yml'
               - '.github/workflows/ci.yml'
+              # Scanner policy tests must also run for config-only changes.
+              - '.github/workflows/todo-to-issue.yml'
+              - '.github/todo-python-language.json'
             cli:
               - 'clients/cli/**'
               - 'clients/shared/**'
