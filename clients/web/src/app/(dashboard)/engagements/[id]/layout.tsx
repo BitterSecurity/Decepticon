@@ -16,7 +16,7 @@ export default function EngagementLayout({
   children,
 }: {
   children: React.ReactNode;
-}) {
+}): React.ReactNode {
   const params = useParams();
   const pathname = usePathname();
   const engagementId = params.id as string;
@@ -124,7 +124,11 @@ export default function EngagementLayout({
   const isLivePath = pathname.endsWith("/live");
 
   // Don't render terminal until we know the slug and assistant
-  const terminalReady = engagement != null;
+  const [terminalActivated, setTerminalActivated] = useState(isLivePath);
+  useEffect(() => {
+    if (isLivePath) setTerminalActivated(true);
+  }, [isLivePath]);
+  const terminalReady = terminalActivated && engagement != null;
 
   return (
     <EngagementProvider
