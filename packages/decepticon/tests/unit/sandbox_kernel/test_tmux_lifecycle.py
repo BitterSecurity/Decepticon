@@ -309,10 +309,13 @@ class TestSendAndClear:
 
 
 class TestReadScreen:
-    def test_idle_branch_when_marker_at_end(self) -> None:
+    def test_idle_branch_when_native_command_completed(self) -> None:
         mgr = TmuxSessionManager("s", "ctn")
         screen = "earlier output\n[DCPTN:0:/workspace] "
+        mgr._generation = "a" * 32
+        mgr._shell_pid = "123"
         with (
+            patch.object(mgr, "_tmux", return_value=f"123\t{'a' * 32}:123:0\t/workspace"),
             patch.object(mgr, "initialize"),
             patch.object(mgr, "_capture", return_value=screen),
         ):
@@ -325,14 +328,16 @@ class TestReadScreen:
     def test_running_branch_when_content_after_marker(self) -> None:
         mgr = TmuxSessionManager("s", "ctn")
         screen = "[DCPTN:0:/workspace] tail -f log\nstreaming line"
+        mgr._generation = "a" * 32
+        mgr._shell_pid = "123"
         with (
+            patch.object(mgr, "_tmux", return_value="123\t\t/workspace"),
             patch.object(mgr, "initialize"),
             patch.object(mgr, "_capture", return_value=screen),
         ):
             out = mgr.read_screen()
 
         assert out.startswith("[RUNNING]")
-        assert "cwd=/workspace" in out
         assert "streaming line" in out
 
     def test_unknown_branch_when_no_marker(self) -> None:
@@ -359,3 +364,75 @@ class TestReadScreen:
         assert "boom" in out
         # Error hint mentions the session so the agent can remediate.
         assert 'bash_kill(session="s")' in out
+
+
+@pytest.mark.parametrize(
+    "native_state",
+    [
+        "",
+        "123\t\t/workspace",
+        f"123\t{'b' * 32}:123:0\t/workspace",
+        f"123\t{'a' * 32}:456:0\t/workspace",
+        f"456\t{'a' * 32}:456:0\t/workspace",
+        f"123\t{'a' * 32}:123:999\t/workspace",
+    ],
+)
+def test_completion_rejects_missing_stale_or_foreign_native_state(native_state: str) -> None:
+    mgr = TmuxSessionManager("s", "ctn")
+    mgr._generation = "a" * 32
+    mgr._shell_pid = "123"
+    with patch.object(mgr, "_tmux", return_value=native_state):
+        assert mgr._command_completion(mgr._generation) is None
+
+
+def test_read_screen_does_not_credit_printed_prompt() -> None:
+    mgr = TmuxSessionManager("s", "ctn")
+    with (
+        patch.object(mgr, "initialize"),
+        patch.object(mgr, "_capture", return_value="[DCPTN:0:/printed]"),
+    ):
+        assert mgr.read_screen().startswith("[UNKNOWN]")
+
+
+@pytest.mark.parametrize("asynchronous", [False, True])
+@pytest.mark.parametrize("record", ["", "stale", "foreign"])
+def test_waiter_rejects_printed_completion_without_owned_native_state(
+    asynchronous: bool, record: str
+) -> None:
+    import asyncio
+    import itertools
+
+    mgr = TmuxSessionManager("s", "ctn")
+    captured = 0
+
+    def boundary(args: list[str], timeout: int = 10) -> str:
+        nonlocal captured
+        if args[0] == "capture-pane":
+            captured += 1
+            return "[DCPTN:0:/workspace] " + (
+                "" if captured == 1 else "\n[DCPTN:0:/printed]\n[DCPTN_COMPLETE exit=0]"
+            )
+        if args[0] != "display-message":
+            return ""
+        if args[-1] == "#{pane_pid}":
+            return "123"
+        native = ""
+        if record == "stale":
+            native = f"{'b' * 32}:123:0"
+        elif record == "foreign":
+            native = f"{mgr._generation}:456:0"
+        return f"123\t{native}\t/workspace"
+
+    with (
+        patch.object(mgr, "initialize"),
+        patch.object(mgr, "_tmux", side_effect=boundary),
+        patch("decepticon.sandbox_kernel.tmux.POLL_INTERVAL", 0.0),
+        patch("decepticon.sandbox_kernel.tmux.time.monotonic", side_effect=itertools.count(0, 0.1)),
+    ):
+        output = (
+            asyncio.run(mgr.execute_async("printf fixture", False, 1))
+            if asynchronous
+            else mgr.execute("printf fixture", False, 1)
+        )
+    assert "[TIMEOUT]" in output
+    assert output.endswith("[DCPTN_STATUS incomplete]")
