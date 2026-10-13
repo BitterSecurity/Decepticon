@@ -14,8 +14,8 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 
 ### Fixed
 
-- Require successful terminal completion of finding checks and their negative
-  controls; retain bounded baseline output, exit status, and hash. (#944)
+- Reject duplicate CVSS metrics, unsupported version labels, and empty vector
+  segments before scoring. (#942)
 - Complete planning-document schema guidance, detect model/table drift, and
   report all invalid documents in one validation attempt.
   ([#929](https://github.com/BitterSecurity/Decepticon/pull/929))
@@ -24,6 +24,8 @@ comparison link. Keep proposed and unmerged changes out of released sections.
   ([#936](https://github.com/BitterSecurity/Decepticon/pull/936))
 - Attach the image digest manifest before publishing a release; GitHub Actions
   does not start a second workflow from a release published with `GITHUB_TOKEN`.
+- Require successful terminal completion of finding checks and their negative
+  controls; retain bounded baseline output, exit status, and hash. (#944)
 - Restore injected runtime handling for OPPLAN task dispatch and finding-quality
   checks. ([#923](https://github.com/BitterSecurity/Decepticon/pull/923))
 - Buffer Ollama tool-bound requests on the wire as well as in the response

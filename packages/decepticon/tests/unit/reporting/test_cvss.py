@@ -102,3 +102,50 @@ def test_tool_happy_path() -> None:
     assert out["valid"] is True
     assert out["base_score"] == 9.8
     assert out["base_severity"] == "Critical"
+
+
+@pytest.mark.parametrize(
+    "suffix",
+    [
+        "AV:P",
+        "av:p",
+        "AV:N",
+        "E:H/E:U",
+        "E:H/e:u",
+        "CR:H/CR:L",
+        "CR:H/cr:l",
+        "MAV:N/MAV:P",
+        "MAV:N/mav:p",
+    ],
+)
+def test_tool_rejects_duplicate_metrics(suffix: str) -> None:
+    vector = f"CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H/{suffix}"
+    out = cvss_score_tool.invoke({"vector": vector})
+    assert out["valid"] is False
+    assert "duplicate metric" in out["error"]
+    assert set(out) == {"valid", "error"}
+
+
+@pytest.mark.parametrize("version", ["3", "3.2", "3.10", "3.1extra", "30", "3.0extra"])
+def test_tool_rejects_unsupported_versions(version: str) -> None:
+    vector = f"CVSS:{version}/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
+    out = cvss_score_tool.invoke({"vector": vector})
+    assert out["valid"] is False
+    assert "must start with" in out["error"]
+    assert set(out) == {"valid", "error"}
+
+
+@pytest.mark.parametrize(
+    "vector",
+    [
+        "/CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+        "CVSS:3.1//AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+        "CVSS:3.1/AV:N//AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+        "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H/",
+    ],
+)
+def test_tool_rejects_empty_segments(vector: str) -> None:
+    out = cvss_score_tool.invoke({"vector": vector})
+    assert out["valid"] is False
+    assert out["error"]
+    assert set(out) == {"valid", "error"}
