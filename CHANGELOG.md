@@ -12,6 +12,11 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+### Fixed
+
+- Stop disconnected terminal startup before it can replace an attached session
+  or spawn an orphan PTY. (#930)
+
 ## [1.4.0] — 2026-10-13
 
 ### Added
