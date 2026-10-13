@@ -75,11 +75,11 @@ class TestMethodModels:
         assert m[Tier.MID] == "openai/gpt-5.4"
         assert m[Tier.LOW] == "openai/gpt-5-nano"
 
-    def test_chatgpt_oauth_uses_only_supported_subscription_models(self):
+    def test_chatgpt_oauth_uses_only_supported_subscription_models(self) -> None:
         m = METHOD_MODELS[AuthMethod.OPENAI_OAUTH]
-        assert m[Tier.HIGH] == "auth/gpt-5.5"
-        assert m[Tier.MID] == "auth/gpt-5.4"
-        assert m[Tier.LOW] == "auth/gpt-5.4-mini"
+        assert m[Tier.HIGH] == "auth/gpt-6-astra"
+        assert m[Tier.MID] == "auth/gpt-6.1-sol"
+        assert m[Tier.LOW] == "auth/gpt-6-luna"
         assert "auth/gpt-5-nano" not in m.values()
 
     def test_google_full_tier_coverage(self):
@@ -207,10 +207,10 @@ class TestResolveChain:
         chain = resolve_chain(Tier.LOW, creds)
         assert chain == []
 
-    def test_chatgpt_oauth_low_uses_gpt_5_4_mini(self):
+    def test_chatgpt_oauth_low_uses_gpt_6_luna(self) -> None:
         creds = Credentials(methods=[AuthMethod.OPENAI_OAUTH])
         chain = resolve_chain(Tier.LOW, creds)
-        assert chain == ["auth/gpt-5.4-mini"]
+        assert chain == ["auth/gpt-6-luna"]
 
     def test_empty_credentials_returns_empty(self):
         assert resolve_chain(Tier.HIGH, Credentials()) == []

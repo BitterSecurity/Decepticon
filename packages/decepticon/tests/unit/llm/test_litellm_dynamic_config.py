@@ -231,7 +231,7 @@ def test_validate_model_name_rejects_other_subscription_prefixes() -> None:
 
 
 def test_merge_dynamic_models_allows_subscription_model_override() -> None:
-    """A user setting ``DECEPTICON_MODEL=auth/gpt-5.4-mini`` together with
+    """A user setting ``DECEPTICON_MODEL=auth/gpt-6-luna`` together with
     ``DECEPTICON_AUTH_CHATGPT=true`` must succeed — the subscription path
     injects the route first, and the API-key validator is skipped because
     the model is already present in the model_list.
@@ -240,11 +240,11 @@ def test_merge_dynamic_models_allows_subscription_model_override() -> None:
         {"model_list": [], "litellm_settings": {"fallbacks": []}},
         {
             "DECEPTICON_AUTH_CHATGPT": "true",
-            "DECEPTICON_MODEL": "auth/gpt-5.4-mini",
+            "DECEPTICON_MODEL": "auth/gpt-6-luna",
         },
     )
     names = {entry["model_name"] for entry in merged["model_list"]}
-    assert "auth/gpt-5.4-mini" in names
+    assert "auth/gpt-6-luna" in names
 
 
 def test_validate_model_name_rejects_legacy_ollama_with_remediation() -> None:
@@ -325,29 +325,28 @@ def test_merge_dynamic_models_registers_only_supported_chatgpt_oauth_routes() ->
     # provider because the ``gpt-*`` slug collides with OpenAI's aliases.
     entries = {entry["model_name"]: entry["litellm_params"] for entry in merged["model_list"]}
     assert entries == {
-        # GPT-5.6-family frontier checkpoints served on the Codex subscription
-        # (all verified 2026-07-13; plain gpt-5.6 400s on the Codex account).
+        "auth/gpt-6-astra": {"model": "codex-oauth/oauth-gpt-6-astra"},
+        "auth/gpt-6.1-sol": {"model": "codex-oauth/oauth-gpt-6.1-sol"},
+        "auth/gpt-6-luna": {"model": "codex-oauth/oauth-gpt-6-luna"},
         "auth/gpt-5.6-sol": {"model": "codex-oauth/oauth-gpt-5.6-sol"},
         "auth/gpt-5.6-terra": {"model": "codex-oauth/oauth-gpt-5.6-terra"},
         "auth/gpt-5.6-luna": {"model": "codex-oauth/oauth-gpt-5.6-luna"},
-        "auth/gpt-5.5": {"model": "codex-oauth/oauth-gpt-5.5"},
-        "auth/gpt-5.4": {"model": "codex-oauth/oauth-gpt-5.4"},
-        "auth/gpt-5.4-mini": {"model": "codex-oauth/oauth-gpt-5.4-mini"},
-        # Code-heavy override route. Registered alongside the tier
-        # defaults so per-agent env overrides like
-        # ``DECEPTICON_MODEL_PATCHER=auth/gpt-5.3-codex`` work without a
-        # yaml edit. The ``oauth-`` slug sentinel is required because
-        # ``gpt-5.3-codex`` is in ``open_ai_chat_completion_models``.
-        "auth/gpt-5.3-codex": {"model": "codex-oauth/oauth-gpt-5.3-codex"},
-        "auth/gpt-5.3-codex-spark": {
-            "model": "codex-oauth/oauth-gpt-5.3-codex-spark",
-        },
     }
-    assert "auth/gpt-5-nano" not in entries
     assert merged["litellm_settings"]["fallbacks"] == [
-        {"auth/gpt-5.5": ["auth/gpt-5.4"]},
-        {"auth/gpt-5.4": ["auth/gpt-5.4-mini"]},
+        {"auth/gpt-6-astra": ["auth/gpt-6.1-sol"]},
+        {"auth/gpt-6.1-sol": ["auth/gpt-6-luna"]},
     ]
+
+
+@pytest.mark.parametrize(
+    "model", ["gpt-5.5", "gpt-5.4", "gpt-5.4-mini", "gpt-5.3-codex", "gpt-5.3-codex-spark"]
+)
+def test_merge_dynamic_models_rejects_retired_chatgpt_override(model: str) -> None:
+    with pytest.raises(ValueError, match=r"auth/\*"):
+        merge_dynamic_models(
+            {"model_list": []},
+            {"DECEPTICON_AUTH_CHATGPT": "true", "DECEPTICON_MODEL": f"auth/{model}"},
+        )
 
 
 # ── llama.cpp OpenAI-compatible backend (issue #151) ────────────────────
