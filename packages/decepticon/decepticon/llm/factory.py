@@ -1773,7 +1773,7 @@ class LLMFactory:
             self._create_chat_model(model, assignment.temperature) for model in assignment.fallbacks
         ]
 
-    def _create_chat_model(self, model: str, temperature: float) -> BaseChatModel:
+    def _create_chat_model(self, model: str, temperature: float | None) -> BaseChatModel:
         """Create a proxied ChatOpenAI instance routed through LiteLLM proxy.
 
         Claude Opus 4.7+ rejects ``temperature`` with a 400 invalid_request

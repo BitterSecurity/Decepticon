@@ -801,15 +801,11 @@ export function useAgent({
         setActiveAgent(selectedAssistant);
         setStreamStats({ startTime: Date.now(), totalTokens: 0, promptTokens: 0, completionTokens: 0 });
 
-        // Engagement context and the /model override flow as runnable
-        // ``config.configurable`` entries. EngagementContextMiddleware
-        // hydrates state from configurable on before_agent so OPPLAN and
-        // filesystem middlewares see the values as ordinary state fields,
-        // and ModelOverrideMiddleware reads model_override straight from
-        // configurable. The launcher is the single source of truth for the
-        // engagement slug; the LLM never decides it.
+        // Engagement metadata is hydrated from configurable; model selection
+        // uses a declared graph input channel so it survives checkpointing.
         const input: Record<string, unknown> = {
           messages: [{ role: "user", content: message }],
+          model_override: getModelOverride(),
         };
 
         const configurable: Record<string, unknown> = {};
@@ -826,11 +822,6 @@ export function useAgent({
           configurable.authorization_confirmed =
             process.env.DECEPTICON_AUTHORIZATION_CONFIRMED === "true";
         }
-        const modelOverride = getModelOverride();
-        if (modelOverride) {
-          configurable.model_override = modelOverride;
-        }
-
         const hasConfigurable = Object.keys(configurable).length > 0;
         const streamConfig = hasConfigurable ? { configurable } : undefined;
 
@@ -925,7 +916,7 @@ export function useAgent({
             threadIdRef.current!,
             threadAssistantRef.current,
             {
-              command: { resume: value },
+              command: { resume: value, update: { model_override: getModelOverride() } },
               ...STREAM_OPTIONS,
               onDisconnect: "continue",
               signal: abortController.signal,
@@ -987,7 +978,7 @@ export function useAgent({
               threadIdRef.current!,
               threadAssistantRef.current,
               {
-                command: { resume: value ?? true },
+                command: { resume: value ?? true, update: { model_override: getModelOverride() } },
                 ...STREAM_OPTIONS,
                 onDisconnect: "continue",
                 signal: abortController.signal,

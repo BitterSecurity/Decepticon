@@ -19,6 +19,7 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
+from langchain_core.runnables import RunnableConfig
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
@@ -494,15 +495,16 @@ def test_global_override_survives_graph_input_change_and_clear() -> None:
         .add_edge("read", END)
         .compile(checkpointer=InMemorySaver())
     )
-    config = {"configurable": {"thread_id": "override-lifecycle"}}
-    for update, expected in [
-        ({"model_override": "auth/gpt-6-luna"}, "auth/gpt-6-luna"),
-        ({}, "auth/gpt-6-luna"),
-        ({"model_override": "auth/gpt-6.1-sol"}, "auth/gpt-6.1-sol"),
-        ({"model_override": ""}, ""),
-        ({}, ""),
-    ]:
-        state = graph.invoke({"messages": [], **update}, config)
+    config: RunnableConfig = {"configurable": {"thread_id": "override-lifecycle"}}
+    updates: list[tuple[ModelOverridesState, str]] = [
+        ({"messages": [], "model_override": "auth/gpt-6-luna"}, "auth/gpt-6-luna"),
+        ({"messages": []}, "auth/gpt-6-luna"),
+        ({"messages": [], "model_override": "auth/gpt-6.1-sol"}, "auth/gpt-6.1-sol"),
+        ({"messages": [], "model_override": ""}, ""),
+        ({"messages": []}, ""),
+    ]
+    for update, expected in updates:
+        state = graph.invoke(update, config)
         assert state.get("model_override") == expected
 
 
@@ -522,7 +524,7 @@ def test_resume_updates_global_override_without_displacing_role_override() -> No
         .add_edge("resume", END)
         .compile(checkpointer=InMemorySaver())
     )
-    config = {"configurable": {"thread_id": "override-resume"}}
+    config: RunnableConfig = {"configurable": {"thread_id": "override-resume"}}
     for selected in ("auth/gpt-6.1-sol", ""):
         graph.invoke(
             {
