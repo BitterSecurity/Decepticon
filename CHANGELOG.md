@@ -14,6 +14,8 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 
 ### Fixed
 
+- Require successful terminal completion of finding checks and their negative
+  controls; retain bounded baseline output, exit status, and hash. (#944)
 - Complete planning-document schema guidance, detect model/table drift, and
   report all invalid documents in one validation attempt.
   ([#929](https://github.com/BitterSecurity/Decepticon/pull/929))
