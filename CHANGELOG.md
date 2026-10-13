@@ -14,6 +14,8 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 
 ### Fixed
 
+- Route ChatGPT OAuth profiles through current Codex models (GPT-6 Astra,
+  GPT-6.1 Sol, GPT-6 Luna), and remove retired OAuth routes from the model picker.
 - Complete planning-document schema guidance, detect model/table drift, and
   report all invalid documents in one validation attempt.
   ([#929](https://github.com/BitterSecurity/Decepticon/pull/929))

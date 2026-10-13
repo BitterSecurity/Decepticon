@@ -37,10 +37,12 @@ const SUPPORTED_MODELS: Record<string, string[]> = {
     "openai/gpt-5.3-codex",
   ],
   "ChatGPT OAuth": [
-    "auth/gpt-5.5",
-    "auth/gpt-5.4",
-    "auth/gpt-5.4-mini",
-    "auth/gpt-5.3-codex",
+    "auth/gpt-6-astra",
+    "auth/gpt-6.1-sol",
+    "auth/gpt-6-luna",
+    "auth/gpt-5.6-sol",
+    "auth/gpt-5.6-terra",
+    "auth/gpt-5.6-luna",
   ],
   // Cloud Google
   "Google API": [

@@ -36,7 +36,6 @@ describe("/model current prod catalog", () => {
   });
 });
 
-
 describe("/model ChatGPT OAuth catalog", () => {
   it("lists only supported Codex subscription models", () => {
     const [listing] = runModelCommand("");
