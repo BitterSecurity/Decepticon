@@ -21,7 +21,25 @@ def test_stable_resolver_reads_release_payload_from_curl(tmp_path: Path) -> None
             "published_at": "2020-01-01T00:00:00Z",
             "draft": False,
             "prerelease": False,
-        }
+        },
+        {
+            "tag_name": "v9.0.0",
+            "published_at": "2999-01-01T00:00:00Z",
+            "draft": False,
+            "prerelease": False,
+        },
+        {
+            "tag_name": "v8.0.0",
+            "published_at": "2020-01-01T00:00:00Z",
+            "draft": True,
+            "prerelease": False,
+        },
+        {
+            "tag_name": "v7.0.0-rc.1",
+            "published_at": "2020-01-01T00:00:00Z",
+            "draft": False,
+            "prerelease": True,
+        },
     ]
     harness = tmp_path / "resolve-stable.sh"
     harness.write_text(
@@ -128,4 +146,37 @@ create_launcher "$TEST_BIN"
     )
 
     assert completed.returncode == 1
-    assert "curl -fsSL https://decepticon.red/install | VERSION=<x.y.z> bash" in completed.stderr
+    assert "curl -fsSL https://decepticon.red/install | VERSION=1.2.3 bash" in completed.stderr
+
+
+@pytest.mark.parametrize("stable_lookup", ["no_python", "api_error"])
+def test_stable_lookup_failure_preserves_latest_fallback(
+    tmp_path: Path, stable_lookup: str
+) -> None:
+    completed = run_installer_function(
+        tmp_path,
+        r"""
+command() {
+    if [[ "$LOOKUP" == no_python && "$*" == '-v python3' ]]; then
+        return 1
+    fi
+    builtin command "$@"
+}
+curl() {
+    if [[ "$*" == *releases/latest ]]; then
+        printf '%s' '{"tag_name":"v1.2.4"}'
+    else
+        printf '%s' '{"message":"API rate limit exceeded"}'
+    fi
+}
+resolve_version
+printf '%s\n' "$DECEPTICON_VERSION" "$RAW_BASE"
+""",
+        {"LOOKUP": stable_lookup},
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    assert completed.stdout.splitlines()[-2:] == [
+        "1.2.4",
+        "https://raw.githubusercontent.com/BitterSecurity/Decepticon/v1.2.4",
+    ]
