@@ -9,7 +9,7 @@ import pytest
 import yaml
 from packaging.requirements import Requirement
 
-ROOT: Final = Path(__file__).resolve().parents[1]
+ROOT: Final = Path(__file__).resolve().parents[4]
 
 
 @pytest.mark.parametrize("version", ["1.4.1", "1.5.0rc1"])
