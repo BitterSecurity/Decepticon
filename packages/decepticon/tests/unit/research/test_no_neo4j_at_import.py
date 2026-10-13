@@ -5,9 +5,7 @@ import sys
 import pytest
 
 
-def test_research_tools_do_not_import_neo4j_at_module_load(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_research_tools_do_not_import_neo4j_at_module_load(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("DECEPTICON_NEO4J_URI", "bolt://localhost:7687")
     monkeypatch.setenv("DECEPTICON_NEO4J_USER", "neo4j")
     monkeypatch.setenv("DECEPTICON_NEO4J_PASSWORD", "import-test-password")
@@ -21,8 +19,6 @@ def test_research_tools_do_not_import_neo4j_at_module_load(
         "assert 'neo4j' not in sys.modules, sorted(m for m in sys.modules if 'neo4j' in m)"
     )
     unconfigured_env = {
-        key: value
-        for key, value in os.environ.items()
-        if not key.startswith("DECEPTICON_NEO4J_")
+        key: value for key, value in os.environ.items() if not key.startswith("DECEPTICON_NEO4J_")
     }
     subprocess.run([sys.executable, "-c", code], check=True, env=unconfigured_env)
