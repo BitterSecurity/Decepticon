@@ -365,6 +365,7 @@ services:
       # re-declare it here. Set BENCHMARK_MODE=1 in .env to engage CTF/XBOW
       # benchmark mode (rule overrides + challenge context inject).
     volumes:
+      - langgraph_data:/app/.langgraph_api
       # Mount the OAuth credential files read-only so the LLM factory can
       # check file presence + valid JSON before adding a method to the
       # fallback chain. Without this the factory would trust the
@@ -754,6 +755,7 @@ services:
       - ad
 
 volumes:
+  langgraph_data:
   postgres_data:
   sliver_data:
   neo4j_data:

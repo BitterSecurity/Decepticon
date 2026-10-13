@@ -14,6 +14,8 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 
 ### Fixed
 
+- Preserve LangGraph threads and checkpoints across container recreation by
+  storing development runtime state in a Compose project volume.
 - Complete planning-document schema guidance, detect model/table drift, and
   report all invalid documents in one validation attempt.
   ([#929](https://github.com/BitterSecurity/Decepticon/pull/929))
