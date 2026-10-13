@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import posixpath
 from typing import Any
 
 from langchain_core.runnables import RunnableConfig
@@ -90,7 +91,8 @@ def render_sarif_scoped(
     engagement, workspace = resolve_owned_scope(state, config)
     backend = build_sandbox_backend(config)
     scoped = EngagementFilesystemBackend(backend, workspace)
-    real_path = scoped._real(output_path)
+    # Normalize the virtual POSIX path after the backend converts separators.
+    real_path = posixpath.normpath(scoped._real(output_path))
     if scoped._roe_locked(real_path):
         raise ReportingScopeError(LOCKED_ROE_ERROR)
     graph = load_engagement_graph(engagement)
