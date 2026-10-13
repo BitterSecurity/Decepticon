@@ -380,6 +380,7 @@ services:
       # (measured: 95% of "installs" survived a single day). Persisting it here
       # also makes the agent and the host CLI agree on one id.
       - ${DECEPTICON_HOME:-~/.decepticon}/telemetry:/root/.decepticon/telemetry
+      - ${DECEPTICON_ENGAGEMENT_WORKSPACE:-${DECEPTICON_HOME:-~/.decepticon}/workspace}:/workspace
     # Wait for litellm to be healthy: langgraph has retry logic but the launcher
     # uses `compose up --wait` and needs healthy as the single readiness signal.
     depends_on:

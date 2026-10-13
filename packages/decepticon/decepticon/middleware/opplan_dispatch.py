@@ -1,6 +1,11 @@
 """Validate an OSS `task()` delegation against the current OPPLAN DAG."""
 
-from __future__ import annotations
+# Deliberately no `from __future__ import annotations`: it stringifies the
+# `ToolRuntime` annotations below, and langchain's injected-argument detection
+# reads the raw signature rather than resolving type hints. With stringified
+# annotations the wrapper is not recognised as taking an injected `runtime`, so
+# validation strips it and every dispatch fails with
+# `atask() missing 1 required positional argument: 'runtime'`.
 
 from collections.abc import Mapping
 from typing import Any

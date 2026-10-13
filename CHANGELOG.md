@@ -12,6 +12,31 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+### Fixed
+
+- Attach the image digest manifest before publishing a release; GitHub Actions
+  does not start a second workflow from a release published with `GITHUB_TOKEN`.
+- Restore injected runtime handling for OPPLAN task dispatch and finding-quality
+  checks. ([#923](https://github.com/BitterSecurity/Decepticon/pull/923))
+- Give LangGraph access to the engagement workspace for planning validation and
+  readiness markers. ([#924](https://github.com/BitterSecurity/Decepticon/pull/924))
+- Recover missing terminal threads before PTY startup and stop safely on backend
+  errors or disconnected startup. ([#935](https://github.com/BitterSecurity/Decepticon/pull/935))
+- Stop terminal initialization after navigation unmounts it while xterm is loading,
+  avoiding abandoned terminal resources. ([#932](https://github.com/BitterSecurity/Decepticon/pull/932))
+
+- Start engagement terminals only after opening Live, preserving visited mode
+  terminals across tab navigation. ([#934](https://github.com/BitterSecurity/Decepticon/pull/934))
+
+- Load browser API and terminal endpoints from the running web server so one
+  prebuilt image supports relative reverse-proxy routes across deployments.
+  ([#931](https://github.com/BitterSecurity/Decepticon/pull/931))
+- Stop disconnected terminal startup before it can replace an attached session
+  or spawn an orphan PTY. (#930)
+- Follow renamed-repository redirects during installer release lookup, pin
+  explicit-version config downloads to the matching release, and correct the
+  version recovery command. ([#927](https://github.com/BitterSecurity/Decepticon/pull/927))
+
 ## [1.4.0] — 2026-10-13
 
 ### Added

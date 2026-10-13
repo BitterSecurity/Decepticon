@@ -1,6 +1,6 @@
 """Per-agent TODO list — lightweight task tracking per agent.
 
-Each agent maintains its own TODO list persisted at
+Each agent maintains its own task list persisted at
 workspace/<agent_name>/todos.json. Supports create, list, complete, delete.
 """
 
@@ -60,7 +60,7 @@ def create_todo(description: str, agent_name: str = "default", priority: str = "
 
     Args:
         description: What needs to be done
-        agent_name: The agent creating this TODO (defaults to 'default')
+        agent_name: The agent creating this task (defaults to 'default')
         priority: One of: low, medium, high, critical
     """
     valid_priorities = {"low", "medium", "high", "critical"}
@@ -86,7 +86,7 @@ def create_todo(description: str, agent_name: str = "default", priority: str = "
 
 @tool
 def list_todos(agent_name: str = "default", show_done: bool = False) -> str:
-    """List TODO items for an agent.
+    """List task items for an agent.
 
     Args:
         agent_name: The agent whose TODOs to list
@@ -122,7 +122,7 @@ def mark_todo_done(todo_id: str, agent_name: str = "default") -> str:
     """Mark a TODO item as completed.
 
     Args:
-        todo_id: The ID of the TODO to complete
+        todo_id: The ID of the task to complete
         agent_name: The agent that owns the TODO
     """
     with _lock:
@@ -141,7 +141,7 @@ def delete_todo(todo_id: str, agent_name: str = "default") -> str:
     """Delete a TODO item.
 
     Args:
-        todo_id: The ID of the TODO to delete
+        todo_id: The ID of the task to delete
         agent_name: The agent that owns the TODO
     """
     with _lock:

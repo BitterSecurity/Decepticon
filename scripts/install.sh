@@ -153,7 +153,7 @@ assert_sha256() {
 # falls back to /releases/latest) when python3 is absent or none qualify.
 resolve_stable_soaked() {
     command -v python3 >/dev/null 2>&1 || return 0
-    curl -s "https://api.github.com/repos/$REPO/releases?per_page=30" | python3 -c '
+    curl -sSL "https://api.github.com/repos/$REPO/releases?per_page=30" | python3 -c '
 import sys, json, datetime
 try:
     soak = float(sys.argv[1])
@@ -192,7 +192,8 @@ print(best or "")
 
 resolve_version() {
     if [[ -n "${VERSION:-}" ]]; then
-        DECEPTICON_VERSION="$VERSION"
+        DECEPTICON_VERSION="${VERSION#v}"
+        RAW_BASE="https://raw.githubusercontent.com/$REPO/v$DECEPTICON_VERSION"
         return
     fi
 
@@ -206,7 +207,7 @@ resolve_version() {
         # latest channel, OR stable with nothing soaked / no python3 —
         # fall back to GitHub "latest" (newest final, excludes pre-releases).
         [[ "$CHANNEL" == "latest" ]] && info "Fetching latest version (newest final)..."
-        resolved=$(curl -s "https://api.github.com/repos/$REPO/releases/latest" \
+        resolved=$(curl -sSL "https://api.github.com/repos/$REPO/releases/latest" \
             | sed -n 's/.*"tag_name": *"v\([^"]*\)".*/\1/p')
     fi
 
@@ -342,7 +343,7 @@ create_launcher() {
         error "Could not resolve a release version automatically."
         error "Set VERSION explicitly with a tag from:"
         error "  https://github.com/$REPO/releases"
-        error "Example: VERSION=<x.y.z> curl -fsSL https://decepticon.red/install | bash"
+        error "Example: curl -fsSL https://decepticon.red/install | VERSION=1.2.3 bash"
         exit 1
     fi
 
