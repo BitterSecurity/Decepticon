@@ -210,7 +210,16 @@ def test_conflicting_config_refused_before_remote_io(remote: dict) -> None:
     assert remote["requests"] == []
 
 
-def test_protected_roe_is_unchanged(remote: dict) -> None:
+@pytest.mark.parametrize(
+    "output_path",
+    [
+        "/workspace/plan/roe.json",
+        "/workspace/plan/./roe.json",
+        r"/workspace/plan\./roe.json",
+        r"/workspace/plan\/roe.json",
+    ],
+)
+def test_protected_roe_is_unchanged(output_path: str, remote: dict) -> None:
     state, config = scope("/workspace/owned-run")
     target = remote["roots"]["sandbox-a"] / "workspace/owned-run/plan/roe.json"
     target.parent.mkdir(parents=True)
@@ -218,7 +227,7 @@ def test_protected_roe_is_unchanged(remote: dict) -> None:
     with pytest.raises(ValueError, match="read-only"):
         dispatch(
             report_sarif,
-            {"engagement_id": "display", "output_path": "/workspace/plan/roe.json"},
+            {"engagement_id": "display", "output_path": output_path},
             state,
             config,
         )
