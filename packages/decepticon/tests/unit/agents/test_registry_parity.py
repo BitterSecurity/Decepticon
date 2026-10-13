@@ -19,7 +19,10 @@ from pathlib import Path
 
 import pytest
 import yaml
+from deepagents.backends import StateBackend
 from langchain_core.runnables import Runnable
+from langchain_openai import ChatOpenAI
+from pydantic import SecretStr
 
 import decepticon
 from decepticon.graph_registry import BUILTIN_GRAPHS, STANDARD_GRAPHS
@@ -172,3 +175,27 @@ def test_asset_taxonomy_covers_entry_domains():
     reached = {phase for at in load_asset_types() for phase in at.phases}
     missing = sorted(_ASSET_ENTRY_DOMAINS - reached)
     assert not missing, f"asset entry domains unreachable from any AssetType: {missing}"
+
+
+def test_soundwave_factory_accepts_global_model_override() -> None:
+    from decepticon.agents.standard.soundwave import create_soundwave_agent
+
+    graph = create_soundwave_agent(
+        llm=ChatOpenAI(model="auth/gpt-6-luna", api_key=SecretStr("schema-test")),
+        backend=StateBackend,
+        fallback_models=[],
+    )
+    assert "model_override" in graph.get_input_jsonschema()["properties"]
+
+
+def test_registered_graphs_accept_global_and_per_role_model_overrides() -> None:
+    missing: dict[str, list[str]] = {}
+    for graph_name, graph_path in BUILTIN_GRAPHS.items():
+        module_path, export_name = graph_path.rsplit(":", 1)
+        module_name = Path(module_path).with_suffix("").as_posix().replace("/", ".")
+        graph = getattr(import_module(module_name), export_name)
+        properties = graph.get_input_jsonschema()["properties"]
+        absent = sorted({"model_override", "model_overrides"} - properties.keys())
+        if absent:
+            missing[graph_name] = absent
+    assert not missing, f"registered graphs missing model override input channels: {missing}"
