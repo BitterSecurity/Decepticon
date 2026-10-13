@@ -65,6 +65,7 @@ collide in the model_list.
   zenmux_api       zenmux/anthropic/…opus-4.6    zenmux/anthropic/…sonnet-4.6  zenmux/anthropic/…haiku-4.5
   qianfan_api      qianfan/ernie-4.5-turbo-128k  qianfan/ernie-4.5-turbo-32k   qianfan/ernie-speed-pro-128k
   cloudflare_gw    cfgateway/anthropic/…opus     cfgateway/anthropic/…sonnet   cfgateway/anthropic/…haiku
+  cheaper_inf      cheaperinference/…sonnet-5    cheaperinference/gpt-5.4      cheaperinference/gpt-5.4-mini
 
 Code-heavy override
 -------------------
@@ -165,6 +166,7 @@ class AuthMethod(StrEnum):
     ZENMUX_API = "zenmux_api"  # ZenMux multi-vendor gateway
     QIANFAN_API = "qianfan_api"  # Baidu Qianfan (ERNIE) v2 OpenAI-compatible
     CLOUDFLARE_GATEWAY_API = "cloudflare_gateway_api"  # Cloudflare AI Gateway
+    CHEAPER_INFERENCE_API = "cheaper_inference_api"  # Cheaper Inference (cheaperinference.com)
 
 
 # ── Tier × AuthMethod → model_id matrix ─────────────────────────────────
@@ -511,6 +513,15 @@ METHOD_MODELS: dict[AuthMethod, dict[Tier, str]] = {
         Tier.HIGH: "cfgateway/anthropic/claude-opus-4-6",
         Tier.MID: "cfgateway/anthropic/claude-sonnet-4-6",
         Tier.LOW: "cfgateway/anthropic/claude-haiku-4-5",
+    },
+    AuthMethod.CHEAPER_INFERENCE_API: {
+        # Cheaper Inference — https://api.cheaperinference.com/v1. One key
+        # gives access to models from several labs; route a mixed tier set
+        # verified against GET /v1/models. claude-sonnet-5 rejects sampling,
+        # already handled by _model_drops_temperature on the slug.
+        Tier.HIGH: "cheaperinference/claude-sonnet-5",
+        Tier.MID: "cheaperinference/gpt-5.4",
+        Tier.LOW: "cheaperinference/gpt-5.4-mini",
     },
 }
 

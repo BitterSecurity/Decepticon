@@ -94,6 +94,12 @@ class TestMethodModels:
         assert m[Tier.MID] == "minimax/MiniMax-M2.7-highspeed"
         assert Tier.LOW not in m
 
+    def test_cheaper_inference_tiers(self):
+        m = METHOD_MODELS[AuthMethod.CHEAPER_INFERENCE_API]
+        assert m[Tier.HIGH] == "cheaperinference/claude-sonnet-5"
+        assert m[Tier.MID] == "cheaperinference/gpt-5.4"
+        assert m[Tier.LOW] == "cheaperinference/gpt-5.4-mini"
+
     def test_default_bedrock_models_are_registered(self):
         config = yaml.safe_load(_LITELLM_CONFIG.read_text(encoding="utf-8"))
         routes = {entry["model_name"]: entry["litellm_params"] for entry in config["model_list"]}
@@ -249,6 +255,7 @@ class TestGatewayChains:
         AuthMethod.ZENMUX_API,
         AuthMethod.QIANFAN_API,
         AuthMethod.CLOUDFLARE_GATEWAY_API,
+        AuthMethod.CHEAPER_INFERENCE_API,
     )
 
     def test_opencode_high_resolves_to_prefixed_alias(self):
@@ -279,6 +286,7 @@ class TestGatewayChains:
             AuthMethod.ZENMUX_API: "zenmux/",
             AuthMethod.QIANFAN_API: "qianfan/",
             AuthMethod.CLOUDFLARE_GATEWAY_API: "cfgateway/",
+            AuthMethod.CHEAPER_INFERENCE_API: "cheaperinference/",
         }
         for method, prefix in expected_prefix.items():
             creds = Credentials(methods=[method])

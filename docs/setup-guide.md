@@ -325,6 +325,7 @@ default fallback chain; pick a specific route at runtime with `/model`
 | ZenMux | `ZENMUX_API_KEY` | [zenmux.ai](https://zenmux.ai) |
 | Baidu Qianfan (ERNIE) | `QIANFAN_API_KEY` | [console.bce.baidu.com/qianfan](https://console.bce.baidu.com/qianfan) |
 | Cloudflare AI Gateway | `CLOUDFLARE_AI_GATEWAY_API_KEY` + `CLOUDFLARE_AI_GATEWAY_API_BASE` | [dash.cloudflare.com](https://dash.cloudflare.com) |
+| Cheaper Inference | `CHEAPER_INFERENCE_API_KEY` | [cheaperinference.com](https://cheaperinference.com) |
 
 > Cloudflare's base URL is per-account — set it to your gateway's
 > OpenAI-compat `…/compat` path. Qianfan model ids drift; override per

@@ -215,6 +215,9 @@ OPENAI_COMPAT_GATEWAYS: dict[str, tuple[str, str]] = {
     # request time, so an unset base only fails the call (with a clear 404),
     # never proxy startup.
     "cfgateway": ("os.environ/CLOUDFLARE_AI_GATEWAY_API_BASE", "CLOUDFLARE_AI_GATEWAY_API_KEY"),
+    # Cheaper Inference (api.cheaperinference.com). One key gives access to
+    # models from several labs; fixed OpenAI-compatible endpoint.
+    "cheaperinference": ("https://api.cheaperinference.com/v1", "CHEAPER_INFERENCE_API_KEY"),
 }
 
 # Providers that accept SEVERAL key env-var names. Resolved at config-write

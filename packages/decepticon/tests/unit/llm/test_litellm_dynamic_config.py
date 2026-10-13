@@ -874,3 +874,28 @@ def test_kimi_gateway_registered_in_openai_compat_gateways() -> None:
     base, key_env = OPENAI_COMPAT_GATEWAYS["kimi"]
     assert base == "https://api.kimi.com/coding/v1"
     assert key_env == "KIMI_API_KEY"
+
+
+def test_build_model_entry_routes_cheaper_inference_gateway() -> None:
+    entry = build_model_entry("cheaperinference/gpt-5.4-mini")
+
+    assert entry["litellm_params"] == {
+        "model": "openai/gpt-5.4-mini",
+        "api_key": "os.environ/CHEAPER_INFERENCE_API_KEY",
+        "api_base": "https://api.cheaperinference.com/v1",
+    }
+
+
+def test_validate_model_name_accepts_cheaper_inference_models() -> None:
+    for model in (
+        "cheaperinference/claude-sonnet-5",
+        "cheaperinference/gpt-5.4",
+        "cheaperinference/gpt-5.4-mini",
+    ):
+        validate_model_name(model)  # must not raise
+
+
+def test_cheaper_inference_gateway_registered_in_openai_compat_gateways() -> None:
+    base, key_env = OPENAI_COMPAT_GATEWAYS["cheaperinference"]
+    assert base == "https://api.cheaperinference.com/v1"
+    assert key_env == "CHEAPER_INFERENCE_API_KEY"

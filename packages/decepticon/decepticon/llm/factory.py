@@ -268,6 +268,7 @@ _DEFAULT_AUTH_PRIORITY: tuple[AuthMethod, ...] = (
     AuthMethod.HUGGINGFACE_API,
     AuthMethod.QIANFAN_API,
     AuthMethod.CLOUDFLARE_GATEWAY_API,
+    AuthMethod.CHEAPER_INFERENCE_API,
     AuthMethod.OLLAMA_LOCAL,
     AuthMethod.OLLAMA_CLOUD,
 )
@@ -320,6 +321,7 @@ _API_METHOD_ENV: dict[AuthMethod, str] = {
     AuthMethod.ZENMUX_API: "ZENMUX_API_KEY",
     AuthMethod.QIANFAN_API: "QIANFAN_API_KEY",
     AuthMethod.CLOUDFLARE_GATEWAY_API: "CLOUDFLARE_AI_GATEWAY_API_KEY",
+    AuthMethod.CHEAPER_INFERENCE_API: "CHEAPER_INFERENCE_API_KEY",
 }
 
 _OAUTH_METHOD_ENV: dict[AuthMethod, str] = {
@@ -347,6 +349,8 @@ _KEY_PREFIX_HINTS: dict[AuthMethod, tuple[str, ...]] = {
     AuthMethod.GITHUB_MODELS_API: ("ghp_", "github_pat_", "gho_", "ghs_"),
     # Kimi for Coding keys ship as sk-kimi-...; accept plain sk- too.
     AuthMethod.KIMI_API: ("sk-kimi-", "sk-"),
+    # Cheaper Inference keys ship as ci_live_...
+    AuthMethod.CHEAPER_INFERENCE_API: ("ci_live_",),
 }
 
 # Substring tokens that mark a value as obviously not a real key.
@@ -775,6 +779,7 @@ _METHOD_LABEL: dict[AuthMethod, str] = {
     AuthMethod.ZENMUX_API: "ZenMux — API key",
     AuthMethod.QIANFAN_API: "Baidu Qianfan (ERNIE) — API key",
     AuthMethod.CLOUDFLARE_GATEWAY_API: "Cloudflare AI Gateway — API key + base URL",
+    AuthMethod.CHEAPER_INFERENCE_API: "Cheaper Inference — API key",
     AuthMethod.COPILOT_OAUTH: "GitHub Copilot — Pro subscription",
     AuthMethod.GROK_OAUTH: "xAI SuperGrok — X Premium+",
     AuthMethod.PERPLEXITY_OAUTH: "Perplexity — Pro subscription",
