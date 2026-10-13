@@ -30,7 +30,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 import httpx
-from langchain_core.language_models import BaseChatModel
+from langchain_core.language_models import BaseChatModel, LanguageModelInput
 from langchain_core.messages import AIMessage, BaseMessage
 from langchain_openai import ChatOpenAI
 from pydantic import SecretStr
@@ -919,6 +919,15 @@ class _ProxiedChatOpenAI(ChatOpenAI):
          flattened to 'internal error' on the way back to the CLI. We pull
          out the original message and rewrap it.
     """
+
+    def _get_request_payload(
+        self, input_: LanguageModelInput, *, stop: list[str] | None = None, **kwargs: Any
+    ) -> dict:
+        payload = super()._get_request_payload(input_, stop=stop, **kwargs)
+        if self.disable_streaming == "tool_calling" and payload.get("tools"):
+            payload["stream"] = False
+            payload.pop("stream_options", None)
+        return payload
 
     def invoke(self, *args, **kwargs):
         try:

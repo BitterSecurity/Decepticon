@@ -105,20 +105,22 @@ def _roundup(value: float) -> float:
 def parse_vector(vector: str) -> dict[str, str]:
     """Parse + validate a CVSS 3.0/3.1 vector into a metric dict.
 
-    Raises ``CVSSError`` on a missing prefix, an unknown metric key, an
-    illegal value, or a missing mandatory base metric.
+    Raises ``CVSSError`` on an unsupported prefix, a malformed or duplicate
+    metric, an unknown key, an illegal value, or a missing mandatory base metric.
     """
     if not isinstance(vector, str) or not vector.strip():
         raise CVSSError("empty CVSS vector")
-    parts = [p for p in vector.strip().split("/") if p]
-    if not parts or not parts[0].upper().startswith("CVSS:3"):
-        raise CVSSError(f"vector must start with 'CVSS:3.1/' (got {parts[0] if parts else '∅'!r})")
+    parts = vector.strip().split("/")
+    if parts[0].upper() not in {"CVSS:3.0", "CVSS:3.1"}:
+        raise CVSSError(f"vector must start with 'CVSS:3.0/' or 'CVSS:3.1/' (got {parts[0]!r})")
     metrics: dict[str, str] = {}
     for part in parts[1:]:
         if ":" not in part:
             raise CVSSError(f"malformed metric {part!r} (expected KEY:VALUE)")
         key, val = part.split(":", 1)
         key, val = key.upper(), val.upper()
+        if key in metrics:
+            raise CVSSError(f"duplicate metric key {key!r}")
         allowed = _BASE_METRICS.get(key) or _TEMPORAL_METRICS.get(key) or _ENV_METRICS.get(key)
         if allowed is None:
             raise CVSSError(f"unknown metric key {key!r}")
