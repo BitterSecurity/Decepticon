@@ -22,6 +22,7 @@ import json
 from collections.abc import Iterable
 from typing import Annotated, Any
 
+from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import InjectedToolCallId, tool
 from langgraph.prebuilt import InjectedState
 
@@ -143,14 +144,16 @@ def build_kg_tools(
             path: str,
             state: Annotated[dict, InjectedState],
             tool_call_id: Annotated[str, InjectedToolCallId] = "",
+            *,
+            config: RunnableConfig,
         ) -> str:
             """Ingest a scanner output file into the engagement graph.
 
             ``scanner_kind`` selects an adapter from the registry. Built-ins:
               nmap_xml, nuclei_jsonl, httpx_jsonl, sarif.
 
-            ``path`` is an absolute file path inside the sandbox / host
-            (the adapter reads it directly). Examples:
+            SARIF paths address the run's sandbox workspace; other adapters
+            retain their process-local path behavior. Examples:
               kg_ingest("nmap_xml", "/workspace/scan.xml")
               kg_ingest("sarif",    "/workspace/semgrep.sarif")
 
@@ -164,14 +167,26 @@ def build_kg_tools(
                 return _err(_ENGAGEMENT_UNSET)
 
             try:
-                result = _ingest_dispatch(
-                    scanner_kind,
-                    path,
-                    store=store,
-                    engagement=engagement,
-                    created_by=_resolve_created_by(state),
-                    source_episode_id=tool_call_id or "no-tool-call-id",
-                )
+                if scanner_kind == "sarif":
+                    from decepticon.middleware.scoped_reporting_io import ingest_sarif_scoped
+
+                    result = ingest_sarif_scoped(
+                        path,
+                        store=store,
+                        state=state,
+                        config=config,
+                        created_by=_resolve_created_by(state),
+                        source_episode_id=tool_call_id or "no-tool-call-id",
+                    )
+                else:
+                    result = _ingest_dispatch(
+                        scanner_kind,
+                        path,
+                        store=store,
+                        engagement=engagement,
+                        created_by=_resolve_created_by(state),
+                        source_episode_id=tool_call_id or "no-tool-call-id",
+                    )
             except Exception as exc:  # noqa: BLE001 — surface to LLM
                 return _err(f"kg_ingest failed: {exc}")
             return json.dumps(result)
