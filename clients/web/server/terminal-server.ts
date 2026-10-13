@@ -178,6 +178,8 @@ wss.on("connection", async (ws: WebSocket, req) => {
     return;
   }
   const scope = await approvedScope(engagementSlug);
+  // A disconnect during startup has no session close handler yet.
+  if (ws.readyState !== WebSocket.OPEN) return;
   if (agentId === "decepticon" && !scope?.redApproved) {
     ws.close(1008, "Red scope is not approved");
     return;
@@ -233,6 +235,7 @@ wss.on("connection", async (ws: WebSocket, req) => {
       sendJson(ws, { type: "error", message: `Thread creation failed: ${msg}` });
     }
   }
+  if (ws.readyState !== WebSocket.OPEN) return;
   if (threadId) {
     sendJson(ws, { type: "threadId", threadId });
     if (engagementId) persistThreadId(engagementId, threadId);
