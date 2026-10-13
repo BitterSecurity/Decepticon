@@ -74,3 +74,39 @@ Based on RoE scope + threat profile, select applicable phases using the active p
 3. **Kill chain scoped to RoE** — no exploitation phase in recon-only engagement
 4. **Timeline uses absolute dates** — never relative
 5. **Deconfliction defaults to standard red-team markers/headers** unless a SOC integration endpoint was already flagged; `communication_plan` is DEPRECATED — write coordination details to `ContactPlan` instead
+
+## Document schema (derived from the validator's model)
+
+`plan/conops.json` must validate against `CONOPS`. Fields not listed here are not part of the model and are ignored by the validator.
+
+| field | type | required | allowed values / nested keys |
+| --- | --- | --- | --- |
+| `engagement_name` | str | yes |  |
+| `executive_summary` | str | yes |  |
+| `threat_actors` | list[ThreatActor] | no | each object: `name`, `sophistication`, `motivation`, `initial_access`, `ttps` |
+| `attack_narrative` | str | no |  |
+| `kill_chain` | list[KillChainPhase] | no | each object: `phase`, `description`, `success_criteria`, `tools` |
+| `methodology` | str | no |  |
+| `communication_plan` | str | no |  |
+| `phases_timeline` | dict[str, str] | no |  |
+| `success_criteria` | list[str] | no |  |
+
+`KillChainPhase` object:
+
+| field | type | required | allowed values |
+| --- | --- | --- | --- |
+| `phase` | ObjectivePhase | yes | one of `recon`, `initial-access`, `post-exploit`, `c2`, `exfiltration`, `reporting` |
+| `description` | str | yes |  |
+| `success_criteria` | str | no |  |
+| `tools` | list[str] | no |  |
+
+`ThreatActor` object:
+
+| field | type | required | allowed values |
+| --- | --- | --- | --- |
+| `name` | str | yes |  |
+| `sophistication` | str | yes |  |
+| `motivation` | str | yes |  |
+| `initial_access` | list[str] | no |  |
+| `ttps` | list[str] | no |  |
+

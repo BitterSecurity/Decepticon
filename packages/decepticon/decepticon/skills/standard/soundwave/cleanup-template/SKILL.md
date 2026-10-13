@@ -70,3 +70,32 @@ Before writing `plan/cleanup.json`:
 ## Output
 
 Write to `plan/cleanup.json` validating against `decepticon.core.schemas.CleanupPlan`.
+
+## Document schema (derived from the validator's model)
+
+`plan/cleanup.json` must validate against `CleanupPlan`. Fields not listed here are not part of the model and are ignored by the validator.
+
+| field | type | required | allowed values / nested keys |
+| --- | --- | --- | --- |
+| `engagement_name` | str | yes |  |
+| `completion_criteria` | str | no |  |
+| `artifacts` | list[CleanupArtifact] | no | each object: `artifact_type`, `host`, `path`, `sha256`, `persistence_mech`, `removal_command`, `verifier_command`, `created_by_objective`, `removed`, `removed_at` |
+| `pre_engagement_baseline` | str | no |  |
+| `version` | str | no |  |
+| `last_updated` | str | no |  |
+
+`CleanupArtifact` object:
+
+| field | type | required | allowed values |
+| --- | --- | --- | --- |
+| `artifact_type` | str | yes |  |
+| `host` | str | yes |  |
+| `path` | str | yes |  |
+| `sha256` | str | no |  |
+| `persistence_mech` | str | no |  |
+| `removal_command` | str | yes |  |
+| `verifier_command` | str | no |  |
+| `created_by_objective` | str | no |  |
+| `removed` | bool | no |  |
+| `removed_at` | str | no |  |
+

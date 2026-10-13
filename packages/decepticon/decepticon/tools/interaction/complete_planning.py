@@ -54,15 +54,19 @@ def validate_planning_bundle(
 
     root = Path(workspace)
     documents: dict[str, Any] = {}
+    failures: list[str] = []
     for filename, model in _PLANNING_DOCUMENTS.items():
         path = root / "plan" / filename
         try:
             payload = json.loads(path.read_text(encoding="utf-8"))
             documents[filename] = model.model_validate(payload)
         except FileNotFoundError:
-            return f"Missing required planning document: plan/{filename}."
+            failures.append(f"Missing required planning document: plan/{filename}.")
         except (json.JSONDecodeError, ValueError) as exc:
-            return f"Invalid planning document plan/{filename}: {exc}"
+            failures.append(f"Invalid planning document plan/{filename}: {exc}")
+
+    if failures:
+        return "\n".join(failures)
 
     names = {document.engagement_name.strip() for document in documents.values()}
     if len(names) != 1 or not next(iter(names), ""):
