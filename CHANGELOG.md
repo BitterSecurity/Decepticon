@@ -14,6 +14,8 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 
 ### Fixed
 
+- Attach the image digest manifest before publishing a release; GitHub Actions
+  does not start a second workflow from a release published with `GITHUB_TOKEN`.
 - Restore injected runtime handling for OPPLAN task dispatch and finding-quality
   checks. ([#923](https://github.com/BitterSecurity/Decepticon/pull/923))
 - Give LangGraph access to the engagement workspace for planning validation and
