@@ -14,8 +14,8 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 
 ### Fixed
 
-- Route ChatGPT OAuth profiles through current Codex models (GPT-6 Astra,
-  GPT-6.1 Sol, GPT-6 Luna), and remove retired OAuth routes from the model picker.
+- Reject duplicate CVSS metrics, unsupported version labels, and empty vector
+  segments before scoring. (#942)
 - Complete planning-document schema guidance, detect model/table drift, and
   report all invalid documents in one validation attempt.
   ([#929](https://github.com/BitterSecurity/Decepticon/pull/929))
@@ -26,6 +26,9 @@ comparison link. Keep proposed and unmerged changes out of released sections.
   does not start a second workflow from a release published with `GITHUB_TOKEN`.
 - Restore injected runtime handling for OPPLAN task dispatch and finding-quality
   checks. ([#923](https://github.com/BitterSecurity/Decepticon/pull/923))
+- Buffer Ollama tool-bound requests on the wire as well as in the response
+  parser, while preserving text streaming, token callbacks, and usage accounting.
+  ([#940](https://github.com/BitterSecurity/Decepticon/issues/940))
 - Give LangGraph access to the engagement workspace for planning validation and
   readiness markers. ([#924](https://github.com/BitterSecurity/Decepticon/pull/924))
 - Recover missing terminal threads before PTY startup and stop safely on backend
@@ -41,6 +44,8 @@ comparison link. Keep proposed and unmerged changes out of released sections.
   ([#931](https://github.com/BitterSecurity/Decepticon/pull/931))
 - Stop disconnected terminal startup before it can replace an attached session
   or spawn an orphan PTY. (#930)
+- Route ChatGPT OAuth profiles through current Codex models (GPT-6 Astra,
+  GPT-6.1 Sol, GPT-6 Luna), and remove retired OAuth routes from the model picker.
 - Follow renamed-repository redirects during installer release lookup, pin
   explicit-version config downloads to the matching release, and correct the
   version recovery command. ([#927](https://github.com/BitterSecurity/Decepticon/pull/927))
