@@ -14,6 +14,9 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 
 ### Fixed
 
+- Start engagement terminals only after opening Live, preserving visited mode
+  terminals across tab navigation. ([#934](https://github.com/BitterSecurity/Decepticon/pull/934))
+
 - Load browser API and terminal endpoints from the running web server so one
   prebuilt image supports relative reverse-proxy routes across deployments.
   ([#931](https://github.com/BitterSecurity/Decepticon/pull/931))
