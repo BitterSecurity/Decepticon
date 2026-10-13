@@ -34,7 +34,7 @@ def test_first_command_returns_its_output_when_initial_export_is_delayed(
         if args[-1] == "#{pane_pid}":
             return "123"
         record = f"{manager._generation}:123:0" if not pending else ""
-        return f"123\t{record}\t/workspace"
+        return f"123\t{record}:/workspace"
 
     with (
         patch.object(manager, "_tmux", side_effect=native_state),

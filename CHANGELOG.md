@@ -14,6 +14,9 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 
 ### Fixed
 
+- Bind tmux command completion to the submitted shell command, preserving printed
+  prompt markers and waiting for the final exit status of multiline commands. (#945)
+
 - Complete planning-document schema guidance, detect model/table drift, and
   report all invalid documents in one validation attempt.
   ([#929](https://github.com/BitterSecurity/Decepticon/pull/929))

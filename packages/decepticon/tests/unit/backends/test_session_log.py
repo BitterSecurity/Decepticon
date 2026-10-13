@@ -199,7 +199,10 @@ def test_read_session_log_diff_returns_full_log_on_first_call():
 
     with patch.object(sandbox, "download_files") as mock_dl:
         mock_dl.return_value = [
-            _file_response("/workspace/.sessions/scan.log", b"line1\n\x1b[31m[DCPTN:0:/printed]\x1b[0m\nline3\n"),
+            _file_response(
+                "/workspace/.sessions/scan.log",
+                b"line1\n\x1b[31m[DCPTN:0:/printed]\x1b[0m\nline3\n",
+            ),
         ]
         diff = sandbox.read_session_log_diff("scan")
 
@@ -509,7 +512,7 @@ def test_poll_loop_capture_errors_dont_falsely_trigger_stall_detection():
     def native_state(args: list[str], timeout: int = 10) -> str:
         if args[-1] == "#{pane_pid}":
             return "123"
-        return f"123\t{mgr._generation}:123:0\t/tmp"
+        return f"123\t{mgr._generation}:123:0:/tmp"
 
     with (
         patch.object(mgr, "_tmux", side_effect=native_state),
@@ -572,7 +575,7 @@ def test_execute_recovers_initial_capture_failure_without_error_string_matching(
     def native_state(args: list[str], timeout: int = 10) -> str:
         if args[-1] == "#{pane_pid}":
             return "123"
-        return f"123\t{mgr._generation}:123:0\t/workspace"
+        return f"123\t{mgr._generation}:123:0:/workspace"
 
     with (
         patch.object(mgr, "_tmux", side_effect=native_state),

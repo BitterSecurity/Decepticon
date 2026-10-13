@@ -82,7 +82,7 @@ def _scripted_manager(
         if args[-1] == "#{pane_pid}":
             return "123"
         record = f"{mgr._generation}:123:0" if state["n"] >= len(screens) - 1 else ""
-        return f"123\t{record}\t/workspace"
+        return f"123\t{record}:/workspace"
 
     monkeypatch.setattr(mgr, "_tmux", native_state)
     monkeypatch.setattr(mgr, "_capture", capture)

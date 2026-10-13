@@ -315,7 +315,7 @@ class TestReadScreen:
         mgr._generation = "a" * 32
         mgr._shell_pid = "123"
         with (
-            patch.object(mgr, "_tmux", return_value=f"123\t{'a' * 32}:123:0\t/workspace"),
+            patch.object(mgr, "_tmux", return_value=f"123\t{'a' * 32}:123:0:/workspace"),
             patch.object(mgr, "initialize"),
             patch.object(mgr, "_capture", return_value=screen),
         ):
@@ -371,10 +371,10 @@ class TestReadScreen:
     [
         "",
         "123\t\t/workspace",
-        f"123\t{'b' * 32}:123:0\t/workspace",
-        f"123\t{'a' * 32}:456:0\t/workspace",
-        f"456\t{'a' * 32}:456:0\t/workspace",
-        f"123\t{'a' * 32}:123:999\t/workspace",
+        f"123\t{'b' * 32}:123:0:/workspace",
+        f"123\t{'a' * 32}:456:0:/workspace",
+        f"456\t{'a' * 32}:456:0:/workspace",
+        f"123\t{'a' * 32}:123:999:/workspace",
     ],
 )
 def test_completion_rejects_missing_stale_or_foreign_native_state(native_state: str) -> None:
@@ -421,7 +421,7 @@ def test_waiter_rejects_printed_completion_without_owned_native_state(
             native = f"{'b' * 32}:123:0"
         elif record == "foreign":
             native = f"{mgr._generation}:456:0"
-        return f"123\t{native}\t/workspace"
+        return f"123\t{native}:/workspace"
 
     with (
         patch.object(mgr, "initialize"),

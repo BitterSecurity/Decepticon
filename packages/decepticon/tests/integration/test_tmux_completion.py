@@ -57,7 +57,9 @@ def test_timeout_cannot_end_in_printed_completion(manager: tmux.TmuxSessionManag
     assert output.endswith("[DCPTN_STATUS incomplete]")
 
 
-def test_shell_environment_and_cwd_persist(manager: tmux.TmuxSessionManager, tmp_path: Path) -> None:
+def test_shell_environment_and_cwd_persist(
+    manager: tmux.TmuxSessionManager, tmp_path: Path
+) -> None:
     physical = tmp_path / "physical"
     physical.mkdir()
     logical = tmp_path / "logical"

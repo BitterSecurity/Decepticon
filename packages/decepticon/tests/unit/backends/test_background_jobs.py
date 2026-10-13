@@ -108,7 +108,7 @@ def test_background_completion_uses_owned_native_record(native_record: str, expe
     mgr._shell_pid = "123"
     with (
         patch.object(sandbox, "_get_manager", return_value=mgr),
-        patch.object(mgr, "_tmux", return_value=f"123\t{native_record}\t/workspace"),
+        patch.object(mgr, "_tmux", return_value=f"123\t{native_record}:/workspace"),
     ):
         sandbox.poll_completion("scan")
     assert job.status == expected
