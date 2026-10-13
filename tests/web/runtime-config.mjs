@@ -88,8 +88,10 @@ try {
       }
       console.log(`${name}: runtime config, no-store, private env isolation, CSP, and applicable SDK/WebSocket transport passed`);
     } finally {
-      server.kill();
-      await once(server, "exit");
+      if (server.exitCode === null && server.signalCode === null) {
+        server.kill();
+        await once(server, "exit");
+      }
     }
   }
 } finally {

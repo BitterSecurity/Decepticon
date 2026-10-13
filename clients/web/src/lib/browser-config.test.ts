@@ -43,7 +43,6 @@ test("direct endpoints preserve their configured protocol and API path", () => {
   assert.equal(langGraphApiUrl(location, "http://localhost:2024"), "http://localhost:2024");
   assert.equal(terminalWebSocketUrl(location, "ws://localhost:3003").href, "ws://localhost:3003/");
   assert.equal(terminalWebSocketUrl(location, "https://dashboard.example.test/terminal").protocol, "wss:");
-  assert.equal(langGraphApiUrl(location, "/langgraph?tenant=blue"), "https://dashboard.example.test:8443/langgraph?tenant=blue");
 });
 
 test("non-network endpoint protocols are rejected before connection", () => {

@@ -16,9 +16,12 @@
  *                                              CLI (Ink UI)    Web (Canvas Graph)
  */
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Client } from "@langchain/langgraph-sdk";
 import { type SubagentCustomEvent, STREAM_OPTIONS } from "@decepticon/streaming";
+
+import { langGraphApiUrl } from "@/lib/browser-config";
+import { useBrowserConfig } from "@/lib/browser-config-context";
 
 const POLL_INTERVAL = 2000;
 
@@ -40,11 +43,12 @@ export function useRunObserver({ threadId }: UseRunObserverOptions): UseRunObser
   const [isRunning, setIsRunning] = useState(false);
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
 
-  const apiUrl = typeof window !== "undefined"
-    ? (process.env.NEXT_PUBLIC_LANGGRAPH_API_URL ?? "http://localhost:2024")
-    : (process.env.LANGGRAPH_API_URL ?? "http://localhost:2024");
-
-  const clientRef = useRef(new Client({ apiUrl }));
+  const config = useBrowserConfig();
+  const client = useMemo(() => new Client({
+    apiUrl: typeof window !== "undefined"
+      ? langGraphApiUrl(window.location, config.langGraphApiUrl)
+      : "http://localhost:2024",
+  }), [config.langGraphApiUrl]);
   const observingRunRef = useRef<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const eventsRef = useRef<SubagentCustomEvent[]>([]);
@@ -54,7 +58,6 @@ export function useRunObserver({ threadId }: UseRunObserverOptions): UseRunObser
     if (!threadId) return;
 
     let active = true;
-    const client = clientRef.current;
 
     // New thread = new session: start from an empty event log. Within a thread
     // events accumulate across runs so the feed/graph mirror the CLI's full
@@ -99,14 +102,13 @@ export function useRunObserver({ threadId }: UseRunObserverOptions): UseRunObser
       abortRef.current?.abort();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [threadId]);
+  }, [threadId, client]);
 
   const joinRunStream = useCallback(async (tid: string, runId: string) => {
     abortRef.current?.abort();
     const abort = new AbortController();
     abortRef.current = abort;
 
-    const client = clientRef.current;
     const seenToolCalls = new Set<string>();
     const streamModes = STREAM_OPTIONS.streamMode;
 
@@ -185,7 +187,7 @@ export function useRunObserver({ threadId }: UseRunObserverOptions): UseRunObser
         setActiveRunId(null);
       }
     }
-  }, []);
+  }, [client]);
 
   return { events, isRunning, activeRunId };
 }
