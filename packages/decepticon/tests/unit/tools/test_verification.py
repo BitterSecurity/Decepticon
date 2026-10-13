@@ -34,6 +34,9 @@ async def test_workspace_verifier_requires_and_records_negative_control(monkeypa
     assert result["validated"] is True
     assert result["success_signals"] == ["proof-marker"]
     assert result["negative_signals"] == ["ordinary response"]
+    assert result["negative_exit_code"] == 0
+    assert "ordinary response" in result["negative_stdout_excerpt"]
+    assert len(result["negative_output_hash"]) == 64
 
 
 @pytest.mark.parametrize("phase", ["positive", "negative"])
