@@ -57,11 +57,15 @@ def test_timeout_cannot_end_in_printed_completion(manager: tmux.TmuxSessionManag
     assert output.endswith("[DCPTN_STATUS incomplete]")
 
 
-def test_shell_environment_and_cwd_persist(manager: tmux.TmuxSessionManager) -> None:
-    manager.execute("export COMPLETION_FIXTURE=kept; cd /tmp", False, 5)
+def test_shell_environment_and_cwd_persist(manager: tmux.TmuxSessionManager, tmp_path: Path) -> None:
+    physical = tmp_path / "physical"
+    physical.mkdir()
+    logical = tmp_path / "logical"
+    logical.symlink_to(physical, target_is_directory=True)
+    manager.execute(f"export COMPLETION_FIXTURE=kept; cd '{logical}'", False, 5)
     output = manager.execute("printf '%s\\n' \"$COMPLETION_FIXTURE\"; pwd", False, 5)
-    assert "kept\n/tmp" in output
-    assert "[cwd: /tmp]" in output
+    assert f"kept\n{logical}" in output
+    assert f"[cwd: {logical}]" in output
     assert output.endswith("[DCPTN_COMPLETE exit=0]")
 
 
@@ -118,25 +122,31 @@ def test_cancelled_waiter_can_interrupt_and_recover(manager: tmux.TmuxSessionMan
     assert output.endswith("[DCPTN_COMPLETE exit=0]")
 
 
-def test_background_consumer_waits_for_native_generation(tmp_path: Path) -> None:
+def test_background_consumer_waits_for_native_generation(
+    manager: tmux.TmuxSessionManager, monkeypatch: pytest.MonkeyPatch
+) -> None:
     from decepticon.sandbox_kernel.daemon import DaemonSandbox
 
-    sandbox = DaemonSandbox(workspace_path=str(tmp_path))
-    session = f"background945-{uuid.uuid4().hex}"
-    manager = sandbox._get_manager(session)
-    try:
-        sandbox.start_background("printf '[DCPTN:0:/printed]\\n'; sleep 0.5; (exit 7)", session)
+    sandbox = DaemonSandbox()
+    session = manager.session
+    sandbox._managers[session] = manager
+    # Map the sandbox's virtual log path to the real host fixture workspace.
+    monkeypatch.setattr(
+        sandbox,
+        "session_log_path",
+        lambda session, workspace_path=None: f"{manager._workspace_path}/.sessions/{session}.log",
+    )
+    sandbox.start_background("printf '[DCPTN:0:/printed]\\n'; sleep 0.5; (exit 7)", session)
+    job = sandbox.poll_completion(session)
+    assert job is not None and job.status == "running"
+    deadline = time.monotonic() + 5
+    while job.status == "running" and time.monotonic() < deadline:
+        time.sleep(0.05)
         job = sandbox.poll_completion(session)
-        assert job is not None and job.status == "running"
-        deadline = time.monotonic() + 5
-        while job.status == "running" and time.monotonic() < deadline:
-            time.sleep(0.05)
-            job = sandbox.poll_completion(session)
-            assert job is not None
-        assert job.status == "done" and job.exit_code == 7
-    finally:
-        manager._tmux(["kill-session", "-t", manager.session])
-        manager._forget_cached_state()
+        assert job is not None
+    assert job.status == "done" and job.exit_code == 7
+    log = sandbox.read_session_log_diff(session)
+    assert "[DCPTN:0:/printed]\n" in log
 
 
 def test_auto_background_completion_keeps_generation(
