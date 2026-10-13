@@ -136,6 +136,7 @@ plugin can't silently subvert the safety story.
 # is a no-op otherwise, so OSS / single-tenant runs are unaffected.
 _TAIL_SLOTS: frozenset[MiddlewareSlot] = frozenset(
     {
+        MiddlewareSlot.MODEL_OVERRIDE,
         MiddlewareSlot.MODEL_FALLBACK,
         MiddlewareSlot.PROXY_KEY_OVERRIDE,
         MiddlewareSlot.SUMMARIZATION,
@@ -184,7 +185,6 @@ SLOTS_PER_ROLE: dict[str, frozenset[MiddlewareSlot]] = {
         MiddlewareSlot.ENGAGEMENT_CONTEXT,
         MiddlewareSlot.SUBAGENT,
         MiddlewareSlot.OPPLAN,
-        MiddlewareSlot.MODEL_OVERRIDE,
         MiddlewareSlot.HITL_APPROVAL,
         # Only the orchestrator carries ops_* tools (ADR-0006 §2), so
         # only the orchestrator gets the workload-completion delivery

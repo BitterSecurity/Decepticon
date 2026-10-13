@@ -15,7 +15,8 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 ### Fixed
 
 - Apply CLI `/model` selection and clearing through persisted graph state,
-  including resumed runs, while preserving provider-specific model settings.
+  including Soundwave, specialists, and resumed runs, while preserving
+  provider-specific model settings.
 - Complete planning-document schema guidance, detect model/table drift, and
   report all invalid documents in one validation attempt.
   ([#929](https://github.com/BitterSecurity/Decepticon/pull/929))
