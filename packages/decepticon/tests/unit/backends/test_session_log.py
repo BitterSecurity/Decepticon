@@ -199,11 +199,13 @@ def test_read_session_log_diff_returns_full_log_on_first_call():
 
     with patch.object(sandbox, "download_files") as mock_dl:
         mock_dl.return_value = [
-            _file_response("/workspace/.sessions/scan.log", b"line1\nline2\nline3\n"),
+            _file_response("/workspace/.sessions/scan.log", b"line1\n\x1b[31m[DCPTN:0:/printed]\x1b[0m\nline3\n"),
         ]
         diff = sandbox.read_session_log_diff("scan")
 
     assert "line1" in diff and "line3" in diff
+    assert "[DCPTN:0:/printed]" in diff
+    assert "\x1b" not in diff
 
 
 def test_read_session_log_diff_uses_engagement_workspace_path():
