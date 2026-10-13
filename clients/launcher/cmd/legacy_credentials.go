@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -92,7 +93,7 @@ func migrateLegacyCredentialsWith(env map[string]string, db credentialDatabaseOp
 			return err
 		}
 		previous, err := config.LoadEnv(config.EnvPath() + ".before-credential-migration")
-		if os.IsNotExist(err) {
+		if errors.Is(err, os.ErrNotExist) {
 			return nil
 		}
 		if err != nil {

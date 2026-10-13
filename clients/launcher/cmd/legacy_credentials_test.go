@@ -70,6 +70,23 @@ func TestFreshCredentialsStartWithoutLegacyBackup(t *testing.T) {
 	}
 }
 
+func TestFreshCredentialsRejectUnreadableLegacyBackup(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("DECEPTICON_HOME", home)
+	if err := os.Mkdir(filepath.Join(home, ".env.before-credential-migration"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	env := map[string]string{
+		"LITELLM_MASTER_KEY": "fresh-master",
+		"LITELLM_SALT_KEY":   "fresh-salt",
+		"POSTGRES_PASSWORD":  "fresh-postgres",
+		"NEO4J_PASSWORD":     "fresh-neo4j",
+	}
+	if err := migrateLegacyCredentials(env); err == nil || !strings.Contains(err.Error(), "read previous credentials") {
+		t.Fatalf("unreadable backup was not reported: %v", err)
+	}
+}
+
 func TestLegacyCredentialsUpgradeEveryStackSharingOneHome(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("DECEPTICON_HOME", home)

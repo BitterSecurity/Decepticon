@@ -43,6 +43,9 @@ comparison link. Keep proposed and unmerged changes out of released sections.
   explicit-version config downloads to the matching release, and correct the
   version recovery command. ([#927](https://github.com/BitterSecurity/Decepticon/pull/927))
 
+- Allow freshly onboarded installations to start without a legacy credential
+  migration backup; continue reporting unreadable backup files.
+
 ## [1.4.0] — 2026-10-13
 
 ### Added
