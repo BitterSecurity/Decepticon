@@ -97,4 +97,3 @@ Write to `plan/abort.json` validating against `decepticon.core.schemas.AbortPlan
 | `severity` | TriggerSeverity | yes | one of `info`, `warning`, `critical`, `emergency` |
 | `response_action` | str | yes |  |
 | `auto_halt` | bool | no |  |
-

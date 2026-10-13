@@ -109,4 +109,3 @@ Based on RoE scope + threat profile, select applicable phases using the active p
 | `motivation` | str | yes |  |
 | `initial_access` | list[str] | no |  |
 | `ttps` | list[str] | no |  |
-

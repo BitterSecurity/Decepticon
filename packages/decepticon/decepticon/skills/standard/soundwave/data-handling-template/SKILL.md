@@ -96,4 +96,3 @@ Write to `plan/data-handling.json` validating against `decepticon.core.schemas.D
 | `encryption_at_rest` | bool | no |  |
 | `encryption_in_transit` | bool | no |  |
 | `handling_notes` | str | no |  |
-

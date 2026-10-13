@@ -100,6 +100,8 @@ async def test_start_dispatches_background_run_with_scope() -> None:
     call = fake.runs.create_calls[0]
     assert call["assistant_id"] == "decepticon"
     assert call["config"]["configurable"]["engagement_name"] == "eng-1"
+    assert call["input"]["workspace_path"] == "/workspace"
+    assert call["config"]["configurable"]["workspace_path"] == "/workspace"
     scope = call["input"]["scan_scope"]
     assert scope["targets"] == ["https://example.com"]
     assert "Out of scope" in scope["instruction"]

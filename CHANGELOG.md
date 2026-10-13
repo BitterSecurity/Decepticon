@@ -14,6 +14,12 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 
 ### Fixed
 
+- Complete planning-document schema guidance, detect model/table drift, and
+  report all invalid documents in one validation attempt.
+  ([#929](https://github.com/BitterSecurity/Decepticon/pull/929))
+- Transfer SARIF imports and reports through the run sandbox with trusted graph
+  and workspace scope, preserving protected files.
+  ([#936](https://github.com/BitterSecurity/Decepticon/pull/936))
 - Attach the image digest manifest before publishing a release; GitHub Actions
   does not start a second workflow from a release published with `GITHUB_TOKEN`.
 - Restore injected runtime handling for OPPLAN task dispatch and finding-quality

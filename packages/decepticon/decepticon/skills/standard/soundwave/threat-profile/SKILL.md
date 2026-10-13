@@ -119,4 +119,3 @@ Prune any technique the RoE forbids (Step 3) before writing. Available: `apt29`,
 | `confidence` | FindingConfidence | no | one of `verified`, `probable`, `unverified` |
 | `version` | str | no |  |
 | `last_updated` | str | no |  |
-

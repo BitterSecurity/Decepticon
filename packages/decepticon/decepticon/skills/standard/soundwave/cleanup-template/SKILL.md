@@ -98,4 +98,3 @@ Write to `plan/cleanup.json` validating against `decepticon.core.schemas.Cleanup
 | `created_by_objective` | str | no |  |
 | `removed` | bool | no |  |
 | `removed_at` | str | no |  |
-

@@ -104,4 +104,3 @@ Write to `plan/contact.json` validating against `decepticon.core.schemas.Contact
 | `role` | str | yes |  |
 | `channel` | str | yes |  |
 | `availability` | str | no |  |
-
