@@ -14,6 +14,14 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 
 ### Fixed
 
+- Transfer SARIF imports and reports through the run sandbox with trusted graph
+  and workspace scope, preserving protected files.
+  ([#911](https://github.com/BitterSecurity/Decepticon/pull/911))
+- Recover missing terminal threads before PTY startup and stop safely on backend
+  errors or disconnected startup. ([#935](https://github.com/BitterSecurity/Decepticon/pull/935))
+- Stop terminal initialization after navigation unmounts it while xterm is loading,
+  avoiding abandoned terminal resources. ([#932](https://github.com/BitterSecurity/Decepticon/pull/932))
+
 - Start engagement terminals only after opening Live, preserving visited mode
   terminals across tab navigation. ([#934](https://github.com/BitterSecurity/Decepticon/pull/934))
 

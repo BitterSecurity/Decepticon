@@ -285,6 +285,8 @@ export function WebTerminal({
       ]);
       await import("xterm/css/xterm.css");
 
+      if (disposedRef.current || containerRef.current !== container) return;
+
       if (termRef.current) {
         // Already initialized — just reconnect WS
         connectWs();
