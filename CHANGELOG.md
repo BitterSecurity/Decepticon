@@ -12,6 +12,12 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+### Fixed
+
+- Load browser API and terminal endpoints from the running web server so one
+  prebuilt image supports relative reverse-proxy routes across deployments.
+  ([#931](https://github.com/BitterSecurity/Decepticon/pull/931))
+
 ## [1.4.0] — 2026-10-13
 
 ### Added
