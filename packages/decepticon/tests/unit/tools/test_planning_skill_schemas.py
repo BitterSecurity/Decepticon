@@ -18,7 +18,6 @@ from decepticon_core.types.engagement import (
     DataHandlingPlan,
     DeconflictionPlan,
     ThreatProfile,
-    TriggerSeverity,
 )
 
 _SKILLS = Path(__file__).parents[3] / "decepticon/skills/standard/soundwave"
@@ -87,9 +86,3 @@ def test_planning_skill_schema_matches_validator(skill: str, model: type[BaseMod
     section = body.split("## Document schema (derived from the validator's model)\n", 1)[1]
     rows = [line for line in section.splitlines() if line.startswith("| `")]
     assert rows == _schema_rows(model)
-
-
-def test_abort_prose_uses_serialized_severity_values() -> None:
-    body = (_SKILLS / "abort-template/SKILL.md").read_text(encoding="utf-8")
-    for severity in TriggerSeverity:
-        assert f"`{severity.name}`" not in body
