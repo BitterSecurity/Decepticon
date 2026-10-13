@@ -14,8 +14,8 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 
 ### Fixed
 
-- Preserve LangGraph threads and checkpoints across container recreation by
-  storing development runtime state in a Compose project volume.
+- Reject duplicate CVSS metrics, unsupported version labels, and empty vector
+  segments before scoring. (#942)
 - Complete planning-document schema guidance, detect model/table drift, and
   report all invalid documents in one validation attempt.
   ([#929](https://github.com/BitterSecurity/Decepticon/pull/929))
@@ -29,6 +29,8 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 - Buffer Ollama tool-bound requests on the wire as well as in the response
   parser, while preserving text streaming, token callbacks, and usage accounting.
   ([#940](https://github.com/BitterSecurity/Decepticon/issues/940))
+- Preserve LangGraph threads and checkpoints across container recreation by
+  storing development runtime state in a Compose project volume.
 - Give LangGraph access to the engagement workspace for planning validation and
   readiness markers. ([#924](https://github.com/BitterSecurity/Decepticon/pull/924))
 - Recover missing terminal threads before PTY startup and stop safely on backend
