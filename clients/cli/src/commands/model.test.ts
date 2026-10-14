@@ -35,3 +35,23 @@ describe("/model current prod catalog", () => {
     expect(getModelOverride()).toBe("openrouter/anthropic/claude-sonnet-5.5");
   });
 });
+
+describe("/model ChatGPT OAuth catalog", () => {
+  it("lists only supported Codex subscription models", () => {
+    const [listing] = runModelCommand("");
+    const oauthModels = listing.split("\n").map((line) => line.trim())
+      .filter((line) => line.startsWith("auth/gpt-"));
+    expect(oauthModels).toEqual([
+      "auth/gpt-6-astra", "auth/gpt-6.1-sol", "auth/gpt-6-luna",
+      "auth/gpt-5.6-sol", "auth/gpt-5.6-terra", "auth/gpt-5.6-luna",
+    ]);
+  });
+
+  it.each(["gpt-6-astra", "gpt-6.1-sol", "gpt-6-luna"])(
+    "selects %s without an unknown-model warning", (slug) => {
+      const events = runModelCommand(`auth/${slug}`);
+      expect(events).toHaveLength(1);
+      expect(getModelOverride()).toBe(`auth/${slug}`);
+    },
+  );
+});

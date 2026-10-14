@@ -22,13 +22,15 @@ import {
   getAssistantOverride,
   setAssistantOverride,
 } from "./assistantOverride.js";
-import { approveRedMode } from "./planMode.js";
 
 interface AssistantRow {
   assistant_id: string;
   graph_id: string;
   name: string;
 }
+
+const CATALOG_PAGE_SIZE = 100;
+const CATALOG_TIMEOUT_MS = 10_000;
 
 function apiBase(): string {
   return process.env.DECEPTICON_API_URL || "http://localhost:2024";
@@ -39,27 +41,31 @@ function apiBase(): string {
  * Returns deduplicated graph_ids registered on the server.
  */
 async function listOrchestrators(): Promise<string[]> {
-  const res = await fetch(`${apiBase()}/assistants/search`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({}),
-  });
-  if (!res.ok) {
-    throw new Error(`assistants/search HTTP ${res.status}: ${await res.text()}`);
+  const signal = AbortSignal.timeout(CATALOG_TIMEOUT_MS);
+  const graphIds = new Set<string>();
+  for (let offset = 0; ; offset += CATALOG_PAGE_SIZE) {
+    const res = await fetch(`${apiBase()}/assistants/search`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ limit: CATALOG_PAGE_SIZE, offset }),
+      signal,
+    });
+    if (!res.ok) {
+      throw new Error(`assistants/search HTTP ${res.status}: ${await res.text()}`);
+    }
+    const assistants = (await res.json()) as AssistantRow[];
+    for (const assistant of assistants) graphIds.add(assistant.graph_id);
+    if (assistants.length < CATALOG_PAGE_SIZE) return [...graphIds];
   }
-  const data = (await res.json()) as AssistantRow[];
-  // Deduplicate by graph_id — the server may return multiple assistants
-  // sharing the same graph (e.g. per-thread forks).
-  return [...new Set(data.map((a) => a.graph_id))];
 }
 
 const agent: Command = {
   name: "agent",
   description: "Show or switch the active orchestrator for this session",
   argumentHint: "[<name> | clear]",
-  execute(args, ctx) {
+  async execute(args, ctx) {
     const arg = args.trim();
-    if (process.env.DECEPTICON_WEB_TERMINAL === "true" && ["soundwave", "decepticon", "blue_cell"].includes(arg)) {
+    if (process.env.DECEPTICON_WEB_TERMINAL === "true" && arg) {
       ctx.addSystemEvent("Use the Plan, Red, or Blue controls above the web terminal to switch modes.");
       return;
     }
@@ -106,16 +112,19 @@ const agent: Command = {
     if (arg === "clear" || arg === "off" || arg === "none") {
       const prev = getAssistantOverride();
       const initial = process.env.DECEPTICON_ASSISTANT_ID || "decepticon";
-      if (ctx.selectAssistant && !ctx.selectAssistant(initial)) {
-        ctx.addSystemEvent("Wait for the current run to finish before switching orchestrators.");
-        return;
+      try {
+        if (ctx.selectAssistant && !(await ctx.selectAssistant(initial))) {
+          return;
+        }
+        setAssistantOverride("");
+        ctx.addSystemEvent(
+          prev
+            ? `Orchestrator override cleared (was '${prev}'). Default behaviour resumes on next message.`
+            : "No override was set.",
+        );
+      } catch (error) {
+        ctx.addSystemEvent(error instanceof Error ? error.message : String(error));
       }
-      setAssistantOverride("");
-      ctx.addSystemEvent(
-        prev
-          ? `Orchestrator override cleared (was '${prev}'). Default behaviour resumes on next message.`
-          : "No override was set.",
-      );
       return;
     }
 
@@ -132,13 +141,7 @@ const agent: Command = {
           );
           return;
         }
-        if (arg === "decepticon") await approveRedMode();
-        if (arg === "blue_cell") {
-          ctx.addSystemEvent("Use /mode blue so sensor availability is checked before switching.");
-          return;
-        }
-        if (ctx.selectAssistant && !ctx.selectAssistant(arg)) {
-          ctx.addSystemEvent("Wait for the current run to finish before switching orchestrators.");
+        if (ctx.selectAssistant && !(await ctx.selectAssistant(arg))) {
           return;
         }
         setAssistantOverride(arg);

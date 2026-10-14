@@ -36,7 +36,11 @@ const composeOverlayBody = `# docker-compose.opscontrol.yml — LAUNCHER-MANAGED
 services:
   langgraph:
     volumes:
-      - "${DECEPTICON_OPSCONTROL_SOCK_HOST}:/var/run/decepticon-ops.sock:rw"
+      - type: bind
+        source: ${DECEPTICON_OPSCONTROL_SOCK_HOST}
+        target: /var/run/decepticon-ops.sock
+        bind:
+          create_host_path: false
 `
 
 // writeComposeOverlay materializes the launcher-managed compose overlay

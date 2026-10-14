@@ -76,7 +76,7 @@ export type RunState = "idle" | "connecting" | "streaming" | "paused";
 interface UseAgentReturn {
   submit: (message: string) => void;
   /** Pause the current run at checkpoint (Ctrl+C single). State preserved. */
-  interrupt: () => void;
+  interrupt: () => Promise<void>;
   /** Hard cancel the current run (Ctrl+C double, or from paused). State lost. */
   cancel: () => void;
   /** Resume a paused run with optional operator feedback. */
@@ -105,13 +105,20 @@ interface UseAgentReturn {
   error: string | null;
   clearEvents: () => void;
   addSystemEvent: (content: string) => void;
-  selectAssistant: (assistantId: string) => boolean;
+  selectAssistant: (assistantId: string) => Promise<boolean>;
 }
 
 const INITIAL_ASSISTANT_ID =
   process.env.DECEPTICON_ASSISTANT_ID || "decepticon";
 let _nextEventId = 0;
 
+
+async function assertAssistantReady(assistant: string): Promise<void> {
+  if (assistant === "blue_cell" && !(await blueMonitorReady())) {
+    throw new DOMException("Blue sensor is unavailable. Use /blue up 127.0.0.1:3000 before sending in Blue mode.", "NotAllowedError");
+  }
+  if (assistant === "decepticon" && process.env.DECEPTICON_ENGAGEMENT) await assertRedApproved();
+}
 
 export function useAgent({
   apiUrl = process.env.DECEPTICON_API_URL || "http://localhost:2024",
@@ -126,6 +133,9 @@ export function useAgent({
   const lastCountRef = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
   const runIdRef = useRef<string | null>(null);
+  const switchingRef = useRef(false);
+  const streamReadyRef = useRef<Promise<void> | null>(null);
+  const streamReadyResolveRef = useRef<(() => void) | null>(null);
   const queuedMessageRef = useRef<string | null>(null);
 
   const [events, setEvents] = useState<AgentEvent[]>([]);
@@ -154,6 +164,11 @@ export function useAgent({
     threadId: string | null;
     events: AgentEvent[];
     lastCount: number;
+    runState: RunState;
+    runId: string | null;
+    question: ActiveQuestion | null;
+    askedIds: Set<string>;
+    queued: string | null;
   }>());
 
   // Derived for backward compatibility
@@ -196,6 +211,7 @@ export function useAgent({
   );
 
   const resetStreamState = useCallback(() => {
+    runStateRef.current = "idle";
     setRunState("idle");
     setPendingTool(null);
     setStreamStats(null);
@@ -372,23 +388,28 @@ export function useAgent({
               allowOther,
             });
             setPendingTool(null);
-            setActiveQuestion({
+            activeQuestionRef.current = {
               sourceId,
               question,
               header,
               options,
               multiSelect,
               allowOther,
-            });
+            };
+            setActiveQuestion(activeQuestionRef.current);
             // The backend interrupt() will pause the stream; flag the run as
             // paused immediately so the REPL hides the normal prompt and
             // shows the picker.
+            runStateRef.current = "paused";
             setRunState("paused");
             break;
           }
         }
       };
 
+      let ready = (): void => {};
+      streamReadyRef.current = new Promise<void>((resolve) => { ready = resolve; });
+      streamReadyResolveRef.current = ready;
       for await (const event of stream) {
         if (abortController.signal.aborted) break;
 
@@ -397,6 +418,7 @@ export function useAgent({
           const meta = event.data as { run_id?: string };
           if (meta.run_id) {
             runIdRef.current = meta.run_id;
+            ready();
           }
           continue;
         }
@@ -562,6 +584,8 @@ export function useAgent({
         }
       }
 
+      if (abortController.signal.aborted) return;
+
       // Detect unexpected disconnection: stream ended but no completion event.
       //
       // ``ask_user_question`` ends the stream by raising LangGraph's
@@ -588,6 +612,8 @@ export function useAgent({
   const handleStreamComplete = useCallback(
     (abortController: AbortController) => {
       if (abortController.signal.aborted) return;
+      streamReadyResolveRef.current?.();
+      streamReadyResolveRef.current = null;
 
       // The stream ended because the backend tool called langgraph.interrupt
       // and is waiting for the operator's pick. Keep runState=paused so the
@@ -604,44 +630,89 @@ export function useAgent({
 
       // Auto-submit queued message
       const pending = queuedMessageRef.current;
-      if (pending) {
+      if (pending && !switchingRef.current) {
         queuedMessageRef.current = null;
         setQueuedMessage(null);
-        setTimeout(() => submitRef.current(pending), 0);
+        const assistant = assistantIdRef.current;
+        setTimeout(() => {
+          if (assistantIdRef.current === assistant && !switchingRef.current) submitRef.current(pending);
+          else {
+            const saved = modeSessionsRef.current.get(assistant);
+            if (saved) saved.queued = pending;
+            else { queuedMessageRef.current = pending; setQueuedMessage(pending); }
+          }
+        }, 0);
       }
     },
     [resetStreamState],
   );
 
-  // ── Interrupt (pause at checkpoint) ────────────────────────────
-
-  const interrupt = useCallback(() => {
-    // Abort local stream first (stops event processing immediately)
-    abortRef.current?.abort();
-    abortRef.current = null;
-
-    // Pause on server — preserves checkpoint state (don't await to keep responsive)
+  const pauseRun = useCallback(async (): Promise<RunState> => {
+    const deadline = performance.now() + 10_000;
+    if (abortRef.current && streamReadyRef.current) {
+      let timeout: ReturnType<typeof setTimeout> | undefined;
+      try {
+        await Promise.race([
+          streamReadyRef.current,
+          new Promise<never>((_resolve, reject) => {
+            timeout = setTimeout(() => reject(new DOMException("Timed out waiting for the run ID; retry the mode switch.", "TimeoutError")), Math.max(0, deadline - performance.now()));
+          }),
+        ]);
+      } finally {
+        clearTimeout(timeout);
+      }
+    }
     const threadId = threadIdRef.current;
     const runId = runIdRef.current;
-    if (threadId && runId) {
-      clientRef.current.runs
-        .cancel(threadId, runId, true, "interrupt")
-        .catch(() => {
-          addEvent({ type: "system", content: "Warning: server pause failed." });
-        });
+    const active = abortRef.current !== null;
+    if (active && streamReadyRef.current && threadId && runId) {
+      const controller = new AbortController();
+      let timeout: ReturnType<typeof setTimeout> | undefined;
+      try {
+        await Promise.race([
+          clientRef.current.runs.cancel(threadId, runId, true, "interrupt", { signal: controller.signal }),
+          new Promise<never>((_resolve, reject) => {
+            timeout = setTimeout(() => {
+              const error = new DOMException("TimeoutError: server pause did not acknowledge within 10 seconds.", "TimeoutError");
+              controller.abort(error);
+              reject(error);
+            }, Math.max(0, deadline - performance.now()));
+          }),
+        ]);
+      } finally {
+        clearTimeout(timeout);
+      }
     }
+    abortRef.current?.abort();
+    abortRef.current = null;
+    streamReadyRef.current = null;
+    return active && (runId || runStateRef.current === "paused") ? "paused" : active ? "idle" : runStateRef.current;
+  }, []);
 
-    setPendingTool(null);
-    setStreamStats(null);
-    setActiveAgent(null);
-    setRunState("paused");
-    runIdRef.current = null;
-    addEvent({ type: "system", content: "Paused. Type /resume to continue, or send a new message." });
-  }, [addEvent]);
+  // ── Interrupt (pause at checkpoint) ────────────────────────────
+
+  const interrupt = useCallback(async (): Promise<void> => {
+    if (switchingRef.current) return;
+    switchingRef.current = true;
+    try {
+      const pausedState = await pauseRun();
+      resetStreamState();
+      runStateRef.current = pausedState;
+      setRunState(pausedState);
+      addSystemEvent("Paused. Type /resume to continue, or send a new message.");
+    } catch (error) {
+      const message = `Could not pause: ${error instanceof Error ? error.message : String(error)}`;
+      setError(message);
+      addSystemEvent(message);
+    } finally {
+      switchingRef.current = false;
+    }
+  }, [addSystemEvent, pauseRun, resetStreamState]);
 
   // ── Cancel (hard abort, no resume) ─────────────────────────────
 
   const cancel = useCallback(() => {
+    if (switchingRef.current) return;
     // Abort local stream
     abortRef.current?.abort();
     abortRef.current = null;
@@ -669,6 +740,7 @@ export function useAgent({
   // ── Clear ──────────────────────────────────────────────────────
 
   const clearEvents = useCallback(() => {
+    if (switchingRef.current) return;
     eventsRef.current = [];
     setEvents([]);
     threadIdRef.current = null;
@@ -681,32 +753,64 @@ export function useAgent({
     setRunState("idle");
   }, []);
 
-  const selectAssistant = useCallback((next: string): boolean => {
-    if (runStateRef.current !== "idle" || abortRef.current) return false;
+  const selectAssistant = useCallback(async (next: string): Promise<boolean> => {
+    if (switchingRef.current) {
+      addSystemEvent("A mode switch is already in progress. Retry after it finishes.");
+      return false;
+    }
     const current = assistantIdRef.current;
     if (next === current) return true;
-    modeSessionsRef.current.set(current, {
-      threadId: threadIdRef.current,
-      events: [...eventsRef.current],
-      lastCount: lastCountRef.current,
-    });
-    const saved = modeSessionsRef.current.get(next);
-    threadIdRef.current = saved?.threadId ?? null;
-    lastCountRef.current = saved?.lastCount ?? 0;
-    eventsRef.current = [...(saved?.events ?? [])];
-    setEvents(eventsRef.current);
-    askedQuestionIds.current.clear();
-    assistantIdRef.current = next;
-    threadAssistantRef.current = next;
-    setAssistantId(next);
-    return true;
-  }, []);
+    switchingRef.current = true;
+    try {
+      const pausedState = await pauseRun();
+      modeSessionsRef.current.set(current, {
+        threadId: threadIdRef.current,
+        events: [...eventsRef.current],
+        lastCount: lastCountRef.current,
+        runState: pausedState,
+        runId: runIdRef.current,
+        question: activeQuestionRef.current,
+        askedIds: new Set(askedQuestionIds.current),
+        queued: queuedMessageRef.current,
+      });
+      const saved = modeSessionsRef.current.get(next);
+      threadIdRef.current = saved?.threadId ?? null;
+      lastCountRef.current = saved?.lastCount ?? 0;
+      eventsRef.current = [...(saved?.events ?? [])];
+      setEvents(eventsRef.current);
+      runIdRef.current = saved?.runId ?? null;
+      activeQuestionRef.current = saved?.question ?? null;
+      setActiveQuestion(activeQuestionRef.current);
+      askedQuestionIds.current = new Set(saved?.askedIds);
+      queuedMessageRef.current = saved?.queued ?? null;
+      setQueuedMessage(queuedMessageRef.current);
+      resetStreamState();
+      runStateRef.current = saved?.runState ?? "idle";
+      setRunState(runStateRef.current);
+      setError(null);
+      assistantIdRef.current = next;
+      threadAssistantRef.current = next;
+      setAssistantId(next);
+      return true;
+    } catch (error) {
+      const message = `Could not switch mode: ${error instanceof Error ? error.message : String(error)}`;
+      setError(message);
+      addSystemEvent(message);
+      return false;
+    } finally {
+      switchingRef.current = false;
+    }
+  }, [addSystemEvent, resetStreamState, pauseRun]);
 
   // ── Submit (only when idle or paused) ──────────────────────────
 
   const submit = useCallback(
     (message: string): void => {
       // If streaming/connecting, callers should use enqueue() instead
+      if (switchingRef.current) {
+        addSystemEvent("Mode switch in progress. Send this message again after it finishes.");
+        return;
+      }
       if (abortRef.current) return;
 
       const selectedAssistant = getAssistantOverride() || assistantIdRef.current;
@@ -741,28 +845,20 @@ export function useAgent({
       const abortController = new AbortController();
       abortRef.current = abortController;
 
+      streamReadyRef.current = null;
       const runStream = async () => {
         const client = clientRef.current;
         setError(null);
 
-        if (selectedAssistant === "blue_cell" && !(await blueMonitorReady())) {
-          const unavailable = "Blue sensor is unavailable. Use /blue up 127.0.0.1:3000 before sending in Blue mode.";
-          setError(unavailable);
-          addEvent({ type: "system", content: unavailable });
+        try {
+          await assertAssistantReady(selectedAssistant);
+        } catch (error) {
+          if (abortController.signal.aborted) return;
+          const denied = error instanceof Error ? error.message : "Mode prerequisite failed.";
+          setError(denied);
+          addEvent({ type: "system", content: denied });
           handleStreamComplete(abortController);
           return;
-        }
-
-        if (selectedAssistant === "decepticon" && process.env.DECEPTICON_ENGAGEMENT) {
-          try {
-            await assertRedApproved();
-          } catch (error) {
-            const denied = error instanceof Error ? error.message : "Red scope is not approved.";
-            setError(denied);
-            addEvent({ type: "system", content: denied });
-            handleStreamComplete(abortController);
-            return;
-          }
         }
 
         // Create thread if needed (retry for server startup race condition)
@@ -772,10 +868,12 @@ export function useAgent({
             if (abortController.signal.aborted) return;
             try {
               const thread = await client.threads.create();
+              if (abortController.signal.aborted) return;
               threadIdRef.current = thread.thread_id;
               await saveThread(thread.thread_id, selectedAssistant, message);
               break;
             } catch (err) {
+              if (abortController.signal.aborted) return;
               if (attempt === maxRetries) {
                 const msg =
                   err instanceof Error ? err.message : "Failed to create thread";
@@ -801,15 +899,11 @@ export function useAgent({
         setActiveAgent(selectedAssistant);
         setStreamStats({ startTime: Date.now(), totalTokens: 0, promptTokens: 0, completionTokens: 0 });
 
-        // Engagement context and the /model override flow as runnable
-        // ``config.configurable`` entries. EngagementContextMiddleware
-        // hydrates state from configurable on before_agent so OPPLAN and
-        // filesystem middlewares see the values as ordinary state fields,
-        // and ModelOverrideMiddleware reads model_override straight from
-        // configurable. The launcher is the single source of truth for the
-        // engagement slug; the LLM never decides it.
+        // Engagement metadata is hydrated from configurable; model selection
+        // uses a declared graph input channel so it survives checkpointing.
         const input: Record<string, unknown> = {
           messages: [{ role: "user", content: message }],
+          model_override: getModelOverride(),
         };
 
         const configurable: Record<string, unknown> = {};
@@ -826,11 +920,6 @@ export function useAgent({
           configurable.authorization_confirmed =
             process.env.DECEPTICON_AUTHORIZATION_CONFIRMED === "true";
         }
-        const modelOverride = getModelOverride();
-        if (modelOverride) {
-          configurable.model_override = modelOverride;
-        }
-
         const hasConfigurable = Object.keys(configurable).length > 0;
         const streamConfig = hasConfigurable ? { configurable } : undefined;
 
@@ -874,21 +963,28 @@ export function useAgent({
   const submitRef = useRef(submit);
   submitRef.current = submit;
 
+  const prepareResume = useCallback(async (controller: AbortController): Promise<boolean> => {
+    try {
+      await assertAssistantReady(threadAssistantRef.current);
+      return !controller.signal.aborted;
+    } catch (error) {
+      if (controller.signal.aborted) return false;
+      const denied = error instanceof Error ? error.message : "Mode prerequisite failed.";
+      setError(denied);
+      addSystemEvent(denied);
+      abortRef.current = null;
+      return false;
+    }
+  }, [addSystemEvent]);
+
   // ── Answer a structured ask_user_question prompt ───────────────
 
   const answerQuestion = useCallback(
     (value: string | string[]): void => {
+      if (switchingRef.current || abortRef.current) return;
+      streamReadyRef.current = null;
       const current = activeQuestionRef.current;
       if (!current) return;
-
-      const display = Array.isArray(value) ? value.join(", ") : value;
-      addEvent({
-        type: "ask_user_answer",
-        content: display,
-        subagent: threadAssistantRef.current,
-        sourceId: current.sourceId,
-      });
-      setActiveQuestion(null);
 
       if (!threadIdRef.current) {
         addEvent({ type: "system", content: "No active thread — cannot resume." });
@@ -902,14 +998,25 @@ export function useAgent({
       const runResume = async () => {
         const client = clientRef.current;
         setError(null);
+        if (!(await prepareResume(abortController))) return;
 
         try {
           const state = await client.threads.getState(threadIdRef.current!);
           const msgs = (state.values as { messages?: unknown[] })?.messages;
-          if (msgs) lastCountRef.current = msgs.length;
+          if (!abortController.signal.aborted && msgs) lastCountRef.current = msgs.length;
         } catch { /* proceed with current count */ }
 
         if (abortController.signal.aborted) return;
+
+        const display = Array.isArray(value) ? value.join(", ") : value;
+        addEvent({
+          type: "ask_user_answer",
+          content: display,
+          subagent: threadAssistantRef.current,
+          sourceId: current.sourceId,
+        });
+        activeQuestionRef.current = null;
+        setActiveQuestion(null);
 
         setRunState("streaming");
         setPendingTool(null);
@@ -925,7 +1032,7 @@ export function useAgent({
             threadIdRef.current!,
             threadAssistantRef.current,
             {
-              command: { resume: value },
+              command: { resume: value, update: { model_override: getModelOverride() } },
               ...STREAM_OPTIONS,
               onDisconnect: "continue",
               signal: abortController.signal,
@@ -947,32 +1054,34 @@ export function useAgent({
         resetStreamState();
       });
     },
-    [addEvent, processStream, handleStreamComplete, resetStreamState],
+    [addEvent, processStream, handleStreamComplete, resetStreamState, prepareResume],
   );
 
   // ── Resume (pause point OR previous session) ───────────────────
 
   const resume = useCallback(
     (value?: string): void => {
+      if (switchingRef.current || abortRef.current) return;
+      streamReadyRef.current = null;
       const isPaused = runStateRef.current === "paused";
       const hasThread = !!threadIdRef.current;
 
       // Case 1: Paused — resume from checkpoint with Command({ resume })
       if (isPaused && hasThread) {
-        if (value) addEvent({ type: "user", content: value });
-        addEvent({ type: "system", content: "Resuming from checkpoint..." });
-
         const abortController = new AbortController();
         abortRef.current = abortController;
 
         const runResume = async () => {
           const client = clientRef.current;
           setError(null);
+          if (!(await prepareResume(abortController))) return;
+          if (value) addEvent({ type: "user", content: value });
+          addEvent({ type: "system", content: "Resuming from checkpoint..." });
 
           try {
             const state = await client.threads.getState(threadIdRef.current!);
             const msgs = (state.values as { messages?: unknown[] })?.messages;
-            if (msgs) lastCountRef.current = msgs.length;
+            if (!abortController.signal.aborted && msgs) lastCountRef.current = msgs.length;
           } catch { /* proceed with current count */ }
 
           if (abortController.signal.aborted) return;
@@ -987,7 +1096,7 @@ export function useAgent({
               threadIdRef.current!,
               threadAssistantRef.current,
               {
-                command: { resume: value ?? true },
+                command: { resume: value ?? true, update: { model_override: getModelOverride() } },
                 ...STREAM_OPTIONS,
                 onDisconnect: "continue",
                 signal: abortController.signal,
@@ -1048,7 +1157,7 @@ export function useAgent({
       // Case 3: Nothing to resume
       addEvent({ type: "system", content: "Nothing to resume." });
     },
-    [addEvent, processStream, handleStreamComplete, resetStreamState],
+    [addEvent, processStream, handleStreamComplete, resetStreamState, prepareResume],
   );
 
   return {

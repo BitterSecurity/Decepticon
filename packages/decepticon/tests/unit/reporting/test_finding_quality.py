@@ -3,9 +3,17 @@
 from __future__ import annotations
 
 import json
+from inspect import signature
 from types import SimpleNamespace
+from typing import Annotated, TypedDict
 
 from deepagents.backends.filesystem import FilesystemBackend
+from langchain.tools import ToolRuntime
+from langchain_core.messages import AIMessage
+from langchain_core.tools import StructuredTool
+from langgraph.graph import START, StateGraph
+from langgraph.graph.message import add_messages
+from langgraph.prebuilt import ToolNode
 
 from decepticon.tools.reporting.finding_quality import (
     build_finding_quality_tool,
@@ -70,3 +78,83 @@ def test_agent_tool_reads_only_active_workspace(tmp_path):
     assert result == {"valid": True, "errors": []}
     blocked = json.loads(tool.func("../FIND-001.md", runtime))
     assert blocked["valid"] is False
+
+
+def _tool_runtime():
+    return ToolRuntime(
+        state={"workspace_path": "/workspace"},
+        context={},
+        config={},
+        stream_writer=lambda *args, **kwargs: None,
+        store=None,
+        tool_call_id="call-1",
+    )
+
+
+def test_runtime_annotation_resolves_to_toolruntime():
+    """The raw `runtime` annotation must be the class langchain inspects.
+
+    Regression: `from __future__ import annotations` stringifies annotations.
+    LangChain's injected-argument detection reads the raw signature rather than
+    resolving type hints, so a string annotation hides `runtime` from its
+    injected-argument tracking even though other resolvers compensate. The
+    agent-facing schema must also keep `runtime` out of model-callable args.
+    """
+    quality_tool = build_finding_quality_tool(None)
+    assert isinstance(quality_tool, StructuredTool) and quality_tool.func is not None
+    assert signature(quality_tool.func).parameters["runtime"].annotation is ToolRuntime
+    assert "runtime" not in quality_tool.args
+
+
+def test_runtime_injected_through_public_invoke_path(tmp_path):
+    """`runtime` must survive the public `invoke` path used by `ToolNode`.
+
+    ToolNode places injected values in the tool call's `args` before invoking;
+    exercising `invoke` here pins the injection contract rather than bypassing
+    it through `tool.func`.
+    """
+    backend = FilesystemBackend(root_dir=tmp_path, virtual_mode=True)
+    backend.write("/workspace/findings/FIND-001.md", finding())
+    backend.write("/workspace/findings/evidence/proof.txt", "positive and baseline")
+    quality_tool = build_finding_quality_tool(backend)
+    result = quality_tool.invoke(
+        {
+            "name": "check_finding_report",
+            "args": {"path": "findings/FIND-001.md", "runtime": _tool_runtime()},
+            "id": "call-1",
+            "type": "tool_call",
+        }
+    )
+    assert json.loads(result.content) == {"valid": True, "errors": []}
+
+
+def test_runtime_injected_through_toolnode_graph(tmp_path):
+    """A compiled graph must inject ToolRuntime into the tool end to end.
+
+    This is the production shape: `ToolNode` constructs `ToolRuntime` from the
+    live graph state and hands it to the tool inside `invoke`.
+    """
+    backend = FilesystemBackend(root_dir=tmp_path, virtual_mode=True)
+    backend.write("/workspace/findings/FIND-001.md", finding())
+    backend.write("/workspace/findings/evidence/proof.txt", "positive and baseline")
+    quality_tool = build_finding_quality_tool(backend)
+    QualityState = TypedDict(
+        "QualityState",
+        {"messages": Annotated[list, add_messages], "workspace_path": str},
+    )
+    graph_builder = StateGraph(QualityState)
+    graph_builder.add_node("tools", ToolNode([quality_tool]))
+    graph_builder.add_edge(START, "tools")
+    graph = graph_builder.compile()
+    call = AIMessage(
+        content="",
+        tool_calls=[
+            {
+                "name": "check_finding_report",
+                "args": {"path": "findings/FIND-001.md"},
+                "id": "call-1",
+            }
+        ],
+    )
+    result = graph.invoke({"messages": [call], "workspace_path": "/workspace"})
+    assert json.loads(result["messages"][-1].content) == {"valid": True, "errors": []}

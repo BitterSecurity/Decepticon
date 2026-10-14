@@ -33,6 +33,7 @@ class BackgroundJob:
     exit_code: int | None = None
     completed_at: float | None = None
     consumed: bool = False
+    generation: str | None = None
 
     @property
     def elapsed(self) -> float:

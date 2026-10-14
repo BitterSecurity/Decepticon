@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from types import SimpleNamespace
 
 from langchain_core.tools import StructuredTool
@@ -98,3 +99,61 @@ def test_wrapped_tool_schema_and_rejection_does_not_invoke_subagent():
     result = wrapped.func("handoff", "recon", "OBJ-001", 0, runtime)
     assert result.update["messages"][0].status == "error"
     assert calls == []
+
+
+def test_injected_runtime_reaches_the_wrapped_coroutine():
+    """A ToolNode passes `runtime` in the tool-call args; wrapping must keep it.
+
+    Regression: this module's `from __future__ import annotations` turned the
+    `ToolRuntime` annotations into strings. langgraph resolves strings when it
+    decides what to inject, but langchain's `_injected_args_keys` reads the raw
+    signature, found no injected argument, and dropped `runtime` during
+    validation -- so every Red dispatch died with
+    `atask() missing 1 required positional argument: 'runtime'`.
+    """
+    seen: list[object] = []
+
+    def original(description: str, subagent_type: str, runtime):
+        seen.append(runtime)
+        return "ran"
+
+    async def original_async(description: str, subagent_type: str, runtime):
+        seen.append(runtime)
+        return "ran"
+
+    tool = StructuredTool.from_function(
+        name="task",
+        func=original,
+        coroutine=original_async,
+        description="Delegate",
+        infer_schema=True,
+    )
+    wrapped = planned_task_tool(tool)
+    runtime = SimpleNamespace(
+        state={
+            "plan_revision": 2,
+            "objectives": [
+                objective("OBJ-001", status="completed"),
+                objective("OBJ-002", blocked_by=["OBJ-001"]),
+            ],
+        },
+        tool_call_id="call-1",
+    )
+    result = asyncio.run(
+        wrapped.ainvoke(
+            {
+                "name": "task",
+                "args": {
+                    "description": "handoff",
+                    "subagent_type": "recon",
+                    "task_id": "OBJ-002",
+                    "plan_revision": 2,
+                    "runtime": runtime,
+                },
+                "id": "call-1",
+                "type": "tool_call",
+            }
+        )
+    )
+    assert seen == [runtime]
+    assert result.content == "ran"

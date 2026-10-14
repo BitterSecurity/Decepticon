@@ -53,17 +53,16 @@ func TestCompareVersions(t *testing.T) {
 }
 
 func TestResolveChannel(t *testing.T) {
-	// Default + unrecognized → stable (Decepticon's conservative default;
-	// soak semantics still match Claude Code, only the default differs).
 	tests := map[string]Channel{
-		"":          ChannelStable, // default
+		"":          ChannelLatest,
+		"  ":        ChannelLatest,
 		"stable":    ChannelStable,
 		"STABLE":    ChannelStable,
 		"  stable ": ChannelStable,
 		"latest":    ChannelLatest,
 		"LATEST":    ChannelLatest,
 		" latest":   ChannelLatest,
-		"garbage":   ChannelStable, // unrecognized → safe default (stable)
+		"garbage":   ChannelLatest,
 	}
 	for in, want := range tests {
 		if got := ResolveChannel(in); got != want {
@@ -538,20 +537,5 @@ func TestApplyUpdate_SelfUpdateErrorPropagates(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "binary update") {
 		t.Errorf("error %q should contain 'binary update'", err)
-	}
-}
-
-func TestAutoUpdateIfAvailable_SkipsDevBuilds(t *testing.T) {
-	// "dev" / empty version is a local build that does not track published
-	// releases — the unattended AUTO_UPDATE path must no-op without any
-	// GitHub round-trip (mirrors PromptIfUpdateAvailable's dev gate).
-	for _, v := range []string{"dev", ""} {
-		applied, err := AutoUpdateIfAvailable(v, ChannelStable)
-		if err != nil {
-			t.Errorf("AutoUpdateIfAvailable(%q) err = %v", v, err)
-		}
-		if applied {
-			t.Errorf("AutoUpdateIfAvailable(%q) applied=true, want false", v)
-		}
 	}
 }

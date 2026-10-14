@@ -33,7 +33,7 @@ class _OkSandbox:
     async def execute_tmux_async(
         self, command: str, session: str, timeout: int, is_input: bool
     ) -> str:
-        return "ok\n[Exit code: 0]"
+        return "ok\n[Exit code: 0]\n[DCPTN_COMPLETE exit=0]"
 
 
 @pytest.mark.asyncio

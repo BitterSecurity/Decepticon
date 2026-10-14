@@ -351,8 +351,7 @@ const blue: Command = {
       }
       if (action === "analyze") {
         await queryMonitor<Record<string, number>>("/metrics");
-        if (context.selectAssistant && !context.selectAssistant("blue_cell")) {
-          context.addSystemEvent("Wait for the current run to finish before switching to Blue.");
+        if (context.selectAssistant && !(await context.selectAssistant("blue_cell"))) {
           return;
         }
         setAssistantOverride("blue_cell");

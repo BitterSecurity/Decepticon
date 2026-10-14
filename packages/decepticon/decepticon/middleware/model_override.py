@@ -1,7 +1,7 @@
 """Runtime model override — power for the CLI ``/model`` command.
 
-Reads ``model_override`` from the agent runtime context (set by the CLI
-client via ``config.configurable.model_override``) and rebinds the LLM
+Reads ``model_override`` from runtime context or the declared graph state
+channel (set by CLI run input or resume updates) and rebinds the LLM
 for the wrapped invocation. The override is per-call, not per-process,
 so flipping the model in the REPL takes effect on the next ``submit()``
 without restarting the agent or rebuilding the langgraph stack.
@@ -35,12 +35,11 @@ from typing import Any
 from langchain.agents import AgentState
 from langchain.agents.middleware import AgentMiddleware
 from langchain_core.language_models import BaseChatModel
-from langchain_openai import ChatOpenAI
-from pydantic import SecretStr
 from typing_extensions import Annotated, NotRequired, override
 
-from decepticon.llm.factory import LLMFactory, _model_drops_temperature
+from decepticon.llm.factory import LLMFactory
 from decepticon.middleware.state_reducers import reduce_converging_value
+from decepticon_core.types.llm import LLMModelMapping
 from decepticon_core.utils.logging import get_logger
 
 log = get_logger("middleware.model_override")
@@ -98,42 +97,13 @@ def _read_override(request: Any, role: str | None = None) -> str:
 
 
 def _build_proxied_llm(model_id: str, original: BaseChatModel) -> BaseChatModel:
-    """Construct a ChatOpenAI bound to the LiteLLM proxy for ``model_id``.
-
-    Mirrors the configuration the LLMFactory uses for the baked-in
-    primary so streaming, tool calling, and fallback semantics match.
-    Resolves the proxy config via :meth:`LLMFactory._resolve_proxy_config`
-    so we honour ``DECEPTICON_LLM__PROXY_URL`` (e.g. ``http://litellm:4000``
-    inside the langgraph container) instead of falling back to the bare
-    pydantic defaults — which point at ``http://localhost:4000`` and
-    bind to the langgraph container itself, where nothing listens. See
-    issue #186.
-
-    Temperature inherits from the original model when present, except
-    for models the factory marks as dropping ``temperature`` (Opus 4.x
-    family) — those would 400 at the upstream API even when the proxy
-    masks the param. Same gate the factory's ``_create_chat_model``
-    uses for the baked-in primary.
-    """
-    proxy = LLMFactory._resolve_proxy_config()
-    if _model_drops_temperature(model_id):
-        temperature = None
-    else:
-        temperature = getattr(original, "temperature", None)
-    kwargs: dict[str, Any] = {
-        "model": model_id,
-        "base_url": proxy.url,
-        "api_key": SecretStr(proxy.api_key),
-        "timeout": proxy.timeout,
-        "max_retries": proxy.max_retries,
-    }
-    if temperature is not None:
-        kwargs["temperature"] = temperature
-    return ChatOpenAI(**kwargs)
+    """Use the factory's protocol and streaming settings for runtime overrides."""
+    factory = LLMFactory(mapping=LLMModelMapping())
+    return factory._create_chat_model(model_id, getattr(original, "temperature", None))
 
 
 class ModelOverridesState(AgentState):
-    """Declares a ``model_overrides`` channel on the orchestrator graph.
+    """Declares global and per-role model channels on the orchestrator graph.
 
     Mirrors ``ProxyKeyState`` (see ``proxy_key_override``). The Platform
     DROPS an undeclared key from run ``input``, so without this channel a
@@ -153,6 +123,7 @@ class ModelOverridesState(AgentState):
     """
 
     model_overrides: NotRequired[Annotated[dict, reduce_converging_value]]
+    model_override: NotRequired[Annotated[str, reduce_converging_value]]
 
 
 class ModelOverrideMiddleware(AgentMiddleware):

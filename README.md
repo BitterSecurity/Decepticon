@@ -47,10 +47,11 @@
 
 ## What the OSS agent does
 
-- **Choose Plan, Red, or Blue:** Red can start directly with one confirmed target
-  and authorization reference. Optional Plan mode uses Soundwave to prepare and
-  review eight planning documents before Red; Blue investigates local sensor
-  events. The CLI `/mode` command and web mode selector switch between them.
+- **Name an engagement, then choose a mode:** CLI creation asks only for the
+  engagement name and opens Soundwave planning. Use `/mode plan`, `/mode red`,
+  or `/mode blue` within the session. Plan prepares the scope for Red execution;
+  Blue investigates connected local sensor events. The web dashboard has its
+  own setup form and mode selector.
   [Engagement workflow](docs/engagement-workflow.md).
 - **Runs specialist operations:** agents cover reconnaissance, vulnerability
   research, exploitation, Active Directory, cloud, and other domains. They

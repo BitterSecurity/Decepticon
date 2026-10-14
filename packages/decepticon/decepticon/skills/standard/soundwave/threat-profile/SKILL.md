@@ -97,3 +97,25 @@ ordered `kill_chain` to copy into `conops.json` (mapped to the 5 `ObjectivePhase
 and (c) the actor-specific RoE/safety gates to carry into `abort.json` + `deconfliction.json`.
 Prune any technique the RoE forbids (Step 3) before writing. Available: `apt29`, `sandworm`,
 `scattered-spider`, `volt-typhoon`, `lazarus`, `fin7`, `lockbit`.
+
+## Document schema (derived from the validator's model)
+
+`plan/threat-profile.json` must validate against `ThreatProfile`. Fields not listed here are not part of the model and are ignored by the validator.
+
+| field | type | required | allowed values / nested keys |
+| --- | --- | --- | --- |
+| `engagement_name` | str | yes |  |
+| `actor_name` | str | yes |  |
+| `actor_aliases` | list[str] | no |  |
+| `group_id` | str | no |  |
+| `tier` | ThreatTier | yes | one of `tier-1`, `tier-2`, `tier-3`, `tier-4` |
+| `sophistication` | str | yes |  |
+| `motivation` | str | yes |  |
+| `initial_access` | list[str] | no |  |
+| `key_ttps` | list[str] | no |  |
+| `tools` | list[str] | no |  |
+| `infrastructure` | list[str] | no |  |
+| `recent_cti_delta` | str | no |  |
+| `confidence` | FindingConfidence | no | one of `verified`, `probable`, `unverified` |
+| `version` | str | no |  |
+| `last_updated` | str | no |  |

@@ -44,6 +44,7 @@ def _make_manager(monkeypatch: pytest.MonkeyPatch, capture: Any) -> TmuxSessionM
     monkeypatch.setattr(mgr, "_send", lambda *a, **k: None)
     monkeypatch.setattr(mgr, "_forget_cached_state", lambda: None)
     monkeypatch.setattr(mgr, "_capture", capture)
+    monkeypatch.setattr(mgr, "_tmux", lambda *a, **k: "123")
     monkeypatch.setattr(tmux_mod, "POLL_INTERVAL", 0.0)
     return mgr
 

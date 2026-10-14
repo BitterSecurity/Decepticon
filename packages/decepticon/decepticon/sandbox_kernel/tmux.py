@@ -9,9 +9,9 @@ has been retired in favor of `HTTPSandbox` + the in-container daemon,
 so the docker-exec branch is no longer reachable from any production
 caller (`exec_prefix` defaults to `[]`).
 
-The semantics — PS1 marker parsing, stall detection, size watchdog,
-output truncation, auto-background after 60 s — are unchanged from the
-docker_sandbox.py original. The polling cadence is adaptive: while the
+Completion uses pane-scoped shell state; rendered prompt markers only delimit
+output. Stall detection, size watchdog, output truncation, and auto-background
+after 60 s retain the docker_sandbox.py behavior. The polling cadence is adaptive: while the
 command has produced no output yet it backs off geometrically (see
 ``_next_poll_interval``); the moment any output appears it returns to
 ``POLL_INTERVAL`` and stays there, so stall/interactive-prompt detection
@@ -30,6 +30,7 @@ import threading
 import time
 import uuid
 from collections.abc import Callable
+from dataclasses import dataclass
 
 log = logging.getLogger("decepticon.sandbox_kernel.tmux")
 
@@ -67,19 +68,21 @@ _ESC_RE = re.compile(r"\x1b[@-Z\\-_]")
 _C0_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 
 
-def strip_terminal_noise(text: str) -> str:
+def strip_terminal_noise(text: str, *, preserve_prompt_markers: bool = False) -> str:
     """Strip raw-terminal control noise from a pipe-pane log diff.
 
     Removes OSC / CSI / two-char ESC sequences, the ``[DCPTN:…]`` PS1
     markers, and stray C0 control chars; normalizes ``\\r\\n`` → ``\\n``.
-    Plain text, newlines, and tabs are preserved.
+    Plain text, newlines, and tabs are preserved. Raw command logs retain
+    marker-shaped program output when ``preserve_prompt_markers`` is set.
     """
     if not text:
         return text
     text = _OSC_RE.sub("", text)
     text = _CSI_RE.sub("", text)
     text = _ESC_RE.sub("", text)
-    text = PS1_PATTERN.sub("", text)
+    if not preserve_prompt_markers:
+        text = PS1_PATTERN.sub("", text)
     text = text.replace("\r\n", "\n").replace("\r", "")
     return _C0_RE.sub("", text)
 
@@ -131,11 +134,8 @@ def _next_poll_interval(current: float) -> float:
     """Grow the poll interval geometrically, capped at a POLL_INTERVAL multiple.
 
     Reads the module-level constants at call time so tests that patch
-    ``POLL_INTERVAL`` get a proportionally scaled cap. Incremental
-    pane capture was considered as the complementary optimization and
-    deliberately rejected: completion detection counts PS1 markers over
-    the *whole* scrollback, and a partial capture can split a marker
-    across reads — backoff keeps captures whole and merely less frequent.
+    ``POLL_INTERVAL`` get a proportionally scaled cap. Captures retain the
+    whole scrollback so output extraction can compare against the baseline.
     """
     return min(current * POLL_BACKOFF_FACTOR, POLL_INTERVAL * POLL_BACKOFF_MAX_MULTIPLIER)
 
@@ -274,6 +274,24 @@ def _interpret_exit_code(code: int) -> str:
     return ""
 
 
+@dataclass(frozen=True, slots=True)
+class _CompletedCommand:
+    output: str
+    exit_code: int
+    cwd: str
+
+    def render(self) -> str:
+        result = _truncate(self.output).strip()
+        hint = _interpret_exit_code(self.exit_code)
+        if not result:
+            result = f"[Command completed with no output. Exit code: {self.exit_code}{hint}]"
+        elif self.exit_code != 0:
+            result += f"\n[Exit code: {self.exit_code}{hint}]"
+        if self.cwd:
+            result += f"\n[cwd: {self.cwd}]"
+        return result + f"\n[DCPTN_COMPLETE exit={self.exit_code}]"
+
+
 # ─── TmuxSessionManager ───────────────────────────────────────────────────
 
 
@@ -307,6 +325,10 @@ class TmuxSessionManager:
         self._workspace_path = workspace_path.rstrip("/") or "/workspace"
         self._log_name = log_name or session
         self._pane_id: str | None = None
+        self._generation: str | None = None
+        self._shell_pid = ""
+        self._command_echo = ""
+        self._waiter_lock = threading.Lock()
         # Default to `[]` (local execution): the HTTP sandbox daemon runs
         # *inside* the sandbox container and drives tmux directly. The old
         # `["docker", "exec", container_name]` default served the
@@ -344,6 +366,7 @@ class TmuxSessionManager:
 
     def _forget_cached_state(self) -> None:
         self._pane_id = None
+        self._generation = None
         with TmuxSessionManager._init_lock:
             TmuxSessionManager._initialized.discard(self.session)
 
@@ -511,8 +534,15 @@ class TmuxSessionManager:
         return session_exists
 
     def _inject_ps1_marker(self) -> None:
-        """Inject the PS1 completion marker, disable PS2, and clear the screen."""
-        ps1_cmd = "export PROMPT_COMMAND='export PS1=\"[DCPTN:$?:$PWD] \"'; export PS2=''; clear"
+        """Install the native completion hook and a display-only prompt marker."""
+        hook = (
+            "__dcptn_status=$?; "
+            'if [ -n "${__dcptn_generation-}" ]; then '
+            f'tmux -L {shlex.quote(self.session)} set-option -p -t "$TMUX_PANE" '
+            '@dcptn_completion "$__dcptn_generation:$$:$__dcptn_status:$PWD"; fi; '
+            'export PS1="[DCPTN:$__dcptn_status:$PWD] "'
+        )
+        ps1_cmd = f"export PROMPT_COMMAND={shlex.quote(hook)}; export PS2=''; clear"
         self._send(ps1_cmd)
         time.sleep(0.5)
         self._clear_screen()
@@ -587,17 +617,102 @@ class TmuxSessionManager:
 
     # ── execution ──
 
-    def execute(
+    def _begin_command(self, command: str) -> str:
+        if self._generation and self._command_completion(self._generation) is None:
+            raise TmuxCommandError(
+                [], -1, "Session already has an unfinished command; use is_input"
+            )
+        self._shell_pid = self._tmux(
+            ["display-message", "-p", "-t", self._target(), "#{pane_pid}"]
+        ).strip()
+        self._generation = uuid.uuid4().hex
+        self._command_echo = (
+            f"__dcptn_generation={self._generation}; builtin eval -- {shlex.quote(command)}"
+        )
+        self._send(self._command_echo, enter=True)
+        return self._generation
+
+    def _command_completion(self, generation: str | None) -> tuple[int, str] | None:
+        """Require this generation and the original pane process; never trust rendered text."""
+        if not generation or generation != self._generation:
+            return None
+        state = (
+            self._tmux(
+                [
+                    "display-message",
+                    "-p",
+                    "-t",
+                    self._target(),
+                    "#{pane_pid}\t#{@dcptn_completion}",
+                ]
+            )
+            .removesuffix("\n")
+            .split("\t", 1)
+        )
+        if len(state) != 2 or state[0] != self._shell_pid:
+            return None
+        match = re.fullmatch(r"([0-9a-f]{32}):(\d+):(\d{1,3}):(.+)", state[1], re.DOTALL)
+        if not match or match[1] != generation or match[2] != state[0]:
+            return None
+        code = int(match[3])
+        return (code, match[4]) if code <= 255 else None
+
+    def _send_input(self, command: str) -> None:
+        if command in ("C-c", "C-z", "C-d"):
+            self._tmux(["send-keys", "-t", self._target(), command])
+        elif command:
+            self._send(command, enter=True)
+
+    def execute(self, command: str, is_input: bool, timeout: int) -> str:
+        """Keep one waiter responsible for completion while allowing input delivery."""
+        if not self._waiter_lock.acquire(blocking=False):
+            if is_input:
+                self._send_input(command)
+                return "[Input delivered to active command]\n[DCPTN_STATUS incomplete]"
+            return "[ERROR] Session already has an active waiter\n[DCPTN_STATUS incomplete]"
+        try:
+            result = self._execute(command, is_input, timeout)
+            return (
+                result.render()
+                if isinstance(result, _CompletedCommand)
+                else result + "\n[DCPTN_STATUS incomplete]"
+            )
+        finally:
+            self._waiter_lock.release()
+
+    async def execute_async(
         self,
         command: str,
         is_input: bool,
         timeout: int,
+        on_auto_background: Callable[[str, str], None] | None = None,
     ) -> str:
-        """Send a command/input and poll for PS1 completion marker.
+        """Release waiter ownership on cancellation; keep the shell command running."""
+        if not self._waiter_lock.acquire(blocking=False):
+            if is_input:
+                await asyncio.to_thread(self._send_input, command)
+                return "[Input delivered to active command]\n[DCPTN_STATUS incomplete]"
+            return "[ERROR] Session already has an active waiter\n[DCPTN_STATUS incomplete]"
+        try:
+            result = await self._execute_async(command, is_input, timeout, on_auto_background)
+            return (
+                result.render()
+                if isinstance(result, _CompletedCommand)
+                else result + "\n[DCPTN_STATUS incomplete]"
+            )
+        finally:
+            self._waiter_lock.release()
 
-        Polls until the PS1 marker appears (command complete) or *timeout*
-        is reached.  If the tmux session is dead, attempts one automatic
-        recovery before returning an error.
+    def _execute(
+        self,
+        command: str,
+        is_input: bool,
+        timeout: int,
+    ) -> str | _CompletedCommand:
+        """Wait for the submitted generation's native shell completion.
+
+        Polls until the shell records completion or *timeout* is reached.
+        If the session is dead, attempts one recovery before returning an error.
         """
         if not is_input:
             self.initialize()
@@ -623,7 +738,7 @@ class TmuxSessionManager:
                 f'Retry, or terminate with bash_kill(session="{self.session}").'
             )
 
-        initial_count = len(PS1_PATTERN.findall(baseline))
+        generation = self._generation
 
         if command:
             try:
@@ -633,7 +748,7 @@ class TmuxSessionManager:
                     else:
                         self._send(command, enter=True)
                 else:
-                    self._send(command, enter=True)
+                    generation = self._begin_command(command)
             except RuntimeError as e:
                 return f"[ERROR] Could not send command to session '{self.session}': {e}"
 
@@ -646,6 +761,7 @@ class TmuxSessionManager:
         while time.monotonic() - start < timeout:
             time.sleep(poll_interval)
             try:
+                completion = self._command_completion(generation)
                 screen = self._capture()
             except RuntimeError as poll_err:
                 self._forget_cached_state()
@@ -670,26 +786,20 @@ class TmuxSessionManager:
                 continue
 
             consecutive_capture_failures = 0
-            current_count = len(PS1_PATTERN.findall(screen))
-
-            if current_count > initial_count:
-                output, exit_code, cwd = _extract_output(screen, command, initial_count)
+            if completion is not None:
+                exit_code, cwd = completion
                 log.info(
                     "Command completed: exit=%s cwd=%s [%s]",
                     exit_code,
                     _safe_log(cwd),
                     _safe_log(command[:50]),
                 )
+                output = _extract_interactive_output(screen, baseline)
+                if output.startswith(self._command_echo):
+                    output = output[len(self._command_echo) :].lstrip("\n")
+                output = output.rstrip().removesuffix(f"[DCPTN:{exit_code}:{cwd}]").rstrip()
                 self._clear_screen()
-                result = _truncate(output).strip()
-                hint = _interpret_exit_code(exit_code)
-                if not result:
-                    result = f"[Command completed with no output. Exit code: {exit_code}{hint}]"
-                elif exit_code != 0:
-                    result += f"\n[Exit code: {exit_code}{hint}]"
-                if cwd:
-                    result += f"\n[cwd: {cwd}]"
-                return result
+                return _CompletedCommand(output, exit_code, cwd)
 
             # Size watchdog: kill commands producing excessive output
             if len(screen) > SIZE_WATCHDOG_CHARS:
@@ -775,13 +885,13 @@ class TmuxSessionManager:
             f"--- screen preview ---\n{screen_preview}"
         )
 
-    async def execute_async(
+    async def _execute_async(
         self,
         command: str,
         is_input: bool,
         timeout: int,
         on_auto_background: Callable[[str, str], None] | None = None,
-    ) -> str:
+    ) -> str | _CompletedCommand:
         """Async version of execute() — non-blocking subprocess + cancellable polling.
 
         All subprocess calls are offloaded via asyncio.to_thread() to avoid blocking
@@ -794,8 +904,7 @@ class TmuxSessionManager:
             timeout: max seconds to wait for command completion.
             on_auto_background: optional callback ``(command, baseline) -> None`` invoked
                 exactly once when the auto-background threshold is crossed. ``baseline``
-                is the screen capture taken before the command was sent — callers use it
-                to derive a stable PS1-marker baseline (e.g. via PS1_PATTERN.findall).
+                is the screen capture taken before the command was sent.
         """
         if not is_input:
             await asyncio.to_thread(self.initialize)
@@ -821,7 +930,7 @@ class TmuxSessionManager:
                 f'Retry, or terminate with bash_kill(session="{self.session}").'
             )
 
-        initial_count = len(PS1_PATTERN.findall(baseline))
+        generation = self._generation
 
         if command:
             try:
@@ -833,7 +942,7 @@ class TmuxSessionManager:
                     else:
                         await asyncio.to_thread(self._send, command, True)
                 else:
-                    await asyncio.to_thread(self._send, command, True)
+                    generation = await asyncio.to_thread(self._begin_command, command)
             except RuntimeError as e:
                 return f"[ERROR] Could not send command to session '{self.session}': {e}"
 
@@ -846,6 +955,7 @@ class TmuxSessionManager:
         while time.monotonic() - start < timeout:
             await asyncio.sleep(poll_interval)  # CancelledError delivered here
             try:
+                completion = await asyncio.to_thread(self._command_completion, generation)
                 screen = await asyncio.to_thread(self._capture)
             except RuntimeError as poll_err:
                 self._forget_cached_state()
@@ -870,26 +980,20 @@ class TmuxSessionManager:
                 continue
 
             consecutive_capture_failures = 0
-            current_count = len(PS1_PATTERN.findall(screen))
-
-            if current_count > initial_count:
-                output, exit_code, cwd = _extract_output(screen, command, initial_count)
+            if completion is not None:
+                exit_code, cwd = completion
                 log.info(
                     "Command completed: exit=%s cwd=%s [%s]",
                     exit_code,
                     _safe_log(cwd),
                     _safe_log(command[:50]),
                 )
+                output = _extract_interactive_output(screen, baseline)
+                if output.startswith(self._command_echo):
+                    output = output[len(self._command_echo) :].lstrip("\n")
+                output = output.rstrip().removesuffix(f"[DCPTN:{exit_code}:{cwd}]").rstrip()
                 await asyncio.to_thread(self._clear_screen)
-                result = _truncate(output).strip()
-                hint = _interpret_exit_code(exit_code)
-                if not result:
-                    result = f"[Command completed with no output. Exit code: {exit_code}{hint}]"
-                elif exit_code != 0:
-                    result += f"\n[Exit code: {exit_code}{hint}]"
-                if cwd:
-                    result += f"\n[cwd: {cwd}]"
-                return result
+                return _CompletedCommand(output, exit_code, cwd)
 
             # Size watchdog: kill commands producing excessive output
             if len(screen) > SIZE_WATCHDOG_CHARS:
@@ -1003,22 +1107,19 @@ class TmuxSessionManager:
         try:
             self.initialize()
             screen = self._capture()
+            completion = self._command_completion(self._generation)
         except (RuntimeError, OSError, subprocess.TimeoutExpired) as e:
             return (
                 f"[ERROR] Could not read screen for session '{self.session}': {e}\n"
                 f"The tmux session may be hung or docker is overloaded. "
                 f'Retry, or terminate the session with bash_kill(session="{self.session}").'
+                "\n[DCPTN_STATUS incomplete]"
             )
-        matches = list(PS1_PATTERN.finditer(screen))
-        if matches:
-            last = matches[-1]
-            exit_code = int(last.group(1))
-            cwd = last.group(2)
-            recent = screen[last.end() :].strip()
-            if recent:
-                return f"[RUNNING] cwd={cwd}\n{_truncate(recent)}"
-            return f"[IDLE] exit_code={exit_code} cwd={cwd}\nSession is ready for commands."
-        return f"[UNKNOWN]\n{screen[-2000:]}"
+        if completion is not None:
+            exit_code, cwd = completion
+            return f"[IDLE] exit_code={exit_code} cwd={cwd}\nSession is ready for commands.\n[DCPTN_STATUS incomplete]"
+        status = "RUNNING" if self._generation else "UNKNOWN"
+        return f"[{status}]\n{_truncate(screen)}\n[DCPTN_STATUS incomplete]"
 
 
 # ─── Output helpers (transplanted from tools/bash/tool.py) ───────────────

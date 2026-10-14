@@ -12,13 +12,116 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+## [1.4.4] — 2026-10-14
+
 ### Fixed
 
+- Select startup Update now / Skip with arrow keys and confirm with Enter,
+  keeping Skip selected by default.
+  ([#966](https://github.com/BitterSecurity/Decepticon/pull/966))
+- Preserve and recover empty directories left at the opscontrol socket path;
+  reject files, nonempty directories and symlinks. Report daemon readiness only
+  after binding, and prevent Compose from creating a missing socket source.
+  ([#967](https://github.com/BitterSecurity/Decepticon/pull/967))
+- Recover specific Docker missing-network startup failures with bounded retries
+  for empty, configured networks owned by the current Compose project. Preserve
+  workspace/auth environment, profiles and volumes; reject active or foreign
+  networks and unrelated failures.
+  ([#968](https://github.com/BitterSecurity/Decepticon/pull/968))
+
+### Upgrade notes
+
+- Run `decepticon update --channel latest` to install this patch. Older binaries
+  retain their previous prompt until upgraded. Database credentials, volumes and
+  existing engagement data do not need to be recreated.
+
+## [1.4.3] — 2026-10-14
+
+### Fixed
+
+- Ask only for an engagement name in the CLI launcher, then open a planning
+  session. Target, mode and authorization-reference fields no longer block
+  creation; existing engagement scopes remain resumable.
+  ([#963](https://github.com/BitterSecurity/Decepticon/pull/963))
+- Allow Plan, Red and Blue conversations to be selected during a CLI run,
+  preserving each mode's thread, pending question and paused checkpoint. Keep
+  execution prerequisites separate from mode selection, and bound server pause
+  acknowledgment to 10 seconds without switching on failure.
+  ([#964](https://github.com/BitterSecurity/Decepticon/pull/964))
+
+### Upgrade notes
+
+- Run `decepticon update --channel latest` to install this patch. New CLI
+  engagements open Plan; select `/mode plan`, `/mode red` or `/mode blue`
+  during the session. Actual Red operations require a currently approved scope
+  (`/mode red approve`); Blue investigation requires a connected local sensor.
+  Existing engagement data and database credentials do not need to be recreated.
+
+## [1.4.2] — 2026-10-14
+
+### Fixed
+
+- Require an explicit Update now / Skip choice before startup updates, with
+  Skip selected by default, including for legacy `AUTO_UPDATE=true` settings.
+  Non-interactive launches only show a notice, and update notices identify
+  the selected release channel.
+  ([#959](https://github.com/BitterSecurity/Decepticon/pull/959))
+- Default launcher checks, Bash installs, and unpinned Compose images to the
+  latest final release. The seven-day stable channel remains an explicit opt-in.
+  ([#960](https://github.com/BitterSecurity/Decepticon/pull/960))
+
+### Upgrade notes
+
+- Older launcher binaries keep their compiled update behavior until upgraded.
+  Run `decepticon update --channel latest` once to install this patch. Subsequent
+  interactive startup checks offer `1. Update now` / `2. Skip` only when a newer
+  release exists; pressing Enter skips. `AUTO_UPDATE=false` and `--no-update`
+  disable startup checks. An explicit `DECEPTICON_CHANNEL=stable` retains the
+  seven-day delay.
+
+## [1.4.1] — 2026-10-14
+
+### Fixed
+
+- Require matching release versions of Core and framework dependencies in
+  published Python packages so upgrades include their sibling fixes.
+  ([#955](https://github.com/BitterSecurity/Decepticon/pull/955))
+- Reject duplicate CVSS metrics, unsupported version labels, and empty vector
+  segments before scoring. ([#948](https://github.com/BitterSecurity/Decepticon/pull/948))
+- Complete planning-document schema guidance, detect model/table drift, and
+  report all invalid documents in one validation attempt.
+  ([#929](https://github.com/BitterSecurity/Decepticon/pull/929))
+- Transfer SARIF imports and reports through the run sandbox with trusted graph
+  and workspace scope, preserving protected files, MCP-started workspaces,
+  and registered SARIF adapter overrides.
+  ([#936](https://github.com/BitterSecurity/Decepticon/pull/936))
+- Attach the image digest manifest before publishing a release; GitHub Actions
+  does not start a second workflow from a release published with `GITHUB_TOKEN`.
+  ([#938](https://github.com/BitterSecurity/Decepticon/pull/938))
+- Require successful terminal completion of finding checks and their negative
+  controls; retain bounded baseline output, exit status, and hash.
+  ([#953](https://github.com/BitterSecurity/Decepticon/pull/953))
+- Restore injected runtime handling for OPPLAN task dispatch and finding-quality
+  checks. ([#923](https://github.com/BitterSecurity/Decepticon/pull/923))
+- Bind tmux command completion to the submitted shell command, preserving printed
+  prompt markers and waiting for the final exit status of multiline commands.
+  ([#951](https://github.com/BitterSecurity/Decepticon/pull/951))
+- Buffer Ollama tool-bound requests on the wire as well as in the response
+  parser, while preserving text streaming, token callbacks, and usage accounting.
+  ([#947](https://github.com/BitterSecurity/Decepticon/pull/947))
+- Preserve LangGraph threads and checkpoints across container recreation by
+  storing development runtime state in a Compose project volume.
+  ([#954](https://github.com/BitterSecurity/Decepticon/pull/954))
+- Give LangGraph access to the engagement workspace for planning validation and
+  readiness markers. ([#924](https://github.com/BitterSecurity/Decepticon/pull/924))
 - Recover missing terminal threads before PTY startup and stop safely on backend
   errors or disconnected startup. ([#935](https://github.com/BitterSecurity/Decepticon/pull/935))
 - Stop terminal initialization after navigation unmounts it while xterm is loading,
   avoiding abandoned terminal resources. ([#932](https://github.com/BitterSecurity/Decepticon/pull/932))
 
+- Discover all registered `/agent` orchestrators across assistant catalog pages,
+  retaining the current selection if discovery fails or times out.
+  ([#949](https://github.com/BitterSecurity/Decepticon/pull/949))
 - Start engagement terminals only after opening Live, preserving visited mode
   terminals across tab navigation. ([#934](https://github.com/BitterSecurity/Decepticon/pull/934))
 
@@ -26,10 +129,28 @@ comparison link. Keep proposed and unmerged changes out of released sections.
   prebuilt image supports relative reverse-proxy routes across deployments.
   ([#931](https://github.com/BitterSecurity/Decepticon/pull/931))
 - Stop disconnected terminal startup before it can replace an attached session
-  or spawn an orphan PTY. (#930)
+  or spawn an orphan PTY. ([#930](https://github.com/BitterSecurity/Decepticon/pull/930))
+- Route ChatGPT OAuth profiles through current Codex models (GPT-6 Astra,
+  GPT-6.1 Sol, GPT-6 Luna), and remove retired OAuth routes from the model picker.
+  ([#950](https://github.com/BitterSecurity/Decepticon/pull/950))
 - Follow renamed-repository redirects during installer release lookup, pin
   explicit-version config downloads to the matching release, and correct the
   version recovery command. ([#927](https://github.com/BitterSecurity/Decepticon/pull/927))
+
+- Apply CLI `/model` selection and clearing through persisted graph state,
+  including Soundwave, specialists, and resumed runs, while preserving
+  provider-specific model settings.
+  ([#952](https://github.com/BitterSecurity/Decepticon/pull/952))
+- Allow freshly onboarded installations to start without a legacy credential
+  migration backup; continue reporting unreadable backup files.
+  ([#946](https://github.com/BitterSecurity/Decepticon/pull/946))
+
+### Upgrade notes
+
+- LangGraph history is retained after the new volume is in use. Existing
+  unmounted container history is not automatically migrated or recovered;
+  back it up before replacing that container if it must be retained.
+  Development-runtime persistence does not guarantee crash durability.
 
 ## [1.4.0] — 2026-10-13
 
@@ -1015,7 +1136,11 @@ The following legacy import paths keep working but emit a
   atomic release.
 - Downstream plugin package lockstep migration.
 
-[Unreleased]: https://github.com/BitterSecurity/Decepticon/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/BitterSecurity/Decepticon/compare/v1.4.4...HEAD
+[1.4.4]: https://github.com/BitterSecurity/Decepticon/compare/v1.4.3...v1.4.4
+[1.4.3]: https://github.com/BitterSecurity/Decepticon/compare/v1.4.2...v1.4.3
+[1.4.2]: https://github.com/BitterSecurity/Decepticon/compare/v1.4.1...v1.4.2
+[1.4.1]: https://github.com/BitterSecurity/Decepticon/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/BitterSecurity/Decepticon/compare/v1.3.1...v1.4.0
 [1.3.1]: https://github.com/BitterSecurity/Decepticon/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/BitterSecurity/Decepticon/compare/v1.2.5...v1.3.0

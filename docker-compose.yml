@@ -13,7 +13,7 @@ services:
   # LiteLLM Proxy — LLM API Gateway
   # Handles model routing, authentication, usage tracking, billing
   litellm:
-    image: ghcr.io/bittersecurity/decepticon-litellm:${DECEPTICON_VERSION:-stable}
+    image: ghcr.io/bittersecurity/decepticon-litellm:${DECEPTICON_VERSION:-latest}
     build:
       context: .
       dockerfile: containers/litellm.Dockerfile
@@ -194,7 +194,7 @@ services:
   # via ``/var/run/docker.sock`` was removed in the HTTP-only migration —
   # see decepticon/backends/factory.py for the rationale.
   sandbox:
-    image: ghcr.io/bittersecurity/decepticon-sandbox:${DECEPTICON_VERSION:-stable}
+    image: ghcr.io/bittersecurity/decepticon-sandbox:${DECEPTICON_VERSION:-latest}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     # Multi-arch image — linux/amd64 + linux/arm64. Apple Silicon and
@@ -289,7 +289,7 @@ services:
     build:
       context: .
       dockerfile: containers/rea.Dockerfile
-    image: ghcr.io/bittersecurity/decepticon-rea:${DECEPTICON_VERSION:-stable}
+    image: ghcr.io/bittersecurity/decepticon-rea:${DECEPTICON_VERSION:-latest}
     platform: linux/amd64
     container_name: decepticon${DECEPTICON_STACK_NAME:+-${DECEPTICON_STACK_NAME}}-rea-mcp
     volumes:
@@ -307,7 +307,7 @@ services:
   # Exposes all agents (decepticon, soundwave, recon, exploit, postexploit)
   # as a streaming API on port 2024. Ink CLI connects here.
   langgraph:
-    image: ghcr.io/bittersecurity/decepticon-langgraph:${DECEPTICON_VERSION:-stable}
+    image: ghcr.io/bittersecurity/decepticon-langgraph:${DECEPTICON_VERSION:-latest}
     # Append --allow-blocking by default so blockbuster doesn't fatally
     # abort runs on sync I/O in third-party deps (e.g. deepagents'
     # subagents.py uses a sync httpx send in its atask path). Decepticon's
@@ -365,6 +365,7 @@ services:
       # re-declare it here. Set BENCHMARK_MODE=1 in .env to engage CTF/XBOW
       # benchmark mode (rule overrides + challenge context inject).
     volumes:
+      - langgraph_data:/app/.langgraph_api
       # Mount the OAuth credential files read-only so the LLM factory can
       # check file presence + valid JSON before adding a method to the
       # fallback chain. Without this the factory would trust the
@@ -380,6 +381,7 @@ services:
       # (measured: 95% of "installs" survived a single day). Persisting it here
       # also makes the agent and the host CLI agree on one id.
       - ${DECEPTICON_HOME:-~/.decepticon}/telemetry:/root/.decepticon/telemetry
+      - ${DECEPTICON_ENGAGEMENT_WORKSPACE:-${DECEPTICON_HOME:-~/.decepticon}/workspace}:/workspace
     # Wait for litellm to be healthy: langgraph has retry logic but the launcher
     # uses `compose up --wait` and needs healthy as the single readiness signal.
     depends_on:
@@ -414,7 +416,7 @@ services:
   # Web Dashboard — Next.js UI
   # Migrations run automatically at startup via web-entrypoint.sh (prisma migrate deploy).
   web:
-    image: ghcr.io/bittersecurity/decepticon-web:${DECEPTICON_VERSION:-stable}
+    image: ghcr.io/bittersecurity/decepticon-web:${DECEPTICON_VERSION:-latest}
     build:
       context: .
       dockerfile: containers/web.Dockerfile
@@ -469,7 +471,7 @@ services:
   # Ink CLI — Interactive terminal UI
   # Runs via: docker compose run --rm cli
   cli:
-    image: ghcr.io/bittersecurity/decepticon-cli:${DECEPTICON_VERSION:-stable}
+    image: ghcr.io/bittersecurity/decepticon-cli:${DECEPTICON_VERSION:-latest}
     build:
       context: .
       dockerfile: containers/cli.Dockerfile
@@ -527,7 +529,7 @@ services:
   # `ops_start("c2-havoc")` once that workload ships.
   # Agent connects via: sliver-client (pre-installed in sandbox)
   c2-sliver:
-    image: ghcr.io/bittersecurity/decepticon-c2-sliver:${DECEPTICON_VERSION:-stable}
+    image: ghcr.io/bittersecurity/decepticon-c2-sliver:${DECEPTICON_VERSION:-latest}
     # Multi-arch image — see decepticon-sandbox above for the same notes.
     build:
       context: .
@@ -567,7 +569,7 @@ services:
   #   - OTEL_SERVICE_NAME=decepticon
 
   skillogy:
-    image: ghcr.io/bittersecurity/decepticon-skillogy:${DECEPTICON_VERSION:-stable}
+    image: ghcr.io/bittersecurity/decepticon-skillogy:${DECEPTICON_VERSION:-latest}
     build:
       context: .
       dockerfile: containers/skillogy.Dockerfile
@@ -753,6 +755,7 @@ services:
       - ad
 
 volumes:
+  langgraph_data:
   postgres_data:
   sliver_data:
   neo4j_data:

@@ -524,7 +524,7 @@ def validate_model_name(model_name: str) -> None:
 
     ``merge_dynamic_models`` skips this validation when the model is already
     present in the model_list, so a user setting
-    ``DECEPTICON_MODEL=auth/gpt-5.4-mini`` plus ``DECEPTICON_AUTH_CHATGPT=true``
+    ``DECEPTICON_MODEL=auth/gpt-6-luna`` plus ``DECEPTICON_AUTH_CHATGPT=true``
     is fine — the subscription path injected the route first and the requested
     model is satisfied.
     """
@@ -784,25 +784,7 @@ def build_model_entry(model_name: str) -> dict[str, Any]:
 # card (Sonar $1/$1, Sonar Pro $3/$15) — search-call surcharge not
 # modeled.
 _SUBSCRIPTION_SHADOW_PRICING: dict[str, tuple[float, float]] = {
-    # gpt-5.6-{sol,terra,luna} are the GPT-5.6-family frontier checkpoints the
-    # Codex subscription actually serves (all three verified 2026-07-13 via
-    # /backend-api/codex/responses; plain gpt-5.6 / gpt-5.6-nova / gpt-5.6-codex
-    # 400 with "not supported when using Codex with a ChatGPT account"). They
-    # behave equivalently on verification-reasoning probes — registered so any
-    # agent can be composed onto any of them. Shadow pricing tracks gpt-5.5
-    # ($5 input parity per the model card); opportunity-cost only — real spend
-    # is the flat subscription.
-    "auth/gpt-5.6-sol": (0.000005, 0.000030),
-    "auth/gpt-5.6-terra": (0.000005, 0.000030),
-    "auth/gpt-5.6-luna": (0.000005, 0.000030),
-    "auth/gpt-5.5": (0.000005, 0.000030),
-    "auth/gpt-5.4": (0.0000025, 0.000015),
-    "auth/gpt-5.4-mini": (0.00000075, 0.0000045),
-    "auth/gpt-5.3-codex": (0.00000175, 0.000014),
-    # gpt-5.3-codex-spark is the agentic-coding model the Codex subscription
-    # actually serves (verified 2026-06-25 via /backend-api/codex/models);
-    # gpt-5.3-codex is the API slug. Same shadow pricing.
-    "auth/gpt-5.3-codex-spark": (0.00000175, 0.000014),
+    # Codex routes omit shadow prices until model-specific rates are verified.
     "gemini-sub/gemini-2.5-pro": (0.00000125, 0.00001),
     "gemini-sub/gemini-2.5-flash": (0.0000003, 0.0000025),
     "copilot/gpt-5.5": (0.000005, 0.000030),
@@ -819,11 +801,7 @@ _SUBSCRIPTION_SHADOW_PRICING: dict[str, tuple[float, float]] = {
 def _with_shadow_pricing(route: dict[str, Any]) -> dict[str, Any]:
     """Attach ``model_info`` shadow pricing to a subscription route, if any.
 
-    Returns the route unchanged when ``model_name`` is not in
-    ``_SUBSCRIPTION_SHADOW_PRICING`` — preserves the "subscription is
-    free per-token" reading so a future operator who deliberately
-    omits a route from the map gets ``$0`` rather than silent default
-    pricing from LiteLLM's built-in cost map.
+    Models without verified shadow prices retain no explicit cost metadata.
     """
     pricing = _SUBSCRIPTION_SHADOW_PRICING.get(route["model_name"])
     if pricing is None:
@@ -847,11 +825,20 @@ _SUBSCRIPTION_ROUTES: dict[str, list[dict[str, Any]]] = {
         # short-circuits before the custom_llm_provider check) and forwards
         # to api.openai.com regardless of provider. The codex_chatgpt
         # handler strips the ``oauth-`` prefix before sending the model
-        # name upstream, so chatgpt.com still receives ``gpt-5.5``.
-        # gpt-5.6-{sol,terra,luna} — GPT-5.6-family frontier checkpoints served
-        # on the ChatGPT subscription (all three verified 2026-07-13). Reasoning
-        # models; the codex handler applies the default effort (medium) — no
-        # output cap, the Codex backend rejects max_output_tokens.
+        # name upstream. Current models and retained GPT-5.6 overrides:
+        # https://learn.chatgpt.com/docs/models (2026-10-14).
+        {
+            "model_name": "auth/gpt-6-astra",
+            "litellm_params": {"model": "codex-oauth/oauth-gpt-6-astra"},
+        },
+        {
+            "model_name": "auth/gpt-6.1-sol",
+            "litellm_params": {"model": "codex-oauth/oauth-gpt-6.1-sol"},
+        },
+        {
+            "model_name": "auth/gpt-6-luna",
+            "litellm_params": {"model": "codex-oauth/oauth-gpt-6-luna"},
+        },
         {
             "model_name": "auth/gpt-5.6-sol",
             "litellm_params": {"model": "codex-oauth/oauth-gpt-5.6-sol"},
@@ -863,36 +850,6 @@ _SUBSCRIPTION_ROUTES: dict[str, list[dict[str, Any]]] = {
         {
             "model_name": "auth/gpt-5.6-luna",
             "litellm_params": {"model": "codex-oauth/oauth-gpt-5.6-luna"},
-        },
-        {
-            "model_name": "auth/gpt-5.5",
-            "litellm_params": {"model": "codex-oauth/oauth-gpt-5.5"},
-        },
-        {
-            "model_name": "auth/gpt-5.4",
-            "litellm_params": {"model": "codex-oauth/oauth-gpt-5.4"},
-        },
-        {
-            "model_name": "auth/gpt-5.4-mini",
-            "litellm_params": {"model": "codex-oauth/oauth-gpt-5.4-mini"},
-        },
-        # Code-heavy override (option α). gpt-5.3-codex is OpenAI's
-        # agentic-coding specialized model (Codex + GPT-5 training
-        # stack); register the route here so per-agent env overrides
-        # like ``DECEPTICON_MODEL_PATCHER=auth/gpt-5.3-codex`` work
-        # without yaml edits. Slug ``gpt-5.3-codex`` IS in
-        # open_ai_chat_completion_models, so the sentinel is required.
-        {
-            "model_name": "auth/gpt-5.3-codex",
-            "litellm_params": {"model": "codex-oauth/oauth-gpt-5.3-codex"},
-        },
-        # gpt-5.3-codex-spark is the agentic-coding model the Codex SUBSCRIPTION
-        # actually exposes (chatgpt.com/backend-api/codex/models, verified
-        # 2026-06-25), vs the plain gpt-5.3-codex API slug. Register it so the
-        # subscription (auth) path can route the model it really serves.
-        {
-            "model_name": "auth/gpt-5.3-codex-spark",
-            "litellm_params": {"model": "codex-oauth/oauth-gpt-5.3-codex-spark"},
         },
     ],
     "DECEPTICON_AUTH_GEMINI": [
@@ -966,8 +923,8 @@ _SUBSCRIPTION_ROUTES: dict[str, list[dict[str, Any]]] = {
 # Fallback entries for subscription routes — appended to litellm_settings.fallbacks
 _SUBSCRIPTION_FALLBACKS: dict[str, list[dict[str, list[str]]]] = {
     "DECEPTICON_AUTH_CHATGPT": [
-        {"auth/gpt-5.5": ["auth/gpt-5.4"]},
-        {"auth/gpt-5.4": ["auth/gpt-5.4-mini"]},
+        {"auth/gpt-6-astra": ["auth/gpt-6.1-sol"]},
+        {"auth/gpt-6.1-sol": ["auth/gpt-6-luna"]},
     ],
     "DECEPTICON_AUTH_GEMINI": [
         {"gemini-sub/gemini-2.5-pro": ["gemini-sub/gemini-2.5-flash"]},

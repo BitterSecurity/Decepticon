@@ -52,6 +52,11 @@ jobs:
               packages/decepticon-core/pyproject.toml \
               packages/decepticon/pyproject.toml \
               packages/decepticon-sdk/pyproject.toml
+          sed -i 's/"decepticon-core"/"decepticon-core=='"$version"'"/' \
+              packages/decepticon/pyproject.toml \
+              packages/decepticon-sdk/pyproject.toml
+          sed -i 's/"decepticon"/"decepticon=='"$version"'"/' \
+              packages/decepticon-sdk/pyproject.toml
 
       - name: Build three workspace wheels + sdists
         run: |
@@ -699,6 +704,31 @@ jobs:
             echo "Promoting ${src} → ${dst}"
             docker buildx imagetools create --tag "${dst}" "${src}"
           done
+
+      - name: Attach digest-pinned image manifest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          images=(
+            decepticon-litellm
+            decepticon-langgraph
+            decepticon-sandbox
+            decepticon-cli
+            decepticon-skillogy
+            decepticon-c2-sliver
+            decepticon-rea
+            decepticon-web
+          )
+          : > image-digests.txt
+          for img in "${images[@]}"; do
+            ref="ghcr.io/bittersecurity/${img}:${VERSION}"
+            digest="$(docker buildx imagetools inspect "${ref}" --format '{{.Manifest.Digest}}')"
+            [[ "${digest}" =~ ^sha256:[[:xdigit:]]{64}$ ]]
+            printf '%s@%s\n' "${ref}" "${digest}" >> image-digests.txt
+          done
+          gh release upload "v${VERSION}" image-digests.txt --clobber
 
       - name: Publish GitHub release (undraft)
         env:

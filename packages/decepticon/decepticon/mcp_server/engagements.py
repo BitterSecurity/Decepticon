@@ -133,7 +133,11 @@ class EngagementClient:
             "instruction": instruction,
         }
         run_config: dict[str, Any] = {
-            "configurable": {"engagement_name": engagement_name, "scan_mode": scan_mode},
+            "configurable": {
+                "engagement_name": engagement_name,
+                "workspace_path": "/workspace",
+                "scan_mode": scan_mode,
+            },
         }
 
         client = self._ensure_client()
@@ -227,6 +231,7 @@ def _engagement_input(scope_payload: dict[str, Any], engagement_name: str) -> di
             }
         ],
         "engagement_name": engagement_name,
+        "workspace_path": "/workspace",
         "scan_scope": scope_payload,
     }
 

@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+from deepagents.backends.filesystem import FilesystemBackend
 
 from decepticon.tools.reporting.sarif import (
     SARIF_SCHEMA,
@@ -200,26 +201,39 @@ class TestStableRuleId:
 
 
 class TestReportSarifTool:
-    def test_writes_sarif_to_disk_and_reports_metadata(self, tmp_path: Path) -> None:
-        out = tmp_path / "out" / "decepticon.sarif"
-        g = _seeded_graph()
-        with patch("decepticon.tools.reporting.tools._load", return_value=(g, None)):
-            result = asyncio.run(
-                report_sarif.ainvoke({"engagement_id": "eng-X", "output_path": str(out)})
+    @staticmethod
+    def _report(tmp_path: Path, output_path: str) -> str:
+        backend = FilesystemBackend(root_dir=tmp_path, virtual_mode=True)
+        with (
+            patch(
+                "decepticon.middleware.scoped_reporting_io.build_sandbox_backend",
+                return_value=backend,
+            ),
+            patch(
+                "decepticon.tools.reporting.kg_adapter.load_engagement_graph",
+                return_value=_seeded_graph(),
+            ),
+        ):
+            return asyncio.run(
+                report_sarif.ainvoke(
+                    {
+                        "engagement_id": "eng-X",
+                        "output_path": output_path,
+                        "state": {"engagement_name": "owned-run", "workspace_path": "/workspace"},
+                    }
+                )
             )
 
-        assert out.exists()
-        payload = json.loads(out.read_text(encoding="utf-8"))
-        assert payload["version"] == SARIF_VERSION
+    def test_writes_sarif_to_disk_and_reports_metadata(self, tmp_path: Path) -> None:
+        result = self._report(tmp_path, "/workspace/out/decepticon.sarif")
+        out = tmp_path / "workspace/out/decepticon.sarif"
+        assert json.loads(out.read_text(encoding="utf-8"))["version"] == SARIF_VERSION
         info = json.loads(result)
         assert info["engagement_id"] == "eng-X"
-        assert info["path"] == str(out)
-        assert info["bytes"] > 0
+        assert info["path"] == "/workspace/out/decepticon.sarif"
+        assert info["bytes"] == out.stat().st_size
         assert info["results"] == 2
 
     def test_creates_parent_directories(self, tmp_path: Path) -> None:
-        out = tmp_path / "nested" / "deeper" / "decepticon.sarif"
-        g = _seeded_graph()
-        with patch("decepticon.tools.reporting.tools._load", return_value=(g, None)):
-            asyncio.run(report_sarif.ainvoke({"engagement_id": "eng-Y", "output_path": str(out)}))
-        assert out.exists()
+        self._report(tmp_path, "/workspace/nested/deeper/decepticon.sarif")
+        assert (tmp_path / "workspace/nested/deeper/decepticon.sarif").exists()

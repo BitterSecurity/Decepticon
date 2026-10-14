@@ -192,6 +192,10 @@ class PoCResult:
     stdout_excerpt: str = ""
     stderr_excerpt: str = ""
     exit_code: int | None = None
+    negative_exit_code: int | None = None
+    negative_stdout_excerpt: str = ""
+    negative_stderr_excerpt: str = ""
+    negative_output_hash: str = ""
     cvss: str | None = None
     cvss_score: float | None = None
     severity: str | None = None
@@ -208,6 +212,10 @@ class PoCResult:
             "stdout_excerpt": self.stdout_excerpt[:800],
             "stderr_excerpt": self.stderr_excerpt[:400],
             "exit_code": self.exit_code,
+            "negative_exit_code": self.negative_exit_code,
+            "negative_stdout_excerpt": self.negative_stdout_excerpt[:800],
+            "negative_stderr_excerpt": self.negative_stderr_excerpt[:400],
+            "negative_output_hash": self.negative_output_hash,
             "cvss": self.cvss,
             "cvss_score": self.cvss_score,
             "severity": self.severity,
@@ -267,8 +275,10 @@ async def validate_poc(
     success = _match_signals(combined, success_patterns)
 
     neg_hits: list[str] = []
+    n_out, n_err = "", ""
+    n_code: int | None = None
     if negative_command and negative_patterns:
-        n_out, n_err, _ = await runner(negative_command)
+        n_out, n_err, n_code = await runner(negative_command)
         n_combined = f"{n_out}\n{n_err}"
         neg_hits = _match_signals(n_combined, negative_patterns)
         # ZFP: if the negative control also matched any success pattern,
@@ -280,10 +290,10 @@ async def validate_poc(
     # ZFP: if negative control was run, it MUST match its patterns
     # (confirming baseline works). If it didn't run, skip the check.
     neg_ran = bool(negative_command and negative_patterns)
-    validated = bool(success) and (not neg_ran or bool(neg_hits))
+    validated = code == 0 and bool(success) and (not neg_ran or (n_code == 0 and bool(neg_hits)))
     summary = (
         f"{len(success)} success signals, {len(neg_hits)} negative hits, "
-        f"neg_ran={neg_ran}, exit={code}"
+        f"neg_ran={neg_ran}, exit={code}, negative_exit={n_code}"
     )
     cvss_vec_str: str | None = None
     cvss_score: float | None = None
@@ -302,6 +312,10 @@ async def validate_poc(
         stdout_excerpt=stdout[:1600],
         stderr_excerpt=stderr[:800],
         exit_code=code,
+        negative_exit_code=n_code,
+        negative_stdout_excerpt=n_out[:1600],
+        negative_stderr_excerpt=n_err[:800],
+        negative_output_hash=_hash_output(n_out, n_err, n_code) if n_code is not None else "",
         cvss=cvss_vec_str,
         cvss_score=cvss_score,
         severity=sev,
@@ -343,6 +357,10 @@ def _persist_result(graph: KnowledgeGraph, result: PoCResult) -> None:
         summary=result.summary,
         stdout_excerpt=result.stdout_excerpt[:400],
         exit_code=result.exit_code,
+        negative_exit_code=result.negative_exit_code,
+        negative_stdout_excerpt=result.negative_stdout_excerpt[:400],
+        negative_stderr_excerpt=result.negative_stderr_excerpt[:400],
+        negative_output_hash=result.negative_output_hash,
         cvss_score=result.cvss_score,
     )
     graph.upsert_node(finding)
@@ -374,6 +392,7 @@ def _persist_result(graph: KnowledgeGraph, result: PoCResult) -> None:
 # Typed-error sentinels: callers distinguish a hung runner from a crash by
 # inspecting the stderr prefix (return shape stays (stdout, stderr, code)).
 POC_ERR_TIMEOUT = "[POC_TIMEOUT]"
+POC_ERR_INCOMPLETE = "[POC_INCOMPLETE]"
 POC_ERR_SANDBOX = "[SANDBOX_ERROR]"
 
 # Outer-bound on a single PoC invocation. The inner tmux call has its own
@@ -385,8 +404,9 @@ def sandbox_runner(sandbox: Any, *, timeout: float | None = None) -> PoCRunner:
     """Adapt an ``HTTPSandbox`` into a :data:`PoCRunner` callable.
 
     The sandbox must expose ``execute_tmux_async`` (or ``execute_tmux``) that
-    returns a str output. We split the returned blob on ``[Exit code:`` to
-    recover an exit code when present.
+    returns a str output ending with ``[DCPTN_COMPLETE exit=N]`` only after
+    native command completion. Missing or partial completion returns an
+    unqualified status and cannot validate a finding, including older producers.
 
     The invocation is bounded by ``timeout`` seconds (defaults to module
     constant :data:`POC_RUNNER_TIMEOUT_SECONDS`). On timeout the stderr
@@ -419,13 +439,10 @@ def sandbox_runner(sandbox: Any, *, timeout: float | None = None) -> PoCRunner:
             err_msg = f"{POC_ERR_SANDBOX} {type(e).__name__}: {e}"
             log.error("sandbox_runner failed: %s", err_msg)
             return "", err_msg, -1
-        code = 0
-        m = re.search(r"\[Exit code:\s*(-?\d+)", out)
-        if m:
-            try:
-                code = int(m.group(1))
-            except ValueError:
-                pass
+        completion = re.search(r"(?:^|\n)\[DCPTN_COMPLETE exit=(\d{1,3})\]\s*\Z", out)
+        if completion is None or int(completion.group(1)) > 255:
+            return out, f"{POC_ERR_INCOMPLETE} terminal command completion is unverified", -1
+        code = int(completion.group(1))
         return out, "", code
 
     return _run

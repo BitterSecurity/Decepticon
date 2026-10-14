@@ -289,10 +289,11 @@ class SandboxBase(BaseSandbox):
                 prev_offset = 0
             new_bytes = full[prev_offset:]
             self._log_offsets[key] = len(full)
-        # pipe-pane streams RAW pane bytes (escape sequences, OSC shell-
-        # integration markers, bracketed-paste toggles, PS1 markers) — strip
-        # them so bash_output returns readable text, not terminal noise.
-        return strip_terminal_noise(new_bytes.decode("utf-8", errors="replace"))
+        # Strip terminal controls, but keep prompt-shaped text: program output
+        # can contain the same text, and native state now owns completion.
+        return strip_terminal_noise(
+            new_bytes.decode("utf-8", errors="replace"), preserve_prompt_markers=True
+        )
 
     def reset_session_log_offset(self, session: str, workspace_path: str | None = None) -> None:
         """Forget the read offset (used after kill / GC)."""
@@ -352,13 +353,14 @@ class SandboxBase(BaseSandbox):
             return await asyncio.to_thread(mgr.read_screen)
 
         def _on_auto_background(cmd: str, baseline: str) -> None:
-            self._jobs.register(
+            job = self._jobs.register(
                 session,
                 command=cmd,
                 initial_markers=len(PS1_PATTERN.findall(baseline)),
                 key=job_key,
                 workspace_path=effective_workspace,
             )
+            job.generation = mgr._generation
 
         return await mgr.execute_async(
             command,
@@ -375,8 +377,7 @@ class SandboxBase(BaseSandbox):
     ) -> None:
         """Launch a command in a named tmux session without blocking.
 
-        Registers a BackgroundJob keyed by the PS1-marker count at launch;
-        ``poll_completion`` later compares against this baseline.
+        Binds the BackgroundJob to the submitted native command generation.
         """
         effective_workspace = self._normalize_workspace_path(workspace_path or self._workspace_path)
         job_key = self._manager_key(session, effective_workspace)
@@ -384,21 +385,22 @@ class SandboxBase(BaseSandbox):
         mgr.initialize()
         baseline = mgr._capture()
         initial_markers = len(PS1_PATTERN.findall(baseline))
-        self._jobs.register(
+        generation = mgr._begin_command(command)
+        job = self._jobs.register(
             session,
             command=command,
             initial_markers=initial_markers,
             key=job_key,
             workspace_path=effective_workspace,
         )
-        mgr._send(command, enter=True)
+        job.generation = generation
 
     def poll_completion(
         self,
         session: str,
         workspace_path: str | None = None,
     ) -> "BackgroundJob | None":
-        """Check whether a background job has produced a new PS1 marker.
+        """Check whether the background job's native command has completed.
 
         Updates the tracker in place; returns the job (or None if not tracked).
         Capture failures are swallowed — the job stays running, retried later.
@@ -410,16 +412,11 @@ class SandboxBase(BaseSandbox):
             return job
         try:
             mgr = self._get_manager(session, effective_workspace)
-            screen = mgr._capture()
+            completion = mgr._command_completion(job.generation)
         except (RuntimeError, OSError, subprocess.TimeoutExpired):
             return job
-        markers = list(PS1_PATTERN.finditer(screen))
-        if len(markers) > job.initial_markers:
-            try:
-                exit_code = int(markers[-1].group(1))
-            except ValueError:
-                exit_code = -1
-            self._jobs.mark_complete(session, exit_code=exit_code, key=job_key)
+        if completion is not None:
+            self._jobs.mark_complete(session, exit_code=completion[0], key=job_key)
         return job
 
     def kill_session(self, session: str, workspace_path: str | None = None) -> None:

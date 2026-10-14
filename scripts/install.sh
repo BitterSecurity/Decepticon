@@ -6,7 +6,7 @@
 #   curl -fsSL https://decepticon.red/install | bash
 #
 # Environment variables:
-#   CHANNEL              — Update channel (default: stable):
+#   CHANNEL              — Update channel (default: latest):
 #                            stable — newest final release baked >= SOAK days
 #                            latest — newest final release, immediately
 #   DECEPTICON_STABLE_SOAK_DAYS — stable soak window (default: 7)
@@ -22,15 +22,12 @@ REPO="BitterSecurity/Decepticon"
 BRANCH="${BRANCH:-main}"
 
 # Update channel (Claude-Code-style soak model; both are final-only):
-#   stable (default) — newest FINAL release baked >= STABLE_SOAK_DAYS
-#   latest           — newest FINAL release, immediately
-# Decepticon defaults to stable (conservative for a security tool); the
-# channel *semantics* match Claude Code, only the default differs.
-# Default + any unrecognized value resolves to stable.
-CHANNEL="$(printf '%s' "${CHANNEL:-stable}" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')"
+#   stable           — newest FINAL release baked >= STABLE_SOAK_DAYS
+#   latest (default) — newest FINAL release, immediately
+CHANNEL="$(printf '%s' "${CHANNEL:-latest}" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')"
 case "$CHANNEL" in
-    latest) ;;
-    *) CHANNEL="stable" ;;
+    stable) ;;
+    *) CHANNEL="latest" ;;
 esac
 # Days the stable channel waits before adopting a final release.
 STABLE_SOAK_DAYS="${DECEPTICON_STABLE_SOAK_DAYS:-7}"
@@ -251,8 +248,8 @@ download_files() {
         info ".env already exists, preserving your configuration."
     else
         info "No .env yet — run 'decepticon onboard' to create one."
-        if [[ "$CHANNEL" == "latest" ]]; then
-            info "After onboarding, set DECEPTICON_CHANNEL=latest in .env to keep tracking the latest channel."
+        if [[ "$CHANNEL" == "stable" ]]; then
+            info "After onboarding, set DECEPTICON_CHANNEL=stable in .env to keep tracking the stable channel."
         fi
     fi
 

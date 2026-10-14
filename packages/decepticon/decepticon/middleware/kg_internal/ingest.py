@@ -478,8 +478,23 @@ def _adapt_sarif(
 ) -> dict[str, Any]:
     """Parse SARIF v2.1.0 JSON and record vulnerability + code-location nodes."""
     try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
+        text = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return {"error": f"sarif parse failed: {exc}", "ingested": 0}
+    return _ingest_sarif_text(text, store, engagement, created_by, source_episode_id)
+
+
+def _ingest_sarif_text(
+    text: str,
+    store: KGStore,
+    engagement: str,
+    created_by: str,
+    source_episode_id: str,
+) -> dict[str, Any]:
+    """Parse decoded SARIF from either a local adapter or sandbox download."""
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError as exc:
         return {"error": f"sarif parse failed: {exc}", "ingested": 0}
 
     runs = data.get("runs") or []

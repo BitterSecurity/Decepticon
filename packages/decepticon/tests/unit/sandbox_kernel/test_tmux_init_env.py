@@ -26,11 +26,18 @@ def test_first_command_returns_its_output_when_initial_export_is_delayed(
         if pending:
             command = pending.pop(0)
             output = (
-                "first-command-result\n" if command == "run-probe" else f"\n{command.split()[-1]}\n"
+                "first-command-result\n" if "run-probe" in command else f"\n{command.split()[-1]}\n"
             )
             screen += f"{command}\n{output}[DCPTN:0:/workspace] "
 
+    def native_state(args: list[str], timeout: int = 10) -> str:
+        if args[-1] == "#{pane_pid}":
+            return "123"
+        record = f"{manager._generation}:123:0" if not pending else ""
+        return f"123\t{record}:/workspace"
+
     with (
+        patch.object(manager, "_tmux", side_effect=native_state),
         patch.object(manager, "_cached_pane_is_alive", return_value=False),
         patch.object(manager, "_ensure_session", return_value=True),
         patch.object(manager, "_inject_ps1_marker"),
@@ -50,7 +57,7 @@ def test_first_command_returns_its_output_when_initial_export_is_delayed(
             TmuxSessionManager._initialized.discard(manager.session)
 
     # Then: completion belongs to the user command, with no export echo.
-    assert result == "first-command-result\n[cwd: /workspace]"
+    assert result == "first-command-result\n[cwd: /workspace]\n[DCPTN_COMPLETE exit=0]"
 
 
 def test_first_command_is_not_sent_when_initial_export_times_out() -> None:

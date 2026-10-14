@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import { transferableAbortController } from "node:util";
+import { createServer } from "node:http";
 import { renderHook, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from "vitest";
 import {
@@ -24,10 +26,6 @@ vi.mock("../utils/threadStore.js", () => ({
   saveThread: vi.fn(async () => {}),
   touchThread: vi.fn(async () => {}),
   loadThreadByIndex: vi.fn(async () => null),
-}));
-
-vi.mock("../commands/modelOverride.js", () => ({
-  getModelOverride: () => undefined,
 }));
 
 vi.mock("../commands/planMode.js", () => ({
@@ -71,6 +69,48 @@ describe("useAgent — engagement handoff lifecycle", () => {
     vi.unstubAllEnvs();
     vi.restoreAllMocks();
   });
+
+  it("sends the selected model through graph input on set, repeat, change and clear", async () => {
+    const { setModelOverride } = await import("../commands/modelOverride.js");
+    const { result } = renderHook(() => useAgent());
+    const selections = ["auth/gpt-6-luna", "auth/gpt-6-luna", "auth/gpt-6.1-sol", ""];
+    for (const selected of selections) {
+      setModelOverride(selected);
+      act(() => result.current.submit("hello"));
+      await act(async () => { await vi.runAllTimersAsync(); });
+    }
+    const requests = (mockState.client!.runs.stream as Mock).mock.calls.map((call) => call[2]);
+    expect(requests.map((request) => request.input.model_override)).toEqual(selections);
+    expect(requests.every((request) => request.context === undefined)).toBe(true);
+    expect(requests.every((request) => request.config?.configurable.model_override === undefined)).toBe(true);
+  });
+
+  it.each(["resume", "answerQuestion"] as const)(
+    "%s updates the checkpoint with the current model, including clear", async (method) => {
+      const { setModelOverride } = await import("../commands/modelOverride.js");
+      const stream = mockState.client!.runs.stream as Mock;
+      const { result } = renderHook(() => useAgent());
+      for (const selected of ["auth/gpt-6.1-sol", ""]) {
+        const pausedStream = createControllableStream();
+        stream.mockReturnValueOnce(pausedStream);
+        act(() => result.current.submit("hello"));
+        await act(async () => { await vi.runAllTimersAsync(); });
+        await act(async () => {
+          await pausedStream.emit({
+            event: "custom", data: { type: "ask_user_question", question: "Continue?" },
+          });
+        });
+        await act(async () => { pausedStream.end(); await vi.runAllTimersAsync(); });
+        expect(result.current.runState).toBe("paused");
+        setModelOverride(selected);
+        act(() => result.current[method]("yes"));
+        await act(async () => { await vi.runAllTimersAsync(); });
+        expect(stream.mock.calls.at(-1)?.[2].command).toEqual({
+          resume: "yes", update: { model_override: selected },
+        });
+      }
+    },
+  );
 
   it.each([
     [{ finish_reason: "length" }, "output token limit"],
@@ -378,7 +418,7 @@ describe("useAgent — engagement handoff lifecycle", () => {
 
     act(() => result.current.submit("prepare plan"));
     await act(async () => { await vi.runAllTimersAsync(); });
-    act(() => expect(result.current.selectAssistant("decepticon")).toBe(true));
+    await act(async () => expect(await result.current.selectAssistant("decepticon")).toBe(true));
     setAssistantOverride("decepticon");
     act(() => result.current.submit("begin approved Red work"));
     await act(async () => { await vi.runAllTimersAsync(); });
@@ -390,7 +430,7 @@ describe("useAgent — engagement handoff lifecycle", () => {
     expect(result.current.assistantId).toBe("decepticon");
     expect(result.current.events.some((event) => event.content === "prepare plan")).toBe(false);
 
-    act(() => expect(result.current.selectAssistant("soundwave")).toBe(true));
+    await act(async () => expect(await result.current.selectAssistant("soundwave")).toBe(true));
     setAssistantOverride("soundwave");
     expect(result.current.events.some((event) => event.content === "prepare plan")).toBe(true);
     expect(result.current.events.some((event) => event.content === "begin approved Red work")).toBe(false);
@@ -405,7 +445,7 @@ describe("useAgent — engagement handoff lifecycle", () => {
     vi.mocked(assertRedApproved).mockRejectedValueOnce(new Error("Red scope changed"));
     const { result } = renderHook(() => useAgent());
 
-    act(() => expect(result.current.selectAssistant("decepticon")).toBe(true));
+    await act(async () => expect(await result.current.selectAssistant("decepticon")).toBe(true));
     act(() => result.current.submit("continue Red work"));
     await act(async () => { await vi.runAllTimersAsync(); });
 
@@ -414,15 +454,226 @@ describe("useAgent — engagement handoff lifecycle", () => {
     expect(result.current.runState).toBe("idle");
   });
 
-  it("does not switch the visible mode during a live run", async () => {
+  it("waits for server interruption and restores the paused mode and queue", async () => {
+    const stream = createControllableStream();
+    (mockState.client!.runs.stream as Mock).mockReturnValueOnce(stream);
+    let acknowledge = () => {};
+    (mockState.client!.runs.cancel as Mock).mockImplementationOnce(() => new Promise<void>((resolve) => { acknowledge = resolve; }));
+    const { result } = renderHook(() => useAgent());
+    act(() => result.current.submit("plan"));
+    await act(async () => { await vi.runAllTimersAsync(); await stream.emit({ event: "metadata", data: { run_id: "plan-run" } }); });
+    act(() => result.current.enqueue("queued plan"));
+    let switching: Promise<boolean> | boolean = false;
+    act(() => { switching = result.current.selectAssistant("blue_cell"); });
+    await act(async () => { await Promise.resolve(); });
+    expect(result.current.assistantId).toBe("soundwave");
+    await act(async () => { acknowledge(); await switching; });
+    expect(result.current.assistantId).toBe("blue_cell");
+    expect(mockState.client!.runs.cancel).toHaveBeenCalledWith(expect.any(String), "plan-run", true, "interrupt", expect.objectContaining({ signal: expect.any(AbortSignal) }));
+    await act(async () => { await stream.emit({ event: "values", data: { messages: [{ type: "ai", content: "late plan" }] } }); stream.end(); });
+    expect(result.current.events.some((event) => event.content === "late plan")).toBe(false);
+    await act(async () => { await result.current.selectAssistant("soundwave"); });
+    expect(result.current.runState).toBe("paused");
+    expect(result.current.queuedMessage).toBe("queued plan");
+  });
+
+  it("keeps the active mode and stream when server interruption fails", async () => {
+    const stream = createControllableStream();
+    (mockState.client!.runs.stream as Mock).mockReturnValueOnce(stream);
+    (mockState.client!.runs.cancel as Mock).mockRejectedValueOnce(new Error("pause unavailable"));
+    const { result } = renderHook(() => useAgent());
+    act(() => result.current.submit("plan"));
+    await act(async () => { await vi.runAllTimersAsync(); await stream.emit({ event: "metadata", data: { run_id: "plan-run" } }); });
+    await act(async () => { expect(await result.current.selectAssistant("blue_cell")).toBe(false); });
+    expect(result.current.error).toContain("pause unavailable");
+    expect(result.current.assistantId).toBe("soundwave");
+    expect(result.current.runState).toBe("streaming");
+    await act(async () => { stream.end(); });
+  });
+
+  it("isolates a late thread creation after switching while connecting", async () => {
+    let finishCreate = (_thread: { thread_id: string }) => {};
+    (mockState.client!.threads.create as Mock).mockImplementationOnce(() => new Promise((resolve) => { finishCreate = resolve; }));
+    const { result } = renderHook(() => useAgent());
+    await act(async () => { result.current.submit("plan"); });
+    await act(async () => { await result.current.selectAssistant("decepticon"); });
+    await act(async () => { finishCreate({ thread_id: "old-thread" }); await vi.runAllTimersAsync(); });
+    act(() => result.current.submit("red"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    expect(mockState.client!.threads.create).toHaveBeenCalledTimes(2);
+    expect((mockState.client!.runs.stream as Mock).mock.calls[0][0]).not.toBe("old-thread");
+  });
+
+  it("waits for metadata before interrupting a dispatched run and rejects a competing switch", async () => {
     const stream = createControllableStream();
     (mockState.client!.runs.stream as Mock).mockReturnValueOnce(stream);
     const { result } = renderHook(() => useAgent());
     act(() => result.current.submit("plan"));
     await act(async () => { await vi.runAllTimersAsync(); });
-    act(() => expect(result.current.selectAssistant("blue_cell")).toBe(false));
-    expect(result.current.assistantId).toBe("soundwave");
-    await act(async () => { stream.end(); await vi.runAllTimersAsync(); });
+    let switching: Promise<boolean> | boolean = false;
+    act(() => { switching = result.current.selectAssistant("blue_cell"); });
+    await act(async () => { expect(await result.current.selectAssistant("decepticon")).toBe(false); });
+    expect(mockState.client!.runs.cancel).not.toHaveBeenCalled();
+    await act(async () => { await stream.emit({ event: "metadata", data: { run_id: "late-run" } }); await switching; });
+    expect(mockState.client!.runs.cancel).toHaveBeenCalledWith(expect.any(String), "late-run", true, "interrupt", expect.objectContaining({ signal: expect.any(AbortSignal) }));
+    expect(result.current.assistantId).toBe("blue_cell");
+    await act(async () => stream.end());
+  });
+
+  it("shares one ten-second deadline between metadata and server cancellation", async () => {
+    const stream = createControllableStream();
+    (mockState.client!.runs.stream as Mock).mockReturnValueOnce(stream);
+    let cancellationSignal: AbortSignal | undefined;
+    (mockState.client!.runs.cancel as Mock).mockImplementation((_thread: string, _run: string, _wait: boolean, _action: string, options: { signal: AbortSignal }) => {
+      cancellationSignal = options.signal;
+      return new Promise<void>(() => {});
+    });
+    const { result } = renderHook(() => useAgent());
+    await act(async () => { result.current.submit("plan"); });
+    let outcome: boolean | undefined;
+    act(() => { void result.current.selectAssistant("blue_cell").then((selected) => { outcome = selected; }); });
+    try {
+      await act(async () => { await vi.advanceTimersByTimeAsync(6000); });
+      await act(async () => { await stream.emit({ event: "metadata", data: { run_id: "delayed-run" } }); });
+      expect(cancellationSignal?.aborted).toBe(false);
+      await act(async () => { await vi.advanceTimersByTimeAsync(3999); });
+      expect(outcome).toBeUndefined();
+      await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+      expect(outcome).toBe(false);
+      expect(cancellationSignal?.aborted).toBe(true);
+      expect(result.current.assistantId).toBe("soundwave");
+      expect(result.current.runState).toBe("streaming");
+      expect(result.current.error).not.toBeNull();
+    } finally {
+      await act(async () => stream.end());
+    }
+  });
+
+  it("restores a pending question after visiting another mode", async () => {
+    (mockState.client!.runs.stream as Mock).mockReturnValueOnce(createMockStream([
+      { event: "metadata", data: { run_id: "question-run" } },
+      { event: "custom", data: { type: "ask_user_question", question: "Scope?", tool_call_id: "scope-question" } },
+    ]));
+    const { result } = renderHook(() => useAgent());
+    act(() => result.current.submit("plan"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    const question = result.current.activeQuestion;
+    expect(question).not.toBeNull();
+    await act(async () => { await result.current.selectAssistant("blue_cell"); });
+    expect(result.current.activeQuestion).toBeNull();
+    await act(async () => { await result.current.selectAssistant("soundwave"); });
+    expect(result.current.activeQuestion).toEqual(question);
+    expect(result.current.runState).toBe("paused");
+    expect(mockState.client!.runs.cancel).not.toHaveBeenCalled();
+  });
+
+  it("bounds SDK retry backoff when the cancellation endpoint keeps failing", async () => {
+    vi.useRealTimers();
+    const { Client } = await vi.importActual<typeof import("@langchain/langgraph-sdk")>("@langchain/langgraph-sdk");
+    let requests = 0;
+    const server = createServer((_request, response) => { requests++; response.writeHead(503).end("pause unavailable"); });
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const address = server.address();
+    if (!address || typeof address === "string") throw new TypeError("Expected loopback listener");
+    const client = new Client({ apiUrl: `http://127.0.0.1:${address.port}` });
+    let cancellationSignal: AbortSignal | undefined;
+    (mockState.client!.runs.cancel as Mock).mockImplementation((thread: string, run: string, wait: boolean, action: "interrupt", options: { signal: AbortSignal }) => {
+      cancellationSignal = options.signal;
+      // Node fetch requires its own AbortSignal rather than jsdom's signal.
+      const controller = transferableAbortController();
+      const abort = () => controller.abort(options.signal.reason);
+      options.signal.addEventListener("abort", abort, { once: true });
+      return client.runs.cancel(thread, run, wait, action, { signal: controller.signal })
+        .finally(() => options.signal.removeEventListener("abort", abort));
+    });
+    const stream = createControllableStream();
+    (mockState.client!.runs.stream as Mock).mockReturnValueOnce(stream);
+    const { result } = renderHook(() => useAgent());
+    try {
+      await act(async () => { result.current.submit("plan"); });
+      await act(async () => { await stream.emit({ event: "metadata", data: { run_id: "retry-run" } }); });
+      let settled = false;
+      let deadline: ReturnType<typeof setTimeout> | undefined;
+      await act(async () => {
+        const switching = result.current.selectAssistant("blue_cell").then(() => { settled = true; });
+        await Promise.race([switching, new Promise<void>((resolve) => { deadline = setTimeout(resolve, 11_000); })]);
+        clearTimeout(deadline);
+      });
+      expect(requests, result.current.error ?? "no hook error").toBeGreaterThan(0);
+      expect(settled).toBe(true);
+      expect(cancellationSignal?.aborted).toBe(true);
+      expect(result.current.assistantId).toBe("soundwave");
+      expect(result.current.runState).toBe("streaming");
+      expect(result.current.error).not.toBeNull();
+    } finally {
+      await act(async () => stream.end());
+      server.closeAllConnections();
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  }, 20_000);
+
+  it.each(["resume", "answerQuestion"] as const)("%s rechecks scope and preserves the Red question when approval became stale", async (method) => {
+    const { assertRedApproved } = await import("../commands/planMode.js");
+    (mockState.client!.runs.stream as Mock).mockReturnValueOnce(createMockStream([
+      { event: "metadata", data: { run_id: "red-question-run" } },
+      { event: "custom", data: { type: "ask_user_question", question: "Continue?", id: "red-question" } },
+    ]));
+    const { result } = renderHook(() => useAgent());
+    await act(async () => { await result.current.selectAssistant("decepticon"); });
+    act(() => result.current.submit("approved Red"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    const question = result.current.activeQuestion;
+    await act(async () => { await result.current.selectAssistant("soundwave"); });
+    vi.mocked(assertRedApproved).mockRejectedValueOnce(new Error("Red scope changed"));
+    await act(async () => { await result.current.selectAssistant("decepticon"); });
+    act(() => result.current[method]("yes"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    expect(mockState.client!.runs.stream).toHaveBeenCalledTimes(1);
+    expect(result.current.error).toContain("Red scope changed");
+    expect(result.current.activeQuestion).toEqual(question);
+    expect(result.current.runState).toBe("paused");
+  });
+
+  it.each(["resume", "answerQuestion"] as const)("%s preserves the Blue question when the sensor disconnects", async (method) => {
+    const blue = await import("../commands/blue.js");
+    const readiness = vi.spyOn(blue, "blueMonitorReady").mockResolvedValueOnce(true);
+    (mockState.client!.runs.stream as Mock).mockReturnValueOnce(createMockStream([
+      { event: "metadata", data: { run_id: "blue-question-run" } },
+      { event: "custom", data: { type: "ask_user_question", question: "Inspect?", id: "blue-question" } },
+    ]));
+    const { result } = renderHook(() => useAgent());
+    await act(async () => { await result.current.selectAssistant("blue_cell"); });
+    act(() => result.current.submit("inspect telemetry"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    const question = result.current.activeQuestion;
+    readiness.mockResolvedValueOnce(false);
+    act(() => result.current[method]("yes"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    expect(mockState.client!.runs.stream).toHaveBeenCalledTimes(1);
+    expect(result.current.error).not.toBeNull();
+    expect(result.current.activeQuestion).toEqual(question);
+    expect(result.current.runState).toBe("paused");
+  });
+
+  it("switches during resume preparation without cancelling the old paused run", async () => {
+    (mockState.client!.runs.stream as Mock).mockReturnValueOnce(createMockStream([
+      { event: "metadata", data: { run_id: "paused-run" } },
+      { event: "custom", data: { type: "ask_user_question", question: "Continue?", id: "paused-question" } },
+    ]));
+    const { result } = renderHook(() => useAgent());
+    act(() => result.current.submit("plan"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    let finishState = (_state: { values: object }) => {};
+    (mockState.client!.threads.getState as Mock).mockImplementationOnce(() => new Promise((resolve) => { finishState = resolve; }));
+    await act(async () => { result.current.resume("yes"); });
+    await act(async () => { await result.current.selectAssistant("blue_cell"); });
+    expect(mockState.client!.runs.cancel).not.toHaveBeenCalled();
+    await act(async () => { finishState({ values: {} }); });
+    expect(result.current.assistantId).toBe("blue_cell");
+    expect(mockState.client!.runs.stream).toHaveBeenCalledTimes(1);
+    await act(async () => { await result.current.selectAssistant("soundwave"); });
+    expect(result.current.runState).toBe("paused");
+    expect(result.current.activeQuestion?.sourceId).toBe("paused-question");
   });
 
   it("recovers after thread creation retries are exhausted", async () => {

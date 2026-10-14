@@ -15,13 +15,19 @@ factory drops at the ``temperature``-rejecting upstream API.
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
+from langchain_core.runnables import RunnableConfig
 from langchain_openai import ChatOpenAI
+from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.graph import END, START, StateGraph
+from langgraph.types import Command, interrupt
 
 from decepticon.middleware.model_override import (
     ModelOverrideMiddleware,
+    ModelOverridesState,
     _build_proxied_llm,
     _read_override,
 )
@@ -479,3 +485,72 @@ class TestAwrapModelCallActiveOverride:
         assert len(handler_calls) == 1
         assert handler_calls[0] is req
         assert not req.override_called
+
+
+def test_global_override_survives_graph_input_change_and_clear() -> None:
+    graph = (
+        StateGraph(ModelOverridesState)
+        .add_node("read", lambda state: {})
+        .add_edge(START, "read")
+        .add_edge("read", END)
+        .compile(checkpointer=InMemorySaver())
+    )
+    config: RunnableConfig = {"configurable": {"thread_id": "override-lifecycle"}}
+    updates: list[tuple[ModelOverridesState, str]] = [
+        ({"messages": [], "model_override": "auth/gpt-6-luna"}, "auth/gpt-6-luna"),
+        ({"messages": []}, "auth/gpt-6-luna"),
+        ({"messages": [], "model_override": "auth/gpt-6.1-sol"}, "auth/gpt-6.1-sol"),
+        ({"messages": [], "model_override": ""}, ""),
+        ({"messages": []}, ""),
+    ]
+    for update, expected in updates:
+        state = graph.invoke(update, config)
+        assert state.get("model_override") == expected
+
+
+def test_resume_updates_global_override_without_displacing_role_override() -> None:
+    observed: list[tuple[str, str]] = []
+
+    def resume_node(state: ModelOverridesState) -> dict[str, Any]:
+        interrupt("Continue?")
+        request = SimpleNamespace(runtime=None, state=state)
+        observed.append((_read_override(request, "recon"), _read_override(request, "exploit")))
+        return {}
+
+    graph = (
+        StateGraph(ModelOverridesState)
+        .add_node("resume", resume_node)
+        .add_edge(START, "resume")
+        .add_edge("resume", END)
+        .compile(checkpointer=InMemorySaver())
+    )
+    config: RunnableConfig = {"configurable": {"thread_id": "override-resume"}}
+    for selected in ("auth/gpt-6.1-sol", ""):
+        graph.invoke(
+            {
+                "messages": [],
+                "model_override": "auth/gpt-6-luna",
+                "model_overrides": {"exploit": "auth/claude-sonnet-5"},
+            },
+            config,
+        )
+        graph.invoke(Command(resume="yes", update={"model_override": selected}), config)
+    assert observed == [
+        ("auth/gpt-6.1-sol", "auth/claude-sonnet-5"),
+        ("", "auth/claude-sonnet-5"),
+    ]
+
+
+@pytest.mark.parametrize(
+    ("model_id", "attribute", "expected"),
+    [
+        ("openai/gpt-6.1-sol", "use_responses_api", True),
+        ("anthropic/claude-sonnet-5-5", "disable_streaming", "tool_calling"),
+        ("ollama_chat/qwen3-coder:30b", "disable_streaming", "tool_calling"),
+    ],
+)
+def test_override_preserves_factory_protocol(
+    proxy_env: dict[str, str], model_id: str, attribute: str, expected: object
+) -> None:
+    bound = _build_proxied_llm(model_id, _original_chat_model())
+    assert getattr(bound, attribute) == expected

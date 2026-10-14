@@ -107,81 +107,66 @@ func TestCandidateProbeURLs_PreservesScheme(t *testing.T) {
 	}
 }
 
-// withUpdateStubs swaps the auto-update / prompt-update function variables
-// for the duration of one test, restoring them via t.Cleanup. The stubs
-// record which branch ran (and how many times) without touching GitHub.
-func withUpdateStubs(t *testing.T) (auto, prompt *int) {
+func withUpdateStub(t *testing.T) *int {
 	t.Helper()
-	autoCount, promptCount := 0, 0
-	prevAuto := autoUpdateFn
+	promptCount := 0
 	prevPrompt := promptUpdateFn
-	autoUpdateFn = func(string, updater.Channel) (bool, error) { autoCount++; return false, nil }
 	promptUpdateFn = func(string, updater.Channel) (bool, error) { promptCount++; return false, nil }
-	t.Cleanup(func() {
-		autoUpdateFn = prevAuto
-		promptUpdateFn = prevPrompt
-	})
-	return &autoCount, &promptCount
+	t.Cleanup(func() { promptUpdateFn = prevPrompt })
+	return &promptCount
 }
 
-func TestApplyAutoUpdate_RoutingMatrix(t *testing.T) {
+func TestCheckStartupUpdate_RoutingMatrix(t *testing.T) {
 	cases := []struct {
 		envValue    string
-		wantAuto    int
 		wantPrompt  int
 		description string
 	}{
-		// Default-on: unset triggers silent auto-update. This is the
-		// key behaviour change from v1.1.12 — fix-shipped → fix-applied
-		// no longer requires the user to act.
-		{"", 1, 0, "unset → silent auto-update"},
-		{"  ", 1, 0, "whitespace-only → silent auto-update"},
-		{"true", 1, 0, "true → silent auto-update (backwards-compat)"},
-		{"1", 1, 0, "1 → silent auto-update (backwards-compat)"},
-		{"yes", 1, 0, "yes → silent auto-update (backwards-compat)"},
-		{"on", 1, 0, "on → silent auto-update (backwards-compat)"},
-		{"TRUE", 1, 0, "case-insensitive: TRUE → silent auto-update"},
-		// Opt-in to the pre-v1.1.12 default of prompting on a TTY.
-		{"prompt", 0, 1, "prompt → interactive prompt"},
-		{"ask", 0, 1, "ask → interactive prompt"},
-		{"interactive", 0, 1, "interactive → interactive prompt"},
-		{"PROMPT", 0, 1, "case-insensitive: PROMPT → interactive prompt"},
+		// Given default or legacy truthy settings, require approval.
+		{"", 1, "unset → interactive prompt"},
+		{"  ", 1, "whitespace-only → interactive prompt"},
+		{"true", 1, "true → interactive prompt"},
+		{"1", 1, "1 → interactive prompt"},
+		{"yes", 1, "yes → interactive prompt"},
+		{"on", 1, "on → interactive prompt"},
+		{"TRUE", 1, "case-insensitive: TRUE → interactive prompt"},
+		{"prompt", 1, "prompt → interactive prompt"},
+		{"ask", 1, "ask → interactive prompt"},
+		{"interactive", 1, "interactive → interactive prompt"},
+		{"PROMPT", 1, "case-insensitive: PROMPT → interactive prompt"},
 		// Air-gapped / version-pinned: skip entirely.
-		{"false", 0, 0, "false → skip"},
-		{"0", 0, 0, "0 → skip"},
-		{"no", 0, 0, "no → skip"},
-		{"off", 0, 0, "off → skip"},
+		{"false", 0, "false → skip"},
+		{"0", 0, "0 → skip"},
+		{"no", 0, "no → skip"},
+		{"off", 0, "off → skip"},
 		// Unrecognized / garbage values default to prompt, not silent auto-update
-		{"disabled", 0, 1, "unrecognized value disabled → interactive prompt"},
-		{"skip", 0, 1, "unrecognized value skip → interactive prompt"},
-		{"garbage", 0, 1, "unrecognized value garbage → interactive prompt"},
+		{"disabled", 1, "unrecognized value disabled → interactive prompt"},
+		{"skip", 1, "unrecognized value skip → interactive prompt"},
+		{"garbage", 1, "unrecognized value garbage → interactive prompt"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.description, func(t *testing.T) {
-			auto, prompt := withUpdateStubs(t)
-			applyAutoUpdate(map[string]string{"AUTO_UPDATE": tc.envValue}, "v0.0.0-test", false)
-			if *auto != tc.wantAuto || *prompt != tc.wantPrompt {
-				t.Errorf("AUTO_UPDATE=%q: got auto=%d prompt=%d, want auto=%d prompt=%d",
-					tc.envValue, *auto, *prompt, tc.wantAuto, tc.wantPrompt)
+			prompt := withUpdateStub(t)
+			// When startup checks for an update.
+			checkStartupUpdate(map[string]string{"AUTO_UPDATE": tc.envValue}, "v0.0.0-test", false)
+			// Then only the configured approval/disabled route may run.
+			if *prompt != tc.wantPrompt {
+				t.Errorf("AUTO_UPDATE=%q: got prompt=%d, want prompt=%d",
+					tc.envValue, *prompt, tc.wantPrompt)
 			}
 		})
 	}
 }
 
-// --no-update is a one-shot override that must beat the persistent
-// .env setting in every direction — including the default-on path and
-// the explicit AUTO_UPDATE=true path. Without this short-circuit a CI
-// runner that pinned `decepticon --no-update` would still re-exec into
-// a newer binary, defeating the pin.
-func TestApplyAutoUpdate_NoUpdateFlagAlwaysWins(t *testing.T) {
+func TestCheckStartupUpdate_NoUpdateFlagAlwaysWins(t *testing.T) {
 	envValues := []string{"", "true", "1", "yes", "on", "prompt", "ask", "interactive"}
 	for _, ev := range envValues {
 		t.Run("AUTO_UPDATE="+ev, func(t *testing.T) {
-			auto, prompt := withUpdateStubs(t)
-			applyAutoUpdate(map[string]string{"AUTO_UPDATE": ev}, "v0.0.0-test", true)
-			if *auto != 0 || *prompt != 0 {
-				t.Errorf("--no-update should short-circuit: AUTO_UPDATE=%q got auto=%d prompt=%d, want 0/0",
-					ev, *auto, *prompt)
+			prompt := withUpdateStub(t)
+			checkStartupUpdate(map[string]string{"AUTO_UPDATE": ev}, "v0.0.0-test", true)
+			if *prompt != 0 {
+				t.Errorf("--no-update should short-circuit: AUTO_UPDATE=%q got prompt=%d, want 0",
+					ev, *prompt)
 			}
 		})
 	}

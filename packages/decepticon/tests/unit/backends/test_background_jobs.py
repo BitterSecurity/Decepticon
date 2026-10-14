@@ -1,8 +1,12 @@
 """Background job tracker — pure-Python unit tests + start/poll integration."""
 
-from unittest.mock import MagicMock, patch
+import asyncio
+import subprocess
+from unittest.mock import patch
 
-from decepticon.sandbox_kernel import BackgroundJobTracker
+import pytest
+
+from decepticon.sandbox_kernel import BackgroundJobTracker, TmuxSessionManager
 from decepticon.sandbox_kernel.daemon import DaemonSandbox
 
 
@@ -70,132 +74,93 @@ def test_remove_drops_session_entry():
     assert tracker.get("scan") is None
 
 
-def test_start_background_registers_job_with_initial_marker_count():
+def test_start_background_registers_owned_generation() -> None:
     sandbox = DaemonSandbox(container_name="test")
-    fake_baseline = "[DCPTN:0:/workspace] "
-
-    with patch.object(sandbox, "_get_manager") as mock_get:
-        mgr = MagicMock()
-        mgr._capture.return_value = fake_baseline
-        mgr.initialize.return_value = None
-        mgr._send.return_value = None
-        mock_get.return_value = mgr
-
-        sandbox.start_background("nmap target", session="scan")
-
+    mgr = TmuxSessionManager("scan", "test")
+    with (
+        patch.object(sandbox, "_get_manager", return_value=mgr),
+        patch.object(mgr, "initialize"),
+        patch.object(mgr, "_capture", return_value="[DCPTN:0:/workspace] "),
+        patch.object(mgr, "_tmux", return_value="123"),
+        patch.object(mgr, "_send"),
+    ):
+        sandbox.start_background("printf fixture", session="scan")
     job = sandbox._jobs.get("scan")
-    assert job is not None
-    assert job.command == "nmap target"
-    assert job.initial_markers == 1
+    assert job is not None and job.generation == mgr._generation
+    assert job.generation is not None
     assert job.status == "running"
 
 
-def test_poll_completion_marks_done_when_new_marker_appears():
+@pytest.mark.parametrize(
+    "native_record, expected",
+    [
+        (f"{'a' * 32}:123:7", "done"),
+        ("", "running"),
+        (f"{'b' * 32}:123:0", "running"),
+    ],
+)
+def test_background_completion_uses_owned_native_record(native_record: str, expected: str) -> None:
     sandbox = DaemonSandbox(container_name="test")
-    sandbox._jobs.register("scan", command="nmap target", initial_markers=1)
-
-    with patch.object(sandbox, "_get_manager") as mock_get:
-        mgr = MagicMock()
-        mgr._capture.return_value = (
-            "[DCPTN:0:/workspace] nmap target\nnmap output...\n[DCPTN:0:/workspace] "
-        )
-        mock_get.return_value = mgr
-
+    job = sandbox._jobs.register("scan", command="printf fixture", initial_markers=1)
+    job.generation = "a" * 32
+    mgr = TmuxSessionManager("scan", "test")
+    mgr._generation = job.generation
+    mgr._shell_pid = "123"
+    with (
+        patch.object(sandbox, "_get_manager", return_value=mgr),
+        patch.object(mgr, "_tmux", return_value=f"123\t{native_record}:/workspace"),
+    ):
         sandbox.poll_completion("scan")
-
-    job = sandbox._jobs.get("scan")
-    assert job is not None
-    assert job.status == "done"
-    assert job.exit_code == 0
+    assert job.status == expected
+    assert job.exit_code == (7 if expected == "done" else None)
 
 
-def test_poll_completion_keeps_running_without_new_marker():
-    sandbox = DaemonSandbox(container_name="test")
-    sandbox._jobs.register("scan", command="nmap target", initial_markers=1)
-
-    with patch.object(sandbox, "_get_manager") as mock_get:
-        mgr = MagicMock()
-        mgr._capture.return_value = "[DCPTN:0:/workspace] nmap target\nstill running\n"
-        mock_get.return_value = mgr
-
-        sandbox.poll_completion("scan")
-
-    job = sandbox._jobs.get("scan")
-    assert job is not None
-    assert job.status == "running"
-
-
-def test_poll_completion_returns_none_for_unknown_session():
+def test_poll_completion_returns_none_for_unknown_session() -> None:
     sandbox = DaemonSandbox(container_name="test")
     assert sandbox.poll_completion("never-seen") is None
 
 
-def test_poll_completion_handles_capture_timeout_gracefully():
-    import subprocess as _sp
-
+@pytest.mark.parametrize(
+    "failure",
+    [
+        subprocess.TimeoutExpired(cmd="tmux", timeout=10),
+        RuntimeError("no server running"),
+    ],
+)
+def test_poll_completion_keeps_running_when_native_state_unavailable(failure: Exception) -> None:
     sandbox = DaemonSandbox(container_name="test")
-    sandbox._jobs.register("scan", command="x", initial_markers=1)
+    job = sandbox._jobs.register("scan", command="printf fixture", initial_markers=1)
+    job.generation = "a" * 32
+    mgr = TmuxSessionManager("scan", "test")
+    mgr._generation = job.generation
+    mgr._shell_pid = "123"
+    with (
+        patch.object(sandbox, "_get_manager", return_value=mgr),
+        patch.object(mgr, "_tmux", side_effect=failure),
+    ):
+        sandbox.poll_completion("scan")
+    assert job.status == "running" and job.exit_code is None
 
-    with patch.object(sandbox, "_get_manager") as mock_get:
-        mgr = MagicMock()
-        mgr._capture.side_effect = _sp.TimeoutExpired(cmd="docker exec", timeout=10)
-        mock_get.return_value = mgr
 
-        result = sandbox.poll_completion("scan")
-
-    assert result is not None
-    assert result.status == "running"
-
-
-def test_poll_completion_handles_capture_failure_gracefully():
+def test_auto_background_path_registers_owned_generation() -> None:
     sandbox = DaemonSandbox(container_name="test")
-    sandbox._jobs.register("scan", command="x", initial_markers=1)
+    mgr = TmuxSessionManager("long", "test")
 
-    with patch.object(sandbox, "_get_manager") as mock_get:
-        mgr = MagicMock()
-        mgr._capture.side_effect = RuntimeError("no server running")
-        mock_get.return_value = mgr
-
-        result = sandbox.poll_completion("scan")
-
-    assert result is not None
-    assert result.status == "running"
-
-
-def test_auto_background_path_registers_job():
-    import asyncio
-
-    sandbox = DaemonSandbox(container_name="test")
-
-    captures = [
-        "[DCPTN:0:/workspace] ",  # baseline
-        "[DCPTN:0:/workspace] sleep 99999\nrunning\n",  # poll #1 — no new marker
-        "[DCPTN:0:/workspace] sleep 99999\nrunning\n",  # poll #2 — no new marker
-    ]
+    def native_state(args: list[str], timeout: int = 10) -> str:
+        return "123" if args[-1] == "#{pane_pid}" else "123\t\t/workspace"
 
     with (
-        patch.object(sandbox, "_get_manager") as mock_get,
+        patch.object(sandbox, "_get_manager", return_value=mgr),
+        patch.object(mgr, "initialize"),
+        patch.object(mgr, "_capture", return_value="[DCPTN:0:/workspace] "),
+        patch.object(mgr, "_send"),
+        patch.object(mgr, "_tmux", side_effect=native_state),
         patch("decepticon.sandbox_kernel.tmux.AUTO_BACKGROUND_SECONDS", 0.0),
         patch("decepticon.sandbox_kernel.tmux.POLL_INTERVAL", 0.01),
     ):
-        mgr = MagicMock()
-        mgr.session = "long"
-        mgr._capture.side_effect = captures + ["[DCPTN:0:/workspace] sleep 99999\nrunning\n"] * 5
-        mgr.initialize = MagicMock()
-        mgr._send = MagicMock()
-        mgr._tmux = MagicMock()
-        mgr._clear_screen = MagicMock()
-        mock_get.return_value = mgr
-
-        # Bind the real TmuxSessionManager.execute_async to the mock manager
-        # so the auto-background path runs against mocked internals.
-        from decepticon.sandbox_kernel import TmuxSessionManager
-
-        mgr.execute_async = TmuxSessionManager.execute_async.__get__(mgr, TmuxSessionManager)
-
-        asyncio.run(sandbox.execute_tmux_async(command="sleep 99999", session="long", timeout=2))
-
+        output = asyncio.run(sandbox.execute_tmux_async("sleep 9", session="long", timeout=2))
     job = sandbox._jobs.get("long")
-    assert job is not None
-    assert job.command == "sleep 99999"
+    assert job is not None and job.generation == mgr._generation
+    assert job.generation is not None
     assert job.status == "running"
+    assert output.endswith("[DCPTN_STATUS incomplete]")

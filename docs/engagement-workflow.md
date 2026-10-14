@@ -1,20 +1,27 @@
 # Engagement Workflow
 
-An OSS engagement starts in a chosen mode. **Red** runs the authorized test directly, **Plan** adds Soundwave's deeper planning, and **Blue** investigates events from a connected local sensor. The launcher and web creation form offer all three; use `/mode plan|red|blue` in the CLI or the web live-view selector to switch.
+CLI engagement creation asks only for a name and opens **Plan** with Soundwave. **Red** executes an approved scope; **Blue** investigates events from a connected local sensor. Select modes within the CLI session using `/mode plan`, `/mode red`, or `/mode blue`. The web dashboard has its own setup form and live-view selector.
 
 ---
 
 ## Start an engagement
 
-### 1. Define the target
+### 1. Name the CLI engagement
 
-Declare one exact target and an authorization reference before Plan or Red. The direct-scope form accepts:
+Choose **New engagement**, enter a lowercase name with optional internal
+hyphens, and submit. The launcher creates the workspace and its empty `plan/`
+directory. It does not ask for a mode, target, or authorization reference.
+Supply the target and scope during the planning conversation, then review the
+validated scope before Red execution. Saved engagements retain their scope.
+
+### Web dashboard setup
+
+The web dashboard's direct-scope form accepts a target and authorization reference:
 
 | Type | Example |
 |------|---------|
 | IP address or CIDR | `192.168.1.10`, `192.168.1.0/24` |
 | Root web URL | `https://app.example.com` |
-| Hostname (CLI) | `app.example.com` |
 
 Red creates a direct RoE with machine-enforced scope and an approval marker tied
 to its content. You can work with Red immediately. Plan creates the scoped RoE
@@ -80,9 +87,23 @@ Phases: `recon` → `initial-access` → `post-exploit` → `c2` → `exfiltrati
 ### Operator review
 
 Review the generated documents before switching to Red. Plan validates the eight
-documents and records their digest. The CLI or web selector asks you to approve
-that exact bundle; edits after validation require a new validation. If scope is
+documents and records their digest. In the CLI, use `/mode red approve` to approve
+that exact bundle; the web selector has its own approval control. Edits after validation require a new validation. If scope is
 too broad or exclusions are missing, edit or regenerate the affected documents.
+
+### Switching modes during a session
+
+Use `/mode plan`, `/mode red`, or `/mode blue` at any time to select a conversation.
+Each mode keeps its own thread, messages, queued input, and pending question.
+Switching during generation first pauses the current run at a checkpoint and
+waits for the server to acknowledge. If the server cannot acknowledge within
+10 seconds, the current mode and run remain selected and an error is shown.
+Return to the previous mode and use `/resume` to continue its paused run.
+
+Mode selection does not grant execution permission. Red submissions and resumes
+require a currently approved scope; Blue investigation requires a connected
+local sensor. At a question picker, press Escape to enter commands without
+discarding the question, then `/resume` to reopen it.
 
 ---
 

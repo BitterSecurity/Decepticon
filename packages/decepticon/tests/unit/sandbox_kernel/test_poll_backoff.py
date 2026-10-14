@@ -78,6 +78,13 @@ def _scripted_manager(
         state["n"] += 1
         return screen
 
+    def native_state(args: list[str], timeout: int = 10) -> str:
+        if args[-1] == "#{pane_pid}":
+            return "123"
+        record = f"{mgr._generation}:123:0" if state["n"] >= len(screens) - 1 else ""
+        return f"123\t{record}:/workspace"
+
+    monkeypatch.setattr(mgr, "_tmux", native_state)
     monkeypatch.setattr(mgr, "_capture", capture)
     monkeypatch.setattr(tmux_mod, "POLL_INTERVAL", _BASE)
 

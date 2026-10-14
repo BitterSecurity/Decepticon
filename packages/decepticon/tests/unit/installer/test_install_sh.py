@@ -79,7 +79,7 @@ def run_installer_function(
     )
 
 
-@pytest.mark.parametrize("channel", ["stable", "latest"])
+@pytest.mark.parametrize("channel", ["stable", "latest", "", "  ", "garbage"])
 def test_resolver_follows_repository_redirects(tmp_path: Path, channel: str) -> None:
     completed = run_installer_function(
         tmp_path,
