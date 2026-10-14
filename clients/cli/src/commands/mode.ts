@@ -43,8 +43,11 @@ const mode: Command = {
         return;
       }
       setAssistantOverride(assistant);
-      if (input === "red approve") await approveRedMode();
-      if (next === "red") ctx.addSystemEvent("Red operations require approved scope. Review the validated Plan, then use /mode red approve to authorize it.");
+      if (input === "red approve") {
+        await approveRedMode();
+        ctx.addSystemEvent("Current Plan scope approved for Red operations.");
+      }
+      if (next === "red" && input !== "red approve") ctx.addSystemEvent("Red operations require approved scope. Review the validated Plan, then use /mode red approve to authorize it.");
       if (next === "blue") ctx.addSystemEvent("Blue conversation selected. Connect a local sensor with /blue up 127.0.0.1:3000 before investigating telemetry.");
       ctx.addSystemEvent(`Mode: ${next}. The next message goes to ${assistant}.`);
     } catch (error) {

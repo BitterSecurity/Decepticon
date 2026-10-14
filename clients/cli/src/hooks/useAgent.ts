@@ -113,6 +113,13 @@ const INITIAL_ASSISTANT_ID =
 let _nextEventId = 0;
 
 
+async function assertAssistantReady(assistant: string): Promise<void> {
+  if (assistant === "blue_cell" && !(await blueMonitorReady())) {
+    throw new DOMException("Blue sensor is unavailable. Use /blue up 127.0.0.1:3000 before sending in Blue mode.", "NotAllowedError");
+  }
+  if (assistant === "decepticon" && process.env.DECEPTICON_ENGAGEMENT) await assertRedApproved();
+}
+
 export function useAgent({
   apiUrl = process.env.DECEPTICON_API_URL || "http://localhost:2024",
   resumeThread = false,
@@ -658,7 +665,22 @@ export function useAgent({
     const runId = runIdRef.current;
     const active = abortRef.current !== null;
     if (active && threadId && runId) {
-      await clientRef.current.runs.cancel(threadId, runId, true, "interrupt", { signal: AbortSignal.timeout(10_000) });
+      const controller = new AbortController();
+      let timeout: ReturnType<typeof setTimeout> | undefined;
+      try {
+        await Promise.race([
+          clientRef.current.runs.cancel(threadId, runId, true, "interrupt", { signal: controller.signal }),
+          new Promise<never>((_resolve, reject) => {
+            timeout = setTimeout(() => {
+              const error = new DOMException("TimeoutError: server pause did not acknowledge within 10 seconds.", "TimeoutError");
+              controller.abort(error);
+              reject(error);
+            }, 10_000);
+          }),
+        ]);
+      } finally {
+        clearTimeout(timeout);
+      }
     }
     abortRef.current?.abort();
     abortRef.current = null;
@@ -827,26 +849,15 @@ export function useAgent({
         const client = clientRef.current;
         setError(null);
 
-        if (selectedAssistant === "blue_cell" && !(await blueMonitorReady())) {
+        try {
+          await assertAssistantReady(selectedAssistant);
+        } catch (error) {
           if (abortController.signal.aborted) return;
-          const unavailable = "Blue sensor is unavailable. Use /blue up 127.0.0.1:3000 before sending in Blue mode.";
-          setError(unavailable);
-          addEvent({ type: "system", content: unavailable });
+          const denied = error instanceof Error ? error.message : "Mode prerequisite failed.";
+          setError(denied);
+          addEvent({ type: "system", content: denied });
           handleStreamComplete(abortController);
           return;
-        }
-
-        if (selectedAssistant === "decepticon" && process.env.DECEPTICON_ENGAGEMENT) {
-          try {
-            await assertRedApproved();
-          } catch (error) {
-            if (abortController.signal.aborted) return;
-            const denied = error instanceof Error ? error.message : "Red scope is not approved.";
-            setError(denied);
-            addEvent({ type: "system", content: denied });
-            handleStreamComplete(abortController);
-            return;
-          }
         }
 
         // Create thread if needed (retry for server startup race condition)
@@ -951,6 +962,20 @@ export function useAgent({
   const submitRef = useRef(submit);
   submitRef.current = submit;
 
+  const prepareResume = useCallback(async (controller: AbortController): Promise<boolean> => {
+    try {
+      await assertAssistantReady(threadAssistantRef.current);
+      return !controller.signal.aborted;
+    } catch (error) {
+      if (controller.signal.aborted) return false;
+      const denied = error instanceof Error ? error.message : "Mode prerequisite failed.";
+      setError(denied);
+      addSystemEvent(denied);
+      abortRef.current = null;
+      return false;
+    }
+  }, [addSystemEvent]);
+
   // ── Answer a structured ask_user_question prompt ───────────────
 
   const answerQuestion = useCallback(
@@ -959,16 +984,6 @@ export function useAgent({
       streamReadyRef.current = null;
       const current = activeQuestionRef.current;
       if (!current) return;
-
-      const display = Array.isArray(value) ? value.join(", ") : value;
-      addEvent({
-        type: "ask_user_answer",
-        content: display,
-        subagent: threadAssistantRef.current,
-        sourceId: current.sourceId,
-      });
-      activeQuestionRef.current = null;
-      setActiveQuestion(null);
 
       if (!threadIdRef.current) {
         addEvent({ type: "system", content: "No active thread — cannot resume." });
@@ -982,6 +997,7 @@ export function useAgent({
       const runResume = async () => {
         const client = clientRef.current;
         setError(null);
+        if (!(await prepareResume(abortController))) return;
 
         try {
           const state = await client.threads.getState(threadIdRef.current!);
@@ -990,6 +1006,16 @@ export function useAgent({
         } catch { /* proceed with current count */ }
 
         if (abortController.signal.aborted) return;
+
+        const display = Array.isArray(value) ? value.join(", ") : value;
+        addEvent({
+          type: "ask_user_answer",
+          content: display,
+          subagent: threadAssistantRef.current,
+          sourceId: current.sourceId,
+        });
+        activeQuestionRef.current = null;
+        setActiveQuestion(null);
 
         setRunState("streaming");
         setPendingTool(null);
@@ -1027,7 +1053,7 @@ export function useAgent({
         resetStreamState();
       });
     },
-    [addEvent, processStream, handleStreamComplete, resetStreamState],
+    [addEvent, processStream, handleStreamComplete, resetStreamState, prepareResume],
   );
 
   // ── Resume (pause point OR previous session) ───────────────────
@@ -1041,15 +1067,15 @@ export function useAgent({
 
       // Case 1: Paused — resume from checkpoint with Command({ resume })
       if (isPaused && hasThread) {
-        if (value) addEvent({ type: "user", content: value });
-        addEvent({ type: "system", content: "Resuming from checkpoint..." });
-
         const abortController = new AbortController();
         abortRef.current = abortController;
 
         const runResume = async () => {
           const client = clientRef.current;
           setError(null);
+          if (!(await prepareResume(abortController))) return;
+          if (value) addEvent({ type: "user", content: value });
+          addEvent({ type: "system", content: "Resuming from checkpoint..." });
 
           try {
             const state = await client.threads.getState(threadIdRef.current!);
@@ -1130,7 +1156,7 @@ export function useAgent({
       // Case 3: Nothing to resume
       addEvent({ type: "system", content: "Nothing to resume." });
     },
-    [addEvent, processStream, handleStreamComplete, resetStreamState],
+    [addEvent, processStream, handleStreamComplete, resetStreamState, prepareResume],
   );
 
   return {
