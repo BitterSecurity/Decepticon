@@ -57,6 +57,8 @@ export function REPL({ initialMessage, resumeThread }: REPLProps) {
   const opplan = useOpplan(agent.events);
   const sessions = useSubAgentSessions(agent.events);
   const screen = useAppState((s) => s.screen);
+  const [questionCommands, setQuestionCommands] = useState(false);
+  useEffect(() => setQuestionCommands(false), [agent.assistantId, agent.activeQuestion?.sourceId]);
   const [showSessionPicker, setShowSessionPicker] = useState(false);
   const [pickerSessions, setPickerSessions] = useState<ThreadEntry[]>([]);
   // Increment to force <Static> re-mount on session switch (resets its internal render history)
@@ -108,6 +110,10 @@ export function REPL({ initialMessage, resumeThread }: REPLProps) {
         // /resume with no args → open interactive session picker
         if ((parsed.name === "resume" || parsed.name === "r") && !parsed.args) {
           // If paused, resume from checkpoint directly
+          if (agent.activeQuestion) {
+            setQuestionCommands(false);
+            return;
+          }
           if (agent.runState === "paused") {
             agent.resume();
             return;
@@ -233,7 +239,7 @@ export function REPL({ initialMessage, resumeThread }: REPLProps) {
       <Box flexDirection="row">
         <Box flexDirection="column" flexGrow={1}>
           {/* Static region: banner + completed events + completed sessions */}
-          <Static key={sessionKey} items={staticItems}>
+          <Static key={`${sessionKey}-${agent.assistantId}`} items={staticItems}>
             {(item) => (
               <Box key={item.id}>
                 {item.kind === "banner" ? (
@@ -298,12 +304,15 @@ export function REPL({ initialMessage, resumeThread }: REPLProps) {
               }}
               onCancel={() => setShowSessionPicker(false)}
             />
-          ) : agent.activeQuestion ? (
-            <QuestionPicker
-              question={agent.activeQuestion}
-              onSubmit={agent.answerQuestion}
-              onCancel={agent.cancel}
-            />
+          ) : agent.activeQuestion && !questionCommands ? (
+            <Box flexDirection="column">
+              <QuestionPicker
+                question={agent.activeQuestion}
+                onSubmit={agent.answerQuestion}
+                onCancel={() => setQuestionCommands(true)}
+              />
+              <Text dimColor>Esc opens commands without discarding this question. /resume returns to the question.</Text>
+            </Box>
           ) : (
             <Prompt
               runState={agent.runState}

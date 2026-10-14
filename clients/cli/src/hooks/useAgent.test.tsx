@@ -467,7 +467,7 @@ describe("useAgent — engagement handoff lifecycle", () => {
     expect(result.current.assistantId).toBe("soundwave");
     await act(async () => { acknowledge(); await switching; });
     expect(result.current.assistantId).toBe("blue_cell");
-    expect(mockState.client!.runs.cancel).toHaveBeenCalledWith(expect.any(String), "plan-run", true, "interrupt");
+    expect(mockState.client!.runs.cancel).toHaveBeenCalledWith(expect.any(String), "plan-run", true, "interrupt", expect.objectContaining({ signal: expect.any(AbortSignal) }));
     await act(async () => { await stream.emit({ event: "values", data: { messages: [{ type: "ai", content: "late plan" }] } }); stream.end(); });
     expect(result.current.events.some((event) => event.content === "late plan")).toBe(false);
     await act(async () => { await result.current.selectAssistant("soundwave"); });
@@ -513,7 +513,7 @@ describe("useAgent — engagement handoff lifecycle", () => {
     await act(async () => { expect(await result.current.selectAssistant("decepticon")).toBe(false); });
     expect(mockState.client!.runs.cancel).not.toHaveBeenCalled();
     await act(async () => { await stream.emit({ event: "metadata", data: { run_id: "late-run" } }); await switching; });
-    expect(mockState.client!.runs.cancel).toHaveBeenCalledWith(expect.any(String), "late-run", true, "interrupt");
+    expect(mockState.client!.runs.cancel).toHaveBeenCalledWith(expect.any(String), "late-run", true, "interrupt", expect.objectContaining({ signal: expect.any(AbortSignal) }));
     expect(result.current.assistantId).toBe("blue_cell");
     await act(async () => stream.end());
   });

@@ -36,7 +36,7 @@ export async function approveRedMode(): Promise<void> {
   try {
     roe = await readFile(path.join(root, "plan", "roe.json"));
   } catch {
-    throw new Error("Red requires an authorized target. Create an engagement with a target and authorization before selecting Red.");
+    throw new Error("Red requires an authorized target. Use /mode plan to prepare and validate scope, review it, then use /mode red approve.");
   }
   const approved = (await readFile(path.join(root, ".red-approved"), "utf-8").catch(() => "")).trim();
   const directDigest = `roe:${createHash("sha256").update(roe).digest("hex")}`;
@@ -45,7 +45,7 @@ export async function approveRedMode(): Promise<void> {
   try {
     current = await planningBundleDigest(root);
   } catch {
-    throw new Error("Red authorization is missing or its RoE changed. Review and approve the current scope before selecting Red.");
+    throw new Error("Red authorization is missing or its RoE changed. Review and approve the current scope with /mode red approve before sending.");
   }
   if (approved === current) return;
   const draft = (await readFile(path.join(root, ".planning-draft-ready"), "utf-8").catch(() => "")).trim();
@@ -59,12 +59,12 @@ export async function assertRedApproved(): Promise<void> {
   const root = workspaceRoot();
   if (!root) throw new Error("Red requires an engagement workspace with an authorized target.");
   const roe = await readFile(path.join(root, "plan", "roe.json")).catch(() => null);
-  if (!roe) throw new Error("Red scope is unavailable. Create an authorized engagement before sending.");
+  if (!roe) throw new Error("Red scope is unavailable. Use /mode plan to prepare and validate scope, review it, then use /mode red approve.");
   const approved = (await readFile(path.join(root, ".red-approved"), "utf-8").catch(() => "")).trim();
   if (approved === `roe:${createHash("sha256").update(roe).digest("hex")}`) return;
   const bundle = await planningBundleDigest(root).catch(() => null);
   if (bundle && approved === bundle) return;
-  throw new Error("Red scope changed or is not approved. Review the current Plan and select /mode red again.");
+  throw new Error("Red scope changed or is not approved. Review the validated Plan and use /mode red approve.");
 }
 
 export async function revokeRedMode(): Promise<void> {

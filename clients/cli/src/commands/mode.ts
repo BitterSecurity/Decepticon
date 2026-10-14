@@ -1,7 +1,6 @@
+import { approveRedMode } from "./planMode.js";
 import type { Command } from "./types.js";
 import { getAssistantOverride, setAssistantOverride } from "./assistantOverride.js";
-import { approveRedMode } from "./planMode.js";
-import { blueMonitorReady } from "./blue.js";
 
 const ASSISTANTS = {
   plan: "soundwave",
@@ -21,13 +20,14 @@ function currentMode(): RunMode {
 const mode: Command = {
   name: "mode",
   description: "Switch Plan, Red, or Blue conversation",
-  argumentHint: "[plan | red | blue]",
+  argumentHint: "[plan | red [approve] | blue]",
   async execute(args, ctx) {
     if (process.env.DECEPTICON_WEB_TERMINAL === "true") {
       ctx.addSystemEvent("Use the Plan, Red, or Blue controls above the web terminal to switch modes.");
       return;
     }
-    const selected = args.trim().toLowerCase();
+    const input = args.trim().toLowerCase();
+    const selected = input === "red approve" ? "red" : input;
     if (!selected) {
       ctx.addSystemEvent(`Current mode: ${currentMode()}. Use /mode plan, /mode red, or /mode blue. Plan drafts do not start Red; Blue requires a connected local sensor.`);
       return;
@@ -38,17 +38,14 @@ const mode: Command = {
     }
     const next = selected as RunMode;
     try {
-      if (next === "red") await approveRedMode();
-      if (next === "blue" && !(await blueMonitorReady())) {
-        ctx.addSystemEvent("Blue needs a connected local sensor. Use /blue up 127.0.0.1:3000, then /mode blue.");
-        return;
-      }
       const assistant = ASSISTANTS[next];
-      if (ctx.selectAssistant && !ctx.selectAssistant(assistant)) {
-        ctx.addSystemEvent("Wait for the current run to finish before switching modes.");
+      if (ctx.selectAssistant && !(await ctx.selectAssistant(assistant))) {
         return;
       }
       setAssistantOverride(assistant);
+      if (input === "red approve") await approveRedMode();
+      if (next === "red") ctx.addSystemEvent("Red operations require approved scope. Review the validated Plan, then use /mode red approve to authorize it.");
+      if (next === "blue") ctx.addSystemEvent("Blue conversation selected. Connect a local sensor with /blue up 127.0.0.1:3000 before investigating telemetry.");
       ctx.addSystemEvent(`Mode: ${next}. The next message goes to ${assistant}.`);
     } catch (error) {
       ctx.addSystemEvent(error instanceof Error ? error.message : String(error));
