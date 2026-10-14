@@ -87,9 +87,23 @@ Phases: `recon` → `initial-access` → `post-exploit` → `c2` → `exfiltrati
 ### Operator review
 
 Review the generated documents before switching to Red. Plan validates the eight
-documents and records their digest. The CLI or web selector asks you to approve
-that exact bundle; edits after validation require a new validation. If scope is
+documents and records their digest. In the CLI, use `/mode red approve` to approve
+that exact bundle; the web selector has its own approval control. Edits after validation require a new validation. If scope is
 too broad or exclusions are missing, edit or regenerate the affected documents.
+
+### Switching modes during a session
+
+Use `/mode plan`, `/mode red`, or `/mode blue` at any time to select a conversation.
+Each mode keeps its own thread, messages, queued input, and pending question.
+Switching during generation first pauses the current run at a checkpoint and
+waits for the server to acknowledge. If the server cannot acknowledge within
+10 seconds, the current mode and run remain selected and an error is shown.
+Return to the previous mode and use `/resume` to continue its paused run.
+
+Mode selection does not grant execution permission. Red submissions and resumes
+require a currently approved scope; Blue investigation requires a connected
+local sensor. At a question picker, press Escape to enter commands without
+discarding the question, then `/resume` to reopen it.
 
 ---
 

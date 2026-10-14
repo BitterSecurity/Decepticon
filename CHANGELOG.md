@@ -17,6 +17,10 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 - Ask only for an engagement name in the CLI launcher, then open a planning
   session. Target, mode and authorization-reference fields no longer block
   creation; existing engagement scopes remain resumable.
+- Allow Plan, Red and Blue conversations to be selected during a CLI run,
+  preserving each mode's thread, pending question and paused checkpoint. Keep
+  execution prerequisites separate from mode selection, and bound server pause
+  acknowledgment to 10 seconds without switching on failure.
 
 ## [1.4.2] — 2026-10-14
 
