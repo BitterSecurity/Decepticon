@@ -750,7 +750,7 @@ func PromptIfUpdateAvailable(currentVersion string, ch Channel) (bool, error) {
 			huh.NewOption("Skip", false),
 		).
 		Value(&confirmed).
-		RunAccessible(os.Stdout, os.Stdin); err != nil {
+		Run(); err != nil {
 		// Prompt failure (e.g. tty closed mid-render) — fall through to
 		// the passive notice rather than crashing the launch.
 		ui.Warning("Update prompt failed: " + err.Error())

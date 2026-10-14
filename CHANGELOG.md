@@ -12,6 +12,11 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+### Fixed
+
+- Select startup Update now / Skip with arrow keys and confirm with Enter,
+  keeping Skip selected by default.
+
 ## [1.4.3] — 2026-10-14
 
 ### Fixed
