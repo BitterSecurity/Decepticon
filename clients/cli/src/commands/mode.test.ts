@@ -48,6 +48,16 @@ describe("CLI run modes", () => {
     expect(getAssistantOverride()).toBe("blue_cell");
   });
 
+  it("selects Red without approving absent scope", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "decepticon-unapproved-mode-"));
+    vi.stubEnv("DECEPTICON_ENGAGEMENT", "unapproved");
+    vi.stubEnv("DECEPTICON_WORKSPACE_PATH", root);
+    const { ctx, selected } = context();
+    await mode.execute("red", ctx);
+    expect(selected).toEqual(["decepticon"]);
+    expect(getAssistantOverride()).toBe("decepticon");
+  });
+
   it("keeps web terminal mode routing with the web selector", async () => {
     vi.stubEnv("DECEPTICON_WEB_TERMINAL", "true");
     const { ctx, messages, selected } = context();

@@ -502,6 +502,40 @@ describe("useAgent — engagement handoff lifecycle", () => {
     expect((mockState.client!.runs.stream as Mock).mock.calls[0][0]).not.toBe("old-thread");
   });
 
+  it("waits for metadata before interrupting a dispatched run and rejects a competing switch", async () => {
+    const stream = createControllableStream();
+    (mockState.client!.runs.stream as Mock).mockReturnValueOnce(stream);
+    const { result } = renderHook(() => useAgent());
+    act(() => result.current.submit("plan"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    let switching: Promise<boolean> | boolean = false;
+    act(() => { switching = result.current.selectAssistant("blue_cell"); });
+    await act(async () => { expect(await result.current.selectAssistant("decepticon")).toBe(false); });
+    expect(mockState.client!.runs.cancel).not.toHaveBeenCalled();
+    await act(async () => { await stream.emit({ event: "metadata", data: { run_id: "late-run" } }); await switching; });
+    expect(mockState.client!.runs.cancel).toHaveBeenCalledWith(expect.any(String), "late-run", true, "interrupt");
+    expect(result.current.assistantId).toBe("blue_cell");
+    await act(async () => stream.end());
+  });
+
+  it("restores a pending question after visiting another mode", async () => {
+    (mockState.client!.runs.stream as Mock).mockReturnValueOnce(createMockStream([
+      { event: "metadata", data: { run_id: "question-run" } },
+      { event: "custom", data: { type: "ask_user_question", question: "Scope?", tool_call_id: "scope-question" } },
+    ]));
+    const { result } = renderHook(() => useAgent());
+    act(() => result.current.submit("plan"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    const question = result.current.activeQuestion;
+    expect(question).not.toBeNull();
+    await act(async () => { await result.current.selectAssistant("blue_cell"); });
+    expect(result.current.activeQuestion).toBeNull();
+    await act(async () => { await result.current.selectAssistant("soundwave"); });
+    expect(result.current.activeQuestion).toEqual(question);
+    expect(result.current.runState).toBe("paused");
+    expect(mockState.client!.runs.cancel).not.toHaveBeenCalled();
+  });
+
   it("recovers after thread creation retries are exhausted", async () => {
     const mc = mockState.client!;
     const createThread = mc.threads.create as Mock;
