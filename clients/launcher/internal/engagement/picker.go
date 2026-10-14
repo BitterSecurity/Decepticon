@@ -480,5 +480,5 @@ func promptNewEngagement(home string) (string, error) {
 	if err := form.Run(); err != nil {
 		return "", fmt.Errorf("engagement setup cancelled: %w", err)
 	}
-	return slug, nil
+	return slug, validateSlug(home, slug)
 }
