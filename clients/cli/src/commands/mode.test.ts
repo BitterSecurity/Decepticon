@@ -40,12 +40,12 @@ describe("CLI run modes", () => {
     expect(selected).toEqual(["soundwave", "decepticon"]);
   });
 
-  it("does not enter Blue without its sensor", async () => {
+  it("selects Blue without its sensor", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
     const { ctx, messages, selected } = context();
     await mode.execute("blue", ctx);
-    expect(selected).toEqual([]);
-    expect(messages.at(-1)).toContain("/blue up");
+    expect(selected).toEqual(["blue_cell"]);
+    expect(getAssistantOverride()).toBe("blue_cell");
   });
 
   it("keeps web terminal mode routing with the web selector", async () => {

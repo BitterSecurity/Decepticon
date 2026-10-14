@@ -416,7 +416,7 @@ describe("useAgent — engagement handoff lifecycle", () => {
 
     act(() => result.current.submit("prepare plan"));
     await act(async () => { await vi.runAllTimersAsync(); });
-    act(() => expect(result.current.selectAssistant("decepticon")).toBe(true));
+    await act(async () => expect(await result.current.selectAssistant("decepticon")).toBe(true));
     setAssistantOverride("decepticon");
     act(() => result.current.submit("begin approved Red work"));
     await act(async () => { await vi.runAllTimersAsync(); });
@@ -428,7 +428,7 @@ describe("useAgent — engagement handoff lifecycle", () => {
     expect(result.current.assistantId).toBe("decepticon");
     expect(result.current.events.some((event) => event.content === "prepare plan")).toBe(false);
 
-    act(() => expect(result.current.selectAssistant("soundwave")).toBe(true));
+    await act(async () => expect(await result.current.selectAssistant("soundwave")).toBe(true));
     setAssistantOverride("soundwave");
     expect(result.current.events.some((event) => event.content === "prepare plan")).toBe(true);
     expect(result.current.events.some((event) => event.content === "begin approved Red work")).toBe(false);
@@ -443,7 +443,7 @@ describe("useAgent — engagement handoff lifecycle", () => {
     vi.mocked(assertRedApproved).mockRejectedValueOnce(new Error("Red scope changed"));
     const { result } = renderHook(() => useAgent());
 
-    act(() => expect(result.current.selectAssistant("decepticon")).toBe(true));
+    await act(async () => expect(await result.current.selectAssistant("decepticon")).toBe(true));
     act(() => result.current.submit("continue Red work"));
     await act(async () => { await vi.runAllTimersAsync(); });
 
@@ -452,15 +452,54 @@ describe("useAgent — engagement handoff lifecycle", () => {
     expect(result.current.runState).toBe("idle");
   });
 
-  it("does not switch the visible mode during a live run", async () => {
+  it("waits for server interruption and restores the paused mode and queue", async () => {
     const stream = createControllableStream();
     (mockState.client!.runs.stream as Mock).mockReturnValueOnce(stream);
+    let acknowledge = () => {};
+    (mockState.client!.runs.cancel as Mock).mockImplementationOnce(() => new Promise<void>((resolve) => { acknowledge = resolve; }));
     const { result } = renderHook(() => useAgent());
     act(() => result.current.submit("plan"));
-    await act(async () => { await vi.runAllTimersAsync(); });
-    act(() => expect(result.current.selectAssistant("blue_cell")).toBe(false));
+    await act(async () => { await vi.runAllTimersAsync(); await stream.emit({ event: "metadata", data: { run_id: "plan-run" } }); });
+    act(() => result.current.enqueue("queued plan"));
+    let switching: Promise<boolean> | boolean = false;
+    act(() => { switching = result.current.selectAssistant("blue_cell"); });
+    await act(async () => { await Promise.resolve(); });
     expect(result.current.assistantId).toBe("soundwave");
-    await act(async () => { stream.end(); await vi.runAllTimersAsync(); });
+    await act(async () => { acknowledge(); await switching; });
+    expect(result.current.assistantId).toBe("blue_cell");
+    expect(mockState.client!.runs.cancel).toHaveBeenCalledWith(expect.any(String), "plan-run", true, "interrupt");
+    await act(async () => { await stream.emit({ event: "values", data: { messages: [{ type: "ai", content: "late plan" }] } }); stream.end(); });
+    expect(result.current.events.some((event) => event.content === "late plan")).toBe(false);
+    await act(async () => { await result.current.selectAssistant("soundwave"); });
+    expect(result.current.runState).toBe("paused");
+    expect(result.current.queuedMessage).toBe("queued plan");
+  });
+
+  it("keeps the active mode and stream when server interruption fails", async () => {
+    const stream = createControllableStream();
+    (mockState.client!.runs.stream as Mock).mockReturnValueOnce(stream);
+    (mockState.client!.runs.cancel as Mock).mockRejectedValueOnce(new Error("pause unavailable"));
+    const { result } = renderHook(() => useAgent());
+    act(() => result.current.submit("plan"));
+    await act(async () => { await vi.runAllTimersAsync(); await stream.emit({ event: "metadata", data: { run_id: "plan-run" } }); });
+    await act(async () => { expect(await result.current.selectAssistant("blue_cell")).toBe(false); });
+    expect(result.current.error).toContain("pause unavailable");
+    expect(result.current.assistantId).toBe("soundwave");
+    expect(result.current.runState).toBe("streaming");
+    await act(async () => { stream.end(); });
+  });
+
+  it("isolates a late thread creation after switching while connecting", async () => {
+    let finishCreate = (_thread: { thread_id: string }) => {};
+    (mockState.client!.threads.create as Mock).mockImplementationOnce(() => new Promise((resolve) => { finishCreate = resolve; }));
+    const { result } = renderHook(() => useAgent());
+    act(() => result.current.submit("plan"));
+    await act(async () => { await result.current.selectAssistant("decepticon"); });
+    await act(async () => { finishCreate({ thread_id: "old-thread" }); await vi.runAllTimersAsync(); });
+    act(() => result.current.submit("red"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    expect(mockState.client!.threads.create).toHaveBeenCalledTimes(2);
+    expect((mockState.client!.runs.stream as Mock).mock.calls[0][0]).not.toBe("old-thread");
   });
 
   it("recovers after thread creation retries are exhausted", async () => {
