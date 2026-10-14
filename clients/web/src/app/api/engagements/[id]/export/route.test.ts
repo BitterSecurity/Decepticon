@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { after, before, test } from "node:test";
-import { registerHooks } from "node:module";
+import * as nodeModule from "node:module";
 import { NextRequest } from "next/server";
 import { pathToFileURL } from "node:url";
 
@@ -30,6 +30,16 @@ declare global {
 const moduleTempRoot = join(testTempRoot, "engagement-export-modules");
 const authModule = pathToFileURL(join(moduleTempRoot, "auth.cjs")).href;
 const prismaModule = pathToFileURL(join(moduleTempRoot, "prisma.cjs")).href;
+
+const registerHooks = (nodeModule as unknown as {
+  registerHooks: (hooks: {
+    resolve: (
+      specifier: string,
+      context: unknown,
+      nextResolve: (specifier: string, context: unknown) => unknown,
+    ) => unknown;
+  }) => void;
+}).registerHooks;
 
 registerHooks({
   resolve(specifier, context, nextResolve) {
