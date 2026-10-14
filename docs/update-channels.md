@@ -38,8 +38,9 @@ Three ways to set it:
   self-update and `decepticon update` both honor it.
 - **Per command** — `decepticon update --channel latest` (one run only).
 
-Pinning an exact version still wins over the channel: `VERSION=1.2.0
-curl … | bash` (install) or `DECEPTICON_VERSION=1.2.0` (compose).
+Pinning an exact version still wins over the channel: `curl -fsSL
+https://decepticon.red/install | VERSION=1.2.0 bash` (install) or
+`DECEPTICON_VERSION=1.2.0` (compose).
 
 ## How it works
 
