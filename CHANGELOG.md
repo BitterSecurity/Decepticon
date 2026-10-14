@@ -12,14 +12,27 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+## [1.4.2] — 2026-10-14
+
 ### Fixed
 
 - Require an explicit Update now / Skip choice before startup updates, with
   Skip selected by default, including for legacy `AUTO_UPDATE=true` settings.
   Non-interactive launches only show a notice, and update notices identify
   the selected release channel.
+  ([#959](https://github.com/BitterSecurity/Decepticon/pull/959))
 - Default launcher checks, Bash installs, and unpinned Compose images to the
   latest final release. The seven-day stable channel remains an explicit opt-in.
+  ([#960](https://github.com/BitterSecurity/Decepticon/pull/960))
+
+### Upgrade notes
+
+- Older launcher binaries keep their compiled update behavior until upgraded.
+  Run `decepticon update --channel latest` once to install this patch. Subsequent
+  interactive startup checks offer `1. Update now` / `2. Skip` only when a newer
+  release exists; pressing Enter skips. `AUTO_UPDATE=false` and `--no-update`
+  disable startup checks. An explicit `DECEPTICON_CHANNEL=stable` retains the
+  seven-day delay.
 
 ## [1.4.1] — 2026-10-14
 
@@ -1078,7 +1091,8 @@ The following legacy import paths keep working but emit a
   atomic release.
 - Downstream plugin package lockstep migration.
 
-[Unreleased]: https://github.com/BitterSecurity/Decepticon/compare/v1.4.1...HEAD
+[Unreleased]: https://github.com/BitterSecurity/Decepticon/compare/v1.4.2...HEAD
+[1.4.2]: https://github.com/BitterSecurity/Decepticon/compare/v1.4.1...v1.4.2
 [1.4.1]: https://github.com/BitterSecurity/Decepticon/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/BitterSecurity/Decepticon/compare/v1.3.1...v1.4.0
 [1.3.1]: https://github.com/BitterSecurity/Decepticon/compare/v1.3.0...v1.3.1
