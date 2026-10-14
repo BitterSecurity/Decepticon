@@ -648,13 +648,14 @@ export function useAgent({
   );
 
   const pauseRun = useCallback(async (): Promise<RunState> => {
+    const deadline = performance.now() + 10_000;
     if (abortRef.current && streamReadyRef.current) {
       let timeout: ReturnType<typeof setTimeout> | undefined;
       try {
         await Promise.race([
           streamReadyRef.current,
           new Promise<never>((_resolve, reject) => {
-            timeout = setTimeout(() => reject(new DOMException("Timed out waiting for the run ID; retry the mode switch.", "TimeoutError")), 10_000);
+            timeout = setTimeout(() => reject(new DOMException("Timed out waiting for the run ID; retry the mode switch.", "TimeoutError")), Math.max(0, deadline - performance.now()));
           }),
         ]);
       } finally {
@@ -675,7 +676,7 @@ export function useAgent({
               const error = new DOMException("TimeoutError: server pause did not acknowledge within 10 seconds.", "TimeoutError");
               controller.abort(error);
               reject(error);
-            }, 10_000);
+            }, Math.max(0, deadline - performance.now()));
           }),
         ]);
       } finally {
