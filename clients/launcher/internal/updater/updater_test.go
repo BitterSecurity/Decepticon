@@ -53,17 +53,16 @@ func TestCompareVersions(t *testing.T) {
 }
 
 func TestResolveChannel(t *testing.T) {
-	// Default + unrecognized → stable (Decepticon's conservative default;
-	// soak semantics still match Claude Code, only the default differs).
 	tests := map[string]Channel{
-		"":          ChannelStable, // default
+		"":          ChannelLatest,
+		"  ":        ChannelLatest,
 		"stable":    ChannelStable,
 		"STABLE":    ChannelStable,
 		"  stable ": ChannelStable,
 		"latest":    ChannelLatest,
 		"LATEST":    ChannelLatest,
 		" latest":   ChannelLatest,
-		"garbage":   ChannelStable, // unrecognized → safe default (stable)
+		"garbage":   ChannelLatest,
 	}
 	for in, want := range tests {
 		if got := ResolveChannel(in); got != want {
