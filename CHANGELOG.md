@@ -12,10 +12,28 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+## [1.4.4] — 2026-10-14
+
 ### Fixed
 
 - Select startup Update now / Skip with arrow keys and confirm with Enter,
   keeping Skip selected by default.
+  ([#966](https://github.com/BitterSecurity/Decepticon/pull/966))
+- Preserve and recover empty directories left at the opscontrol socket path;
+  reject files, nonempty directories and symlinks. Report daemon readiness only
+  after binding, and prevent Compose from creating a missing socket source.
+  ([#967](https://github.com/BitterSecurity/Decepticon/pull/967))
+- Recover specific Docker missing-network startup failures with bounded retries
+  for empty, configured networks owned by the current Compose project. Preserve
+  workspace/auth environment, profiles and volumes; reject active or foreign
+  networks and unrelated failures.
+  ([#968](https://github.com/BitterSecurity/Decepticon/pull/968))
+
+### Upgrade notes
+
+- Run `decepticon update --channel latest` to install this patch. Older binaries
+  retain their previous prompt until upgraded. Database credentials, volumes and
+  existing engagement data do not need to be recreated.
 
 ## [1.4.3] — 2026-10-14
 
@@ -1118,7 +1136,8 @@ The following legacy import paths keep working but emit a
   atomic release.
 - Downstream plugin package lockstep migration.
 
-[Unreleased]: https://github.com/BitterSecurity/Decepticon/compare/v1.4.3...HEAD
+[Unreleased]: https://github.com/BitterSecurity/Decepticon/compare/v1.4.4...HEAD
+[1.4.4]: https://github.com/BitterSecurity/Decepticon/compare/v1.4.3...v1.4.4
 [1.4.3]: https://github.com/BitterSecurity/Decepticon/compare/v1.4.2...v1.4.3
 [1.4.2]: https://github.com/BitterSecurity/Decepticon/compare/v1.4.1...v1.4.2
 [1.4.1]: https://github.com/BitterSecurity/Decepticon/compare/v1.4.0...v1.4.1
