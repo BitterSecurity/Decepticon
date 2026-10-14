@@ -22,7 +22,12 @@ Docker images. There is no version-bump commit to make before tagging.
    make quality      # Python + CLI + Web: lint, typecheck, tests
    make smoke        # Compose build + service health checks
    ```
-   Optionally run `make dogfood` for a full launcher → onboard → up smoke test.
+   Run a full launcher → engagement creation → service startup → interactive
+   CLI smoke test in a separate test installation. When releasing from WSL,
+   perform this test directly on WSL. Use a separate `DECEPTICON_HOME`, Compose
+   project, stack name, ports, and credentials; do not run cleanup targets
+   against an existing user installation. `make smoke` and `make dogfood` must
+   also run only against disposable test resources.
 3. In [CHANGELOG.md](CHANGELOG.md), move the `[Unreleased]` entries under a new
    `[X.Y.Z] — YYYY-MM-DD` heading, check them against merged PRs, and add the
    compare link at the bottom. Keep an empty `[Unreleased]` heading for the
@@ -39,6 +44,12 @@ Pushing a `v*` tag triggers `.github/workflows/release.yml`.
 The repository currently has no auto-tag workflow. A maintainer selects the
 version after checking the merged changes and pushes the tag. The tag starts
 `release.yml`; wait for its publish gate before announcing a release.
+Before approving the final GitHub publish gate, repeat the product smoke test
+using the candidate launcher and versioned images built by that run. Record
+the version, commit, launcher checksum, service health, CLI connection, and
+observed behavior of the changed feature. For model-path changes, include a
+real model response. CI and simulated failure tests complement this local
+product test; they do not replace it.
 `release-recover.yml` verifies existing images and finalizes a failed release,
 but does not build missing images.
 
