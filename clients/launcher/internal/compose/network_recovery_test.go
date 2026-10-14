@@ -58,9 +58,9 @@ func networkRecoveryProcess(args []string) int {
 			fmt.Fprintf(os.Stderr, "Error response from daemon: network %s not found\n", id)
 			return 1
 		case "inspect denied with ID":
-            fmt.Fprintf(os.Stderr,"permission denied: network %s not found\n",id)
-            return 1
-        case "inspect denied":
+			fmt.Fprintf(os.Stderr, "permission denied: network %s not found\n", id)
+			return 1
+		case "inspect denied":
 			fmt.Fprintln(os.Stderr, "permission denied")
 			return 1
 		case "malformed":
@@ -80,6 +80,10 @@ func networkRecoveryProcess(args []string) int {
 			logical = "unconfigured"
 		case "wrong name":
 			name = "another-network"
+		case "unknown containers":
+			containers = "null"
+		case "wrong ID":
+			id = secondNetworkID
 		}
 		fmt.Printf(`[{"Id":%q,"Name":%q,"Labels":{"com.docker.compose.project":%q,"com.docker.compose.network":%q},"Containers":%s}]`+"\n", id, name, project, logical, containers)
 		return 0
@@ -146,8 +150,10 @@ func TestUpRecoversOnlyMissingManagedDockerNetworks(t *testing.T) {
 		{"external", "docker", 1, nil, true, false},
 		{"unmanaged", "docker", 1, nil, true, false},
 		{"wrong name", "docker", 1, nil, true, false},
+		{"unknown containers", "docker", 1, nil, true, false},
+		{"wrong ID", "docker", 1, nil, true, false},
 		{"inspect denied", "docker", 1, nil, true, false},
-        {"inspect denied with ID", "docker", 1, nil, true, false},
+		{"inspect denied with ID", "docker", 1, nil, true, false},
 		{"malformed", "docker", 1, nil, true, false},
 		{"remove failure", "docker", 1, []string{firstNetworkID}, true, false},
 		{"repeated", "docker", 2, []string{firstNetworkID}, true, false},
@@ -192,6 +198,9 @@ func TestUpRecoversOnlyMissingManagedDockerNetworks(t *testing.T) {
 					removed = append(removed, args[2])
 				}
 				for _, arg := range args {
+					if arg == "config" && !tc.databases && !strings.Contains(strings.Join(args, " "), "--profile cli") {
+						t.Fatalf("config lost selected profile: %v", args)
+					}
 					if arg == "up" {
 						attempts++
 						if attempts > 1 && !strings.Contains(strings.Join(args, " "), "--force-recreate") {
@@ -203,6 +212,7 @@ func TestUpRecoversOnlyMissingManagedDockerNetworks(t *testing.T) {
 					}
 				}
 			}
+			t.Logf("upAttempts=%d removed=%v", attempts, removed)
 			if attempts != tc.attempts || !reflect.DeepEqual(removed, tc.removed) {
 				t.Fatalf("attempts=%d removed=%v, want %d %v", attempts, removed, tc.attempts, tc.removed)
 			}

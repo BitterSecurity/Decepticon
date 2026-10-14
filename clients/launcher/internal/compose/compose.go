@@ -2,6 +2,7 @@ package compose
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -177,16 +178,20 @@ func (c *Compose) composeEnv() []string {
 
 // run executes a compose command via the detected runtime.
 func (c *Compose) run(args []string, interactive bool) error {
+	return c.runWithStderr(args, interactive, os.Stderr)
+}
+
+func (c *Compose) runWithStderr(args []string, interactive bool, stderr io.Writer) error {
 	cmdArgs := append(c.baseArgs(), args...)
 	cmd := exec.Command(c.Runtime.Bin, cmdArgs...)
 	cmd.Env = c.composeEnv()
 	if interactive {
 		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
+		cmd.Stderr = stderr
 	} else {
 		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
+		cmd.Stderr = stderr
 	}
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("%s compose %s: %w", c.Runtime.Name, strings.Join(args, " "), err)
@@ -209,11 +214,11 @@ func (c *Compose) Up(profiles ...string) error {
 		args = append(args, "--profile", p)
 	}
 	args = append(args, "up", "-d", "--no-build", "--wait", "--wait-timeout", startupTimeoutSeconds())
-	return c.run(args, false)
+	return c.upWithNetworkRecovery(args)
 }
 
 func (c *Compose) UpDatabases() error {
-	return c.run([]string{"up", "-d", "--no-build", "--wait", "--wait-timeout", startupTimeoutSeconds(), "postgres", "neo4j"}, false)
+	return c.upWithNetworkRecovery([]string{"up", "-d", "--no-build", "--wait", "--wait-timeout", startupTimeoutSeconds(), "postgres", "neo4j"})
 }
 
 // startupTimeoutSeconds returns the --wait-timeout value as a string.
