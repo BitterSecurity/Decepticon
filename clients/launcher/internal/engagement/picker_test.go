@@ -237,3 +237,34 @@ func TestValidateSlug_RejectsCollisionWithExistingDir(t *testing.T) {
 		t.Error("expected collision rejection")
 	}
 }
+
+func TestPromptNewEngagement_CompletesWithNameOnly(t *testing.T) {
+	// Given a fresh workspace and only the engagement name on stdin.
+	home := t.TempDir()
+	t.Setenv("TERM", "dumb")
+	input, err := os.CreateTemp(t.TempDir(), "name-input")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer input.Close()
+	if _, err := input.WriteString("name-only-test\n"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := input.Seek(0, 0); err != nil {
+		t.Fatal(err)
+	}
+	previousInput := os.Stdin
+	os.Stdin = input
+	t.Cleanup(func() { os.Stdin = previousInput })
+
+	// When the new-engagement prompt consumes that single answer.
+	slug, _, _, _, err := promptNewEngagement(home)
+
+	// Then creation can proceed without target or authorization answers.
+	if err != nil {
+		t.Fatalf("name-only setup failed: %v", err)
+	}
+	if slug != "name-only-test" {
+		t.Fatalf("engagement = %q, want name-only-test", slug)
+	}
+}
