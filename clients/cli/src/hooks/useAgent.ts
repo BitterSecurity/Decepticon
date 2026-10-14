@@ -664,7 +664,7 @@ export function useAgent({
     const threadId = threadIdRef.current;
     const runId = runIdRef.current;
     const active = abortRef.current !== null;
-    if (active && threadId && runId) {
+    if (active && streamReadyRef.current && threadId && runId) {
       const controller = new AbortController();
       let timeout: ReturnType<typeof setTimeout> | undefined;
       try {
@@ -685,7 +685,7 @@ export function useAgent({
     abortRef.current?.abort();
     abortRef.current = null;
     streamReadyRef.current = null;
-    return active && runId ? "paused" : active ? "idle" : runStateRef.current;
+    return active && (runId || runStateRef.current === "paused") ? "paused" : active ? "idle" : runStateRef.current;
   }, []);
 
   // ── Interrupt (pause at checkpoint) ────────────────────────────
