@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { createServer } from "node:http";
 import { renderHook, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from "vitest";
 import {
@@ -534,6 +535,68 @@ describe("useAgent — engagement handoff lifecycle", () => {
     expect(result.current.activeQuestion).toEqual(question);
     expect(result.current.runState).toBe("paused");
     expect(mockState.client!.runs.cancel).not.toHaveBeenCalled();
+  });
+
+  it("bounds SDK retry backoff when the cancellation endpoint keeps failing", async () => {
+    vi.useRealTimers();
+    const { Client } = await vi.importActual<typeof import("@langchain/langgraph-sdk")>("@langchain/langgraph-sdk");
+    let requests = 0;
+    const server = createServer((_request, response) => { requests++; response.writeHead(503).end("pause unavailable"); });
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const address = server.address();
+    if (!address || typeof address === "string") throw new TypeError("Expected loopback listener");
+    const client = new Client({ apiUrl: `http://127.0.0.1:${address.port}` });
+    let cancellationSignal: AbortSignal | undefined;
+    (mockState.client!.runs.cancel as Mock).mockImplementation((thread: string, run: string, wait: boolean, action: "interrupt", options: { signal: AbortSignal }) => {
+      cancellationSignal = options.signal;
+      return client.runs.cancel(thread, run, wait, action, options);
+    });
+    const stream = createControllableStream();
+    (mockState.client!.runs.stream as Mock).mockReturnValueOnce(stream);
+    const { result } = renderHook(() => useAgent());
+    try {
+      await act(async () => { result.current.submit("plan"); });
+      await act(async () => { await stream.emit({ event: "metadata", data: { run_id: "retry-run" } }); });
+      let settled = false;
+      let deadline: ReturnType<typeof setTimeout> | undefined;
+      await act(async () => {
+        const switching = result.current.selectAssistant("blue_cell").then(() => { settled = true; });
+        await Promise.race([switching, new Promise<void>((resolve) => { deadline = setTimeout(resolve, 11_000); })]);
+        clearTimeout(deadline);
+      });
+      expect(requests).toBeGreaterThan(0);
+      expect(settled).toBe(true);
+      expect(cancellationSignal?.aborted).toBe(true);
+      expect(result.current.assistantId).toBe("soundwave");
+      expect(result.current.runState).toBe("streaming");
+      expect(result.current.error).not.toBeNull();
+    } finally {
+      await act(async () => stream.end());
+      server.closeAllConnections();
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  }, 20_000);
+
+  it.each(["resume", "answerQuestion"] as const)("%s rechecks scope and preserves the Red question when approval became stale", async (method) => {
+    const { assertRedApproved } = await import("../commands/planMode.js");
+    (mockState.client!.runs.stream as Mock).mockReturnValueOnce(createMockStream([
+      { event: "metadata", data: { run_id: "red-question-run" } },
+      { event: "custom", data: { type: "ask_user_question", question: "Continue?", id: "red-question" } },
+    ]));
+    const { result } = renderHook(() => useAgent());
+    await act(async () => { await result.current.selectAssistant("decepticon"); });
+    act(() => result.current.submit("approved Red"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    const question = result.current.activeQuestion;
+    await act(async () => { await result.current.selectAssistant("soundwave"); });
+    vi.mocked(assertRedApproved).mockRejectedValueOnce(new Error("Red scope changed"));
+    await act(async () => { await result.current.selectAssistant("decepticon"); });
+    act(() => result.current[method]("yes"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    expect(mockState.client!.runs.stream).toHaveBeenCalledTimes(1);
+    expect(result.current.error).toContain("Red scope changed");
+    expect(result.current.activeQuestion).toEqual(question);
+    expect(result.current.runState).toBe("paused");
   });
 
   it("recovers after thread creation retries are exhausted", async () => {
