@@ -47,6 +47,23 @@ curl … | bash` (install) or `DECEPTICON_VERSION=1.2.0` (compose).
 
 ## How it works
 
+On `decepticon` or `decepticon start`, a strictly newer release on the selected
+channel offers **1. Update now** and **2. Skip**. **Skip is selected by default**;
+press Enter to continue with the installed version. Skipping does not apply
+update changes to the launcher, configuration, or Docker images. Update now
+uses the verified update flow and restarts the launcher.
+
+The notice includes the selected channel. A release visible on `latest` may
+not yet be offered on `stable` because of its default seven-day soak window.
+No choice is shown when the installed version is current or newer, for dev
+builds, or when the release check fails. Non-interactive launches show only
+a notice for newer releases and never install an update.
+
+Unset `AUTO_UPDATE`, `prompt`, and legacy `true` / `1` / `yes` / `on` values all
+require this choice. `AUTO_UPDATE=false` (also `0` / `no` / `off`) disables
+the check; `--no-update` disables it for one launch. Explicit
+`decepticon update` remains available.
+
 - **Launcher self-update / `decepticon update`** (`internal/updater`):
   - `latest` → GitHub `…/releases/latest` (newest final; the endpoint
     already excludes pre-releases and drafts).
@@ -73,8 +90,8 @@ curl … | bash` (install) or `DECEPTICON_VERSION=1.2.0` (compose).
 
 - Pre-releases (`vX.Y.Z-rc.N`) are never auto-selected by either channel.
   Install one explicitly with `VERSION=…` if needed.
-- The channel is independent of `AUTO_UPDATE` (whether updates apply
-  automatically) and `DECEPTICON_BRANCH` (track a git branch's config
+- The channel is independent of `AUTO_UPDATE` (whether startup checks for
+  updates) and `DECEPTICON_BRANCH` (track a git branch's config
   instead of a release tag).
 - Switching from `latest` to `stable` will not downgrade an
   already-installed newer version (updates are forward-only); stable simply

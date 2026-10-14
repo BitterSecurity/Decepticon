@@ -39,52 +39,25 @@ var (
 	isWSLFn     = platform.IsWSL
 	wslHostIPFn = platform.WSLHostIP
 
-	// Indirected so tests can assert which AUTO_UPDATE branch ran
-	// without making network calls into GitHub.
-	autoUpdateFn   = updater.AutoUpdateIfAvailable
 	promptUpdateFn = updater.PromptIfUpdateAvailable
 )
 
-// applyAutoUpdate dispatches the self-update check based on AUTO_UPDATE.
-// See the inline comment in start() (section 2.5) for the value table
-// and rationale for default-on behaviour.
-//
-// The `skip` argument is the --no-update CLI flag. When true it
-// short-circuits *before* the env lookup so the operator's one-shot
-// override always wins over the persistent .env setting — including
-// AUTO_UPDATE=true and AUTO_UPDATE=prompt. This is the escape hatch
-// for "I know there's a newer version, I want this exact binary".
-//
-// Unrecognized values (e.g. AUTO_UPDATE=disabled, where the operator
-// probably MEANT "false") fall through to the prompt path rather than
-// silent auto-update. Fail-loud beats fail-silent — an unexpected
-// re-exec is harder to debug than a one-line prompt.
-func applyAutoUpdate(env map[string]string, version string, skip bool) {
+func checkStartupUpdate(env map[string]string, version string, skip bool) {
 	if skip {
 		return
 	}
 	// Which release stream to track (stable | latest). Default stable.
 	ch := updater.ResolveChannel(config.Get(env, "DECEPTICON_CHANNEL", ""))
 	switch strings.ToLower(strings.TrimSpace(config.Get(env, "AUTO_UPDATE", ""))) {
-	case "", "true", "1", "yes", "on":
-		if _, err := autoUpdateFn(version, ch); err != nil {
-			ui.Warning("Auto-update: " + err.Error())
-		}
 	case "false", "0", "no", "off":
-		// self-update disabled
+		return
 	default:
-		// Includes the explicit `prompt` / `ask` / `interactive`
-		// opt-ins AND any unrecognized value (safer fallback).
 		if _, err := promptUpdateFn(version, ch); err != nil {
 			ui.Warning("Update check: " + err.Error())
 		}
 	}
 }
 
-// skipUpdate is bound to --no-update. One-shot override for the
-// AUTO_UPDATE=true (now default) self-update path: useful in CI, when
-// debugging a specific launcher version, or when intentionally
-// running an older release against a known-good stack.
 var skipUpdate bool
 
 var startCmd = &cobra.Command{
@@ -234,24 +207,7 @@ func runStart(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// 2.5. Update check, gated by AUTO_UPDATE in .env:
-	//   unset (default) → fully unattended: apply the update + re-exec
-	//   true / 1 / yes  → same as default (kept for backwards-compat)
-	//   prompt / ask    → interactive prompt on a TTY, passive notice otherwise
-	//   false           → skip entirely (air-gapped / version-pinned deploys)
-	//
-	// Default-on rationale: every released hotfix is dead weight until the
-	// operator picks it up. The previous default ("prompt on TTY, notice
-	// otherwise") meant a bug-fix release sat on the user's machine,
-	// un-applied, until they noticed the notice and re-ran. Silent self-
-	// update collapses the "fix shipped" → "fix running on user host" gap
-	// from days/weeks to the next `decepticon start`, which is the same
-	// behaviour Discord/Slack/electron-updater apps already use.
-	//
-	// Synchronous on purpose: the prompt + unattended paths apply and re-exec
-	// before the rest of `start` proceeds. The GitHub fetch fails fast so a
-	// slow network never blocks startup.
-	applyAutoUpdate(env, version, skipUpdate)
+	checkStartupUpdate(env, version, skipUpdate)
 
 	// 2.6. One-time GitHub star ask. Idempotent across launches — the
 	// ack file at $DECEPTICON_HOME/.starred suppresses the prompt

@@ -540,18 +540,3 @@ func TestApplyUpdate_SelfUpdateErrorPropagates(t *testing.T) {
 		t.Errorf("error %q should contain 'binary update'", err)
 	}
 }
-
-func TestAutoUpdateIfAvailable_SkipsDevBuilds(t *testing.T) {
-	// "dev" / empty version is a local build that does not track published
-	// releases — the unattended AUTO_UPDATE path must no-op without any
-	// GitHub round-trip (mirrors PromptIfUpdateAvailable's dev gate).
-	for _, v := range []string{"dev", ""} {
-		applied, err := AutoUpdateIfAvailable(v, ChannelStable)
-		if err != nil {
-			t.Errorf("AutoUpdateIfAvailable(%q) err = %v", v, err)
-		}
-		if applied {
-			t.Errorf("AutoUpdateIfAvailable(%q) applied=true, want false", v)
-		}
-	}
-}

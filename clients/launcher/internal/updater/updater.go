@@ -653,7 +653,7 @@ func NotifyIfUpdateAvailable(currentVersion string, ch Channel) bool {
 		return false
 	}
 
-	ui.Info(fmt.Sprintf("Update available: %s -> %s", displayVersion(currentVersion), release.TagName))
+	ui.Info(fmt.Sprintf("Update available (%s channel): %s -> %s", ch, displayVersion(currentVersion), release.TagName))
 	ui.DimText("Run `decepticon update` to upgrade.")
 	return true
 }
@@ -703,7 +703,7 @@ func ApplyUpdate(release *Release, ref string) error {
 	return nil
 }
 
-// PromptIfUpdateAvailable presents an interactive y/n confirmation when a
+// PromptIfUpdateAvailable presents Update now / Skip choices when a
 // newer release exists. On approval, applies the update and re-execs the
 // running launcher with the freshly installed binary so the rest of the
 // caller's flow runs against the new version (matches the Claude Code /
@@ -739,21 +739,24 @@ func PromptIfUpdateAvailable(currentVersion string, ch Channel) (bool, error) {
 	}
 
 	ui.Info(fmt.Sprintf(
-		"Update available: %s → %s",
+		"Update available (%s channel): %s → %s",
+		ch,
 		displayVersion(currentVersion),
 		release.TagName,
 	))
 
 	var confirmed bool
-	if err := huh.NewConfirm().
+	if err := huh.NewSelect[bool]().
 		Title(fmt.Sprintf("Install %s now?", release.TagName)).
 		Description(
-			"Updates the launcher binary, docker-compose config, and pulls\n" +
-				"the matching Docker images. Decepticon will restart with\n" +
+			"Updates the launcher binary, docker-compose config, and pulls\n"+
+				"the matching Docker images. Decepticon will restart with\n"+
 				"the new version once the update finishes.",
 		).
-		Affirmative("Yes, update").
-		Negative("Skip").
+		Options(
+			huh.NewOption("1. Update now", true),
+			huh.NewOption("2. Skip", false),
+		).
 		Value(&confirmed).
 		Run(); err != nil {
 		// Prompt failure (e.g. tty closed mid-render) — fall through to
@@ -805,8 +808,7 @@ func resolveUpdateRef(release *Release) string {
 
 // applyAndReexec runs the full upgrade (config sync + image pull + binary
 // self-update + .version stamp) then re-execs into the freshly installed
-// binary. Shared by the interactive prompt (after confirmation) and the
-// unattended AUTO_UPDATE path so both behave identically.
+// binary after the user approves the interactive prompt.
 func applyAndReexec(release *Release, currentVersion string) (bool, error) {
 	if err := ApplyUpdate(release, resolveUpdateRef(release)); err != nil {
 		ui.Warning("Update failed: " + err.Error())
@@ -825,31 +827,4 @@ func applyAndReexec(release *Release, currentVersion string) (bool, error) {
 	// Windows path inside reexecSelf calls os.Exit after spawning the
 	// child, so this is also unreachable on Windows. Kept for symmetry.
 	return true, nil
-}
-
-// AutoUpdateIfAvailable applies a newer release WITHOUT prompting. Wired to
-// the AUTO_UPDATE=true launch path for fully-unattended self-update (servers,
-// CI runners, kiosk deployments). Skips silently on dev builds, when offline,
-// or when already current — a self-update must never block or break a launch.
-func AutoUpdateIfAvailable(currentVersion string, ch Channel) (bool, error) {
-	if currentVersion == "" || currentVersion == "dev" {
-		return false, nil
-	}
-	release, err := FetchRelease(ch)
-	if err != nil {
-		return false, nil // offline / GitHub down — never block launch
-	}
-	if !CompareVersions(currentVersion, release.TagName) {
-		return false, nil
-	}
-	// Default-on as of v1.1.12: silent self-update is the default. The
-	// suffix tells users they CAN opt out — important for the first
-	// release after the flip, when an unexpected re-exec might confuse
-	// operators who never set AUTO_UPDATE themselves.
-	ui.Info(fmt.Sprintf(
-		"Auto-updating: %s → %s (set AUTO_UPDATE=false to disable)",
-		displayVersion(currentVersion),
-		release.TagName,
-	))
-	return applyAndReexec(release, currentVersion)
 }

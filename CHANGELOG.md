@@ -12,6 +12,13 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+### Fixed
+
+- Require an explicit Update now / Skip choice before startup updates, with
+  Skip selected by default, including for legacy `AUTO_UPDATE=true` settings.
+  Non-interactive launches only show a notice, and update notices identify
+  the selected release channel.
+
 ## [1.4.1] — 2026-10-14
 
 ### Fixed
