@@ -77,11 +77,6 @@ func runDaemon(_ *cobra.Command, _ []string) error {
 	defer cancel()
 
 	socketPath := internal.HostSocketPath()
-	logger.Info("opscontrol daemon up",
-		"socket", socketPath,
-		"backend", backend.Name(),
-		"allowlist_size", len(allow.Members()),
-	)
 
 	if err := server.Listen(ctx, socketPath); err != nil && err != context.Canceled {
 		return err

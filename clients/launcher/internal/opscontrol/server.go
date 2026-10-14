@@ -3,15 +3,11 @@ package opscontrol
 import (
 	"context"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"log/slog"
-	"net"
 	"net/http"
 	"os"
 	"regexp"
 	"strings"
-	"time"
 )
 
 // Server is the HTTP API the agent calls. It binds to a Unix-domain
@@ -36,59 +32,6 @@ func NewServer(backend Backend, allow *Allowlist, logger *slog.Logger) *Server {
 		Allowlist: allow,
 		Registry:  newRegistry(),
 		Logger:    logger,
-	}
-}
-
-// Listen binds the UDS at socketPath and runs the HTTP server. The
-// caller is responsible for cleaning up the socket file on shutdown
-// (Serve does the unlink before binding to recover from a stale file
-// left by a previous crash).
-func (s *Server) Listen(ctx context.Context, socketPath string) error {
-	// Stale socket file from a previous unclean shutdown would
-	// otherwise fail the bind. Removing a non-socket inode would be
-	// destructive, so guard with an os.Stat first.
-	if info, err := os.Stat(socketPath); err == nil {
-		if info.Mode()&os.ModeSocket == 0 {
-			return fmt.Errorf("opscontrol: %s exists and is not a socket; refusing to overwrite", socketPath)
-		}
-		if err := os.Remove(socketPath); err != nil {
-			return fmt.Errorf("opscontrol: remove stale socket: %w", err)
-		}
-	}
-
-	lis, err := net.Listen("unix", socketPath)
-	if err != nil {
-		return fmt.Errorf("opscontrol: listen unix %s: %w", socketPath, err)
-	}
-	// Tighten permissions so only the user that owns $DECEPTICON_HOME
-	// (and root, and processes that share the bind-mount) can connect.
-	if err := os.Chmod(socketPath, 0o600); err != nil {
-		_ = lis.Close()
-		return fmt.Errorf("opscontrol: chmod socket: %w", err)
-	}
-
-	srv := &http.Server{
-		Handler:           s.mux(),
-		ReadHeaderTimeout: 5 * time.Second,
-	}
-
-	errc := make(chan error, 1)
-	go func() {
-		errc <- srv.Serve(lis)
-	}()
-
-	select {
-	case <-ctx.Done():
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		_ = srv.Shutdown(shutdownCtx)
-		_ = os.Remove(socketPath)
-		return ctx.Err()
-	case err := <-errc:
-		if errors.Is(err, http.ErrServerClosed) {
-			return nil
-		}
-		return err
 	}
 }
 
@@ -276,8 +219,8 @@ func (s *Server) handleStop(w http.ResponseWriter, r *http.Request) {
 // can confirm what was stopped (or surface which workloads errored
 // out and stayed up).
 type cleanupResponse struct {
-	Engagement string   `json:"engagement"`
-	Stopped    []string `json:"stopped"`
+	Engagement string            `json:"engagement"`
+	Stopped    []string          `json:"stopped"`
 	Errors     map[string]string `json:"errors,omitempty"`
 }
 
