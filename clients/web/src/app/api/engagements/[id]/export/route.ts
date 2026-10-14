@@ -4,6 +4,18 @@ import { NextRequest, NextResponse } from "next/server";
 import * as fs from "fs/promises";
 import * as path from "path";
 
+const PLAN_DOCS = [
+  "roe.json",
+  "conops.json",
+  "deconfliction.json",
+  "opplan.json",
+  "threat-profile.json",
+  "contact.json",
+  "data-handling.json",
+  "abort.json",
+  "cleanup.json",
+] as const;
+
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -45,7 +57,7 @@ export async function GET(
 
   // Read plan documents
   const planDir = path.join(wsPath, "plan");
-  for (const docName of ["roe.json", "conops.json", "deconfliction.json", "opplan.json"]) {
+  for (const docName of PLAN_DOCS) {
     try {
       const content = await fs.readFile(path.join(planDir, docName), "utf-8");
       (exportData.planDocs as Record<string, unknown>)[docName.replace(".json", "")] = JSON.parse(content);
