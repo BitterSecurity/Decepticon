@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -56,6 +56,22 @@ describe("CLI run modes", () => {
     await mode.execute("red", ctx);
     expect(selected).toEqual(["decepticon"]);
     expect(getAssistantOverride()).toBe("decepticon");
+  });
+
+  it("does not authorize a validated draft when the active run cannot stop", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "decepticon-mode-stop-"));
+    await mkdir(path.join(root, "plan"));
+    for (const filename of ["roe.json", "threat-profile.json", "conops.json", "deconfliction.json", "contact.json", "data-handling.json", "abort.json", "cleanup.json"]) {
+      await writeFile(path.join(root, "plan", filename), "{}");
+    }
+    await writeFile(path.join(root, ".planning-draft-ready"), "23bb0ad057e96e5098d6c8ef731ce1afadd9e1957f6adf6b720196ad35409418");
+    vi.stubEnv("DECEPTICON_ENGAGEMENT", "stop-failed");
+    vi.stubEnv("DECEPTICON_WORKSPACE_PATH", root);
+    const { ctx } = context();
+    ctx.selectAssistant = async () => false;
+    await mode.execute("red approve", ctx);
+    await expect(readFile(path.join(root, ".red-approved"))).rejects.toMatchObject({ code: "ENOENT" });
+    expect(getAssistantOverride()).toBe("");
   });
 
   it("keeps web terminal mode routing with the web selector", async () => {
