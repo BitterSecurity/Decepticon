@@ -131,17 +131,14 @@ func TestApplyAutoUpdate_RoutingMatrix(t *testing.T) {
 		wantPrompt  int
 		description string
 	}{
-		// Default-on: unset triggers silent auto-update. This is the
-		// key behaviour change from v1.1.12 — fix-shipped → fix-applied
-		// no longer requires the user to act.
-		{"", 1, 0, "unset → silent auto-update"},
-		{"  ", 1, 0, "whitespace-only → silent auto-update"},
-		{"true", 1, 0, "true → silent auto-update (backwards-compat)"},
-		{"1", 1, 0, "1 → silent auto-update (backwards-compat)"},
-		{"yes", 1, 0, "yes → silent auto-update (backwards-compat)"},
-		{"on", 1, 0, "on → silent auto-update (backwards-compat)"},
-		{"TRUE", 1, 0, "case-insensitive: TRUE → silent auto-update"},
-		// Opt-in to the pre-v1.1.12 default of prompting on a TTY.
+		// Given default or legacy truthy settings, require approval.
+		{"", 0, 1, "unset → interactive prompt"},
+		{"  ", 0, 1, "whitespace-only → interactive prompt"},
+		{"true", 0, 1, "true → interactive prompt"},
+		{"1", 0, 1, "1 → interactive prompt"},
+		{"yes", 0, 1, "yes → interactive prompt"},
+		{"on", 0, 1, "on → interactive prompt"},
+		{"TRUE", 0, 1, "case-insensitive: TRUE → interactive prompt"},
 		{"prompt", 0, 1, "prompt → interactive prompt"},
 		{"ask", 0, 1, "ask → interactive prompt"},
 		{"interactive", 0, 1, "interactive → interactive prompt"},
@@ -159,7 +156,9 @@ func TestApplyAutoUpdate_RoutingMatrix(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.description, func(t *testing.T) {
 			auto, prompt := withUpdateStubs(t)
+			// When startup checks for an update.
 			applyAutoUpdate(map[string]string{"AUTO_UPDATE": tc.envValue}, "v0.0.0-test", false)
+			// Then only the configured approval/disabled route may run.
 			if *auto != tc.wantAuto || *prompt != tc.wantPrompt {
 				t.Errorf("AUTO_UPDATE=%q: got auto=%d prompt=%d, want auto=%d prompt=%d",
 					tc.envValue, *auto, *prompt, tc.wantAuto, tc.wantPrompt)
