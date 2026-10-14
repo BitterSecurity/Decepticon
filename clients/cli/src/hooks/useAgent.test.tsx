@@ -520,6 +520,35 @@ describe("useAgent — engagement handoff lifecycle", () => {
     await act(async () => stream.end());
   });
 
+  it("shares one ten-second deadline between metadata and server cancellation", async () => {
+    const stream = createControllableStream();
+    (mockState.client!.runs.stream as Mock).mockReturnValueOnce(stream);
+    let cancellationSignal: AbortSignal | undefined;
+    (mockState.client!.runs.cancel as Mock).mockImplementation((_thread: string, _run: string, _wait: boolean, _action: string, options: { signal: AbortSignal }) => {
+      cancellationSignal = options.signal;
+      return new Promise<void>(() => {});
+    });
+    const { result } = renderHook(() => useAgent());
+    await act(async () => { result.current.submit("plan"); });
+    let outcome: boolean | undefined;
+    act(() => { void result.current.selectAssistant("blue_cell").then((selected) => { outcome = selected; }); });
+    try {
+      await act(async () => { await vi.advanceTimersByTimeAsync(6000); });
+      await act(async () => { await stream.emit({ event: "metadata", data: { run_id: "delayed-run" } }); });
+      expect(cancellationSignal?.aborted).toBe(false);
+      await act(async () => { await vi.advanceTimersByTimeAsync(3999); });
+      expect(outcome).toBeUndefined();
+      await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+      expect(outcome).toBe(false);
+      expect(cancellationSignal?.aborted).toBe(true);
+      expect(result.current.assistantId).toBe("soundwave");
+      expect(result.current.runState).toBe("streaming");
+      expect(result.current.error).not.toBeNull();
+    } finally {
+      await act(async () => stream.end());
+    }
+  });
+
   it("restores a pending question after visiting another mode", async () => {
     (mockState.client!.runs.stream as Mock).mockReturnValueOnce(createMockStream([
       { event: "metadata", data: { run_id: "question-run" } },
