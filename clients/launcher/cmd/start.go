@@ -46,7 +46,7 @@ func checkStartupUpdate(env map[string]string, version string, skip bool) {
 	if skip {
 		return
 	}
-	// Which release stream to track (stable | latest). Default stable.
+	// Which release stream to track (stable | latest). Default latest.
 	ch := updater.ResolveChannel(config.Get(env, "DECEPTICON_CHANNEL", ""))
 	switch strings.ToLower(strings.TrimSpace(config.Get(env, "AUTO_UPDATE", ""))) {
 	case "false", "0", "no", "off":

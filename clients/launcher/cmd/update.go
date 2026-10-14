@@ -24,7 +24,7 @@ var updateCmd = &cobra.Command{
 
 func init() {
 	updateCmd.Flags().BoolVarP(&forceUpdate, "force", "f", false, "Refresh config files and Docker images even if version unchanged")
-	updateCmd.Flags().StringVar(&updateChannel, "channel", "", "Update channel for this run: stable (soaked final) or latest (newest final). Default: DECEPTICON_CHANNEL in .env, else stable")
+	updateCmd.Flags().StringVar(&updateChannel, "channel", "", "Update channel for this run: stable (soaked final) or latest (newest final). Default: DECEPTICON_CHANNEL in .env, else latest")
 	rootCmd.AddCommand(updateCmd)
 }
 

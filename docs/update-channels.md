@@ -7,17 +7,12 @@ betas). The difference is a **bake/soak delay**, not pre-release inclusion.
 
 | Channel | Tracks | GHCR tag | Default |
 |---------|--------|----------|---------|
-| **stable** | The newest **final** release that has baked for at least the soak window (default 7 days). | `:stable` | ✅ default |
-| **latest** | The newest **final** release, immediately. | `:latest` | opt-in |
+| **stable** | The newest **final** release that has baked for at least the soak window (default 7 days). | `:stable` | opt-in |
+| **latest** | The newest **final** release, immediately. | `:latest` | ✅ default |
 
 So `latest` gets every release the moment it ships, and `stable` adopts it
 about a week later — long enough to surface regressions before
 conservative users see it.
-
-> **Claude Code parity, with one deliberate difference.** The *semantics*
-> match Claude Code (soak model, final-only). Claude Code defaults to
-> `latest`; Decepticon defaults to **`stable`** because it is an autonomous
-> offensive-security tool where a conservative default is the safer choice.
 
 `latest` is **not** "the main branch." It only moves when a release is
 cut — not on every commit. (To track a git branch's config instead of a
@@ -26,18 +21,19 @@ release, use the separate `DECEPTICON_BRANCH` override.)
 ## Selecting a channel
 
 The channel lives in `DECEPTICON_CHANNEL` in `~/.decepticon/.env` (default
-`stable`; unrecognized values resolve to `stable`):
+`latest`; unrecognized values resolve to `latest`):
 
 ```bash
 # ~/.decepticon/.env
-DECEPTICON_CHANNEL=latest
+DECEPTICON_CHANNEL=stable
 # optional — override the stable soak window (days):
 DECEPTICON_STABLE_SOAK_DAYS=7
 ```
 
 Three ways to set it:
 
-- **At install** — `CHANNEL=latest curl -fsSL https://decepticon.red/install | bash`.
+- **At install** — `curl -fsSL https://decepticon.red/install | CHANNEL=stable bash`
+  opts into the delayed channel; omit `CHANNEL` for the latest final release.
 - **In `.env`** — `DECEPTICON_CHANNEL=stable|latest`. The launch-time
   self-update and `decepticon update` both honor it.
 - **Per command** — `decepticon update --channel latest` (one run only).
@@ -81,7 +77,7 @@ the check; `--no-update` disables it for one launch. Explicit
     `promote-stable.yml` workflow (daily), *not* on release.
   - Pre-releases move neither tag.
 - **Compose fallback.** When `DECEPTICON_VERSION` is unset, the images in
-  `docker-compose.yml` fall back to `:stable` (the conservative default).
+  `docker-compose.yml` fall back to `:latest`.
   In normal operation the launcher pins `DECEPTICON_VERSION` to a concrete
   version, so the fallback is only a safety net for direct `docker compose`
   use.

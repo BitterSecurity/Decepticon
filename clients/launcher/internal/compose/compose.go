@@ -143,7 +143,7 @@ func ContainerName(svc string) string {
 // readVersion returns the installed version from $DECEPTICON_HOME/.version,
 // or an empty string if the file is missing or unreadable. The launcher
 // (install + explicit update) is the single writer; compose falls back to
-// :stable (the conservative default channel tag) when the marker is absent.
+// :latest (the default channel tag) when the marker is absent.
 func (c *Compose) readVersion() string {
 	data, err := os.ReadFile(filepath.Join(c.Home, ".version"))
 	if err != nil {
@@ -156,7 +156,7 @@ func (c *Compose) readVersion() string {
 // from the .version file plus any runtime-derived env (DOCKER_HOST for
 // Podman, etc.). docker compose treats the process environment as
 // higher precedence than --env-file, so this overrides any stale value the
-// user may have written into .env and avoids the silent `:stable` drift
+// user may have written into .env and avoids the silent `:latest` drift
 // that occurs when the variable is unset.
 func (c *Compose) composeEnv() []string {
 	// Single source of truth for compose interpolation env (STACK_NAME +

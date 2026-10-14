@@ -18,6 +18,8 @@ comparison link. Keep proposed and unmerged changes out of released sections.
   Skip selected by default, including for legacy `AUTO_UPDATE=true` settings.
   Non-interactive launches only show a notice, and update notices identify
   the selected release channel.
+- Default launcher checks, Bash installs, and unpinned Compose images to the
+  latest final release. The seven-day stable channel remains an explicit opt-in.
 
 ## [1.4.1] — 2026-10-14
 

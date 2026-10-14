@@ -50,16 +50,13 @@ var executableFn = os.Executable
 // never auto-selected); the difference is a bake/soak delay, not
 // pre-release inclusion.
 //
-//   - ChannelStable (default): the newest FINAL release that has baked on
+//   - ChannelStable: the newest FINAL release that has baked on
 //     the latest channel for at least the soak window (default ~1 week) —
 //     a delayed, more-vetted promotion. Maps to GHCR ":stable".
-//   - ChannelLatest: the newest FINAL release, immediately (GitHub
+//   - ChannelLatest (default): the newest FINAL release, immediately (GitHub
 //     "latest", which excludes pre-releases). Maps to GHCR ":latest".
 //
-// Decepticon defaults to stable (conservative for an offensive-security
-// tool); the channel semantics match Claude Code's soak model, only the
-// default differs (Claude Code defaults to latest). Selected via the
-// "DECEPTICON_CHANNEL" key in ".env".
+// Selected via the "DECEPTICON_CHANNEL" key in ".env".
 type Channel string
 
 const (
@@ -89,14 +86,13 @@ func resolveStableSoak() time.Duration {
 }
 
 // ResolveChannel normalizes a raw "DECEPTICON_CHANNEL" value. Empty or
-// unrecognized values resolve to the safe default (stable) so a typo can
-// never silently opt a security-tool user onto the faster channel.
+// unrecognized values resolve to the default (latest).
 func ResolveChannel(raw string) Channel {
 	switch strings.ToLower(strings.TrimSpace(raw)) {
-	case string(ChannelLatest):
-		return ChannelLatest
-	default:
+	case string(ChannelStable):
 		return ChannelStable
+	default:
+		return ChannelLatest
 	}
 }
 
@@ -744,21 +740,17 @@ func PromptIfUpdateAvailable(currentVersion string, ch Channel) (bool, error) {
 		displayVersion(currentVersion),
 		release.TagName,
 	))
+	ui.DimText("Update now installs the launcher, configuration, and matching Docker images, then restarts.")
 
 	var confirmed bool
 	if err := huh.NewSelect[bool]().
 		Title(fmt.Sprintf("Install %s now?", release.TagName)).
-		Description(
-			"Updates the launcher binary, docker-compose config, and pulls\n"+
-				"the matching Docker images. Decepticon will restart with\n"+
-				"the new version once the update finishes.",
-		).
 		Options(
-			huh.NewOption("1. Update now", true),
-			huh.NewOption("2. Skip", false),
+			huh.NewOption("Update now", true),
+			huh.NewOption("Skip", false),
 		).
 		Value(&confirmed).
-		Run(); err != nil {
+		RunAccessible(os.Stdout, os.Stdin); err != nil {
 		// Prompt failure (e.g. tty closed mid-render) — fall through to
 		// the passive notice rather than crashing the launch.
 		ui.Warning("Update prompt failed: " + err.Error())
