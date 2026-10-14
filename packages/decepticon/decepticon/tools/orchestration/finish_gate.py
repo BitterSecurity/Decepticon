@@ -104,6 +104,9 @@ def finish_engagement(
         except (OSError, json.JSONDecodeError):
             pass
 
+    if coverage_gaps:
+        return _json({"error": "coverage follow-ups remain", "coverage_gaps": coverage_gaps})
+
     # Load findings summary
     findings_dir = _workspace() / "findings"
     findings_count = 0

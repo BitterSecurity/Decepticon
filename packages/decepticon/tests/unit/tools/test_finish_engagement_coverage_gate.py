@@ -48,9 +48,7 @@ def test_finish_engagement_refuses_unresolved_coverage_follow_up(
 
     assert result == {
         "error": "coverage follow-ups remain",
-        "coverage_gaps": [
-            {"surface": "synthetic-local-fixture", "risk_area": "reporting"}
-        ],
+        "coverage_gaps": [{"surface": "synthetic-local-fixture", "risk_area": "reporting"}],
     }
     assert not (tmp_path / "final_report.json").exists()
 
