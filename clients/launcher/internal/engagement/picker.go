@@ -5,14 +5,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"net"
-	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
-	"time"
 
 	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/list"
@@ -203,7 +200,7 @@ func (i pickerItem) Description() string {
 		return "Create a new engagement workspace"
 	}
 	if i.inProgress {
-		return "No approved Red scope — choose a mode on launch"
+		return "Continue planning with Soundwave"
 	}
 	return "Authorized Red scope available"
 }
@@ -424,7 +421,7 @@ func Select(home string) (Choice, error) {
 
 	root := filepath.Join(home, "workspace")
 	if final.chosen.isNew {
-		slug, mode, target, authorizationReference, err := promptNewEngagement(home)
+		slug, err := promptNewEngagement(home)
 		if err != nil {
 			return Choice{}, err
 		}
@@ -432,18 +429,11 @@ func Select(home string) (Choice, error) {
 		if err := os.MkdirAll(filepath.Join(dir, "plan"), 0o755); err != nil {
 			return Choice{}, fmt.Errorf("create engagement dir: %w", err)
 		}
-		if mode != "blue" {
-			if err := writeDirectScope(dir, slug, target, authorizationReference, mode == "red"); err != nil {
-				return Choice{}, err
-			}
-		}
 		return Choice{
-			AssistantID:            assistantForMode(mode),
-			Engagement:             slug,
-			WorkspacePath:          dir,
-			Mode:                   mode,
-			Target:                 target,
-			AuthorizationConfirmed: mode != "blue",
+			AssistantID:   AssistantSoundwave,
+			Engagement:    slug,
+			WorkspacePath: dir,
+			Mode:          "plan",
 		}, nil
 	}
 
@@ -475,70 +465,8 @@ func assistantForMode(mode string) string {
 	}
 }
 
-func validateDirectTarget(target string) error {
-	if target == "" || strings.ContainsAny(target, " \t\r\n") {
-		return fmt.Errorf("enter one exact host, IP, CIDR, or root URL")
-	}
-	if strings.Contains(target, "://") {
-		u, err := url.Parse(target)
-		if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Hostname() == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || (u.Path != "" && u.Path != "/") {
-			return fmt.Errorf("use a root HTTP URL without credentials, query, or path")
-		}
-		if port := u.Port(); port != "" && !((u.Scheme == "http" && port == "80") || (u.Scheme == "https" && port == "443")) {
-			return fmt.Errorf("direct Red scope supports default HTTP/HTTPS ports only; use Plan for a narrower scope")
-		}
-		return nil
-	}
-	if _, _, err := net.ParseCIDR(target); err == nil {
-		return nil
-	}
-	if net.ParseIP(target) != nil {
-		return nil
-	}
-	if strings.ContainsAny(target, "/:*?") || !strings.Contains(target, ".") {
-		return fmt.Errorf("enter one exact host, IP, CIDR, or root URL")
-	}
-	return nil
-}
-
-func writeDirectScope(root, slug, target, reference string, approved bool) error {
-	if err := validateDirectTarget(target); err != nil {
-		return err
-	}
-	if strings.TrimSpace(reference) == "" {
-		return fmt.Errorf("authorization reference is required for Red")
-	}
-	now := time.Now().UTC()
-	roe := map[string]any{
-		"engagement_name": slug, "client": "Operator-attested direct scope",
-		"start_date": now.Format("2006-01-02"), "end_date": now.Format("2006-01-02"),
-		"engagement_type": "external", "testing_window": "Operator-confirmed current session",
-		"in_scope":                []map[string]string{{"target": target, "type": "auto"}},
-		"authorization_reference": reference,
-		"machine_enforcement":     map[string]any{"mode": "enforce", "in_scope": []string{target}},
-	}
-	data, err := json.MarshalIndent(roe, "", "  ")
-	if err != nil {
-		return err
-	}
-	data = append(data, '\n')
-	roePath := filepath.Join(root, "plan", "roe.json")
-	if err := os.WriteFile(roePath, data, 0o600); err != nil {
-		return err
-	}
-	if !approved {
-		return nil
-	}
-	digest := sha256.Sum256(data)
-	return os.WriteFile(filepath.Join(root, ".red-approved"), []byte("roe:"+hex.EncodeToString(digest[:])+"\n"), 0o600)
-}
-
-// promptNewSlug runs a one-shot huh form for the slug-input phase.
-func promptNewEngagement(home string) (string, string, string, string, error) {
+func promptNewEngagement(home string) (string, error) {
 	var slug string
-	mode := "red"
-	var target, authorizationReference string
-	var confirmed bool
 	form := huh.NewForm(
 		huh.NewGroup(
 			huh.NewInput().
@@ -547,29 +475,10 @@ func promptNewEngagement(home string) (string, string, string, string, error) {
 				Placeholder("e.g., acme-external-2026").
 				Value(&slug).
 				Validate(func(s string) error { return validateSlug(home, s) }),
-			huh.NewSelect[string]().Title("Mode").Options(
-				huh.NewOption("Red — direct authorized test", "red"),
-				huh.NewOption("Plan — Soundwave planning", "plan"),
-				huh.NewOption("Blue — defensive investigation", "blue"),
-			).Value(&mode),
-			huh.NewInput().Title("Target host, CIDR, or root URL").Value(&target),
-			huh.NewInput().Title("Authorization reference (Plan/Red)").Value(&authorizationReference),
-			huh.NewConfirm().Title("I am authorized to test this target").Value(&confirmed),
-		).Title("New engagement").Description("Create a scoped workspace and choose the initial mode"),
+		).Title("New engagement"),
 	).WithTheme(huh.ThemeFunc(ui.DecepticonTheme))
 	if err := form.Run(); err != nil {
-		return "", "", "", "", fmt.Errorf("engagement setup cancelled: %w", err)
+		return "", fmt.Errorf("engagement setup cancelled: %w", err)
 	}
-	if mode != "blue" && !confirmed {
-		return "", "", "", "", fmt.Errorf("Plan and Red require explicit authorization confirmation")
-	}
-	if mode != "blue" {
-		if err := validateDirectTarget(target); err != nil {
-			return "", "", "", "", err
-		}
-		if strings.TrimSpace(authorizationReference) == "" {
-			return "", "", "", "", fmt.Errorf("authorization reference is required")
-		}
-	}
-	return slug, mode, target, authorizationReference, nil
+	return slug, nil
 }

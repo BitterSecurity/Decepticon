@@ -1,11 +1,27 @@
 package engagement
 
 import (
+	"crypto/sha256"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 )
+
+func mkApprovedScope(t *testing.T, home, slug string) {
+	t.Helper()
+	mkPlan(t, home, slug)
+	root := filepath.Join(home, "workspace", slug)
+	roe := []byte(`{"in_scope":[{"target":"https://example.com"}],"authorization_reference":"signed contract 123"}`)
+	if err := os.WriteFile(filepath.Join(root, "plan", "roe.json"), roe, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	marker := fmt.Sprintf("roe:%x\n", sha256.Sum256(roe))
+	if err := os.WriteFile(filepath.Join(root, ".red-approved"), []byte(marker), 0o600); err != nil {
+		t.Fatal(err)
+	}
+}
 
 func mkPlan(t *testing.T, home, slug string, files ...string) {
 	t.Helper()
@@ -41,10 +57,7 @@ func TestScanEngagements_NoWorkspace(t *testing.T) {
 func TestScanEngagements_ApprovedAndUnapproved(t *testing.T) {
 	home := t.TempDir()
 
-	mkPlan(t, home, "alpha")
-	if err := writeDirectScope(filepath.Join(home, "workspace", "alpha"), "alpha", "example.com", "signed contract", true); err != nil {
-		t.Fatal(err)
-	}
+	mkApprovedScope(t, home, "alpha")
 	mkPlan(t, home, "bravo", "roe.json")
 	mkBareDir(t, home, "charlie")
 
@@ -98,10 +111,7 @@ func TestScanEngagements_ApprovedEngagementsBubbleUp(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	mkPlan(t, home, "old-ready")
-	if err := writeDirectScope(filepath.Join(home, "workspace", "old-ready"), "old-ready", "example.com", "signed contract", true); err != nil {
-		t.Fatal(err)
-	}
+	mkApprovedScope(t, home, "old-ready")
 	old := now.Add(-2 * time.Hour)
 	if err := os.Chtimes(
 		filepath.Join(home, "workspace", "old-ready", "plan", "roe.json"),
@@ -158,12 +168,7 @@ func TestIsRedApprovedRequiresMatchingBundle(t *testing.T) {
 func TestDirectScopePinsTargetAndRoE(t *testing.T) {
 	home := t.TempDir()
 	root := filepath.Join(home, "workspace", "direct")
-	if err := os.MkdirAll(filepath.Join(root, "plan"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := writeDirectScope(root, "direct", "https://example.com", "signed contract 123", true); err != nil {
-		t.Fatal(err)
-	}
+	mkApprovedScope(t, home, "direct")
 	if !isRedApproved(home, "direct") {
 		t.Fatal("direct approval was not recognized")
 	}
@@ -176,14 +181,6 @@ func TestDirectScopePinsTargetAndRoE(t *testing.T) {
 	}
 	if isRedApproved(home, "direct") {
 		t.Fatal("changed RoE retained approval")
-	}
-}
-
-func TestDirectTargetRejectsBroadOrUnsupportedScope(t *testing.T) {
-	for _, target := range []string{"", "*", "*.example.com", "https://example.com/admin", "https://example.com:8443", "example.com other.com"} {
-		if err := validateDirectTarget(target); err == nil {
-			t.Errorf("accepted %q", target)
-		}
 	}
 }
 
@@ -258,8 +255,7 @@ func TestPromptNewEngagement_CompletesWithNameOnly(t *testing.T) {
 	t.Cleanup(func() { os.Stdin = previousInput })
 
 	// When the new-engagement prompt consumes that single answer.
-	slug, _, _, _, err := promptNewEngagement(home)
-
+	slug, err := promptNewEngagement(home)
 	// Then creation can proceed without target or authorization answers.
 	if err != nil {
 		t.Fatalf("name-only setup failed: %v", err)
