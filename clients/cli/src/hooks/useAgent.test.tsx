@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { transferableAbortController } from "node:util";
 import { createServer } from "node:http";
 import { renderHook, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from "vitest";
@@ -549,7 +550,12 @@ describe("useAgent — engagement handoff lifecycle", () => {
     let cancellationSignal: AbortSignal | undefined;
     (mockState.client!.runs.cancel as Mock).mockImplementation((thread: string, run: string, wait: boolean, action: "interrupt", options: { signal: AbortSignal }) => {
       cancellationSignal = options.signal;
-      return client.runs.cancel(thread, run, wait, action, options);
+      // Node fetch requires its own AbortSignal rather than jsdom's signal.
+      const controller = transferableAbortController();
+      const abort = () => controller.abort(options.signal.reason);
+      options.signal.addEventListener("abort", abort, { once: true });
+      return client.runs.cancel(thread, run, wait, action, { signal: controller.signal })
+        .finally(() => options.signal.removeEventListener("abort", abort));
     });
     const stream = createControllableStream();
     (mockState.client!.runs.stream as Mock).mockReturnValueOnce(stream);
@@ -564,7 +570,7 @@ describe("useAgent — engagement handoff lifecycle", () => {
         await Promise.race([switching, new Promise<void>((resolve) => { deadline = setTimeout(resolve, 11_000); })]);
         clearTimeout(deadline);
       });
-      expect(requests).toBeGreaterThan(0);
+      expect(requests, result.current.error ?? "no hook error").toBeGreaterThan(0);
       expect(settled).toBe(true);
       expect(cancellationSignal?.aborted).toBe(true);
       expect(result.current.assistantId).toBe("soundwave");
