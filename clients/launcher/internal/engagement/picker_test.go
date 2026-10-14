@@ -264,3 +264,24 @@ func TestPromptNewEngagement_CompletesWithNameOnly(t *testing.T) {
 		t.Fatalf("engagement = %q, want name-only-test", slug)
 	}
 }
+
+func TestPromptNewEngagement_RejectsEndOfInputBeforeName(t *testing.T) {
+	// Given an accessible terminal whose input closes before a name is entered.
+	home := t.TempDir()
+	t.Setenv("TERM", "dumb")
+	input, err := os.Open(os.DevNull)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer input.Close()
+	previousInput := os.Stdin
+	os.Stdin = input
+	t.Cleanup(func() { os.Stdin = previousInput })
+
+	// When the form reaches EOF without a name.
+	_, err = promptNewEngagement(home)
+	// Then it must not create an engagement at the workspace root.
+	if err == nil {
+		t.Fatal("accepted EOF without an engagement name")
+	}
+}
