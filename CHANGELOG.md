@@ -12,6 +12,12 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+### Fixed
+
+- Ask only for an engagement name in the CLI launcher, then open a planning
+  session. Target, mode and authorization-reference fields no longer block
+  creation; existing engagement scopes remain resumable.
+
 ## [1.4.2] — 2026-10-14
 
 ### Fixed
