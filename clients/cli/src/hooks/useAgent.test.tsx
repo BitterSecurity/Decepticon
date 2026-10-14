@@ -495,7 +495,7 @@ describe("useAgent — engagement handoff lifecycle", () => {
     let finishCreate = (_thread: { thread_id: string }) => {};
     (mockState.client!.threads.create as Mock).mockImplementationOnce(() => new Promise((resolve) => { finishCreate = resolve; }));
     const { result } = renderHook(() => useAgent());
-    act(() => result.current.submit("plan"));
+    await act(async () => { result.current.submit("plan"); });
     await act(async () => { await result.current.selectAssistant("decepticon"); });
     await act(async () => { finishCreate({ thread_id: "old-thread" }); await vi.runAllTimersAsync(); });
     act(() => result.current.submit("red"));
@@ -601,6 +601,27 @@ describe("useAgent — engagement handoff lifecycle", () => {
     await act(async () => { await vi.runAllTimersAsync(); });
     expect(mockState.client!.runs.stream).toHaveBeenCalledTimes(1);
     expect(result.current.error).toContain("Red scope changed");
+    expect(result.current.activeQuestion).toEqual(question);
+    expect(result.current.runState).toBe("paused");
+  });
+
+  it.each(["resume", "answerQuestion"] as const)("%s preserves the Blue question when the sensor disconnects", async (method) => {
+    const blue = await import("../commands/blue.js");
+    const readiness = vi.spyOn(blue, "blueMonitorReady").mockResolvedValueOnce(true);
+    (mockState.client!.runs.stream as Mock).mockReturnValueOnce(createMockStream([
+      { event: "metadata", data: { run_id: "blue-question-run" } },
+      { event: "custom", data: { type: "ask_user_question", question: "Inspect?", id: "blue-question" } },
+    ]));
+    const { result } = renderHook(() => useAgent());
+    await act(async () => { await result.current.selectAssistant("blue_cell"); });
+    act(() => result.current.submit("inspect telemetry"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    const question = result.current.activeQuestion;
+    readiness.mockResolvedValueOnce(false);
+    act(() => result.current[method]("yes"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    expect(mockState.client!.runs.stream).toHaveBeenCalledTimes(1);
+    expect(result.current.error).not.toBeNull();
     expect(result.current.activeQuestion).toEqual(question);
     expect(result.current.runState).toBe("paused");
   });
