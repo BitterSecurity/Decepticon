@@ -113,6 +113,10 @@ func networkRecoveryProcess(args []string) int {
 			if os.Getenv("DECEPTICON_WORKSPACE_HOST") != "fixture-workspace" {
 				return 96
 			}
+			if scenario == "service diagnostic" {
+				fmt.Fprintf(os.Stderr, "healthcheck failed: backend says network %s not found\n", firstNetworkID)
+				return 1
+			}
 			if scenario == "unrelated" {
 				fmt.Fprintln(os.Stderr, "database healthcheck failed")
 				return 1
@@ -158,6 +162,7 @@ func TestUpRecoversOnlyMissingManagedDockerNetworks(t *testing.T) {
 		{"remove failure", "docker", 1, []string{firstNetworkID}, true, false},
 		{"repeated", "docker", 2, []string{firstNetworkID}, true, false},
 		{"unrelated", "docker", 1, nil, true, false},
+		{"service diagnostic", "docker", 1, nil, true, false},
 		{"two", "podman", 1, nil, true, false},
 		{"two", "docker", 3, []string{firstNetworkID, secondNetworkID}, false, true},
 		{"budget", "docker", 3, []string{strings.Repeat("1", 64), strings.Repeat("2", 64)}, true, false},
