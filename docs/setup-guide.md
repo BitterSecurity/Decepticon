@@ -843,7 +843,8 @@ Once running, you have:
 
 ```bash
 # Decepticon shows the engagement picker after launch
-# Select "New engagement", enter a target and authorization reference, then choose Red, Plan, or Blue
+# Select "New engagement" and enter only its name
+# Inside the session, use /mode plan, /mode red, or /mode blue
 ```
 
 **Option B — Web Dashboard:**
@@ -855,9 +856,10 @@ Once running, you have:
 
 ### Step 6: Optional Soundwave Plan
 
-Red starts directly with a machine-enforced RoE for the confirmed target. In
-Plan mode, Soundwave conducts a structured interview to generate the full
-engagement package:
+The CLI opens a new engagement in Plan mode, where Soundwave gathers target
+and scope through conversation. The web dashboard can also create a direct
+authorized RoE from its setup form. Soundwave's planning interview generates
+the engagement package:
 
 ```
 Questions you'll answer:
