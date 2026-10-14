@@ -626,6 +626,27 @@ describe("useAgent — engagement handoff lifecycle", () => {
     expect(result.current.runState).toBe("paused");
   });
 
+  it("switches during resume preparation without cancelling the old paused run", async () => {
+    (mockState.client!.runs.stream as Mock).mockReturnValueOnce(createMockStream([
+      { event: "metadata", data: { run_id: "paused-run" } },
+      { event: "custom", data: { type: "ask_user_question", question: "Continue?", id: "paused-question" } },
+    ]));
+    const { result } = renderHook(() => useAgent());
+    act(() => result.current.submit("plan"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    let finishState = (_state: { values: object }) => {};
+    (mockState.client!.threads.getState as Mock).mockImplementationOnce(() => new Promise((resolve) => { finishState = resolve; }));
+    await act(async () => { result.current.resume("yes"); });
+    await act(async () => { await result.current.selectAssistant("blue_cell"); });
+    expect(mockState.client!.runs.cancel).not.toHaveBeenCalled();
+    await act(async () => { finishState({ values: {} }); });
+    expect(result.current.assistantId).toBe("blue_cell");
+    expect(mockState.client!.runs.stream).toHaveBeenCalledTimes(1);
+    await act(async () => { await result.current.selectAssistant("soundwave"); });
+    expect(result.current.runState).toBe("paused");
+    expect(result.current.activeQuestion?.sourceId).toBe("paused-question");
+  });
+
   it("recovers after thread creation retries are exhausted", async () => {
     const mc = mockState.client!;
     const createThread = mc.threads.create as Mock;
