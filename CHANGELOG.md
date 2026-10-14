@@ -12,15 +12,27 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+## [1.4.3] — 2026-10-14
+
 ### Fixed
 
 - Ask only for an engagement name in the CLI launcher, then open a planning
   session. Target, mode and authorization-reference fields no longer block
   creation; existing engagement scopes remain resumable.
+  ([#963](https://github.com/BitterSecurity/Decepticon/pull/963))
 - Allow Plan, Red and Blue conversations to be selected during a CLI run,
   preserving each mode's thread, pending question and paused checkpoint. Keep
   execution prerequisites separate from mode selection, and bound server pause
   acknowledgment to 10 seconds without switching on failure.
+  ([#964](https://github.com/BitterSecurity/Decepticon/pull/964))
+
+### Upgrade notes
+
+- Run `decepticon update --channel latest` to install this patch. New CLI
+  engagements open Plan; select `/mode plan`, `/mode red` or `/mode blue`
+  during the session. Actual Red operations require a currently approved scope
+  (`/mode red approve`); Blue investigation requires a connected local sensor.
+  Existing engagement data and database credentials do not need to be recreated.
 
 ## [1.4.2] — 2026-10-14
 
@@ -1101,7 +1113,8 @@ The following legacy import paths keep working but emit a
   atomic release.
 - Downstream plugin package lockstep migration.
 
-[Unreleased]: https://github.com/BitterSecurity/Decepticon/compare/v1.4.2...HEAD
+[Unreleased]: https://github.com/BitterSecurity/Decepticon/compare/v1.4.3...HEAD
+[1.4.3]: https://github.com/BitterSecurity/Decepticon/compare/v1.4.2...v1.4.3
 [1.4.2]: https://github.com/BitterSecurity/Decepticon/compare/v1.4.1...v1.4.2
 [1.4.1]: https://github.com/BitterSecurity/Decepticon/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/BitterSecurity/Decepticon/compare/v1.3.1...v1.4.0
