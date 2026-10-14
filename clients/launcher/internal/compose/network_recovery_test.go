@@ -203,6 +203,9 @@ func TestUpRecoversOnlyMissingManagedDockerNetworks(t *testing.T) {
 					removed = append(removed, args[2])
 				}
 				for _, arg := range args {
+					if (tc.scenario == "service diagnostic" || tc.scenario == "unrelated" || tc.runtime != "docker") && (arg == "config" || arg == "network") {
+						t.Fatalf("unrelated failure triggered recovery: %v", args)
+					}
 					if arg == "config" && !tc.databases && !strings.Contains(strings.Join(args, " "), "--profile cli") {
 						t.Fatalf("config lost selected profile: %v", args)
 					}

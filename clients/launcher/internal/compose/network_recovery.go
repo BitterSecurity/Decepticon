@@ -13,7 +13,7 @@ import (
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/opscontrol"
 )
 
-var missingNetwork = regexp.MustCompile(`\bnetwork ([0-9a-f]{64}) (?:not found|does not exist)\b`)
+var missingNetwork = regexp.MustCompile(`(?m)^Error response from daemon: [^\r\n]*\bnetwork ([0-9a-f]{64}) (?:not found|does not exist)\r?$`)
 
 var absentNetwork = regexp.MustCompile(`(?m)^Error response from daemon: network ([0-9a-f]{64}) not found\r?$`)
 
