@@ -159,3 +159,15 @@ def test_atif_export_preserves_tool_calls_and_observations(tmp_path: Path) -> No
         "source_call_id": "call-1",
         "content": "created",
     }
+
+
+def test_service_unit_has_no_destructive_prestart_hook() -> None:
+    """Regression for #983: a prior revision's ExecStartPre unlinked a host
+    swap file (/mnt/c/wsl-swap.vhdx) whenever a second file on another drive
+    happened to exist — a condition that doesn't establish the target file is
+    safe to delete. This unit must never run host filesystem mutations before
+    the benchmark starts."""
+    unit = Path(__file__).parents[5] / "benchmark/terminal_bench/decepticon-terminal-bench.service"
+    content = unit.read_text()
+    for banned in ("ExecStartPre", "unlink", "rm ", "rm -"):
+        assert banned not in content, f"found banned token {banned!r} in {unit}"

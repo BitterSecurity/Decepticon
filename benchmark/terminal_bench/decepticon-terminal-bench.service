@@ -1,13 +1,19 @@
+# Template systemd unit for `make terminal-bench-full` (see run_full.sh).
+# Not installed by any Makefile target or installer — copy this to
+# ~/.config/systemd/user/ (or /etc/systemd/system/ for a system unit) and
+# replace the placeholder paths below with your own checkout before use.
+# `run_full.sh` only needs this unit for unattended/resumable background
+# runs; `make terminal-bench-full` invokes it directly without systemd.
+
 [Unit]
 Description=Resumable Decepticon Terminal-Bench 2.1 run
 StartLimitIntervalSec=0
 
 [Service]
 Type=simple
-WorkingDirectory=/home/catow/GIT/decepticon_new
-Environment=PATH=/home/catow/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-ExecStartPre=/usr/bin/bash -c 'if test -f /mnt/d/wsl-swap.vhdx && test -f /mnt/c/wsl-swap.vhdx; then /usr/bin/unlink /mnt/c/wsl-swap.vhdx; fi'
-ExecStart=/home/catow/GIT/decepticon_new/benchmark/terminal_bench/run_full.sh
+WorkingDirectory=/path/to/decepticon
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ExecStart=/path/to/decepticon/benchmark/terminal_bench/run_full.sh
 Restart=on-failure
 RestartSec=30
 MemoryMax=4G
