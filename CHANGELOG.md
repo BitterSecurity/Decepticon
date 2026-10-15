@@ -12,6 +12,11 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+### Fixed
+
+- Expect the unauthorized call to revert in generated Foundry access-control tests.
+  ([#991](https://github.com/BitterSecurity/Decepticon/pull/991))
+
 ## [1.4.4] — 2026-10-14
 
 ### Fixed
