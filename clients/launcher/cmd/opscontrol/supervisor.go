@@ -22,6 +22,14 @@ import (
 // "release.yml manifest must list every config file" failure mode
 // (which caused the v1.1.10 upgrade warning) into a single binary —
 // the overlay is now versioned in lockstep with the launcher.
+//
+// Short-form `source:target` syntax is deliberate, not a style choice:
+// Docker Desktop on macOS only starts its host-socket forwarder
+// (`/socket_mnt/...`) for short-form `-v`-style bind mounts. The
+// long-form `type: bind` + `bind.create_host_path: false` entry this
+// used to be prechecks `/socket_mnt/...` for existence *before* the
+// forwarder gets a chance to start, so container creation fails with
+// "bind source path does not exist" on a cold boot (#972, #971).
 const composeOverlayBody = `# docker-compose.opscontrol.yml — LAUNCHER-MANAGED runtime overlay (ADR-0006).
 # Do NOT hand-edit. The launcher rewrites this file on every ` + "`decepticon start`" + `
 # (cmd/opscontrol/supervisor.go:writeComposeOverlay) so any manual edits are
@@ -31,16 +39,14 @@ const composeOverlayBody = `# docker-compose.opscontrol.yml — LAUNCHER-MANAGED
 # time. There is no '/dev/null' fallback: a missing socket path means
 # the daemon wiring is broken, and we'd rather fail at boot than mount
 # a character device into the container and surface ECONNREFUSED
-# mid-engagement.
+# mid-engagement. EnsureRunning (and compose.go's ArgsFor) only attach
+# this overlay once the env var is exported and non-empty, so that
+# guarantee lives at the call site, not in the mount syntax below.
 
 services:
   langgraph:
     volumes:
-      - type: bind
-        source: ${DECEPTICON_OPSCONTROL_SOCK_HOST}
-        target: /var/run/decepticon-ops.sock
-        bind:
-          create_host_path: false
+      - ${DECEPTICON_OPSCONTROL_SOCK_HOST}:/var/run/decepticon-ops.sock
 `
 
 // writeComposeOverlay materializes the launcher-managed compose overlay

@@ -18,11 +18,18 @@ func TestComposeOverlayRequiresExistingSocket(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, required := range []string{
-		"type: bind", "source: ${DECEPTICON_OPSCONTROL_SOCK_HOST}",
-		"target: /var/run/decepticon-ops.sock", "create_host_path: false",
+		"${DECEPTICON_OPSCONTROL_SOCK_HOST}:/var/run/decepticon-ops.sock",
 	} {
 		if !strings.Contains(string(body), required) {
 			t.Errorf("socket overlay missing %q: %s", required, body)
+		}
+	}
+	// Long-form `type: bind` + `create_host_path: false` broke Docker
+	// Desktop's macOS host-socket forwarder (#972, #971): it prechecks
+	// `/socket_mnt/...` before the forwarder starts. Short-form is required.
+	for _, forbidden := range []string{"type: bind", "create_host_path"} {
+		if strings.Contains(string(body), forbidden) {
+			t.Errorf("socket overlay must use short-form mount syntax, found %q: %s", forbidden, body)
 		}
 	}
 }
