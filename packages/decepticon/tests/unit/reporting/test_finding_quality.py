@@ -158,3 +158,19 @@ def test_runtime_injected_through_toolnode_graph(tmp_path):
     )
     result = graph.invoke({"messages": [call], "workspace_path": "/workspace"})
     assert json.loads(result["messages"][-1].content) == {"valid": True, "errors": []}
+
+
+def test_model_visible_description_documents_the_relative_path_contract():
+    """The exposed description must say the path is engagement-relative.
+
+    Regression (#957): the description previously only said "Check a
+    canonical finding's verdict, CVSS math, sections and evidence paths" —
+    nothing distinguished the required `findings/FIND-NNN.md` form from the
+    `/workspace/...` virtual paths other filesystem tools accept, so a
+    caller could plausibly pass the wrong form and only discover the
+    mismatch from an invalid-call error.
+    """
+    quality_tool = build_finding_quality_tool(None)
+    description = quality_tool.description
+    assert "findings/FIND-" in description
+    assert "/workspace/" in description and "not" in description.lower()

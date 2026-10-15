@@ -113,7 +113,16 @@ def build_finding_quality_tool(backend: Any) -> BaseTool:
 
     @tool
     def check_finding_report(path: str, runtime: ToolRuntime) -> str:
-        """Check a canonical finding's verdict, CVSS math, sections and evidence paths."""
+        """Check a canonical finding's verdict, CVSS math, sections and evidence paths.
+
+        Args:
+            path: Engagement-relative path, always ``findings/FIND-NNN.md``
+                (e.g. ``findings/FIND-001.md``). Do NOT use the
+                ``/workspace/...`` form other filesystem tools accept, and
+                do not include the engagement directory, a leading slash,
+                or ``..`` segments — this path is validated as-is and any
+                of those forms is rejected.
+        """
         scoped = EngagementFilesystemBackend(backend, runtime.state.get("workspace_path"))
         result = scoped.read(f"/workspace/{path}", limit=10_000)
         if result.error or result.file_data is None:
