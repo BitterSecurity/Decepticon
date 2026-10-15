@@ -35,6 +35,10 @@ interface Finding {
   cwe?: string[];
   mitre?: string[];
   remediation?: string;
+  resultKind?: string;
+  verificationStatus?: string;
+  verificationRationale?: string;
+  reportStatus?: string;
 }
 
 const severityColors: Record<string, string> = {
@@ -43,6 +47,7 @@ const severityColors: Record<string, string> = {
   medium: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
   low: "bg-blue-500/10 text-blue-400 border-blue-500/20",
   informational: "bg-slate-500/10 text-slate-400 border-slate-500/20",
+  unspecified: "bg-slate-500/10 text-slate-400 border-slate-500/20",
 };
 
 const severityOrder: Record<string, number> = {
@@ -51,6 +56,13 @@ const severityOrder: Record<string, number> = {
   medium: 2,
   low: 3,
   informational: 4,
+  unspecified: 5,
+};
+
+const verificationColors: Record<string, string> = {
+  verified: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+  false_positive: "bg-slate-500/10 text-slate-400 border-slate-500/20 line-through",
+  unverified: "bg-amber-500/10 text-amber-400 border-amber-500/20",
 };
 
 export default function FindingsPage() {
@@ -125,6 +137,27 @@ export default function FindingsPage() {
                 CVSS {selectedFinding.cvssScore.toFixed(1)}
               </Badge>
             )}
+            {selectedFinding.resultKind && selectedFinding.resultKind !== "vulnerability" && (
+              <Badge variant="outline" className="text-xs capitalize">
+                {selectedFinding.resultKind.replace(/_/g, " ")}
+              </Badge>
+            )}
+            {selectedFinding.verificationStatus && (
+              <Badge
+                variant="outline"
+                className={verificationColors[selectedFinding.verificationStatus] ?? ""}
+              >
+                {selectedFinding.verificationStatus.replace(/_/g, " ")}
+              </Badge>
+            )}
+            {selectedFinding.reportStatus && (
+              <Badge
+                variant={selectedFinding.reportStatus === "complete" ? "secondary" : "outline"}
+                className="text-xs capitalize"
+              >
+                report: {selectedFinding.reportStatus}
+              </Badge>
+            )}
             {selectedFinding.cwe?.map((c) => (
               <Badge key={c} variant="secondary" className="text-[10px] font-mono">{c}</Badge>
             ))}
@@ -138,6 +171,17 @@ export default function FindingsPage() {
           <div className="rounded-lg border border-border/50 bg-muted/30 px-4 py-2">
             <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">CVSS Vector</span>
             <p className="mt-0.5 font-mono text-xs text-muted-foreground">{selectedFinding.cvssVector}</p>
+          </div>
+        )}
+
+        {selectedFinding.verificationRationale && (
+          <div className="rounded-lg border border-border/50 bg-muted/30 px-4 py-2">
+            <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+              Verification Rationale
+            </span>
+            <p className="mt-0.5 whitespace-pre-wrap text-xs text-muted-foreground">
+              {selectedFinding.verificationRationale}
+            </p>
           </div>
         )}
 
@@ -232,6 +276,7 @@ export default function FindingsPage() {
             <SelectItem value="medium">Medium</SelectItem>
             <SelectItem value="low">Low</SelectItem>
             <SelectItem value="informational">Informational</SelectItem>
+            <SelectItem value="unspecified">Unspecified</SelectItem>
           </SelectContent>
         </Select>
       </div>
