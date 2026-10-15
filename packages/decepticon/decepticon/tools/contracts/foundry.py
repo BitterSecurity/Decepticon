@@ -97,7 +97,8 @@ contract Test_AccessControl is Test {{
     function test_unauthorised_call_reverts() public {{
         vm.startPrank(ATTACKER);
         // EXPECTATION: call should revert with access-control error.
-        // If this passes without reverting, the function is missing protection.
+        // Fail if the unauthorised call succeeds.
+        vm.expectRevert();
         target.{function}();
         vm.stopPrank();
     }}
