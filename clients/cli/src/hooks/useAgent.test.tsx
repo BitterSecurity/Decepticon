@@ -112,6 +112,39 @@ describe("useAgent — engagement handoff lifecycle", () => {
     },
   );
 
+  it.each(["resume", "answerQuestion"] as const)(
+    "%s carries engagement context in config.configurable, same as the initial submit (#973)", async (method) => {
+      const stream = mockState.client!.runs.stream as Mock;
+      const { result } = renderHook(() => useAgent());
+
+      const pausedStream = createControllableStream();
+      stream.mockReturnValueOnce(pausedStream);
+      act(() => result.current.submit("hello"));
+      await act(async () => { await vi.runAllTimersAsync(); });
+      await act(async () => {
+        await pausedStream.emit({
+          event: "custom", data: { type: "ask_user_question", question: "Continue?" },
+        });
+      });
+      await act(async () => { pausedStream.end(); await vi.runAllTimersAsync(); });
+      expect(result.current.runState).toBe("paused");
+
+      act(() => result.current[method]("yes"));
+      await act(async () => { await vi.runAllTimersAsync(); });
+
+      const resumeCall = stream.mock.calls.at(-1)?.[2] as Record<string, unknown>;
+      const configurable = (resumeCall.config as Record<string, unknown> | undefined)
+        ?.configurable as Record<string, unknown> | undefined;
+      expect(configurable).toMatchObject({
+        engagement_name: "eng-abc",
+        workspace_path: "/tmp/ws",
+        target_type: "web_url",
+        target_value: "https://target.example",
+        authorization_confirmed: true,
+      });
+    },
+  );
+
   it.each([
     [{ finish_reason: "length" }, "output token limit"],
     [{ stop_reason: "max_tokens" }, "output token limit"],

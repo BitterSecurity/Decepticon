@@ -29,6 +29,30 @@ import { getAssistantOverride } from "../commands/assistantOverride.js";
 import { blueMonitorReady } from "../commands/blue.js";
 import { assertRedApproved } from "../commands/planMode.js";
 
+// Engagement/workspace/target configuration, read fresh on every submit,
+// structured-answer and resume request so all three agree on the same
+// runtime workspace defaults — a stale copy on any one path can resume a
+// planning interview against the wrong workspace (#973). Model selection
+// goes through the declared `model_override` graph input channel instead,
+// since it must survive checkpointing rather than reset per request.
+function buildConfigurable(): Record<string, unknown> | undefined {
+  const configurable: Record<string, unknown> = {};
+  const slug = process.env.DECEPTICON_ENGAGEMENT;
+  if (slug) {
+    configurable.engagement_name = slug;
+    configurable.workspace_path =
+      process.env.DECEPTICON_WORKSPACE_PATH ?? "/workspace";
+  }
+  const targetValue = process.env.DECEPTICON_TARGET;
+  if (targetValue) {
+    configurable.target_value = targetValue;
+    configurable.target_type = process.env.DECEPTICON_TARGET_TYPE ?? "";
+    configurable.authorization_confirmed =
+      process.env.DECEPTICON_AUTHORIZATION_CONFIRMED === "true";
+  }
+  return Object.keys(configurable).length > 0 ? configurable : undefined;
+}
+
 interface LangChainMessage {
   type: string; // "human", "ai", "tool"
   name?: string; // tool name (on ToolMessage)
@@ -906,22 +930,8 @@ export function useAgent({
           model_override: getModelOverride(),
         };
 
-        const configurable: Record<string, unknown> = {};
-        const slug = process.env.DECEPTICON_ENGAGEMENT;
-        if (slug) {
-          configurable.engagement_name = slug;
-          configurable.workspace_path =
-            process.env.DECEPTICON_WORKSPACE_PATH ?? "/workspace";
-        }
-        const targetValue = process.env.DECEPTICON_TARGET;
-        if (targetValue) {
-          configurable.target_value = targetValue;
-          configurable.target_type = process.env.DECEPTICON_TARGET_TYPE ?? "";
-          configurable.authorization_confirmed =
-            process.env.DECEPTICON_AUTHORIZATION_CONFIRMED === "true";
-        }
-        const hasConfigurable = Object.keys(configurable).length > 0;
-        const streamConfig = hasConfigurable ? { configurable } : undefined;
+        const configurable = buildConfigurable();
+        const streamConfig = configurable ? { configurable } : undefined;
 
         try {
           const stream = client.runs.stream(
@@ -1028,11 +1038,13 @@ export function useAgent({
         });
 
         try {
+          const configurable = buildConfigurable();
           const stream = client.runs.stream(
             threadIdRef.current!,
             threadAssistantRef.current,
             {
               command: { resume: value, update: { model_override: getModelOverride() } },
+              ...(configurable ? { config: { configurable } } : {}),
               ...STREAM_OPTIONS,
               onDisconnect: "continue",
               signal: abortController.signal,
@@ -1092,11 +1104,13 @@ export function useAgent({
           setStreamStats({ startTime: Date.now(), totalTokens: 0, promptTokens: 0, completionTokens: 0 });
 
           try {
+            const configurable = buildConfigurable();
             const stream = client.runs.stream(
               threadIdRef.current!,
               threadAssistantRef.current,
               {
                 command: { resume: value ?? true, update: { model_override: getModelOverride() } },
+                ...(configurable ? { config: { configurable } } : {}),
                 ...STREAM_OPTIONS,
                 onDisconnect: "continue",
                 signal: abortController.signal,
