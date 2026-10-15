@@ -40,66 +40,50 @@ def _runtime_query(cypher: str) -> Query:
     return Query(cast(LiteralString, cypher), timeout=_RUNTIME_QUERY_TIMEOUT_SECONDS)
 
 
-_SEARCH_FIELDS: tuple[tuple[str, int], ...] = (
-    ("name", 10),
-    ("when_to_use", 8),
-    ("tags_raw", 6),
-    ("subdomain", 5),
-    ("description", 4),
-    ("allowed_tools", 3),
-    ("mitre_attack_raw", 3),
-    ("body", 1),
-)
-_SEARCH_TERMS_RE = re.compile(r"[^\W_][\w./+#-]*", flags=re.UNICODE)
-_SEARCH_STOP_TERMS = frozenset(
-    {
-        "a",
-        "an",
-        "and",
-        "are",
-        "be",
-        "by",
-        "for",
-        "from",
-        "how",
-        "in",
-        "is",
-        "it",
-        "of",
-        "on",
-        "or",
-        "the",
-        "to",
-        "with",
-    }
-)
+# ── Free-text query preparation for the term-search leg ─────────────────────
+#
+# Tokenisation, stemming and term weighting are the full-text index's job, not
+# ours. Lucene's BM25 derives every term's weight from its DOCUMENT FREQUENCY in
+# this corpus: a term in almost every skill (function words in any language,
+# and corpus-universal nouns like "target" or "step") gets a near-zero IDF and
+# stops mattering, while a term in three skills ("lsass", "kerberoast")
+# dominates. That is measured from the data on every query.
+#
+# The alternative — an enumerated stopword list plus hand-picked per-field
+# weights — is a guess that has to be maintained per language, and this corpus
+# is queried by agents operating in many. Do not reintroduce one.
+#
+# All we do here is make an arbitrary string safe to hand to Lucene.
 _LUCENE_RESERVED = r'+-&|!(){}[]^"~*?:\/'
 _LUCENE_ESCAPE_RE = re.compile("([" + re.escape(_LUCENE_RESERVED) + "])")
 
+# The indexed corpus (name / description / when_to_use) is English, and a Lucene
+# analyzer applies to indexing and querying alike, so a query with no Latin
+# letters at all cannot match anything — a Korean or Japanese intent scores 0
+# against every skill. We detect that up front and say so, because the failure
+# mode otherwise is an empty result set that reads like "no such skill exists".
+_LATIN_LETTER_RE = re.compile(r"[A-Za-z]")
+
 
 def _lucene_query(query: str | None) -> str:
-    if not query:
-        return ""
-    terms = tuple(
-        dict.fromkeys(
-            term
-            for match in _SEARCH_TERMS_RE.finditer(query.casefold())
-            if (term := match.group().strip(".-/+#"))
-            and len(term) >= 2
-            and term not in _SEARCH_STOP_TERMS
-        )
-    )[:16]
-    if not terms:
-        return ""
-    return " OR ".join(
-        f"{field}:{_escape_lucene(term)}^{boost}"
-        for field, boost in _SEARCH_FIELDS
-        for term in terms
-    )
+    """Escape a free-text query into a Lucene term expression.
 
+    Every reserved character is escaped to its literal form, so a query keeps
+    the tokens an agent actually meant — ``port-scan`` stays one hyphenated
+    term instead of becoming a NOT clause, ``T1558.003`` survives intact, and a
+    stray quote cannot throw a parse error mid-engagement. Tokens are then
+    OR-combined by the index's default operator, and BM25 ranks by how many
+    high-IDF terms a skill matched.
 
-def _escape_lucene(term: str) -> str:
-    return _LUCENE_ESCAPE_RE.sub(r"\\\1", term)
+    Returns ``""`` when there is nothing searchable — blank, or with no Latin
+    letters at all (see ``_LATIN_LETTER_RE``). A mixed-script query keeps its
+    Latin tokens and is searched on those.
+    """
+    if not query or not query.strip():
+        return ""
+    if not _LATIN_LETTER_RE.search(query):
+        return ""
+    return _LUCENE_ESCAPE_RE.sub(r"\\\1", query.strip())
 
 
 # Write-mode Cypher keywords we refuse to forward, even though the
@@ -267,20 +251,42 @@ class Neo4jBackend:
         self._vector_ready_dim = int(dim)
 
     # Native Neo4j full-text (Lucene/BM25) index backing the term-search leg.
+    # Unlike the vector index this has no external dependency — no proxy, no
+    # API key, no cost — so it is ensured on every boot regardless of whether
+    # embeddings are configured, and term search is always available.
     FULLTEXT_INDEX_NAME = "skill_text"
 
+    # Analyzer default. This is a property OF THE CORPUS, not of the operator:
+    # the indexed fields (name / description / when_to_use) are English, and a
+    # Lucene analyzer applies to indexing and querying alike, so the corpus's
+    # language decides it. Measured against the live 311-skill graph, `english`
+    # is >= `standard` on every probe and strictly better where stemming
+    # matters, because the corpus writes the gerund and agents type the stem:
+    #
+    #   query                              standard              english
+    #   "kerberoast"                       kerberoasting ABSENT  kerberoasting 5.78 (top)
+    #   "credentials dumping"              credential-access 4.6 credential-access 9.2
+    #   "kerberoast kerberos TGS ticket"   kerberoasting 18.3    kerberoasting 26.4
+    #   "lsass dump credential memory"     credential-access 12.5 credential-access 14.4
+    #   "active-recon"                     active-recon 8.6      active-recon 8.4
+    #
+    # Override with DECEPTICON_SKILLOGY_FULLTEXT_ANALYZER when a deployment's
+    # corpus is not English (`SHOW db.index.fulltext.listAvailableAnalyzers`
+    # offers ~45, including `cjk` and per-language stemmers).
     DEFAULT_FULLTEXT_ANALYZER = "english"
 
     def ensure_fulltext_index(self) -> None:
         """Create the ``:Skill`` full-text index if absent (idempotent).
 
-        Indexes the Skill metadata and body fields used by the SaaS search
-        router. Query-time boosts favor names and curated trigger vocabulary;
-        body text supplies low-weight recall.
+        Indexes the same three fields the embedding input uses — name,
+        description, when_to_use — so a term query reaches the corpus's curated
+        trigger vocabulary. ``body`` is excluded for the same reason it is
+        excluded from the embedding input: it is long prose and dilutes ranking.
 
         NOTE ON CHANGING THE ANALYZER: ``IF NOT EXISTS`` matches on the index's
         SCHEMA (label + properties), not its name, so once an index exists this
-        call is a no-op and a changed analyzer is silently ignored.
+        call is a no-op and a changed analyzer is silently ignored — the same
+        trap as changing embedding dimensions against ``ensure_vector_index``.
         We detect that case and warn rather than dropping the operator's index
         out from under them; applying it needs an explicit
         ``DROP INDEX skill_text`` followed by a restart.
@@ -322,10 +328,9 @@ class Neo4jBackend:
         options = (
             f"OPTIONS {{indexConfig: {{`fulltext.analyzer`: '{analyzer}'}}}}" if analyzer else ""
         )
-        properties = ", ".join(f"s.{field}" for field, _ in _SEARCH_FIELDS)
         cypher = (
             f"CREATE FULLTEXT INDEX {self.FULLTEXT_INDEX_NAME} IF NOT EXISTS "
-            f"FOR (s:Skill) ON EACH [{properties}] "
+            "FOR (s:Skill) ON EACH [s.name, s.description, s.when_to_use] "
             f"{options}"
         ).strip()
         with self._driver.session(database=self._database) as session:
@@ -579,11 +584,28 @@ class Neo4jBackend:
             acl_clause = "ANY(p IN $allowed_path_prefixes WHERE s.path STARTS WITH p)"
             shared["allowed_path_prefixes"] = list(allowed_path_prefixes)
 
+        # Validate against what the term leg can ACTUALLY search, not merely
+        # whether ``query`` is truthy: a whitespace-only or non-Latin query is
+        # unusable, and treating it as present used to fall through to a
+        # structured-only path with no filters (invalid Cypher) or, worse, quietly
+        # return arbitrary skills as if the query had matched them.
         if not _lucene_query(query) and not structured:
+            if query and query.strip():
+                raise ValueError(
+                    "query has no searchable English terms. The skill corpus — names, "
+                    "descriptions and when_to_use trigger lists — is English, so a "
+                    "non-English query matches nothing. Re-issue with English domain "
+                    "vocabulary, e.g. 'lsass dump credential memory minidump'."
+                )
             raise ValueError(
                 "find_skill requires at least one of: query, subdomain, mitre_id, tag, tactic_id"
             )
 
+        # Whether the term leg can actually run. A query that is blank or has no
+        # Latin letters is unusable, and ``matched_by`` must say so: labelling
+        # such a call ``["lexical"]`` claims term matching contributed to the
+        # ranking when only the structured filters did, which is precisely the
+        # misleading signal ``matched_by`` exists to prevent.
         searchable = bool(_lucene_query(query))
 
         lexical = self._find_lexical(query, structured, acl_clause, shared, cand_n)
@@ -635,9 +657,14 @@ class Neo4jBackend:
     ) -> list[dict[str, Any]]:
         """Full-text (BM25) + structured leg, relevance-ordered.
 
-        Free text goes to the ``skill_text`` full-text index over the Skill
-        metadata and body fields. Lucene applies analyzer matching and BM25;
-        query-time field boosts prioritize names and usage triggers.
+        Free text goes to the ``skill_text`` full-text index over name /
+        description / when_to_use, so Lucene owns tokenisation, stemming and
+        term weighting, and BM25 derives each term's weight from its document
+        frequency IN THIS CORPUS. Nothing about the ranking is hand-tuned:
+        function words sink because they are everywhere, ``lsass`` floats
+        because it is in three skills. That also means it needs no per-language
+        stopword list, which matters because agents query this corpus in many
+        languages.
 
         This replaced a whole-query ``CONTAINS`` predicate. That clause matched
         the ENTIRE query string as one substring, so any multi-word query — i.e.
@@ -684,10 +711,13 @@ class Neo4jBackend:
         post_filters = list(structured)
         if acl_clause:
             post_filters.append(acl_clause)
-        params.update({"index_name": self.FULLTEXT_INDEX_NAME, "lucene": lucene})
+        # Widen the fetch when filters will drop rows, same rationale as the
+        # vector leg. Bounded by the corpus size in practice.
+        k = min(cand_n * 5, 500) if post_filters else cand_n
+        params.update({"index_name": self.FULLTEXT_INDEX_NAME, "lucene": lucene, "k": k})
         where = f"WHERE {' AND '.join(post_filters)} " if post_filters else ""
         cypher = (
-            "CALL db.index.fulltext.queryNodes($index_name, $lucene) "
+            "CALL db.index.fulltext.queryNodes($index_name, $lucene, {limit: $k}) "
             "YIELD node AS s, score "
             f"{where}"
             f"{self._ENRICH_TAIL}"

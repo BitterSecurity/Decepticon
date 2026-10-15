@@ -1,3 +1,19 @@
+"""Unit tests for free-text query preparation in the find_skill term leg.
+
+``_lucene_query`` is the only pure-Python step between an agent's query and the
+full-text index. It exists because the pre-index clause substring-matched the
+WHOLE query string against name / description / when_to_use — so any multi-word
+query (exactly what an agent produces when told to describe an objective)
+matched nothing and this leg returned zero rows, leaving retrieval wholly
+dependent on the optional embedding leg.
+
+Tokenisation, stemming and term weighting are deliberately NOT tested here:
+they belong to Lucene/BM25, which derives term weight from document frequency in
+the live corpus. There is no stopword list and no per-field weight to pin — that
+is the point. The BM25 ranking itself is covered by live verification against a
+running graph.
+"""
+
 from __future__ import annotations
 
 import sys
@@ -17,34 +33,34 @@ def test_blank_query_yields_empty_so_caller_takes_structured_path(empty) -> None
 
 
 def test_multi_word_intent_query_survives_intact() -> None:
+    """The regression case: this must reach the index as real terms."""
     out = _lucene_query("dump credentials from lsass process memory")
     for term in ("dump", "credentials", "lsass", "process", "memory"):
-        assert f"name:{term}^10" in out
-        assert f"when_to_use:{term}^8" in out
-    assert "name:from^10" not in out
+        assert term in out
 
 
 def test_hyphenated_terms_do_not_become_negations() -> None:
+    """A bare '-' is Lucene's NOT operator; corpus tag names contain hyphens."""
     out = _lucene_query("port-scan sub-domain")
-    assert "name:port\\-scan^10" in out
-    assert "tags_raw:sub\\-domain^6" in out
+    assert "\\-" in out  # escaped to a literal, not parsed as an operator
+    assert "port" in out and "scan" in out
 
 
 def test_attack_identifier_is_not_mangled() -> None:
     out = _lucene_query("T1558.003 kerberoasting")
-    assert "mitre_attack_raw:t1558.003^3" in out
-    assert "name:kerberoasting^10" in out
+    assert "T1558" in out and "003" in out
+    assert "kerberoasting" in out
 
 
 @pytest.mark.parametrize("char", list('+-&|!(){}[]^"~*?:\\/'))
 def test_every_reserved_character_is_escaped(char) -> None:
+    """A stray operator in agent prose must not throw a Lucene parse error."""
     out = _lucene_query(f"lsass {char} dump")
-    assert "name:lsass^10" in out
-    assert "name:dump^10" in out
+    assert f"\\{char}" in out
 
 
 def test_surrounding_whitespace_trimmed() -> None:
-    assert _lucene_query("  kerberoast  ") == _lucene_query("kerberoast")
+    assert _lucene_query("  kerberoast  ") == "kerberoast"
 
 
 @pytest.mark.parametrize(
@@ -53,69 +69,48 @@ def test_surrounding_whitespace_trimmed() -> None:
         "메모리에서 자격증명 추출",  # Korean
         "メモリから資格情報を抽出",  # Japanese
         "从内存中提取凭据",  # Chinese
-        "1558 003",
+        "1558 003",  # digits only — also unmatchable against English text
     ],
 )
-def test_query_without_latin_letters_is_preserved(non_latin) -> None:
-    assert f"name:{non_latin.split()[0]}^10" in _lucene_query(non_latin)
+def test_query_without_latin_letters_is_unsearchable(non_latin) -> None:
+    """The corpus is English; a query with no English words scores 0 against
+    every skill, so it must be reported rather than silently returning nothing."""
+    assert _lucene_query(non_latin) == ""
 
 
 def test_mixed_script_query_keeps_its_latin_terms() -> None:
     out = _lucene_query("메모리에서 lsass dump 하기")
-    assert "name:lsass^10" in out and "name:dump^10" in out
+    assert "lsass" in out and "dump" in out
 
 
-def test_field_weights_match_the_skill_intent_priority() -> None:
-    out = _lucene_query("credential")
-    assert "name:credential^10" in out
-    assert "when_to_use:credential^8" in out
-    assert "tags_raw:credential^6" in out
-    assert "body:credential^1" in out
-
-
-def test_query_is_bounded_to_sixteen_unique_terms() -> None:
-    out = _lucene_query(" ".join(f"term{i}" for i in range(20)))
-    assert "name:term15^10" in out
-    assert "name:term16^10" not in out
-    assert out.count(" OR ") == 127
-
-
-def test_blank_query_with_no_filters_raises_actionable_error() -> None:
+def test_unsearchable_query_with_no_filters_raises_actionable_error() -> None:
+    """find_skill must refuse rather than fall through to a filter-only query
+    that would return arbitrary skills as if the query had matched them."""
     from decepticon.skillogy.server.neo4j_backend import Neo4jBackend
 
-    be = Neo4jBackend.__new__(Neo4jBackend)
+    # The driver connects lazily, so the guard is reachable without a server.
+    be = Neo4jBackend(uri="bolt://localhost:1", user="neo4j", password="x")
+    with pytest.raises(ValueError, match="no searchable English terms"):
+        be.find_skill(query="메모리에서 자격증명 추출")
     with pytest.raises(ValueError, match="at least one of"):
         be.find_skill(query="   ")
 
 
-def test_blank_query_with_filters_is_labelled_structured(monkeypatch) -> None:
+def test_unsearchable_query_with_filters_is_labelled_structured(monkeypatch) -> None:
+    """An unusable query alongside a real filter must not claim the term leg ran.
+
+    Verified live against the seeded graph before this guard existed: a Korean
+    query plus subdomain returned hits tagged ["lexical"], asserting that term
+    matching had contributed to a ranking it never touched.
+    """
     from decepticon.skillogy.server.neo4j_backend import Neo4jBackend
 
-    be = Neo4jBackend.__new__(Neo4jBackend)
+    be = Neo4jBackend(uri="bolt://localhost:1", user="neo4j", password="x")
     row = {"name": "n", "path": "/p", "subdomain": "s", "description": "d"}
     monkeypatch.setattr(Neo4jBackend, "_find_lexical", lambda *a, **k: [dict(row)])
 
-    hits = be.find_skill(query="   ", subdomain="credential-access")
+    hits = be.find_skill(query="메모리에서 자격증명 추출", subdomain="credential-access")
     assert [h["matched_by"] for h in hits] == [["structured"]]
-
-
-def test_unicode_query_reaches_semantic_search(monkeypatch) -> None:
-    from decepticon.skillogy import embeddings
-    from decepticon.skillogy.server.neo4j_backend import Neo4jBackend
-
-    be = Neo4jBackend.__new__(Neo4jBackend)
-    be.mark_vector_ready(1)
-    row = {"name": "credential-access", "path": "/credential", "score": 0.9}
-    monkeypatch.setattr(Neo4jBackend, "_find_lexical", lambda *a, **k: [])
-    monkeypatch.setattr(Neo4jBackend, "_find_semantic", lambda *a, **k: [dict(row)])
-    monkeypatch.setattr(embeddings, "embed_dim", lambda: 1)
-    monkeypatch.setattr(
-        embeddings, "embed_text", lambda query: [0.1] if query == "자격증명 추출" else None
-    )
-
-    hits = be.find_skill(query="자격증명 추출")
-    assert hits[0]["path"] == "/credential"
-    assert hits[0]["matched_by"] == ["semantic"]
 
 
 def test_wrong_query_embedding_dimension_uses_lexical_results(monkeypatch) -> None:
@@ -213,8 +208,8 @@ def test_fulltext_index_is_online_before_search(monkeypatch, existing) -> None:
         create = next(query for query in queries if "CREATE FULLTEXT INDEX" in query)
         assert "s.name" in create
         assert "s.when_to_use" in create
-        assert "s.tags_raw" in create
-        assert "s.body" in create
+        assert "s.description" in create
+        assert "s.body" not in create
 
 
 def test_search_uses_fallback_until_fulltext_index_is_ready(monkeypatch) -> None:
@@ -257,10 +252,12 @@ def test_filtered_search_limits_after_acl_and_structured_filters(monkeypatch) ->
     )
 
     cypher = session.run.call_args.args[0]
-    assert "queryNodes($index_name, $lucene)" in cypher
+    # Filters can drop fulltext hits, so the candidate fetch widens before
+    # post-filtering — same rationale as the vector leg.
+    assert "queryNodes($index_name, $lucene, {limit: $k})" in cypher
+    assert session.run.call_args.kwargs["parameters"]["k"] == 100
     assert "WHERE s.subdomain = $subdomain AND ANY(" in cypher
     assert cypher.index("WHERE") < cypher.index("LIMIT $cand_n")
-    assert "limit: $k" not in cypher
 
 
 def test_fulltext_analyzer_rejects_unsafe_configuration(monkeypatch) -> None:

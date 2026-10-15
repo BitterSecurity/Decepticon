@@ -409,6 +409,8 @@ services:
       # keeping the sandbox itself isolated from the infra plane.
       - decepticon-net
       - sandbox-net
+    mem_limit: 2g
+    memswap_limit: 4g
     restart: unless-stopped
     logging: *default-logging
 

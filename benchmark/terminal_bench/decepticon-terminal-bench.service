@@ -1,0 +1,20 @@
+[Unit]
+Description=Resumable Decepticon Terminal-Bench 2.1 run
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+WorkingDirectory=/home/catow/GIT/decepticon_new
+Environment=PATH=/home/catow/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ExecStartPre=/usr/bin/bash -c 'if test -f /mnt/d/wsl-swap.vhdx && test -f /mnt/c/wsl-swap.vhdx; then /usr/bin/unlink /mnt/c/wsl-swap.vhdx; fi'
+ExecStart=/home/catow/GIT/decepticon_new/benchmark/terminal_bench/run_full.sh
+Restart=on-failure
+RestartSec=30
+MemoryMax=4G
+MemorySwapMax=2G
+CPUWeight=50
+Nice=10
+TimeoutStopSec=120
+
+[Install]
+WantedBy=default.target

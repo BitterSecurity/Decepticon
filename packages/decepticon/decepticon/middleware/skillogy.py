@@ -85,29 +85,35 @@ REQUIRES, VALIDATED_BY, COMPOSES_WITH, SPECIALIZES, ALTERNATIVE_TO and
 CONFLICTS_WITH. Traverse related skills when prerequisites or validators matter;
 a relation never overrides the role's skill path allowlist.
 
-find_skill(query?, subdomain?, mitre_id?, tag?, tactic_id?, limit=20):
-  Finds candidates. Filters AND together. subdomain, tag, mitre_id and
-  tactic_id follow the graph relationships above. An ATT&CK ID belongs in
-  mitre_id for exact filtering. query searches skill names, usage triggers,
-  tags and other metadata, and body text. The highest weights go to name and
-  when_to_use. Use concise domain terms, for example:
-  find_skill(query="lsass dump credential memory", subdomain="post-exploit")
-  English terms have the best lexical recall; semantic search may find other
-  languages when embeddings are available. Results include matched_by:
-  lexical, semantic, both, or structured for a filter-only query. Both search
-  legs matching is a stronger signal. Read descriptions and choose the skill
-  that fits the task; do not select solely by rank. Retry with other terms if
-  none fit and specialist guidance is still useful.
+Three tools:
+  • find_skill(query?, subdomain?, mitre_id?, tag?, tactic_id?, limit=20)
+      AND-combined filters: subdomain→IN_PHASE, tag→TAGGED, mitre_id→IMPLEMENTS
+      (T1xxx[.yyy]), tactic_id→IMPLEMENTS→HAS_TECHNIQUE (TAxxxx).
+      `query` is a TERM search over name/description/when_to_use/tags: it is
+      split into terms matched independently, ranked by distinct-term hits.
+      EXPAND YOUR INTENT INTO DOMAIN VOCABULARY — tools, technique names,
+      protocols, artefacts — instead of a prose sentence; function words are
+      ignored and terms are stemmed ("kerberoast" finds "kerberoasting"):
+        good: "kerberoast kerberos TGS service ticket SPN"
+        bad:  "how do I steal credentials from the machine"
+      ENGLISH ONLY — a query with no English words matches nothing and is
+      rejected. Do NOT put an ATT&CK ID in `query` (it lives on Technique
+      nodes, not indexed text); pass it as `mitre_id`.
+      Returns matched_by per hit: ["lexical"], ["semantic"], both, or
+      ["structured"] (query was unusable; only filters applied).
+      THE RESULT IS A CANDIDATE LIST, NOT AN ANSWER — read each hit's
+      `description` and choose by fit, not by rank. Term-shaped queries rank
+      far better than described-objective prose. Re-query with different
+      terms or `traverse` from the closest hit if nothing fits.
+  • load_skill(name_or_path)
+      Fetch one SKILL.md's body by unique frontmatter `name` or the canonical
+      '/skills/.../SKILL.md' path.
+  • traverse(from_path, edge_types?, depth=2)
+      BFS from a Skill seed along the edge whitelist (IN_PHASE, IMPLEMENTS,
+      TAGGED, BELONGS_TO, RELATED_TO, HAS_TECHNIQUE, HAS_SUBTECHNIQUE). depth ≤ 5.
 
-load_skill(name_or_path): fetch the chosen SKILL.md body by exact name or path.
-  Load directly when the exact name or path is already known. Discovery is
-  useful when the right skill is unknown; it is not a prerequisite for load.
-  Only SKILL.md bodies are available through this graph; sibling references/
-  files are not. A missing reference is not a reason to stop.
-traverse(from_path, edge_types?, depth=2): explore related graph nodes.
-Only trust skill bodies returned by the scoped load_skill tool. Skillogy does
-not grant execution authorization. A retrieval miss or unavailable backend
-must not stop the task; continue with the current workflow.
+Workflow: find_skill to narrow candidates → load_skill on the chosen match.
+Use traverse for "what is related to this skill" questions.
 """
 
 
@@ -304,27 +310,30 @@ def _make_find_skill_tool(backend, allowed_path_prefixes: list[str] | None = Non
 
         Filters AND-combine. Pass at least one.
 
-        ``query`` is a weighted term search over skill names, metadata and
-        body. Each query term is matched independently; name and usage-trigger
-        matches have the highest weights.
+        ``query`` is a TERM search over name / description / when_to_use /
+        tags. Every skill carries a curated ``when_to_use`` trigger list, and
+        your query is split into terms matched independently against it and
+        ranked by how many distinct terms hit.
 
         So expand your intent into domain vocabulary — tools, technique names,
-        protocols, artefacts — instead of writing a prose sentence. Relevant
-        terms improve precision; common English function words are ignored.
-        Terms are stemmed so "kerberoast" finds "kerberoasting"::
+        protocols, artefacts — instead of writing a prose sentence. Extra
+        relevant terms only help; function words are ignored, and terms are
+        stemmed so "kerberoast" finds "kerberoasting"::
 
             good: "kerberoast kerberos TGS service ticket SPN"
             good: "lsass dump credential memory minidump comsvcs"
             bad:  "how do I steal credentials from the machine"
 
-        English domain terms give the best lexical recall. Non-English input
-        may work through semantic retrieval when embeddings are available.
-        Pass an ATT&CK ID as ``mitre_id`` for an exact graph filter;
-        ``query`` searches the ID text and may return other matches.
+        English only — the corpus is English, so a query with no English words
+        matches nothing and is rejected. Do NOT put an ATT&CK ID in ``query``:
+        the ids live on Technique nodes, not in the indexed text, so
+        'T1558.003' as free text matches nothing. Pass it as ``mitre_id``.
 
         THE RESULT IS A CANDIDATE LIST, NOT AN ANSWER. Read each hit's
         ``description`` and choose the one that fits your situation — do not
-        load the first hit reflexively. Use concise domain terms. If nothing
+        load hit #1 reflexively. The more prose-like the query, the worse the
+        ranking (measured on this corpus: rank 12-14 of 20 for a described
+        objective, rank 1 for the same intent as domain terms). If nothing
         fits, re-query with different terms or ``traverse`` from the closest
         hit instead of settling.
 
@@ -471,6 +480,15 @@ class SkillogyMiddleware(AgentMiddleware):
         lines.append(
             "These are examples, not required startup calls. Use find_skill for other specialist knowledge."
         )
+        lines.append(
+            f"To find a skill by objective, expand the objective into domain "
+            f'terms — find_skill(query="<tools, technique names, protocols, '
+            f'artefacts>", subdomain="{self._phase}"). Terms are matched and '
+            f"stemmed individually against each skill's curated trigger list, "
+            f"so you need the domain's vocabulary, not the corpus's. ATT&CK "
+            f"ids go in mitre_id, never in query."
+        )
+        lines.append("")
         return "\n".join(lines)
 
     @override

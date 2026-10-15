@@ -61,7 +61,7 @@ export CODEX_AUTH_VOLUME ?= $(shell test -f $(HOME)/.codex/auth.json && echo $(H
         web-build web-hotswap web-lint web-test web-migrate \
         status logs health clean \
         node-install web-db-ensure \
-		benchmark terminal-bench recreate-litellm
+        benchmark terminal-bench terminal-bench-full recreate-litellm
 
 # ── Help (default target) ────────────────────────────────────────
 
@@ -105,6 +105,7 @@ help:
 	@echo "Other:"
 	@echo "  make benchmark [ARGS=\"--level 1\"]"
 	@echo "  make terminal-bench [ARGS=\"--include-task-name <task>\"]  # GPT-5.6 Luna/max"
+	@echo "  make terminal-bench-full  # resumable 89-task / 445-trial run"
 
 # ── Pre-release Verification (PRIMARY) ───────────────────────────
 
@@ -406,6 +407,11 @@ terminal-bench:
 		--agent decepticon_tbench_agent:DecepticonTerminalBenchAgent \
 		--model "$(TERMINAL_BENCH_MODEL)" \
 		--agent-kwarg "reasoning_effort=$(TERMINAL_BENCH_EFFORT)" $(ARGS)
+
+terminal-bench-full:
+	TERMINAL_BENCH_MODEL="$(TERMINAL_BENCH_MODEL)" \
+	TERMINAL_BENCH_EFFORT="$(TERMINAL_BENCH_EFFORT)" \
+	benchmark/terminal_bench/run_full.sh $(ARGS)
 
 ## CVE-Bench offline dry run (mocked LLM + sandbox, 3 fixtures, seed=0).
 ## Output: benchmark/results/cve-bench/dry-run-<YYYY-MM-DD>.jsonl
