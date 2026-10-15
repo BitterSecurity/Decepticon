@@ -204,6 +204,7 @@ class FileBackedApprovalTransport:
         self._poll_interval = poll_interval
         self._decisions_offset = 0
         self._consumed_ids: set[str] = set()
+        self._pending_decisions: dict[str, ApprovalDecision] = {}
 
     def submit(self, request: ApprovalRequest) -> None:
         with self._requests_path.open("a", encoding="utf-8") as fh:
@@ -248,9 +249,11 @@ class FileBackedApprovalTransport:
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
             for decision in self._scan_decisions():
-                if decision.request_id == request_id:
-                    self._consumed_ids.add(request_id)
-                    return decision
+                self._pending_decisions.setdefault(decision.request_id, decision)
+            decision = self._pending_decisions.pop(request_id, None)
+            if decision is not None:
+                self._consumed_ids.add(request_id)
+                return decision
             time.sleep(self._poll_interval)
         return None
 
