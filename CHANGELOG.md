@@ -16,6 +16,8 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 
 - Expect the unauthorized call to revert in generated Foundry access-control tests.
   ([#991](https://github.com/BitterSecurity/Decepticon/pull/991))
+- Retain file-backed approval decisions until their matching request consumes them.
+  ([#993](https://github.com/BitterSecurity/Decepticon/pull/993))
 
 ## [1.4.4] — 2026-10-14
 
