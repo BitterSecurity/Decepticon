@@ -74,10 +74,12 @@ class TestFoundry:
         assert "withdraw" in h.source
         assert h.path.endswith("_Reentrancy.t.sol")
 
-    def test_access_template(self) -> None:
+    def test_access_template_expects_revert_before_unauthorised_call(self) -> None:
         h = generate_access_control_test("Token", "mint")
         assert "test_unauthorised_call_reverts" in h.source
-        assert "mint" in h.source
+        assert h.source.index("vm.startPrank(ATTACKER);") < h.source.index("vm.expectRevert();")
+        assert h.source.index("vm.expectRevert();") < h.source.index("target.mint();")
+        assert h.source.index("target.mint();") < h.source.index("vm.stopPrank();")
 
     def test_flashloan_template(self) -> None:
         h = generate_flashloan_test("Pool")
