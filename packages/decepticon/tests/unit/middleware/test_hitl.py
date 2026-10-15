@@ -157,6 +157,49 @@ def test_filebacked_transport_returns_none_on_timeout(tmp_path: Path):
     assert transport.wait_for_decision("r4", timeout=0.2) is None
 
 
+@pytest.mark.parametrize("decision_order", [("first", "second"), ("second", "first")])
+def test_filebacked_decisions_survive_waiting_for_another_request(
+    tmp_path: Path, decision_order: tuple[str, str]
+) -> None:
+    decisions = tmp_path / "decisions.jsonl"
+    transport = FileBackedApprovalTransport(
+        tmp_path / "requests.jsonl", decisions, poll_interval=0.001
+    )
+    actions = {"first": "allow", "second": "deny"}
+    decisions.write_text(
+        "".join(
+            json.dumps(
+                {
+                    "kind": "approval_decision",
+                    "request_id": request_id,
+                    "action": actions[request_id],
+                }
+            )
+            + "\n"
+            for request_id in decision_order
+        ),
+        encoding="utf-8",
+    )
+    first = transport.wait_for_decision("first", timeout=0.1)
+    second = transport.wait_for_decision("second", timeout=0.1)
+    assert first is not None and first.request_id == "first" and first.action == "allow"
+    assert second is not None and second.request_id == "second" and second.action == "deny"
+
+
+def test_filebacked_timeout_preserves_a_different_requests_decision(tmp_path: Path) -> None:
+    decisions = tmp_path / "decisions.jsonl"
+    transport = FileBackedApprovalTransport(
+        tmp_path / "requests.jsonl", decisions, poll_interval=0.001
+    )
+    decisions.write_text(
+        json.dumps({"kind": "approval_decision", "request_id": "pending", "action": "deny"}) + "\n",
+        encoding="utf-8",
+    )
+    assert transport.wait_for_decision("unanswered", timeout=0.02) is None
+    pending = transport.wait_for_decision("pending", timeout=0.1)
+    assert pending is not None and pending.request_id == "pending" and pending.action == "deny"
+
+
 def test_middleware_passes_through_unmatched_tools():
     t = InProcessApprovalTransport()
     mw = HITLApprovalMiddleware(
