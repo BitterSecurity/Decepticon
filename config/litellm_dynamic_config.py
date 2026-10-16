@@ -218,6 +218,15 @@ OPENAI_COMPAT_GATEWAYS: dict[str, tuple[str, str]] = {
     # Cheaper Inference (api.cheaperinference.com). One key gives access to
     # models from several labs; fixed OpenAI-compatible endpoint.
     "cheaperinference": ("https://api.cheaperinference.com/v1", "CHEAPER_INFERENCE_API_KEY"),
+    # Generic opt-in OpenAI-compatible gateway. BOTH api_base and api_key
+    # come from the environment — no vendor URL is hardcoded. Unset env
+    # vars leave this gateway disabled (DEFAULT OFF). Operators point
+    # OPENAI_COMPAT_GATEWAY_API_BASE at any OpenAI-compatible /v1 endpoint
+    # (self-hosted proxy, third-party aggregator, etc.). See #989.
+    "compat": (
+        "os.environ/OPENAI_COMPAT_GATEWAY_API_BASE",
+        "OPENAI_COMPAT_GATEWAY_API_KEY",
+    ),
 }
 
 # Providers that accept SEVERAL key env-var names. Resolved at config-write
@@ -466,6 +475,40 @@ def _vllm_model_from_env(source: Mapping[str, str]) -> str | None:
     return f"hosted_vllm/{model}"
 
 
+def _compat_gateway_models_from_env(source: Mapping[str, str]) -> set[str]:
+    """Derive ``compat/<model>`` aliases when the generic gateway is wired.
+
+    Requires ``OPENAI_COMPAT_GATEWAY_API_BASE`` + ``OPENAI_COMPAT_GATEWAY_API_KEY``
+    (real key) plus at least one of ``OPENAI_COMPAT_GATEWAY_MODEL`` /
+    ``OPENAI_COMPAT_GATEWAY_MODEL_{HIGH,MID,LOW}``. DEFAULT OFF — unset
+    env registers nothing. Mirrors the OLLAMA_MODEL / VLLM_MODEL shortcuts
+    so a key-only+base deployment gets proxy routes without DECEPTICON_MODEL*.
+    """
+    base = _clean_model(source.get("OPENAI_COMPAT_GATEWAY_API_BASE"))
+    key = (source.get("OPENAI_COMPAT_GATEWAY_API_KEY") or "").strip()
+    if not base or not key:
+        return set()
+    # Reject obvious launcher placeholders so a stock .env does not opt in.
+    lower = key.lower()
+    if lower.startswith("your-") or lower.endswith("-key-here") or len(key) < 24:
+        return set()
+    models: set[str] = set()
+    single = _clean_model(source.get("OPENAI_COMPAT_GATEWAY_MODEL"))
+    for tier_env in (
+        "OPENAI_COMPAT_GATEWAY_MODEL_HIGH",
+        "OPENAI_COMPAT_GATEWAY_MODEL_MID",
+        "OPENAI_COMPAT_GATEWAY_MODEL_LOW",
+    ):
+        m = _clean_model(source.get(tier_env)) or single
+        if m is None:
+            continue
+        if m.lower().startswith("compat/"):
+            models.add(m)
+        else:
+            models.add(f"compat/{m}")
+    return models
+
+
 def collect_requested_models(env: Mapping[str, str] | None = None) -> set[str]:
     """Collect model IDs requested through DECEPTICON_MODEL* env vars.
 
@@ -492,6 +535,8 @@ def collect_requested_models(env: Mapping[str, str] | None = None) -> set[str]:
     vllm_model = _vllm_model_from_env(source)
     if vllm_model is not None:
         models.add(vllm_model)
+
+    models.update(_compat_gateway_models_from_env(source))
 
     return models
 

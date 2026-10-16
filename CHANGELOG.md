@@ -12,6 +12,15 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+### Added
+
+- Optional vendor-neutral OpenAI-compatible gateway (`compat/…`) driven by
+  `OPENAI_COMPAT_GATEWAY_API_BASE`, `OPENAI_COMPAT_GATEWAY_API_KEY`, and
+  `OPENAI_COMPAT_GATEWAY_MODEL` (or per-tier `*_MODEL_{HIGH,MID,LOW}`).
+  DEFAULT OFF — no vendor URL is hardcoded. Addresses the capability ask in
+  [#989](https://github.com/BitterSecurity/Decepticon/issues/989) without a
+  named third-party entry.
+
 ### Fixed
 
 - Expect the unauthorized call to revert in generated Foundry access-control tests.
