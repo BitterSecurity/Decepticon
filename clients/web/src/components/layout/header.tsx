@@ -3,6 +3,7 @@
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { ThemeToggleSimple } from "@/components/theme-toggle-simple";
 
 export function Header() {
   return (
@@ -17,7 +18,8 @@ export function Header() {
         </span>
       </div>
 
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-2">
+        <ThemeToggleSimple />
         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
           <Bell className="h-4 w-4" />
         </Button>
