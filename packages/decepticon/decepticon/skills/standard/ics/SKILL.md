@@ -7,6 +7,8 @@ description: >
   industrial_safety_critical=true; this catalog gates every write-scope
   operation behind explicit operator confirmation regardless of HITL middleware.
 metadata:
+  skillogy:
+    version: 1
   subdomain: ics
   when_to_use: "ics ot industrial control modbus bacnet s7comm dnp3 opcua plc hmi scada safety-critical operational technology"
   tags: ics, ot, scada, plc, hmi, modbus, bacnet, s7, dnp3, opcua
@@ -39,7 +41,7 @@ every write-scope skill carries an explicit safety gate.
 > **Inline technique reference — not separately loadable skills.** The entries below
 > are summarized here for direct use; there is no separate `SKILL.md` to open for
 > each. Do NOT call the skill loader on them — apply the technique with your tools
-> using this summary and the Workflow in this file.
+> using this summary and the protocol assessment guidance in this file.
 
 
 | Technique | Use for |
@@ -53,7 +55,7 @@ every write-scope skill carries an explicit safety gate.
 | **hmi-web** | HMI web stacks (Wonderware, Iconics, Schneider) — known CVEs |
 | **engineering-software** | TIA Portal / Studio 5000 / Unity Pro project extraction |
 
-## Workflow
+## Protocol assessment
 
 1. **Passive observation**: tap a SPAN port if available. Identify protocols
    on the wire (`tshark -Y modbus || tshark -Y bacnet || ...`).
@@ -73,8 +75,7 @@ every write-scope skill carries an explicit safety gate.
 
 ICS networks rarely have host-based detection on PLCs/RTUs themselves —
 the detection stack lives on the engineering workstation, the historian,
-and any IT/OT gateway. Detector agent should generate Sigma rules
-targeting:
+and any IT/OT gateway. Relevant Sigma detection patterns include:
 
 - Function-code anomalies (write to coils outside normal ranges).
 - Connection sources outside the documented MES/SCADA IP set.

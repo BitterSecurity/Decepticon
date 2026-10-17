@@ -6,6 +6,8 @@ description: >
   secret mining, internal mirror poisoning, OAuth-app impersonation,
   or vendor portal credential abuse.
 metadata:
+  skillogy:
+    version: 1
   subdomain: supply-chain
   when_to_use: "supply chain typosquat dependency confusion gh actions secret oauth app impersonation internal mirror poisoning vendor portal"
   tags: supply-chain, typosquatting, dep-confusion, gh-actions, oauth-app
@@ -26,7 +28,7 @@ ConOps.
 > **Inline technique reference — not separately loadable skills.** The entries below
 > are summarized here for direct use; there is no separate `SKILL.md` to open for
 > each. Do NOT call the skill loader on them — apply the technique with your tools
-> using this summary and the Workflow in this file.
+> using this summary and the technical guidance in this file.
 
 
 | Technique | Use for |
@@ -69,9 +71,9 @@ PR that exfiltrates `secrets.*` without modifying the workflow file
 itself (so the operator's PR doesn't look obviously malicious to a human
 reviewer).
 
-## Detection emission
+## Detection references
 
-For every simulated attack, the Detector agent produces:
+Supply-chain detection and assurance artifacts include:
 
 - A Sigma rule for the SIEM (e.g., unusual `npm install` in CI logs,
   `actions/checkout@` followed by `secrets.*` reference patterns).

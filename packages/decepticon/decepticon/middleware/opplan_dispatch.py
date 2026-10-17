@@ -8,15 +8,22 @@
 # `atask() missing 1 required positional argument: 'runtime'`.
 
 from collections.abc import Mapping
+from functools import partial
 from typing import Any
 
+from anyio import create_task_group, to_thread
+from deepagents.backends.protocol import BackendProtocol
 from langchain.tools import ToolRuntime
 from langchain_core.messages import ToolMessage
+from langchain_core.runnables.config import patch_config, set_config_context
 from langchain_core.tools import BaseTool, StructuredTool
 from langgraph.types import Command
 from pydantic import BaseModel, Field, ValidationError
 
+from decepticon.middleware.workflow_opplan import validate_workflow_transition
+from decepticon.tools.opplan import _evidence_error
 from decepticon.tools.opplan_graph import inspect_plan, unmet_prerequisites
+from decepticon.workflows import WorkflowError, WorkflowSnapshot
 from decepticon_core.types.engagement import Objective, ObjectiveStatus, PlanFact
 
 
@@ -30,7 +37,12 @@ class PlannedTaskSchema(BaseModel):
 
 
 def validate_task_plan(
-    state: Mapping[str, Any], *, task_id: str, plan_revision: int, subagent_type: str
+    state: Mapping[str, Any],
+    *,
+    task_id: str,
+    plan_revision: int,
+    subagent_type: str,
+    backend: BackendProtocol | None = None,
 ) -> str | None:
     """Return a concrete rejection reason, or None for a status-ready leaf.
 
@@ -68,10 +80,25 @@ def validate_task_plan(
     unresolved = unmet_prerequisites(target, by_id, {fact.id: fact for fact in facts})
     if unresolved:
         return f"objective {task_id} is waiting for: {', '.join(unresolved)}"
+    pin = state.get("workflow_snapshot")
+    if pin is not None:
+        try:
+            snapshot = WorkflowSnapshot.model_validate_json(pin)
+        except (ValidationError, WorkflowError) as exc:
+            return f"invalid workflow snapshot: {exc}"
+        return validate_workflow_transition(
+            snapshot,
+            objectives,
+            target,
+            specialist=subagent_type,
+            completing=False,
+            facts=facts,
+            check_artifacts=partial(_evidence_error, backend, state.get("workspace_path")),
+        )
     return None
 
 
-def planned_task_tool(original: BaseTool) -> BaseTool:
+def planned_task_tool(original: BaseTool, *, backend: BackendProtocol | None = None) -> BaseTool:
     """Wrap Deep Agents' task closure while retaining its streaming/state behavior."""
     if original.name != "task" or original.func is None or original.coroutine is None:
         raise ValueError("expected Deep Agents task tool with sync and async handlers")
@@ -101,10 +128,22 @@ def planned_task_tool(original: BaseTool) -> BaseTool:
             task_id=task_id,
             plan_revision=plan_revision,
             subagent_type=subagent_type,
+            backend=backend,
         )
         if reason:
             return reject(runtime, reason)
-        return original.func(description=description, subagent_type=subagent_type, runtime=runtime)
+        if not runtime.state.get("workflow_snapshot"):
+            return original.func(
+                description=description, subagent_type=subagent_type, runtime=runtime
+            )
+        config = patch_config(
+            runtime.config,
+            configurable={"workflow_snapshot": runtime.state.get("workflow_snapshot")},
+        )
+        with set_config_context(config) as context:
+            return context.run(
+                original.func, description=description, subagent_type=subagent_type, runtime=runtime
+            )
 
     async def atask(
         description: str,
@@ -113,19 +152,39 @@ def planned_task_tool(original: BaseTool) -> BaseTool:
         plan_revision: int,
         runtime: ToolRuntime,
     ) -> Any:
-        reason = validate_task_plan(
-            runtime.state,
-            task_id=task_id,
-            plan_revision=plan_revision,
-            subagent_type=subagent_type,
+        reason = await to_thread.run_sync(
+            partial(
+                validate_task_plan,
+                runtime.state,
+                task_id=task_id,
+                plan_revision=plan_revision,
+                subagent_type=subagent_type,
+                backend=backend,
+            )
         )
         if reason:
             return reject(runtime, reason)
-        return await original.coroutine(
-            description=description,
-            subagent_type=subagent_type,
-            runtime=runtime,
+        if not runtime.state.get("workflow_snapshot"):
+            return await original.coroutine(
+                description=description, subagent_type=subagent_type, runtime=runtime
+            )
+        config = patch_config(
+            runtime.config,
+            configurable={"workflow_snapshot": runtime.state.get("workflow_snapshot")},
         )
+        results: list[str | Command] = []
+
+        async def invoke_original() -> None:
+            results.append(
+                await original.coroutine(
+                    description=description, subagent_type=subagent_type, runtime=runtime
+                )
+            )
+
+        with set_config_context(config) as context:
+            async with create_task_group() as group:
+                context.run(group.start_soon, invoke_original)
+        return results[0]
 
     return StructuredTool.from_function(
         name="task",

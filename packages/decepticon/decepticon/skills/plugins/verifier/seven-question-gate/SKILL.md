@@ -1,18 +1,21 @@
 ---
 name: seven-question-gate
-description: 7-question gate run before promoting a finding to FINDING + opening a report. Kills weak/non-impactful findings before they reach the report stage and damage validity ratio.
+description: Seven-question finding assessment covering technical evidence, scope, program eligibility, duplicate evidence, reproducibility, and title quality as separate dimensions.
 metadata:
+  skillogy:
+    version: 1
   when_to_use: "bug bounty triage gate validate finding before report n/a duplicate"
   mitre_attack: T1497
   subdomain: verification
 ---
 
-# 7-Question Gate
+# Seven-Question Assessment Reference
 
-Run this gate **after `validate_finding` returns success but BEFORE
-adding the finding to the report**. Any "no" → kill the finding,
-don't write a report. This saves bounty validity-ratio and engagement-
-report quality.
+These questions assess different dimensions of a finding. Technical validity
+depends on independent reproduction and evidence; scope, program eligibility,
+duplicate status, and presentation quality are recorded separately. The active
+workflow owns sequencing, report completion, and submission disposition. A
+negative answer is not by itself a technical rejection.
 
 ## The 7 questions
 
@@ -25,13 +28,14 @@ Check the engagement's `scope.md` (recon/decepticon's RoE doc):
   CDNs/CDN-managed subdomains where the org doesn't own the
   underlying machine)
 
-If asset is not on the in-scope list OR on the out-of-scope list:
-**kill**. Do not write the report.
+An asset outside approved scope must not receive target-facing testing. Record
+the scope constraint and policy source separately from any existing technical
+evidence; scope exclusion does not refute that evidence.
 
 ### 2. Is there real-world impact?
 
-Theoretical bugs without demonstrable impact get N/A on every BB
-program. Concrete impact statements include:
+Distinguish demonstrated harm from hypothetical consequences. Concrete impact
+statements include:
 - "An attacker can read victim user X's PII (email, name, DOB, SSN)"
 - "An attacker can post on behalf of victim user X"
 - "An attacker can transfer funds from victim user X's account"
@@ -40,7 +44,8 @@ program. Concrete impact statements include:
 
 If the finding's impact is "configuration is non-default" or "the
 manual recommends X but the deployment does Y" without concrete
-attacker-reachable harm: **kill**.
+attacker-reachable harm, record the observed behavior and impact limitation
+without claiming an unsupported vulnerability or severity.
 
 ### 3. Does the PoC actually prove the impact?
 
@@ -56,8 +61,9 @@ Examples:
 - SSRF PoC must reach an internal-only target — not just "external
   fetch worked"
 
-If the PoC stops short of impact demonstration: **kill** or queue
-for re-verification with a better PoC.
+If the PoC stops short of the claimed impact, that impact remains unverified.
+Describe the missing proof and preserve any narrower demonstrated result. A
+false-positive verdict requires evidence refuting the technical claim.
 
 ### 4. Is the impact **above the program's severity floor**?
 
@@ -70,9 +76,10 @@ Many BB programs explicitly out-of-scope:
 - Subdomain takeover candidates where ownership can't be proven
 - Clickjacking without authenticated state change
 
-Read the program's "out of scope" / "won't fix" / "informational
-only" list. If the finding falls in those: **kill** or escalate
-to a chain that crosses the floor.
+Compare against the supplied program's "out of scope" / "won't fix" /
+"informational only" list and cite the policy source. A finding below the floor
+may remain technically verified. Record eligibility separately; the floor does
+not justify changing CVSS metrics or expanding testing to raise severity.
 
 ### 5. Can the operator reproduce it from your PoC alone?
 
@@ -85,23 +92,23 @@ standalone:
 - Date/time stamp if the bug is recent and the program may patch
   in between
 
-If the PoC requires "you also need state X that I had set up": **kill**
-or rewrite the PoC to include the setup.
+If the PoC requires "you also need state X that I had set up", document that
+setup and the missing reproduction evidence. Incomplete instructions are a
+report-quality defect; insufficient independent reproduction leaves the claim
+unverified rather than automatically refuted.
 
 ### 6. Is it a known duplicate?
 
-Check before submitting:
-- Run `gh search` / Hacktivity search for the same vuln class on the
-  same domain
-- Read CHANGELOG / recent disclosures
-- Check `confirmed-findings.md` and `rejected-hypotheses.md` notepad
-  files in the current engagement
+Compare supplied prior reports, CHANGELOG entries, recent disclosures, and
+local `confirmed-findings.md` / `rejected-hypotheses.md` records by mechanism,
+component/version, privileges, and supported impact. Cite the matching evidence;
+missing history means unknown novelty.
 
-If the report likely duplicates a known disclosure: **kill** unless
-your variant has materially different impact or affects a different
-component.
+A duplicate remains a technical finding. Record exact overlap or a materially
+different variant separately from verification status. This assessment does not
+authorize external account access or submission.
 
-### 7. Does the title sell the impact in one line?
+### 7. Does the title state the supported impact in one line?
 
 Bad titles:
 - "SSRF on /webhook"
@@ -115,58 +122,36 @@ Good titles:
 - "Mass assignment on PATCH /api/users/me → self-promote to
   is_admin=true"
 
-If you can't write a one-line title that names {vuln class, target,
-impact, severity}: **kill** and re-think whether the impact is real.
+A useful title names {vuln class, target, impact, severity} to the extent
+supported by evidence. Revise a weak title without changing the technical
+verdict; do not invent impact to strengthen the wording.
 
-## Decision
+## Assessment Record
 
-If all 7 are "yes" → proceed to report. Confidence: high.
+Record each answer with its evidence or policy source and uncertainty. Keep the
+following dimensions distinct:
 
-If any are "no" → kill the finding. Mark it in
-`notepad/rejected-hypotheses.md` with the question number that
-failed and a one-line reason. Do NOT submit.
-
-## Why this gate matters
-
-Bug-bounty programs track **validity ratio** (valid reports ÷ total
-submissions). Low validity → lower triage priority + lower long-term
-reward tier. The 7-Question Gate is the difference between a
-researcher with 90% validity (high earner) and one with 30% validity
-(eventually banned).
-
-For internal engagements, this gate is the difference between a
-report consumed by stakeholders and a report that sits in a Jira
-backlog forever.
-
-## Integration
-
-Verifier agent loads this skill before finalizing a validated finding. Specifically:
-
-```
-1. validate_finding(...) returns success
-2. load_skill("/skills/verifier/seven-question-gate/SKILL.md")
-3. Walk through Q1-Q7 — write each answer to the finding's KG node:
-     kg_add_node(kind="vulnerability", key=<finding>,
-                 props={"gate_q1_scope": "yes",
-                        "gate_q2_impact": "yes",
-                        "gate_q3_poc_proves_impact": "yes",
-                        ...})
-4. If all Q1-Q7 = yes → return a passing verdict with evidence
-5. If any = no → return a failing verdict naming the question and reason
-```
-
-This makes the gate auditable — every finding has a written record of
-which question pass/failed before it reaches the report stage.
-
-## Anti-patterns
-
-| Anti-pattern | What goes wrong |
+| Dimension | Interpretation |
 |---|---|
-| Skip the gate "because validate_finding passed" | False positives reach the report; validity ratio drops |
-| Answer "yes" to Q4 without reading the program's out-of-scope list | Submission gets N/A'd as known-out-of-scope |
-| Skip Q7 "title sells impact" | Triagers downgrade based on bad first-impression |
-| Run the gate AFTER report draft is written | Wasted effort writing reports that get killed |
-| Apply this only to High/Critical | All findings benefit; Low findings w/ bad titles also damage validity |
+| Technical validity | Independent positive/control evidence supports, refutes, or leaves the claimed behavior unresolved. |
+| Scope and eligibility | Approved asset/technique boundaries and supplied program criteria; missing policy remains uncertain. |
+| Novelty | Exact overlap, supported variant, or unknown based on available prior reports. |
+| Report quality | Reproduction prerequisites, evidence references, and accurate title/impact wording. |
+
+A question-level record may use the existing `gate_q1_scope`, `gate_q2_impact`,
+and `gate_q3_poc_proves_impact` properties, with corresponding entries for Q4–Q7.
+Each entry needs a reason and source reference. Do not collapse the answers into
+an all-or-nothing technical verdict or discard evidence for a business exclusion.
+
+## Common Assessment Errors
+
+| Error | Consequence |
+|---|---|
+| Treat validator success as sufficient proof of impact | An oracle may establish only a narrower behavior. |
+| Infer eligibility without the supplied policy | Technical validity becomes confused with program acceptance. |
+| Treat unknown disclosure history as unique | Novelty is overstated without evidence. |
+| Reject a technically proven issue for a duplicate or weak title | Valid evidence is lost for an unrelated disposition. |
+| Apply evidence scrutiny only to High/Critical findings | Lower-severity claims can remain unsupported. |
 
 ## Cross-references
 - Verifier agent prompt: `decepticon/agents/prompts/verifier.md`

@@ -18,7 +18,8 @@ from langchain_core.tools import BaseTool, tool
 
 from decepticon.middleware.filesystem import EngagementFilesystemBackend
 from decepticon.tools.reporting.cvss import CVSSError, base_score, parse_vector
-from decepticon.tools.reporting.evidence_contract import _FrontmatterLoader, evidence_path
+
+from .evidence_contract import _FrontmatterLoader, evidence_path
 
 _FINDING_PATH = re.compile(r"^findings/(FIND-\d{3,})\.md$")
 _VERDICTS = {"verified", "false_positive", "unverified"}
@@ -46,17 +47,18 @@ def check_finding_content(
     if metadata.get("id") != match.group(1):
         errors.append("id must match canonical filename")
     kind = metadata.get("result_kind", "vulnerability")
-    if kind not in _KINDS:
+    if not isinstance(kind, str) or kind not in _KINDS:
         errors.append("result_kind is invalid")
     verdict = metadata.get("verification_status")
-    if verdict not in _VERDICTS:
+    if not isinstance(verdict, str) or verdict not in _VERDICTS:
         errors.append("verification_status must be verified, false_positive or unverified")
     if (
         not isinstance(metadata.get("verification_rationale"), str)
         or not metadata["verification_rationale"].strip()
     ):
         errors.append("verification_rationale is required")
-    if metadata.get("report_status") not in {"draft", "complete"}:
+    report_status = metadata.get("report_status")
+    if not isinstance(report_status, str) or report_status not in {"draft", "complete"}:
         errors.append("report_status must be draft or complete")
     vector = metadata.get("cvss_vector")
     score = metadata.get("cvss_score")

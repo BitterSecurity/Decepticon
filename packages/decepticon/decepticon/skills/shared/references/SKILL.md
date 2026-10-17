@@ -2,6 +2,8 @@
 name: references
 description: External knowledge integration — HackerOne reports, PayloadsAllTheThings, Book of Secret Knowledge, CVE PoC corpora, bug bounty methodologies, and reference pentest agent architectures. Use these to calibrate, look up payloads, and accelerate research.
 metadata:
+  skillogy:
+    version: 1
   subdomain: orchestration
   when_to_use: "external reference hackerone payloadsallthethings bsk book of secret knowledge cve poc bug bounty methodology pentest agent calibration"
   upstream_ref: "HackerOne disclosed reports + PayloadsAllTheThings + Book of Secret Knowledge + curated CVE PoC corpora"
@@ -33,9 +35,10 @@ full repo into the sandbox for grep-level access.
 
 ## When to use each
 
-### First engagement iteration
+### When a reference could clarify the assigned question
 - `ref_suggest(vuln_class="...", goal="recon")` to see which references
-  matter for your current lane. Save the suggestions to the graph.
+  could inform the current lane. Reference retrieval is conditional on a
+  knowledge gap, not a prerequisite of every engagement's first iteration.
 
 ### When you need a payload RIGHT NOW
 - `payload_search(vuln_class="ssrf", keyword="imds")` — no network

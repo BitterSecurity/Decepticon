@@ -7,6 +7,7 @@ import logging
 import posixpath
 from contextvars import ContextVar
 from datetime import datetime, timezone
+from functools import partial
 from typing import Annotated, Any
 from uuid import uuid4
 
@@ -15,8 +16,11 @@ from langchain_core.messages import ToolMessage
 from langchain_core.tools import InjectedToolCallId, tool
 from langgraph.prebuilt import InjectedState
 from langgraph.types import Command
+from pydantic import ValidationError
 
+from decepticon.middleware.workflow_opplan import validate_workflow_plan
 from decepticon.tools.opplan_graph import PlanInspection, inspect_plan, unmet_prerequisites
+from decepticon.workflows import WorkflowError, WorkflowSnapshot
 from decepticon_core.types.attack_catalog import canonical_attack_annotation
 from decepticon_core.types.engagement import (
     OPPLAN,
@@ -593,6 +597,7 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
             "in objectives from blocked_by, any_of, parent_id, or a fact producer_id. "
             "Existing nodes retain their IDs. expected_revision must match the "
             "current plan. Running and terminal objectives cannot be rewritten or removed. "
+            "Set workflow_stage on each leaf to its pinned WORKFLOW stage ID. "
             "Use this to create or replan a DAG, then dispatch only ready objectives."
         )
     )
@@ -628,6 +633,19 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
             return _graph_rejection(inspection, tool_call_id)
         if not proposed:
             return _tool_error(tool_call_id, "OPPLAN must contain at least one objective.")
+        pin = state.get("workflow_snapshot")
+        if pin is not None:
+            try:
+                workflow_error = validate_workflow_plan(
+                    WorkflowSnapshot.model_validate_json(pin),
+                    proposed,
+                    partial(_evidence_error, backend, state.get("workspace_path")),
+                    facts=proposed_facts,
+                )
+            except (ValidationError, WorkflowError) as exc:
+                return _tool_error(tool_call_id, f"Invalid workflow: {exc}")
+            if workflow_error:
+                return _tool_error(tool_call_id, workflow_error)
         new = {objective.id: objective for objective in proposed}
         for objective_id, objective in old.items():
             if objective_id in new and new[objective_id].status != objective.status:
@@ -1260,6 +1278,20 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
         inspection = _inspect_objective_rows(objectives, state.get("plan_facts", []))
         if inspection.issues:
             return _graph_rejection(inspection, tool_call_id)
+
+        pin = state.get("workflow_snapshot")
+        if pin is not None:
+            try:
+                workflow_error = validate_workflow_plan(
+                    WorkflowSnapshot.model_validate_json(pin),
+                    [Objective.model_validate(row) for row in objectives],
+                    partial(_evidence_error, backend, state.get("workspace_path")),
+                    facts=[PlanFact.model_validate(row) for row in state.get("plan_facts", [])],
+                )
+            except (ValidationError, WorkflowError) as exc:
+                return _tool_error(tool_call_id, f"Invalid workflow: {exc}")
+            if workflow_error:
+                return _tool_error(tool_call_id, workflow_error)
 
         if not updated_fields:
             return Command(

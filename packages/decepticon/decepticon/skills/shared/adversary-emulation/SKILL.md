@@ -1,8 +1,10 @@
 ---
 name: adversary-emulation
-description: "Threat-informed adversary emulation — pick a real APT, load its profile, and reproduce its TTPs within RoE scope to test detection & response. Index of available actor profiles + the emulation methodology."
+description: "Actor-profile taxonomy, ATT&CK technique fidelity, technical prerequisites and detection interpretation for authorized adversary emulation."
 allowed-tools: Bash Read Write
 metadata:
+  skillogy:
+    version: 1
   subdomain: adversary-emulation
   when_to_use: "adversary emulation, emulate APT, threat actor, threat-informed, mimic adversary, APT29 APT28 APT33 APT34 APT41 Lazarus FIN7 Sandworm Volt Typhoon Scattered Spider Salt Typhoon Turla MuddyWater APT36 APT37 Mustang Panda Dark Caracal Patchwork Pink Sandstorm APT10 Kimsuky SideWinder, purple team, ATT&CK evaluation, TTP replay"
   tags: adversary-emulation, threat-intel, mitre-attack, apt, purple-team, ttp, threat-informed
@@ -33,25 +35,20 @@ documented doing, mapped to [MITRE ATT&CK](https://attack.mitre.org/).
   blue cell measures detection (see `kill-chain-analysis` and the `blue_cell`).
 - You want a *realistic, defensible* attack plan instead of an ad-hoc one.
 
-## Methodology (5 steps)
+## Profile interpretation
 
-1. **Select the actor.** Map the engagement's industry/region/crown-jewels to a
-   relevant group (see the catalog below). When unsure, ask the operator via
-   `ask_user_question`. Record the choice in the OPPLAN.
-2. **Load the profile.** `load_skill <slug>` (e.g. `load_skill apt29-cozy-bear`).
-   Each profile carries attribution, targeting, dated campaigns, the actor's TTPs
-   mapped to ATT&CK technique IDs, signature tooling, **emulation guidance** (how
-   to reproduce each TTP with Decepticon's own tools), and detection notes.
-3. **Scope to RoE.** Intersect the actor's TTPs with the approved scope. Drop or
-   down-scope anything out of bounds (e.g., replace a real wiper with a canary).
-   Forbidden-destination / out-of-scope checks still apply at tool-call time.
-4. **Emulate in kill-chain order.** Walk Initial Access → Execution → Persistence
-   → Priv-Esc → Defense Evasion → Credential Access → Discovery → Lateral Movement
-   → Collection → C2 → Exfiltration → (proof-of) Impact, using only the techniques
-   this actor is known for. Cite the ATT&CK ID in each finding.
-5. **Measure & report.** Record which actions the blue cell detected/blocked vs.
-   missed (`kill-chain-analysis`, MTTD), and produce a threat-informed report that
-   ties each result to the emulated actor + ATT&CK technique. Feeds the final report.
+A profile groups attribution, targeting, dated campaigns, ATT&CK technique IDs,
+tooling, implementation examples and detection notes. Industry, geography and
+crown-jewel similarity suggest candidate profiles; they do not establish the
+operator's chosen mission or authorize the actor's full campaign.
+
+Intersect each selected technique with approved RoE. Out-of-scope techniques
+remain forbidden; destructive effects require a separately approved simulation
+or explicit authorization. Forbidden-destination checks still apply at tool time.
+Technical outputs of one technique may establish another's prerequisites, but
+the tactic taxonomy is not a mandatory execution sequence. Detection evidence
+distinguishes observed, blocked, missed and untested behavior. The workflow owns
+profile selection, objective sequencing, measurement collection and reporting.
 
 This complements `soundwave/threat-profile` (which picks the actor at planning time)
 and `kill-chain-analysis` (which scores detection across the chain).
