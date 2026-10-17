@@ -3,6 +3,8 @@ name: fin7
 description: "FIN7 (Carbon Spider / Sangria Tempest) adversary-emulation playbook — revenue-targeted spearphishing with phone follow-up, EDR-evasion tradecraft, AD compromise, and big-game-hunting ransomware. Use when emulating a high-end financially-motivated crew that graduated from POS theft to ransomware. Triggers on: 'emulate FIN7', 'Carbanak', 'Carbon Spider', 'Sangria Tempest', 'big game hunting', 'EDR evasion', 'AvNeutralizer'."
 allowed-tools: Read Write Edit
 metadata:
+  skillogy:
+    version: 1
   subdomain: planning
   when_to_use: "emulate FIN7, Carbanak, Carbon Spider, Sangria Tempest, GOLD NIAGARA, big game hunting ransomware, EDR evasion, AvNeutralizer, spearphishing with phone follow-up, revenue targeting"
   tags: adversary-emulation, fin7, ecrime, ransomware, edr-evasion, phishing

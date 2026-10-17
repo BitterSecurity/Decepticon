@@ -36,7 +36,7 @@ export async function approveRedMode(): Promise<void> {
   try {
     roe = await readFile(path.join(root, "plan", "roe.json"));
   } catch {
-    throw new Error("Red requires an authorized target. Use /mode plan to prepare and validate scope, review it, then use /mode red approve.");
+    throw new Error("Red requires an authorized target. Provide an approved direct RoE, or use /mode plan to prepare and validate scope, review it, then use /mode red approve.");
   }
   const approved = (await readFile(path.join(root, ".red-approved"), "utf-8").catch(() => "")).trim();
   const directDigest = `roe:${createHash("sha256").update(roe).digest("hex")}`;
@@ -45,7 +45,7 @@ export async function approveRedMode(): Promise<void> {
   try {
     current = await planningBundleDigest(root);
   } catch {
-    throw new Error("Red authorization is missing or its RoE changed. Review and approve the current scope with /mode red approve before sending.");
+    throw new Error("Red authorization is missing or its RoE changed. Provide an approved direct RoE, or prepare and validate a Plan before /mode red approve.");
   }
   if (approved === current) return;
   const draft = (await readFile(path.join(root, ".planning-draft-ready"), "utf-8").catch(() => "")).trim();
@@ -59,12 +59,12 @@ export async function assertRedApproved(): Promise<void> {
   const root = workspaceRoot();
   if (!root) throw new Error("Red requires an engagement workspace with an authorized target.");
   const roe = await readFile(path.join(root, "plan", "roe.json")).catch(() => null);
-  if (!roe) throw new Error("Red scope is unavailable. Use /mode plan to prepare and validate scope, review it, then use /mode red approve.");
+  if (!roe) throw new Error("Red scope is unavailable. Provide an approved direct RoE, or use /mode plan to prepare and validate scope, review it, then use /mode red approve.");
   const approved = (await readFile(path.join(root, ".red-approved"), "utf-8").catch(() => "")).trim();
   if (approved === `roe:${createHash("sha256").update(roe).digest("hex")}`) return;
   const bundle = await planningBundleDigest(root).catch(() => null);
   if (bundle && approved === bundle) return;
-  throw new Error("Red scope changed or is not approved. Review the validated Plan and use /mode red approve.");
+  throw new Error("Red scope changed or is not approved. Provide an approved direct RoE, or review the validated Plan and use /mode red approve.");
 }
 
 export async function revokeRedMode(): Promise<void> {

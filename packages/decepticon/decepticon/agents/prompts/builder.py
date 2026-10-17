@@ -236,10 +236,6 @@ class PromptBuilder:
         for tool_name in self._tool_prompts:
             parts.append(_get_tool_prompt(tool_name, self._role))
 
-        # Soundwave is an explicit planning adapter, not an operational workflow.
-        if self._role == "soundwave":
-            parts.append(_read_fragment("workflows/soundwave"))
-
         # ── Cache boundary ──
         # Everything above is static and cacheable by Anthropic prompt caching.
         # Everything below may change between invocations.

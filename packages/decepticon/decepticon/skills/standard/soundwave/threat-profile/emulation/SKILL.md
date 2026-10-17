@@ -3,6 +3,8 @@ name: emulation-overview
 description: "Adversary-emulation playbook catalog — per-actor kill chains that turn an APT/eCrime threat profile into Decepticon CONOPS phases + OPPLAN objectives. Routing skill: pick the actor, seed plan/threat-profile.json, then map each kill-chain phase to the operational skill the executing agent runs. Triggers on: 'emulate', 'adversary emulation', 'APT playbook', 'threat actor playbook', 'emulation plan', 'attack flow'."
 allowed-tools: Read Write Edit
 metadata:
+  skillogy:
+    version: 1
   subdomain: planning
   when_to_use: "emulate, adversary emulation, APT playbook, threat actor playbook, emulation plan, attack flow, kill chain for actor, which TTPs, how would APT29/Sandworm/Lazarus/Scattered Spider attack"
   tags: adversary-emulation, apt, ecrime, mitre-attack, kill-chain, planning
@@ -36,7 +38,7 @@ into OPPLAN objectives.
 
 Use the loaded actor playbook and current evidence for attribution and TTP details. Skillogy does not expose sibling reference files; do not assume those cards were read.
 
-## How to use a playbook (Soundwave Phase 2)
+## Adapting a playbook
 
 1. **Pick the actor** from the operator's intake answer and current evidence. One dominant actor per engagement.
 2. **Load the leaf**: `load_skill("/skills/standard/soundwave/threat-profile/emulation/<actor>/SKILL.md")`.
@@ -48,9 +50,9 @@ Use the loaded actor playbook and current evidence for attribution and TTP detai
 5. **Carry the safety gates** from the playbook's *RoE / safety gates* section into
    `abort.json` (destructive / ICS / identity-takeover actors need at least one
    `EMERGENCY` trigger) and the deconfliction identifiers into `deconfliction.json`.
-6. Hand off. The orchestrator's OPPLAN-builder reads `threat-profile.json` + `conops.json`
-   and builds the objective DAG; each objective's executing agent loads the skill named
-   in that kill-chain row.
+These mappings are planning inputs, not an execution handoff. An operational runtime
+may later build OPPLAN and load the mapped skills after the operator selects execution.
+Soundwave does not create objectives or dispatch the mapped actions.
 
 ## Playbook anatomy (every leaf has these)
 

@@ -3,6 +3,8 @@ name: cleanup-template
 description: "Cleanup & restoration plan generator — artifact inventory, persistence removal commands, pre-engagement baseline, post-engagement verification."
 allowed-tools: Read Write Edit
 metadata:
+  skillogy:
+    version: 1
   subdomain: planning
   when_to_use: "create cleanup plan, artifact inventory, persistence removal, post-engagement teardown, restoration plan"
   tags: cleanup, restoration, persistence, post-engagement, hygiene
@@ -15,7 +17,7 @@ The cleanup plan is the **anti-foothold roster** — every artifact the kill cha
 
 ## When to Use
 
-- After CONOPS is written (the kill chain phases dictate what artifacts will exist)
+- When designing or revising cleanup requirements; the proposed kill chain determines expected artifacts
 - User says "create cleanup plan", "list what we'll leave behind", "post-engagement teardown"
 
 ## Workflow

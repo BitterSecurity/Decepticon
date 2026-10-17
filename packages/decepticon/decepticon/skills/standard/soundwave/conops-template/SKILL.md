@@ -3,6 +3,8 @@ name: conops-template
 description: "Concept of Operations document creation — executive summary, threat actor profiling, attack narrative, kill chain design, communication plan, deconfliction."
 allowed-tools: Read Write Edit
 metadata:
+  skillogy:
+    version: 1
   subdomain: planning
   when_to_use: "create CONOPS, design operation, threat model, plan attack"
   tags: conops, kill-chain, threat-model, operation-design
@@ -23,43 +25,33 @@ The CONOPS bridges the legal RoE and the tactical OPPLAN. It must be **readable 
 
 Read `plan/roe.json` first — scope and boundaries constrain the CONOPS.
 
-Use the active planning schema and the Soundwave system prompt for `CONOPS`, `ThreatActor`, `KillChainPhase`, and `DeconflictionPlan` fields. Skillogy returns this skill body without sibling reference files.
+Use the inline schema tables below for `CONOPS`, `ThreatActor`, and `KillChainPhase` fields. The deconfliction-template skill describes `DeconflictionPlan`. Skillogy returns skill bodies without sibling reference files.
 
 ## Workflow
 
-### Step 1: Interview the User
+### Threat model and narrative
 
 Use the tier table and RoE Constraint→Profile Implication table in `threat-profile/SKILL.md` to propose a threat profile. Ask the operator about material choices such as motivation, initial access, operation sequence, and success criteria when these are not already confirmed.
 
-**Question 1 — Threat actor tier** (single-select, use `threat-profile` skill for detailed profiling):
-   - a) Opportunistic external attacker (low)
-   - b) Targeted cybercriminal (medium)
-   - c) APT / nation-state (high)
-   - d) Insider threat
-   - e) Custom — describe
+Use the confirmed **motivation**, **initial access vector**, and measurable
+**success criteria**. Do not invent the engagement's end-state. Draft the attack
+narrative from RoE scope, threat profile, and success criteria; derive objectives
+from that same context. Coordination belongs in `ContactPlan`;
+`CONOPS.communication_plan` is deprecated. Proposed deconfliction markers belong
+in `DeconflictionPlan` and must not be described as configured without evidence.
 
-Propose **motivation** and **initial access vector** from the operator's confirmed context, then confirm them when they affect the operation.
-
-**Question 2 — Success criteria** — the crown-jewel / measurable win condition. Required; no default (every engagement needs an explicit end-state).
-
-**Agent-drafted, not asked:**
-- **Attack narrative** — write the 2-3 sentence scenario yourself from RoE scope + tier + success criteria. This is the agent's job, not the operator's homework.
-- **Ultimate objectives** — derive from success criteria; do not ask as a separate dimension.
-- ~~Communication plan~~ — REMOVED. `CONOPS.communication_plan` is DEPRECATED (see SCHEMA_REFERENCE in soundwave.md); `ContactPlan` (contact-template skill) owns this now. Asking about it here duplicates a question and writes to a dead field.
-- **Deconfliction method** — default to standard red-team markers/headers (see `deconfliction-template` reference) unless the operator's RoE/contact answers already flagged a SOC integration endpoint; do not spend a dedicated question on it.
-
-### Step 2: Design Kill Chain
+### Kill-chain design
 
 Based on RoE scope + threat profile, select applicable phases using the active planning schema; do not depend on a sibling reference file that Skillogy cannot return.
 
 **Key rule**: Don't include phases outside RoE scope. Recon-only engagement → only `recon` phase.
 
-### Step 3: Generate Documents
+### Output
 
 1. Create or revise `plan/conops.json` with the matching `CONOPS` schema.
-2. Create or revise `plan/deconfliction.json` only when the operator is also designing that document; otherwise keep its existing content.
+2. Keep the embedded `threat_actors` summary consistent with the standalone threat profile when present. Related document revisions and bundle publication follow the selected planning workflow.
 
-### Step 4: Validate
+### Validation
 
 - Executive summary contains no jargon or tool names
 - Kill chain phases align with RoE scope
@@ -73,7 +65,7 @@ Based on RoE scope + threat profile, select applicable phases using the active p
 2. **Threat actor TTPs must reference MITRE ATT&CK IDs**
 3. **Kill chain scoped to RoE** — no exploitation phase in recon-only engagement
 4. **Timeline uses absolute dates** — never relative
-5. **Deconfliction defaults to standard red-team markers/headers** unless a SOC integration endpoint was already flagged; `communication_plan` is DEPRECATED — write coordination details to `ContactPlan` instead
+5. **Deconfliction markers are proposals until confirmed**; `communication_plan` is DEPRECATED — write coordination details to `ContactPlan` instead
 
 ## Document schema (derived from the validator's model)
 

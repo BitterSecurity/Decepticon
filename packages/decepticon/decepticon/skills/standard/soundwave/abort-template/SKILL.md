@@ -3,6 +3,8 @@ name: abort-template
 description: "Abort / crisis plan generator — halt triggers, response actions, AI-aware safety gates (hallucination threshold, destructive-action gate, output validation)."
 allowed-tools: Read Write Edit
 metadata:
+  skillogy:
+    version: 1
   subdomain: planning
   when_to_use: "create abort plan, emergency halt, crisis procedure, AI safety gate, hallucination guard, destructive action gate"
   tags: abort, halt, crisis, safety, ai-safety, owasp-agentic
@@ -17,7 +19,7 @@ AI-specific gates address the failure modes documented in **OWASP Top 10 for Age
 
 ## When to Use
 
-- After CONOPS + Threat Profile + Data Handling are written (the kill chain shapes which triggers are relevant)
+- When designing or revising halt conditions; use any available CONOPS, threat profile, and data-handling context to identify relevant triggers
 - User says "create abort plan", "halt triggers", "emergency stop", "safety gates"
 
 ## Workflow

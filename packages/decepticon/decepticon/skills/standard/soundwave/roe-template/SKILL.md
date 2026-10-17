@@ -3,6 +3,8 @@ name: roe-template
 description: Read and interpret the system-provided Rules of Engagement while planning with the operator.
 allowed-tools: Read
 metadata:
+  skillogy:
+    version: 1
   subdomain: planning
   when_to_use: "read RoE scope authorization boundaries plan mode"
   tags: roe, scope, engagement, authorization

@@ -16,8 +16,6 @@ def test_static_prompts_do_not_load_operational_workflows(role: str) -> None:
     prompt = PromptBuilder(role).build()
     assert "<AGENT_WORKFLOW>" not in prompt
     assert "<workflow-contract>" not in prompt
-    if role == "soundwave":
-        assert (ROOT / "agents/prompts/workflows/soundwave.md").read_text().strip() in prompt
 
 
 def test_migrated_methods_are_discoverable_skillogy_assets() -> None:

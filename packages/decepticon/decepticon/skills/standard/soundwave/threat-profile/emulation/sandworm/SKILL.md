@@ -3,6 +3,8 @@ name: sandworm
 description: "Sandworm (APT44 / Seashell Blizzard, GRU Unit 74455) adversary-emulation playbook — IT→OT intrusion ending in ICS manipulation or destructive impact, executed with living-off-the-land Windows tooling. SAFETY-CRITICAL: destructive and ICS-write steps are canary/lab-only and gated on explicit OT authorization. Use when emulating Sandworm against an ICS/OT or critical-infrastructure estate. Triggers on: 'emulate Sandworm', 'APT44', 'Seashell Blizzard', 'Voodoo Bear', 'ICS attack', 'OT destructive', 'Industroyer', 'NotPetya'."
 allowed-tools: Read Write Edit
 metadata:
+  skillogy:
+    version: 1
   subdomain: planning
   when_to_use: "emulate Sandworm, APT44, Seashell Blizzard, Voodoo Bear, Telebots, GRU 74455, ICS OT attack, destructive wiper, Industroyer, NotPetya, critical infrastructure disruption, IT to OT pivot"
   tags: adversary-emulation, sandworm, apt44, ics-ot, destructive, critical-infrastructure

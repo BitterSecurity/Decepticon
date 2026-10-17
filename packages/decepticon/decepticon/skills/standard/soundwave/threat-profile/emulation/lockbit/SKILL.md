@@ -3,6 +3,8 @@ name: lockbit
 description: "LockBit / generic RaaS-affiliate adversary-emulation playbook — broker/edge/RDP initial access, beacon, AD compromise to Domain Admin, defense evasion (Defender-disable via GPO, shadow-copy deletion), bulk exfil, then canary double-extortion encryption (Windows + ESXi). Reusable template for any ransomware affiliate (ALPHV, Akira, Black Basta). Triggers on: 'emulate LockBit', 'ransomware affiliate', 'RaaS', 'double extortion', 'StealBit', 'domain-wide ransomware', 'ESXi locker'."
 allowed-tools: Read Write Edit
 metadata:
+  skillogy:
+    version: 1
   subdomain: planning
   when_to_use: "emulate LockBit, ransomware affiliate, RaaS, double extortion, StealBit, domain wide ransomware, ESXi locker, ALPHV, BlackCat, Akira, Black Basta, shadow copy deletion, GPO Defender disable, backup resilience test"
   tags: adversary-emulation, lockbit, ransomware, raas, double-extortion, ecrime

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
-from typing import Annotated, NotRequired
+from typing import Annotated, Literal, NotRequired
 
 from langchain.agents import AgentState
 from langchain.agents.middleware import AgentMiddleware
@@ -41,8 +41,35 @@ class WorkflowSelection(BaseModel):
     workflow_snapshot: str | None = None
 
 
+class PlanningWorkflowState(AgentState):
+    """Keep optional Plan conversations independent of execution checkpoints."""
+
+    planning_workflow_snapshot: NotRequired[Annotated[str, reduce_workflow_snapshot, OmitFromInput]]
+
+
+class PlanningWorkflowSelection(BaseModel):
+    """Planning configuration never consumes an operational workflow pin."""
+
+    model_config = ConfigDict(frozen=True, extra="ignore")
+    planning_workflow_id: str | None = None
+    planning_workflow_version: str | None = None
+    planning_workflow_snapshot: str | None = None
+
+
+def _require_purpose(
+    snapshot: WorkflowSnapshot, purpose: Literal["execution", "planning"]
+) -> WorkflowSnapshot:
+    if snapshot.document.metadata.purpose != purpose:
+        raise WorkflowError(f"{snapshot.id} is not a {purpose} workflow")
+    return snapshot
+
+
 def resolve_workflow(
-    catalog: WorkflowCatalog, selection: WorkflowSelection, checkpoint: str | None
+    catalog: WorkflowCatalog,
+    selection: WorkflowSelection,
+    checkpoint: str | None,
+    *,
+    purpose: Literal["execution", "planning"] = "execution",
 ) -> WorkflowSnapshot:
     """Keep checkpoint content even when the registered source later changes."""
     if checkpoint and selection.workflow_snapshot and checkpoint != selection.workflow_snapshot:
@@ -57,10 +84,10 @@ def resolve_workflow(
             and selection.workflow_version != snapshot.version
         ):
             raise WorkflowError("configured workflow version differs from checkpoint")
-        return snapshot
+        return _require_purpose(snapshot, purpose)
     if selection.workflow_version is not None and selection.workflow_id is None:
         raise WorkflowError("workflow_version requires workflow_id")
-    return catalog.resolve(
+    snapshot = catalog.resolve(
         selection.workflow_id
         if selection.workflow_id is not None
         else (
@@ -70,6 +97,23 @@ def resolve_workflow(
         ),
         selection.workflow_version,
     )
+    return _require_purpose(snapshot, purpose)
+
+
+def _inject_contract(
+    request: ModelRequest,
+    pin: str | None,
+    *,
+    role: str,
+    purpose: Literal["execution", "planning"],
+) -> ModelRequest:
+    if pin is None:
+        raise WorkflowError("workflow checkpoint pin is missing")
+    snapshot = _require_purpose(WorkflowSnapshot.model_validate_json(pin), purpose)
+    contract = snapshot.document.compile(role)
+    blocks = list(request.system_message.content_blocks) if request.system_message else []
+    blocks.append({"type": "text", "text": contract})
+    return request.override(system_message=SystemMessage(content_blocks=blocks))
 
 
 class WorkflowMiddleware(AgentMiddleware[AgentState]):
@@ -99,13 +143,7 @@ class WorkflowMiddleware(AgentMiddleware[AgentState]):
 
     def _inject(self, request: ModelRequest) -> ModelRequest:
         pin = WorkflowSelection.model_validate(request.state).workflow_snapshot
-        if pin is None:
-            raise WorkflowError("workflow checkpoint pin is missing")
-        snapshot = WorkflowSnapshot.model_validate_json(pin)
-        contract = snapshot.document.compile(self.role)
-        blocks = list(request.system_message.content_blocks) if request.system_message else []
-        blocks.append({"type": "text", "text": contract})
-        return request.override(system_message=SystemMessage(content_blocks=blocks))
+        return _inject_contract(request, pin, role=self.role, purpose="execution")
 
     def wrap_model_call(
         self, request: ModelRequest, handler: Callable[[ModelRequest], ModelResponse]
@@ -116,3 +154,32 @@ class WorkflowMiddleware(AgentMiddleware[AgentState]):
         self, request: ModelRequest, handler: Callable[[ModelRequest], Awaitable[ModelResponse]]
     ) -> ModelResponse:
         return await handler(self._inject(request))
+
+
+class PlanningWorkflowMiddleware(WorkflowMiddleware):
+    """Inject the selected Plan playbook without OPPLAN or execution inheritance."""
+
+    state_schema = PlanningWorkflowState
+
+    def __init__(self, *, catalog: WorkflowCatalog | None = None) -> None:
+        super().__init__(role="soundwave", catalog=catalog)
+
+    def before_agent(self, state: AgentState, runtime: Runtime) -> dict[str, JsonValue]:
+        selected = PlanningWorkflowSelection.model_validate(get_config().get("configurable", {}))
+        selection = WorkflowSelection(
+            workflow_id=selected.planning_workflow_id,
+            workflow_default_id="planning",
+            workflow_version=selected.planning_workflow_version,
+            workflow_snapshot=selected.planning_workflow_snapshot,
+        )
+        snapshot = resolve_workflow(
+            self.catalog,
+            selection,
+            state.get("planning_workflow_snapshot"),
+            purpose="planning",
+        )
+        return {"planning_workflow_snapshot": snapshot.model_dump_json()}
+
+    def _inject(self, request: ModelRequest) -> ModelRequest:
+        pin = PlanningWorkflowSelection.model_validate(request.state).planning_workflow_snapshot
+        return _inject_contract(request, pin, role="soundwave", purpose="planning")

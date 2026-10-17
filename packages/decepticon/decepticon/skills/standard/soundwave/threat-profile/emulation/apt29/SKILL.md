@@ -3,6 +3,8 @@ name: apt29
 description: "APT29 (Cozy Bear / Midnight Blizzard, SVR) adversary-emulation playbook — malware-light cloud-identity espionage: no-MFA password spray, OAuth consent/token abuse, Golden SAML, mailbox collection over residential proxies. Use when emulating APT29 against an M365/Entra/AWS-identity estate. Triggers on: 'emulate APT29', 'Cozy Bear', 'Midnight Blizzard', 'NOBELIUM', 'OAuth abuse', 'cloud identity espionage', 'Golden SAML'."
 allowed-tools: Read Write Edit
 metadata:
+  skillogy:
+    version: 1
   subdomain: planning
   when_to_use: "emulate APT29, Cozy Bear, Midnight Blizzard, NOBELIUM, The Dukes, SVR, cloud identity espionage, OAuth consent abuse, token theft, Golden SAML, M365 Entra espionage, supply chain"
   tags: adversary-emulation, apt29, cozy-bear, cloud-identity, oauth, espionage

@@ -25,12 +25,21 @@ Keep proposed and unmerged changes out of released sections.
 - Compatibility/upgrade for PR #999: add optional `Objective.workflow_stage`;
   preserve existing unbound plans through a policy-only compatibility snapshot.
   Workflow updates affect new executions; existing checkpoint pins remain stable.
-  Optional legacy VR, benchmark and Soundwave planning contracts retain their
+  Optional legacy VR and benchmark contracts retain their
   separately documented integration boundaries. Add root change-tracking
   instructions and the `Chagelog.md` entry point while preserving this canonical
   history and release automation. No new package version is assigned by this PR.
 - Regenerate the checked-in Skillogy graph from the changed skill corpus so
   retrieval metadata and the deterministic CI build gate match the source (#999).
+- [PR #999](https://github.com/BitterSecurity/Decepticon/pull/999): separate
+  Soundwave's stable planning capability from the optional Plan-mode playbook.
+  Dynamically load planning/WORKFLOW.md with a separate planning checkpoint pin;
+  preserve read-only RoE, document validation and explicit operator mode switching.
+  Plan is not a Red prerequisite. Review all 17 planning skills, retain reusable
+  templates/actor knowledge and move whole-process instructions into the workflow.
+  Compatibility: existing execution snapshots default to execution purpose;
+  Autohunt keeps its separate bootstrap behavior and existing Plan threads acquire
+  their planning pin on their next call. No release is assigned by this proposal.
 
 ### Fixed
 

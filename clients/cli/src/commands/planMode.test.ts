@@ -19,6 +19,19 @@ describe("Red mode approval", () => {
     await expect(approveRedMode()).rejects.toThrow("engagement workspace");
   });
 
+  it("refuses to approve an incomplete Plan without direct RoE approval", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "decepticon-incomplete-mode-"));
+    await mkdir(path.join(root, "plan"));
+    await writeFile(path.join(root, "plan", "roe.json"), "{}");
+    vi.stubEnv("DECEPTICON_ENGAGEMENT", "incomplete");
+    vi.stubEnv("DECEPTICON_WORKSPACE_PATH", root);
+
+    await expect(approveRedMode()).rejects.toThrow();
+
+    await expect(readFile(path.join(root, ".red-approved"))).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(assertRedApproved()).rejects.toThrow();
+  });
+
   it("requires a validated draft and invalidates changed documents", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "decepticon-mode-"));
     await mkdir(path.join(root, "plan"));

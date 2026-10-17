@@ -3,6 +3,8 @@ name: lazarus
 description: "Lazarus Group (Hidden Cobra, DPRK RGB) adversary-emulation playbook — financially-motivated crypto/DeFi theft and supply-chain intrusion: fake-job social engineering, trojanized apps, wallet/key theft, and on-chain DeFi/bridge exploitation (testnet/fork only). Use when emulating DPRK financial actors against a crypto/exchange/DeFi target. Triggers on: 'emulate Lazarus', 'Hidden Cobra', 'DPRK crypto', 'AppleJeus', '3CX supply chain', 'DeFi bridge attack', 'crypto theft'."
 allowed-tools: Read Write Edit
 metadata:
+  skillogy:
+    version: 1
   subdomain: planning
   when_to_use: "emulate Lazarus, Hidden Cobra, ZINC, Diamond Sleet, DPRK, cryptocurrency theft, DeFi protocol attack, bridge exploit, AppleJeus, 3CX supply chain, fake job social engineering, wallet key theft, exchange compromise"
   tags: adversary-emulation, lazarus, dprk, cryptocurrency, defi, supply-chain

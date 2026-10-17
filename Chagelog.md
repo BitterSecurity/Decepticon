@@ -8,3 +8,5 @@ independent of production/SaaS image and release identifiers.
 
 Pending workflow and skill-graph consistency changes are recorded under Unreleased
 in [PR #999](https://github.com/BitterSecurity/Decepticon/pull/999).
+The same proposal includes optional Plan-mode Soundwave workflow separation and
+its checkpoint/upgrade notes in the canonical Unreleased section.

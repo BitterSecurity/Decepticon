@@ -3,6 +3,8 @@ name: contact-template
 description: "Contact / communications plan generator — primary operator, escalation chain, abort signal recipient, external SOC endpoint, blackout windows."
 allowed-tools: Read Write Edit
 metadata:
+  skillogy:
+    version: 1
   subdomain: planning
   when_to_use: "create contact plan, communications plan, escalation chain, operator contacts, SOC notification, blackout window"
   tags: contact, communications, escalation, soc, deconfliction, blackout

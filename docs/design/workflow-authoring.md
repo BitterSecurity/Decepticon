@@ -93,9 +93,17 @@ DAG dependencies, role isolation, checkpoint/resume behavior, and actual runtime
 selection. Run `uv run pytest packages/decepticon/tests/unit/prompts
 packages/decepticon/tests/unit/workflows -q` and inspect captured evidence.
 
-Soundwave remains an explicitly selected planning adapter with its existing planning
-fragment. Autohunt remains its conservative bootstrap alternative. Neither is an
-operational business workflow silently appended to core specialists.
+Soundwave loads `catalog/planning/WORKFLOW.md` only through its explicit Plan
+factory. The catalog declares `purpose: planning` and no OPPLAN stages. Selection
+uses `planning_workflow_id`/`planning_workflow_version`, and the checkpoint key is
+`planning_workflow_snapshot`; execution selections and pins are independent.
+`purpose` defaults to execution for existing documents and snapshots. Resolving
+a planning contract as an execution workflow, or the reverse, is rejected.
+Autohunt retains its separate bootstrap factory and receives no interactive
+planning workflow, even though it shares Soundwave's tool/slot role internally.
+Plan is optional: publishing a planning draft leaves the operator in Plan, and
+the operator explicitly selects execution. Direct authorized Red runs do not
+require the planning bundle. See [Plan workflow](planning-workflow.md).
 
 Red-team uses a unified `prove` stage. Its eligible roles include postexploit,
 cloud, AD, source and binary capabilities as well as exploit. Supplied footholds

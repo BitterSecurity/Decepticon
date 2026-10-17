@@ -3,6 +3,8 @@ name: structured-questions
 description: "How to use ask_user_question — the single operator-input channel for every interview question, including free-form fields via allow_other=true."
 allowed-tools: Read Write
 metadata:
+  skillogy:
+    version: 1
   subdomain: planning
   when_to_use: "interview the operator, ask a yes/no, pick engagement type, choose attack class, scope window, posture choice, multi-select kill-chain phases, free-form name / IP / contact"
   tags: interview, ask_user_question, picker, multiple-choice
@@ -11,15 +13,15 @@ metadata:
 
 # Structured Operator Questions (`ask_user_question`)
 
-The Soundwave interview has exactly **one** question channel:
+When operator input is needed, use the structured question channel:
 
 - `ask_user_question` — structured picker rendered in the CLI. For
   free-form dimensions (organization name, IP ranges, contact addresses)
   set `allow_other=true` and the picker appends a free-text fallback the
   operator can type into.
 
-There is no prose-question path. Every operator-facing question goes
-through this tool.
+Every operator-facing question goes through this tool. This skill describes
+question mechanics; it does not require an interview for every planning request.
 
 ## When to call `ask_user_question`
 
@@ -108,4 +110,4 @@ ask_user_question(
   returned value is authoritative; record it and move to the next dimension
 - Treating a picker answer or `complete_engagement_planning` as approval
   of the full document bundle. The operator reviews the draft and may
-  request revisions in Interview before explicitly authorizing Red.
+  request revisions in Plan before explicitly selecting Red.

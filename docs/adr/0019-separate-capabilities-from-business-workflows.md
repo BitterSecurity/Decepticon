@@ -51,6 +51,14 @@ Downstream products pinned to an older published schema need an explicit adapter
 until they adopt the updated release. The production companion uses immutable
 task-to-stage bindings beside its existing OPPLAN state, with no second lifecycle.
 
+The optional Soundwave Plan mode uses the same Markdown catalog/compiler with
+`purpose: planning` and no OPPLAN stages. Its independent
+`planning_workflow_snapshot` prevents a planning session from consuming an
+execution pin or becoming a required execution predecessor. Existing sources
+default to `purpose: execution`, preserving their source hashes and compatibility.
+Publication remains governed by the existing planning document validator; mode
+switching remains an explicit operator action.
+
 ## Alternatives considered
 
 - Business-specific agents: duplicate capability prompts and require parallel

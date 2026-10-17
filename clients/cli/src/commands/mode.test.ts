@@ -35,9 +35,29 @@ describe("CLI run modes", () => {
     const { ctx, selected } = context();
     await mode.execute("plan", ctx);
     expect(getAssistantOverride()).toBe("soundwave");
+    expect(selected).toEqual(["soundwave"]);
     await mode.execute("red", ctx);
     expect(getAssistantOverride()).toBe("decepticon");
     expect(selected).toEqual(["soundwave", "decepticon"]);
+  });
+
+  it("selects Red directly without a prior Plan conversation", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "decepticon-direct-red-command-"));
+    await mkdir(path.join(root, "plan"));
+    const roe = '{"in_scope":[{"target":"example.com"}]}';
+    await writeFile(path.join(root, "plan", "roe.json"), roe);
+    const approval = `roe:${createHash("sha256").update(roe).digest("hex")}`;
+    await writeFile(path.join(root, ".red-approved"), approval);
+    vi.stubEnv("DECEPTICON_ENGAGEMENT", "direct");
+    vi.stubEnv("DECEPTICON_WORKSPACE_PATH", root);
+    const { ctx, selected } = context();
+
+    await mode.execute("red approve", ctx);
+
+    expect(getAssistantOverride()).toBe("decepticon");
+    expect(selected).toEqual(["decepticon"]);
+    expect(await readFile(path.join(root, ".red-approved"), "utf-8")).toBe(approval);
+    await expect(readFile(path.join(root, ".planning-draft-ready"))).rejects.toMatchObject({ code: "ENOENT" });
   });
 
   it("selects Blue without its sensor", async () => {

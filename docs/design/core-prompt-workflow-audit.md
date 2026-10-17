@@ -25,7 +25,7 @@ reusable Skillogy leaves; business sequencing is in runtime WORKFLOW.md catalogs
 | phisher | Extracted artifact/event attribution into methods; rollout belongs to workflow. Kept authorization/deconfliction, user exclusions, data handling and campaign handoff. |
 | supply_chain_operator | Extracted dependency/build resolution and harmless validation methods. Kept harmless proof boundary, upstream scope and no secret/backdoor publication. |
 | wireless_operator | Extracted capture context and protocol evidence methods. Kept hardware deployment modes, regulatory domain and per-network authorization. |
-| soundwave | Unchanged: intentional interview/planning adapter. Its planning fragment remains explicitly loaded only for this role. |
+| soundwave | Stable planning capability and read-only RoE/nonexecution boundaries remain core. Interview, document preparation and review procedures moved to the dynamically selected planning WORKFLOW.md; no static planning fragment is appended. |
 | autohunt | Unchanged: intentional conservative planning bootstrap adapter, not a generic capability specialist. |
 | blue_cell | Unchanged: independent read-only defensive runtime with sensor/event contracts, not an offensive business workflow. |
 

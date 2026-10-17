@@ -3,6 +3,8 @@ name: data-handling-template
 description: "Data handling plan generator — evidence retention, encryption, chain-of-custody, compliance frameworks (GDPR / HIPAA / PCI-DSS / SOC2)."
 allowed-tools: Read Write Edit
 metadata:
+  skillogy:
+    version: 1
   subdomain: planning
   when_to_use: "create data handling plan, evidence retention, chain-of-custody, GDPR, HIPAA, PCI-DSS, compliance, PII handling"
   tags: data-handling, evidence, retention, encryption, chain-of-custody, compliance, gdpr, hipaa

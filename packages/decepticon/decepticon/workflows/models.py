@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import re
 from dataclasses import dataclass
-from typing import Annotated, Self
+from typing import Annotated, Literal, Self
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -44,6 +44,7 @@ class WorkflowMetadata(BaseModel):
     id: Slug
     version: Nonempty
     description: Nonempty
+    purpose: Literal["execution", "planning"] = "execution"
     stages: tuple[WorkflowStage, ...] = ()
 
     @model_validator(mode="after")
@@ -78,7 +79,7 @@ class WorkflowDocument:
         sections = [self.common]
         sections.extend(text for agent, text in self.agents if agent == role)
         stages = self.metadata.stages
-        if role not in {"decepticon", "soundwave"}:
+        if role != "decepticon":
             stages = tuple(stage for stage in stages if stage.allows(role))
         contract = self.metadata.model_copy(update={"stages": stages}).model_dump_json()
         return "\n\n".join([f"<workflow-contract>{contract}</workflow-contract>", *sections])

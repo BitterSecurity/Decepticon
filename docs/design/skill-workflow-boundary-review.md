@@ -14,7 +14,7 @@ Production APT28/29/41/44 and Lazarus references retain techniques, attribution,
 
 The optional OSS vulnresearch plugin still has a scanner/detector/verifier/patcher/exploiter pipeline coupled to its factory, graph and prompts. The new vulnerability-research workflow is available through the common agent runtime; this change does not rewrite that separate legacy plugin. Its procedural skill requires a coordinated runtime migration, not deletion of instructions alone.
 
-Benchmark skill routing is coupled to EngagementContextMiddleware and harness tests. Soundwave planning templates combine procedural instructions with JSON contracts consumed by a separate planner. These remain intact pending migrations of their callers and validators. Shared OPSEC and defense-evasion restrictions remain capability policy; their presence is not treated as permission to weaken or relocate enforcement.
+Benchmark skill routing is coupled to EngagementContextMiddleware and harness tests and remains intact. The Soundwave follow-up read all 17 planning skill bodies, moved whole-process sequencing/publication instructions into planning/WORKFLOW.md and retained reusable templates, JSON schemas and actor knowledge. Soundwave's plan-only filesystem and existing document validator remain enforced; its workflow is selected only in optional Plan mode and is not an execution prerequisite. Shared OPSEC and defense-evasion restrictions remain capability policy; their presence is not treated as permission to weaken or relocate enforcement.
 
 ## Production Skillogy
 
