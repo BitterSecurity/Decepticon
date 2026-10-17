@@ -326,10 +326,21 @@ default fallback chain; pick a specific route at runtime with `/model`
 | Baidu Qianfan (ERNIE) | `QIANFAN_API_KEY` | [console.bce.baidu.com/qianfan](https://console.bce.baidu.com/qianfan) |
 | Cloudflare AI Gateway | `CLOUDFLARE_AI_GATEWAY_API_KEY` + `CLOUDFLARE_AI_GATEWAY_API_BASE` | [dash.cloudflare.com](https://dash.cloudflare.com) |
 | Cheaper Inference | `CHEAPER_INFERENCE_API_KEY` | [cheaperinference.com](https://cheaperinference.com) |
+| Generic OpenAI-compatible gateway (opt-in) | `OPENAI_COMPAT_GATEWAY_API_KEY` + `OPENAI_COMPAT_GATEWAY_API_BASE` + `OPENAI_COMPAT_GATEWAY_MODEL` | any OpenAI-compatible `/v1` endpoint |
 
 > Cloudflare's base URL is per-account — set it to your gateway's
 > OpenAI-compat `…/compat` path. Qianfan model ids drift; override per
 > role with `DECEPTICON_MODEL_<ROLE>` if a default 404s.
+>
+> The generic OpenAI-compatible gateway is **DEFAULT OFF**: all three of
+> base URL, key, and model must be set. No vendor endpoint is hardcoded
+> (`compat/<model>` routes through whatever base URL you supply).
+> The base URL must be an absolute HTTP(S) URL. Keys follow the existing
+> credential policy: at least 24 characters and no placeholder tokens. Model
+> slugs must be nonempty and contain no whitespace. A shared model covers all
+> tiers; `OPENAI_COMPAT_GATEWAY_MODEL_HIGH`, `_MID`, and `_LOW` override individual
+> tiers. If only tier overrides are provided, unconfigured tiers need another
+> configured provider. Empty values and `none`, `null`, or `-` use the shared model.
 
 ---
 

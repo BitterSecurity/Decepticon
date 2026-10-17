@@ -28,6 +28,7 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Any, Literal
+from urllib.parse import urlsplit
 
 import httpx
 from langchain_core.language_models import BaseChatModel, LanguageModelInput
@@ -269,6 +270,7 @@ _DEFAULT_AUTH_PRIORITY: tuple[AuthMethod, ...] = (
     AuthMethod.QIANFAN_API,
     AuthMethod.CLOUDFLARE_GATEWAY_API,
     AuthMethod.CHEAPER_INFERENCE_API,
+    AuthMethod.OPENAI_COMPAT_GATEWAY_API,
     AuthMethod.OLLAMA_LOCAL,
     AuthMethod.OLLAMA_CLOUD,
 )
@@ -475,6 +477,33 @@ def _custom_openai_configured() -> bool:
     return bool(base) and _is_real_key(key)
 
 
+def _openai_compat_gateway_configured() -> bool:
+    """Return True when the generic OpenAI-compatible gateway is opted in.
+
+    Requires ``OPENAI_COMPAT_GATEWAY_API_BASE`` (URL), a real
+    ``OPENAI_COMPAT_GATEWAY_API_KEY``, and at least one model via
+    ``OPENAI_COMPAT_GATEWAY_MODEL`` or ``OPENAI_COMPAT_GATEWAY_MODEL_*``.
+    All three are required so a stock .env with placeholder comments stays
+    DEFAULT OFF — no vendor endpoint is contacted until the operator opts in.
+    """
+    base = os.getenv("OPENAI_COMPAT_GATEWAY_API_BASE", "").strip()
+    key = os.getenv("OPENAI_COMPAT_GATEWAY_API_KEY", "")
+    try:
+        endpoint = urlsplit(base)
+        port = endpoint.port
+    except ValueError:
+        return False
+    if (
+        endpoint.scheme not in {"http", "https"}
+        or not endpoint.hostname
+        or port == 0
+        or any(c.isspace() for c in base)
+    ):
+        return False
+    credentials = Credentials(methods=[AuthMethod.OPENAI_COMPAT_GATEWAY_API])
+    return _is_real_key(key) and any(resolve_chain(tier, credentials) for tier in Tier)
+
+
 def _is_real_key(value: str, method: AuthMethod | None = None) -> bool:
     """Validate that ``value`` looks like a real provider API key.
 
@@ -617,6 +646,8 @@ def _method_is_configured(method: AuthMethod) -> bool:
         return _llamacpp_local_configured()
     if method == AuthMethod.CUSTOM_OPENAI_API:
         return _custom_openai_configured()
+    if method == AuthMethod.OPENAI_COMPAT_GATEWAY_API:
+        return _openai_compat_gateway_configured()
     return False
 
 
@@ -662,6 +693,9 @@ def _fallback_credentials(*, priority_explicit: bool) -> Credentials:
     if _custom_openai_configured():
         log.info("Only CUSTOM_OPENAI_* detected; using custom OpenAI-compatible endpoint")
         return Credentials(methods=[AuthMethod.CUSTOM_OPENAI_API])
+    if _openai_compat_gateway_configured():
+        log.info("Only OPENAI_COMPAT_GATEWAY_* detected; using generic OpenAI-compatible gateway")
+        return Credentials(methods=[AuthMethod.OPENAI_COMPAT_GATEWAY_API])
     if priority_explicit:
         # User expressed clear intent (set DECEPTICON_AUTH_PRIORITY) but
         # every listed method failed detection. Surface the root cause
@@ -741,6 +775,7 @@ _LOCAL_METHOD_ENV: dict[AuthMethod, str] = {
     AuthMethod.LMSTUDIO_LOCAL: "LMSTUDIO_API_BASE",
     AuthMethod.LLAMACPP_LOCAL: "LLAMACPP_API_BASE",
     AuthMethod.CUSTOM_OPENAI_API: "CUSTOM_OPENAI_API_BASE",
+    AuthMethod.OPENAI_COMPAT_GATEWAY_API: "OPENAI_COMPAT_GATEWAY_API_KEY",
 }
 
 _METHOD_LABEL: dict[AuthMethod, str] = {
@@ -780,6 +815,7 @@ _METHOD_LABEL: dict[AuthMethod, str] = {
     AuthMethod.QIANFAN_API: "Baidu Qianfan (ERNIE) — API key",
     AuthMethod.CLOUDFLARE_GATEWAY_API: "Cloudflare AI Gateway — API key + base URL",
     AuthMethod.CHEAPER_INFERENCE_API: "Cheaper Inference — API key",
+    AuthMethod.OPENAI_COMPAT_GATEWAY_API: "OpenAI-compatible gateway — base URL + key (opt-in)",
     AuthMethod.COPILOT_OAUTH: "GitHub Copilot — Pro subscription",
     AuthMethod.GROK_OAUTH: "xAI SuperGrok — X Premium+",
     AuthMethod.PERPLEXITY_OAUTH: "Perplexity — Pro subscription",

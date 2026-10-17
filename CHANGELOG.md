@@ -26,6 +26,17 @@ Keep proposed and unmerged changes out of released sections.
 
 ### Added — merged, unreleased
 
+- Optional vendor-neutral OpenAI-compatible gateway (`compat/…`) driven by
+  `OPENAI_COMPAT_GATEWAY_API_BASE`, `OPENAI_COMPAT_GATEWAY_API_KEY`, and
+  `OPENAI_COMPAT_GATEWAY_MODEL` (or per-tier `*_MODEL_{HIGH,MID,LOW}`).
+  Default off; no vendor endpoint is hardcoded. Addresses the capability in
+  [#989](https://github.com/BitterSecurity/Decepticon/issues/989) through
+  [#995](https://github.com/BitterSecurity/Decepticon/pull/995).
+  Existing provider ordering and `CUSTOM_OPENAI_*` remain supported. Invalid URLs,
+  placeholder keys and empty model slugs stay disabled consistently in credential
+  detection and proxy route generation; sentinel tier models use the shared model.
+  Requires code/images containing this change; no release version is assigned.
+
 - [PR #999](https://github.com/BitterSecurity/Decepticon/pull/999): separate stable
   capability specialists and reusable `SKILL.md` knowledge from individual
   `WORKFLOW.md` playbooks for bug bounty, red team, pentest and vulnerability

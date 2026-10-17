@@ -1759,3 +1759,54 @@ class TestLLMTimeout:
         with pytest.raises(ValueError, match="greater than 0"):
             asyncio.run(model.ainvoke("hi"))
         assert called is False, "upstream request coroutine must not be created on bad timeout"
+
+
+# ── Generic OpenAI-compatible gateway detection (#989) ──────────────────
+
+
+class TestOpenAICompatGatewayDetection:
+    def test_default_off(self, monkeypatch):
+        from decepticon.llm.factory import _openai_compat_gateway_configured
+
+        for var in (
+            "OPENAI_COMPAT_GATEWAY_API_BASE",
+            "OPENAI_COMPAT_GATEWAY_API_KEY",
+            "OPENAI_COMPAT_GATEWAY_MODEL",
+            "OPENAI_COMPAT_GATEWAY_MODEL_HIGH",
+            "OPENAI_COMPAT_GATEWAY_MODEL_MID",
+            "OPENAI_COMPAT_GATEWAY_MODEL_LOW",
+        ):
+            monkeypatch.delenv(var, raising=False)
+        assert _openai_compat_gateway_configured() is False
+
+    def test_requires_base_key_and_model(self, monkeypatch):
+        from decepticon.llm.factory import _openai_compat_gateway_configured
+
+        monkeypatch.setenv("OPENAI_COMPAT_GATEWAY_API_BASE", "https://gateway.example.com/v1")
+        monkeypatch.setenv("OPENAI_COMPAT_GATEWAY_API_KEY", "sk-compat-" + "a" * 24)
+        # model still missing
+        monkeypatch.delenv("OPENAI_COMPAT_GATEWAY_MODEL", raising=False)
+        monkeypatch.delenv("OPENAI_COMPAT_GATEWAY_MODEL_HIGH", raising=False)
+        assert _openai_compat_gateway_configured() is False
+
+        monkeypatch.setenv("OPENAI_COMPAT_GATEWAY_MODEL", "gpt-4o-mini")
+        assert _openai_compat_gateway_configured() is True
+
+    def test_placeholder_key_rejected(self, monkeypatch):
+        from decepticon.llm.factory import _openai_compat_gateway_configured
+
+        monkeypatch.setenv("OPENAI_COMPAT_GATEWAY_API_BASE", "https://gateway.example.com/v1")
+        monkeypatch.setenv("OPENAI_COMPAT_GATEWAY_API_KEY", "your-openai-compat-gateway-key-here")
+        monkeypatch.setenv("OPENAI_COMPAT_GATEWAY_MODEL", "gpt-4o-mini")
+        assert _openai_compat_gateway_configured() is False
+
+    def test_auth_inventory_opt_in(self, monkeypatch):
+        from decepticon.llm.factory import auth_inventory
+        from decepticon_core.types.llm import AuthMethod
+
+        monkeypatch.setenv("DECEPTICON_AUTH_PRIORITY", "openai_compat_gateway_api")
+        monkeypatch.setenv("OPENAI_COMPAT_GATEWAY_API_BASE", "https://gateway.example.com/v1")
+        monkeypatch.setenv("OPENAI_COMPAT_GATEWAY_API_KEY", "sk-compat-" + "a" * 24)
+        monkeypatch.setenv("OPENAI_COMPAT_GATEWAY_MODEL", "gpt-4o-mini")
+        inv = auth_inventory()
+        assert inv.resolved_chain == (AuthMethod.OPENAI_COMPAT_GATEWAY_API,)
