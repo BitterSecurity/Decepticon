@@ -23,11 +23,11 @@ interface FolderGroup {
 }
 
 const FOLDER_META: Record<string, { icon: typeof Folder; color: string; label: string }> = {
-  recon: { icon: Radar, color: "text-cyan-400", label: "Recon" },
-  exploit: { icon: Zap, color: "text-amber-400", label: "Exploit" },
-  "post-exploit": { icon: Key, color: "text-purple-400", label: "Post-Exploit" },
-  findings: { icon: AlertTriangle, color: "text-red-400", label: "Findings" },
-  report: { icon: FileText, color: "text-emerald-400", label: "Report" },
+  recon: { icon: Radar, color: "text-cyan-800 dark:text-cyan-400", label: "Recon" },
+  exploit: { icon: Zap, color: "text-amber-800 dark:text-amber-400", label: "Exploit" },
+  "post-exploit": { icon: Key, color: "text-purple-800 dark:text-purple-400", label: "Post-Exploit" },
+  findings: { icon: AlertTriangle, color: "text-red-800 dark:text-red-400", label: "Findings" },
+  report: { icon: FileText, color: "text-emerald-800 dark:text-emerald-400", label: "Report" },
 };
 
 /** Folders managed by the Plan page — excluded from Documents. */

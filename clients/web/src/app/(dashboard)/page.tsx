@@ -35,7 +35,7 @@ const metricDefs = [
     title: "Active Engagements",
     icon: Crosshair,
     gradient: "from-violet-500/20 to-purple-500/20",
-    iconColor: "text-violet-400",
+    iconColor: "text-violet-800 dark:text-violet-400",
     borderGlow: "hover:border-violet-500/30",
   },
   {
@@ -43,7 +43,7 @@ const metricDefs = [
     title: "Total Findings",
     icon: FileWarning,
     gradient: "from-amber-500/20 to-orange-500/20",
-    iconColor: "text-amber-400",
+    iconColor: "text-amber-800 dark:text-amber-400",
     borderGlow: "hover:border-amber-500/30",
   },
   {
@@ -51,7 +51,7 @@ const metricDefs = [
     title: "Critical Vulnerabilities",
     icon: AlertTriangle,
     gradient: "from-red-500/20 to-rose-500/20",
-    iconColor: "text-red-400",
+    iconColor: "text-red-800 dark:text-red-400",
     borderGlow: "hover:border-red-500/30",
   },
   {
@@ -59,7 +59,7 @@ const metricDefs = [
     title: "Defenses Verified",
     icon: Shield,
     gradient: "from-emerald-500/20 to-green-500/20",
-    iconColor: "text-emerald-400",
+    iconColor: "text-emerald-800 dark:text-emerald-400",
     borderGlow: "hover:border-emerald-500/30",
   },
 ];
@@ -74,19 +74,19 @@ const severityColors: Record<string, { color: string; barColor: string }> = {
 
 const severityOrder = ["critical", "high", "medium", "low", "informational"];
 const severityBadge: Record<string, string> = {
-  critical: "bg-red-500/20 text-red-300",
-  high: "bg-orange-500/20 text-orange-300",
-  medium: "bg-yellow-500/20 text-yellow-300",
-  low: "bg-blue-500/20 text-blue-300",
-  informational: "bg-slate-500/20 text-slate-300",
+  critical: "bg-red-500/20 text-red-800 dark:text-red-300",
+  high: "bg-orange-500/20 text-orange-800 dark:text-orange-300",
+  medium: "bg-yellow-500/20 text-yellow-800 dark:text-yellow-300",
+  low: "bg-blue-500/20 text-blue-800 dark:text-blue-300",
+  informational: "bg-slate-500/20 text-slate-800 dark:text-slate-300",
 };
 
 const statusBadge: Record<string, string> = {
-  running: "bg-amber-500/20 text-amber-300",
-  completed: "bg-emerald-500/20 text-emerald-300",
-  planning: "bg-violet-500/20 text-violet-300",
-  draft: "bg-zinc-500/20 text-zinc-300",
-  failed: "bg-red-500/20 text-red-300",
+  running: "bg-amber-500/20 text-amber-800 dark:text-amber-300",
+  completed: "bg-emerald-500/20 text-emerald-800 dark:text-emerald-300",
+  planning: "bg-violet-500/20 text-violet-800 dark:text-violet-300",
+  draft: "bg-zinc-500/20 text-zinc-800 dark:text-zinc-300",
+  failed: "bg-red-500/20 text-red-800 dark:text-red-300",
 };
 
 export default function DashboardPage() {
@@ -181,7 +181,7 @@ export default function DashboardPage() {
         <p className="text-sm text-muted-foreground">Overview of your security testing operations</p>
       </div>
       {error && (
-        <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+        <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-800 dark:text-red-400">
           {error}
         </div>
       )}
@@ -272,7 +272,7 @@ export default function DashboardPage() {
                       <span className="text-sm font-medium">{eng.name}</span>
                       <p className="text-xs text-muted-foreground">{new Date(eng.createdAt).toLocaleDateString()}</p>
                     </div>
-                    <Badge className={`text-xs ${statusBadge[eng.status] ?? "bg-zinc-500/20 text-zinc-300"}`}>
+                    <Badge className={`text-xs ${statusBadge[eng.status] ?? "bg-zinc-500/20 text-zinc-800 dark:text-zinc-300"}`}>
                       {eng.status}
                     </Badge>
                   </Link>
@@ -300,7 +300,7 @@ export default function DashboardPage() {
                       <span className="text-sm font-medium truncate block">{f.title}</span>
                       <p className="text-xs text-muted-foreground">{f.engagementName}</p>
                     </div>
-                    <Badge className={`shrink-0 text-xs ${severityBadge[f.severity] ?? "bg-zinc-500/20 text-zinc-300"}`}>
+                    <Badge className={`shrink-0 text-xs ${severityBadge[f.severity] ?? "bg-zinc-500/20 text-zinc-800 dark:text-zinc-300"}`}>
                       {f.severity}
                     </Badge>
                   </div>

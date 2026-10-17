@@ -83,7 +83,7 @@ export default function FindingsPage() {
                   <CardDescription>
                     <Badge
                       variant="outline"
-                      className="bg-green-500/10 text-green-400 border-green-500/20"
+                      className="bg-green-500/10 text-green-800 dark:text-green-400 border-green-500/20"
                     >
                       {eng.status}
                     </Badge>

@@ -153,7 +153,7 @@ export default function EngagementLayout({
                 ))}
               </div>
               <span className="text-xs text-muted-foreground">{mode === "plan" ? "Soundwave planning" : mode === "red" ? "Authorized testing" : "Defensive investigation"}</span>
-              {modeNotice && <span role="status" className="text-xs text-amber-400">{modeNotice}</span>}
+              {modeNotice && <span role="status" className="text-xs text-amber-800 dark:text-amber-400">{modeNotice}</span>}
               {!redApproved && mode === "plan" && <span className="text-xs text-muted-foreground">Red scope pending review</span>}
             </div>
           )}

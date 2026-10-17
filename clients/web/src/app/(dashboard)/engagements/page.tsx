@@ -31,11 +31,11 @@ interface Engagement {
 }
 
 const statusColors: Record<string, string> = {
-  draft: "bg-slate-500/10 text-slate-400 border-slate-500/20",
-  planning: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  running: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-  completed: "bg-green-500/10 text-green-400 border-green-500/20",
-  failed: "bg-red-500/10 text-red-400 border-red-500/20",
+  draft: "bg-slate-500/10 text-slate-800 dark:text-slate-400 border-slate-500/20",
+  planning: "bg-blue-500/10 text-blue-800 dark:text-blue-400 border-blue-500/20",
+  running: "bg-amber-500/10 text-amber-800 dark:text-amber-400 border-amber-500/20",
+  completed: "bg-green-500/10 text-green-800 dark:text-green-400 border-green-500/20",
+  failed: "bg-red-500/10 text-red-800 dark:text-red-400 border-red-500/20",
 };
 
 const targetIcons: Record<string, typeof Globe> = {

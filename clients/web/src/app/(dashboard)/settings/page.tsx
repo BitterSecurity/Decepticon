@@ -36,7 +36,7 @@ interface ServiceStatus {
 }
 
 function StatusDot({ status }: { status: "ok" | "error" | "loading" }) {
-  if (status === "loading") return <Loader2 className="h-3 w-3 animate-spin text-amber-400" />;
+  if (status === "loading") return <Loader2 className="h-3 w-3 animate-spin text-amber-800 dark:text-amber-400" />;
   if (status === "ok") return <div className="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50" />;
   return <div className="h-2.5 w-2.5 rounded-full bg-red-400 shadow-sm shadow-red-400/50" />;
 }
@@ -179,17 +179,17 @@ export default function SettingsPage(): React.ReactNode {
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
           ) : engagementsError ? (
-            <p role="status" className="py-6 text-center text-sm text-red-400">
+            <p role="status" className="py-6 text-center text-sm text-red-800 dark:text-red-400">
               {engagementsError}
             </p>
           ) : (
             <div className="grid grid-cols-5 gap-4 text-center">
               {([
                 ["Total", statusCounts.total, "text-foreground"],
-                ["Running", statusCounts.running, "text-amber-400"],
-                ["Completed", statusCounts.completed, "text-emerald-400"],
-                ["Planning", statusCounts.planning, "text-violet-400"],
-                ["Draft", statusCounts.draft, "text-zinc-400"],
+                ["Running", statusCounts.running, "text-amber-800 dark:text-amber-400"],
+                ["Completed", statusCounts.completed, "text-emerald-800 dark:text-emerald-400"],
+                ["Planning", statusCounts.planning, "text-violet-800 dark:text-violet-400"],
+                ["Draft", statusCounts.draft, "text-zinc-800 dark:text-zinc-400"],
               ] as const).map(([label, count, color]) => (
                 <div key={label}>
                   <p className={cn("text-2xl font-bold", color)}>{count}</p>
@@ -216,7 +216,7 @@ export default function SettingsPage(): React.ReactNode {
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
           ) : agentsError ? (
-            <p role="status" className="py-6 text-center text-sm text-red-400">
+            <p role="status" className="py-6 text-center text-sm text-red-800 dark:text-red-400">
               {agentsError}
             </p>
           ) : (

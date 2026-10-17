@@ -13,7 +13,7 @@ export function Header() {
           Autonomous Red Team Platform
         </h2>
         <Separator orientation="vertical" className="h-4" />
-        <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-400">
+        <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:text-emerald-400">
           Online
         </span>
       </div>

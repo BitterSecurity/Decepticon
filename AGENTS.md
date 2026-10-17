@@ -1,0 +1,3 @@
+# Repository instructions
+
+For every Decepticon product, OSS, documentation, or maintenance PR, update root `Chagelog.md` before opening or updating the PR. It is the entry point to canonical `CHANGELOG.md`; preserve that history and release automation and update it in the same PR. Put pending changes under Unreleased with PR links, user-visible behavior and compatibility/upgrade notes, distinguishing proposed, merged, and deployed/released changes. On actual release use the real version or immutable release/image identifier and date; never invent dates or bump unrelated versions. SaaS releases and OSS versions are independent. Preserve earlier entries, link `Chagelog.md` from the PR description, and never edit a different dirty worktree to satisfy this rule.

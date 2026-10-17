@@ -22,11 +22,11 @@ interface Finding {
 }
 
 const severityBadge: Record<string, string> = {
-  critical: "bg-red-500/20 text-red-300",
-  high: "bg-orange-500/20 text-orange-300",
-  medium: "bg-yellow-500/20 text-yellow-300",
-  low: "bg-blue-500/20 text-blue-300",
-  informational: "bg-slate-500/20 text-slate-300",
+  critical: "bg-red-500/20 text-red-800 dark:text-red-300",
+  high: "bg-orange-500/20 text-orange-800 dark:text-orange-300",
+  medium: "bg-yellow-500/20 text-yellow-800 dark:text-yellow-300",
+  low: "bg-blue-500/20 text-blue-800 dark:text-blue-300",
+  informational: "bg-slate-500/20 text-slate-800 dark:text-slate-300",
 };
 
 export default function EngagementOverviewPage() {
@@ -116,7 +116,7 @@ export default function EngagementOverviewPage() {
       subValue: `${completedCount} completed`,
       icon: ClipboardList,
       href: "plan",
-      color: "text-emerald-400",
+      color: "text-emerald-800 dark:text-emerald-400",
     },
     {
       label: "Findings",
@@ -124,7 +124,7 @@ export default function EngagementOverviewPage() {
       subValue: `${criticalFindings} critical`,
       icon: FileWarning,
       href: "findings",
-      color: "text-red-400",
+      color: "text-red-800 dark:text-red-400",
     },
     {
       label: "Attack Graph",
@@ -132,7 +132,7 @@ export default function EngagementOverviewPage() {
       subValue: "nodes discovered",
       icon: Network,
       href: "graph",
-      color: "text-cyan-400",
+      color: "text-cyan-800 dark:text-cyan-400",
     },
   ];
 
@@ -168,7 +168,7 @@ export default function EngagementOverviewPage() {
             <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
               Progress
             </CardTitle>
-            <Play className="h-4 w-4 text-amber-400" />
+            <Play className="h-4 w-4 text-amber-800 dark:text-amber-400" />
           </CardHeader>
           <CardContent>
             <div>

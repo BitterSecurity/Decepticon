@@ -18,17 +18,17 @@ interface TimelineEvent {
 }
 
 const typeConfig: Record<string, { icon: typeof Clock; color: string; bg: string }> = {
-  plan_created: { icon: ClipboardList, color: "text-violet-400", bg: "bg-violet-500/10" },
-  objective_changed: { icon: ClipboardList, color: "text-amber-400", bg: "bg-amber-500/10" },
-  finding_discovered: { icon: FileWarning, color: "text-red-400", bg: "bg-red-500/10" },
-  file_created: { icon: FolderOpen, color: "text-cyan-400", bg: "bg-cyan-500/10" },
+  plan_created: { icon: ClipboardList, color: "text-violet-800 dark:text-violet-400", bg: "bg-violet-500/10" },
+  objective_changed: { icon: ClipboardList, color: "text-amber-800 dark:text-amber-400", bg: "bg-amber-500/10" },
+  finding_discovered: { icon: FileWarning, color: "text-red-800 dark:text-red-400", bg: "bg-red-500/10" },
+  file_created: { icon: FolderOpen, color: "text-cyan-800 dark:text-cyan-400", bg: "bg-cyan-500/10" },
 };
 
 const sevColor: Record<string, string> = {
-  critical: "bg-red-500/20 text-red-300",
-  high: "bg-orange-500/20 text-orange-300",
-  medium: "bg-yellow-500/20 text-yellow-300",
-  low: "bg-blue-500/20 text-blue-300",
+  critical: "bg-red-500/20 text-red-800 dark:text-red-300",
+  high: "bg-orange-500/20 text-orange-800 dark:text-orange-300",
+  medium: "bg-yellow-500/20 text-yellow-800 dark:text-yellow-300",
+  low: "bg-blue-500/20 text-blue-800 dark:text-blue-300",
 };
 
 export default function TimelinePage() {

@@ -16,11 +16,11 @@ interface DocumentPanelProps {
 }
 
 const typeColors: Record<string, string> = {
-  roe: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  conops: "bg-violet-500/10 text-violet-400 border-violet-500/20",
-  opplan: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-  finding: "bg-red-500/10 text-red-400 border-red-500/20",
-  reference: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+  roe: "bg-blue-500/10 text-blue-800 dark:text-blue-400 border-blue-500/20",
+  conops: "bg-violet-500/10 text-violet-800 dark:text-violet-400 border-violet-500/20",
+  opplan: "bg-emerald-500/10 text-emerald-800 dark:text-emerald-400 border-emerald-500/20",
+  finding: "bg-red-500/10 text-red-800 dark:text-red-400 border-red-500/20",
+  reference: "bg-amber-500/10 text-amber-800 dark:text-amber-400 border-amber-500/20",
 };
 
 // Mock document content for demo

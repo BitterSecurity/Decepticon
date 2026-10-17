@@ -6,11 +6,24 @@ follows [Semantic Versioning](https://semver.org/) from `1.0.0`
 onward (the `0.x` cycle is pre-stable per the core/framework/sdk split
 design spec, §13.4).
 
-Add user-visible changes to **Unreleased** when their PR is merged. At release,
+Add pending changes to **Unreleased**, marking proposed changes explicitly.
+When merged, remove the proposed label; only dated release sections represent releases. At release,
 move those entries into a dated version section, link the PRs, and add a
 comparison link. Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
+
+### Proposed
+
+- Add a persistent light/dark dashboard toggle, retaining dark as the default.
+  Honor existing system preferences when toggling and keep status/severity labels
+  readable in light mode. Fixed dark terminal and graph surfaces retain their palette.
+  Compatibility: browser-local preference only; no database migration, package version
+  change, or configuration upgrade is required. This change is not released or deployed.
+  ([#997](https://github.com/BitterSecurity/Decepticon/pull/997))
+- Add `Chagelog.md` as the entry point to this canonical history and document the
+  repository PR changelog requirement.
+  ([#997](https://github.com/BitterSecurity/Decepticon/pull/997))
 
 ### Fixed
 

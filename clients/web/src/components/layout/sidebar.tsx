@@ -154,7 +154,7 @@ export function Sidebar() {
         <img src="/logo.png" alt="PurpleAILab" width={26} height={26} className="shrink-0" />
         {!collapsed && (
           <span className="text-sm font-bold tracking-tight">
-            <span className="text-purple-400">Purple</span>
+            <span className="text-purple-800 dark:text-purple-400">Purple</span>
             <span className="text-foreground">AILab</span>
           </span>
         )}
