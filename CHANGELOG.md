@@ -29,6 +29,8 @@ Keep proposed and unmerged changes out of released sections.
   separately documented integration boundaries. Add root change-tracking
   instructions and the `Chagelog.md` entry point while preserving this canonical
   history and release automation. No new package version is assigned by this PR.
+- Regenerate the checked-in Skillogy graph from the changed skill corpus so
+  retrieval metadata and the deterministic CI build gate match the source (#999).
 
 ### Fixed
 
