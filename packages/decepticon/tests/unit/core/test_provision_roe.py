@@ -105,3 +105,15 @@ def test_refuses_symlinked_plan(workspace: Path, source: Path, tmp_path: Path) -
     # Then it cannot install authorization in the redirected directory.
     assert result.returncode == 2, result.stderr
     assert not (external / "roe.json").exists()
+
+
+def test_invalidates_stale_review_markers_before_restoring_roe(workspace: Path, source: Path) -> None:
+    # Given review markers left over after an RoE was removed.
+    for marker in (".red-approved", ".planning-draft-ready"):
+        (workspace / marker).write_text("stale approval")
+    # When an operator restores the missing RoE.
+    result = _invoke(workspace, source, "--confirm")
+    # Then validation and execution approval must be renewed.
+    assert result.returncode == 0, result.stderr
+    assert not (workspace / ".red-approved").exists()
+    assert not (workspace / ".planning-draft-ready").exists()
