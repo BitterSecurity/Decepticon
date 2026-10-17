@@ -12,6 +12,12 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+### Proposed
+
+- Provision a missing RoE for an existing engagement through an operator-confirmed
+  import command, preserving plans and requiring fresh execution approval.
+  ([#998](https://github.com/BitterSecurity/Decepticon/issues/998); PR forthcoming)
+
 ### Fixed
 
 - Expect the unauthorized call to revert in generated Foundry access-control tests.

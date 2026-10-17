@@ -13,9 +13,19 @@ import pytest
 
 def _invoke(workspace: Path, source: Path, *flags: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        [sys.executable, "-m", "decepticon.provision_roe", "--workspace", str(workspace),
-         "--file", str(source), *flags],
-        capture_output=True, text=True, check=False,
+        [
+            sys.executable,
+            "-m",
+            "decepticon.provision_roe",
+            "--workspace",
+            str(workspace),
+            "--file",
+            str(source),
+            *flags,
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
         env={**os.environ, "DECEPTICON_SKIP_BOOT": "1"},
     )
 
@@ -30,18 +40,27 @@ def workspace(tmp_path: Path) -> Path:
 @pytest.fixture
 def source(tmp_path: Path) -> Path:
     source = tmp_path / "authorized.json"
-    source.write_text(json.dumps({
-        "engagement_name": "Existing engagement", "client": "Local operator",
-        "start_date": "2026-10-17", "end_date": "2026-10-17",
-        "engagement_type": "external", "testing_window": "09:00-17:00 UTC",
-        "in_scope": [{"target": "127.0.0.1", "type": "ip-range"}],
-        "authorization_reference": "Local fixture authorization",
-        "machine_enforcement": {"mode": "enforce", "in_scope": ["127.0.0.1"]},
-    }))
+    source.write_text(
+        json.dumps(
+            {
+                "engagement_name": "Existing engagement",
+                "client": "Local operator",
+                "start_date": "2026-10-17",
+                "end_date": "2026-10-17",
+                "engagement_type": "external",
+                "testing_window": "09:00-17:00 UTC",
+                "in_scope": [{"target": "127.0.0.1", "type": "ip-range"}],
+                "authorization_reference": "Local fixture authorization",
+                "machine_enforcement": {"mode": "enforce", "in_scope": ["127.0.0.1"]},
+            }
+        )
+    )
     return source
 
 
-def test_provisions_missing_roe_preserving_plans_without_approval(workspace: Path, source: Path) -> None:
+def test_provisions_missing_roe_preserving_plans_without_approval(
+    workspace: Path, source: Path
+) -> None:
     # Given an existing plan and an operator-reviewed RoE.
     before = (workspace / "plan" / "conops.json").read_bytes()
     # When the operator explicitly confirms provisioning.
@@ -55,8 +74,12 @@ def test_provisions_missing_roe_preserving_plans_without_approval(workspace: Pat
     assert (workspace / "plan" / "roe.json").stat().st_mode & 0o777 == 0o600
 
 
-@pytest.mark.parametrize("change", ["invalid-json", "missing-field", "blank-authorization", "empty-scope"])
-def test_rejects_invalid_authorization_without_writing(workspace: Path, source: Path, change: str) -> None:
+@pytest.mark.parametrize(
+    "change", ["invalid-json", "missing-field", "blank-authorization", "empty-scope"]
+)
+def test_rejects_invalid_authorization_without_writing(
+    workspace: Path, source: Path, change: str
+) -> None:
     # Given an invalid or incomplete authorization document.
     payload = json.loads(source.read_text())
     if change == "missing-field":
@@ -107,7 +130,9 @@ def test_refuses_symlinked_plan(workspace: Path, source: Path, tmp_path: Path) -
     assert not (external / "roe.json").exists()
 
 
-def test_invalidates_stale_review_markers_before_restoring_roe(workspace: Path, source: Path) -> None:
+def test_invalidates_stale_review_markers_before_restoring_roe(
+    workspace: Path, source: Path
+) -> None:
     # Given review markers left over after an RoE was removed.
     for marker in (".red-approved", ".planning-draft-ready"):
         (workspace / marker).write_text("stale approval")

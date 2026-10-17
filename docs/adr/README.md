@@ -77,5 +77,6 @@ Use [`template.md`](template.md) as the starting point.
 | [0013](0013-expose-blue-observations-through-mcp.md) | Expose live Blue Cell observations through MCP | Proposed |
 | [0014](0014-expose-plugin-bundles-through-mcp.md) | Expose plugin bundles through MCP | Proposed |
 | [0018](0018-safe-uninstall-workspace-preservation.md) | Preserve requested workspace before destructive uninstall | Proposed |
+| [0020](0020-operator-roe-provisioning.md) | Operator provisioning of a missing RoE | Proposed |
 
 Keep this index in sync when you land a new ADR.
