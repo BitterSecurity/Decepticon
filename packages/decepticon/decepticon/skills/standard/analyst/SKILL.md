@@ -1,7 +1,9 @@
 ---
 name: analyst-overview
-description: Root pointer for the analyst's vulnerability research playbooks. Load this first at iteration start to see the full catalog of vuln-class and chain-building skills.
+description: Root pointer for the analyst's vulnerability research playbooks and catalog of vuln-class and chain-building skills.
 metadata:
+  skillogy:
+    version: 1
   subdomain: analyst
   when_to_use: "analyst overview vulnerability research playbook catalog chain building routing iteration start"
   upstream_ref: "Decepticon analyst lane: vulnerability research playbook catalog"
@@ -47,10 +49,8 @@ into a critical impact chain.
 | `/skills/standard/analyst/chains/cred-reuse/SKILL.md`   | Low-priv cred → service pivot → domain admin               |
 | `/skills/standard/analyst/chains/idor-to-priv-esc/SKILL.md` | IDOR on settings → role elevation                      |
 
-## Workflow
-1. `kg_stats` — see what you already know.
-2. Identify the target's language / framework.
-3. Load the matching vuln-class skill (one or two per iteration).
-4. Run the skill's recipe, record findings as graph nodes.
-5. When enough vulns exist, load a chain playbook and call
-   `plan_attack_chains(promote=True)` to persist any complete chains.
+## Technique selection
+
+Identify the target's language / framework and select the matching
+vuln-class skill. Chain playbooks require individual findings whose
+prerequisites and effects can be combined into a complete impact path.

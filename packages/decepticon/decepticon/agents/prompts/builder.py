@@ -131,55 +131,6 @@ def _read_fragment(name: str) -> str:
     raise FileNotFoundError(msg)
 
 
-# ── workflow inline (Skillogy Amendment v0.2.2) ──────────────────────────────
-# Each specialist with a ``<role>.md`` file under
-# ``packages/decepticon/decepticon/agents/prompts/workflows/`` gets it
-# concatenated into the cacheable static prefix at agent factory time. The
-# runtime skill middleware (``SkillogyMiddleware`` and the legacy
-# ``SkillsMiddleware``) no longer loads workflow content — the body lives
-# inside the prompt-cache boundary and the middleware owns no filesystem
-# behavior.
-#
-# Workflows live next to the agent identity prompts (``prompts/standard/``),
-# not under ``skills/``, because they are agent identity (phase loop, scope
-# rules, OPSEC discipline, hand-off format) — not on-demand skill catalog
-# entries. Roles without a workflow file get no extra content (no fallback,
-# no warning — the absence is the contract). See "Amendment v0.2.2" in
-# docs/design/skillogy-brain-redesign.md.
-
-_WORKFLOWS_DIR = _PROMPTS_DIR / "workflows"
-
-
-@lru_cache(maxsize=32)
-def _read_workflow_for_role(role: str) -> str | None:
-    """Return the role's workflow body, or ``None`` when absent.
-
-    Resolution: ``prompts/workflows/<role>.md`` (role name only — no
-    skill-directory aliasing). Cached per-role; the disk hit only fires
-    on first factory build per Python process. ``None`` is the
-    conventional "no workflow" signal — ``build()`` skips the section
-    entirely so non-workflow roles pay zero prompt cost.
-    """
-    path = _WORKFLOWS_DIR / f"{role}.md"
-    if not path.exists():
-        return None
-    body = path.read_text(encoding="utf-8").strip()
-    return body or None
-
-
-def _format_workflow_block(role: str, body: str) -> str:
-    """Wrap the workflow body with a header naming its on-disk source.
-
-    The header lets future readers locate the source file for edits.
-    """
-    return (
-        "<AGENT_WORKFLOW>\n"
-        f"## Always-Loaded Workflow — `agents/prompts/workflows/{role}.md`\n\n"
-        f"{body}\n"
-        "</AGENT_WORKFLOW>"
-    )
-
-
 def _get_tool_prompt(tool_name: str, role: str | None = None) -> str:
     """Get a tool's prompt from its co-located prompt module.
 
@@ -264,7 +215,7 @@ class PromptBuilder:
         """
         parts: list[str] = []
 
-        # 1. Agent-specific prompt (identity, rules, environment, workflow)
+        # 1. Agent-specific prompt (identity, rules, environment)
         parts.append(_read_fragment(self._role))
 
         # 2. Cross-cutting prompt patterns
@@ -285,13 +236,9 @@ class PromptBuilder:
         for tool_name in self._tool_prompts:
             parts.append(_get_tool_prompt(tool_name, self._role))
 
-        # 4. Always-loaded workflow (Skillogy Amendment v0.2.2). Sits inside
-        #    the cacheable prefix so the agent's phase loop / scope rules /
-        #    OPSEC discipline / handoff format are loaded before any tool
-        #    call without the middleware owning filesystem behavior.
-        workflow_body = _read_workflow_for_role(self._role)
-        if workflow_body:
-            parts.append(_format_workflow_block(self._role, workflow_body))
+        # Soundwave is an explicit planning adapter, not an operational workflow.
+        if self._role == "soundwave":
+            parts.append(_read_fragment("workflows/soundwave"))
 
         # ── Cache boundary ──
         # Everything above is static and cacheable by Anthropic prompt caching.

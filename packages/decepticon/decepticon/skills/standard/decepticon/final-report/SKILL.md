@@ -14,28 +14,14 @@ metadata:
 
 # Final Engagement Report Generation
 
-**Execute when all OPPLAN objectives are in `completed`, `blocked`, or `cancelled` status. Output is two Markdown documents in `report/`.**
+The selected workflow defines when a report is needed, its audience and artifact
+paths. This skill provides optional writing templates and evidence interpretation;
+it does not start a reporting phase, create directories or require unavailable
+planning documents. Select only sections supported by the assignment and evidence.
+A report with no confirmed vulnerabilities is valid; do not invent entries to fill
+the examples or treat the template's pentest title as a required engagement type.
 
-## Report Generation Workflow
-
-```
-1. Read all findings/*.md              (parse YAML frontmatter for metadata)
-2. Read all findings/attack-paths/PATH-*.md
-3. Read timeline.jsonl                 (activity log)
-4. Read plan/roe.json + plan/conops.json + plan/deconfliction.json  (engagement context)
-5. Read plan/opplan.json               (objective status summary)
-6. Generate report/executive-summary.md
-7. Generate report/technical-report.md
-8. Do not create a legacy findings.md summary; summaries belong in report/
-```
-
-### Step 1: Initialize Output Directory
-
-```
-bash(command="mkdir -p /workspace/report", description="Create the report output directory")
-```
-
-### Step 2: Aggregate Findings
+## Finding metadata interpretation
 
 Read every `findings/FIND-*.md` (canonical name `findings/FIND-{NNN}.md`; the
 `id` frontmatter field matches the filename) and extract frontmatter fields:
@@ -50,12 +36,12 @@ for each FIND-NNN.md:
 Sorting rules:
 - Primary: severity (`critical` → `high` → `medium` → `low` → `informational`)
 - Secondary: CVSS score descending
-- De-duplicate findings that appear across multiple objectives (keep highest-severity instance)
+- Correlate duplicates by demonstrated root cause and affected scope; preserve evidence and do not simply select the highest-severity claim
 - Flag `verification_status: unverified` findings — they require a disclaimer note in the report
 
-### Step 3: Generate Executive Summary
+## Executive summary template
 
-Write to `report/executive-summary.md` using the template below. Use plain business language throughout — zero technical jargon.
+Use the workflow-requested executive-summary path and adapt the template below. Use plain business language throughout — zero technical jargon.
 
 ---
 
@@ -145,9 +131,9 @@ compromise of all company systems."]
 
 ---
 
-### Step 4: Generate Technical Report
+## Technical report template
 
-Write to `report/technical-report.md` using the template below.
+Use the workflow-requested technical-report path and adapt the template below.
 
 ---
 
@@ -417,15 +403,11 @@ Reference specific FIND-IDs inline where findings were exploited.]
 | Empty attack paths | If no PATH-*.md files exist, omit Section 4 and note why |
 | Empty timeline | If timeline.jsonl is empty or missing, omit Section 6 and note why |
 
-## Finding lifecycle
+## Interpreting quality status
 
-The only per-finding document is `findings/FIND-NNN.md`. The finding author
-writes observed facts with `report_status: draft`; an independent
-`finding_verifier` updates `verification_status` and its rationale after a
-positive reproduction and equivalent negative control; `finding_reporter`
-completes the same document in place using deterministic `cvss_score` when a
-CVSS 3.1 vector is justified. `report_status: complete` means the document was
-checked and is ready to read, not that the issue is verified or fixed.
+Canonical finding metadata distinguishes reproduced behavior from document readiness.
+`report_status: complete` does not mean the issue was verified or remediated. Use the
+recorded independent verification result; a report writer cannot invent that verdict.
 
 The technical report's findings table must cite the canonical path for every
 finding. For `false_positive` and `negative_result` entries, report what was
@@ -436,7 +418,7 @@ link the draft and label it explicitly instead of inventing a complete report.
 
 ## Quality Checklist
 
-Before writing the final files, verify:
+For sections requested by the workflow, check:
 
 - [ ] Every finding table row links to the existing `findings/FIND-NNN.md`
 - [ ] Every listed confirmed vulnerability has `result_kind: vulnerability` and `verification_status: verified`
@@ -449,4 +431,4 @@ Before writing the final files, verify:
 - [ ] MITRE ATT&CK IDs, when present, were validated against a source of truth
 - [ ] Timeline is in chronological order
 - [ ] All referenced file paths exist in the workspace
-- [ ] Overall risk rating matches the highest-severity verified finding
+- [ ] Overall risk conclusion explains affected scope, verified impact and coverage limitations; it is not mechanically the highest severity

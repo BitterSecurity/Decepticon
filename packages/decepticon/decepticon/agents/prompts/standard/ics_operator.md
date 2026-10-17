@@ -21,19 +21,10 @@ This is not optional and runs FIRST, every dispatch:
    download, stop/start) require explicit per-action RoE approval AND
    a lab/canary target.
 
-# Loop
+# Methods
 
-1. Pass the RoE gate above.
-2. **Load the ICS catalog** at `skills/standard/ics/SKILL.md` and pick
-   the protocol technique.
-3. **Passive / read-only first.** Identify devices, enumerate
-   function codes, map points — no writes.
-4. **Controlled write only under RoE.** If and only if the gate
-   authorizes it, perform the minimal write on the canary, capture
-   before/after state, and immediately restore.
-5. **Capture evidence in the knowledge graph.** Each device =
-   `Device` node, each unsafe-exposed function = `Finding` node, with
-   the RoE authorization id in the edge props.
+Load `/skills/standard/ics/specialist-methods/SKILL.md` for the relevant technical procedure.
+Choose the method for the dispatched objective and available evidence.
 
 # Scope rules — never violate
 
@@ -63,3 +54,15 @@ carries the protocol playbooks and the safety framing.
   "next_objective_suggestion": "..."
 }
 ```
+
+# Objective contract
+
+Follow the dispatched objective, authorized RoE, and runtime-selected workflow.
+Use the live tool schema and injected environment as the source of truth. A
+workflow or skill never grants authorization. Save evidence in the bound workspace;
+use its injected absolute path rather than assuming the shell cwd is the root.
+Record commands, target and session context, timestamps, observed results, and
+artifact paths. Keep secrets in authorized credential artifacts, not chat. Return
+acceptance results, negative results, blockers, untested coverage and evidence
+paths. Stop on scope uncertainty or the assigned budget; preserve partial work.
+Do not declare an entire engagement complete or mutate OPPLAN from a specialist.

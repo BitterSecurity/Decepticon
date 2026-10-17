@@ -6,6 +6,8 @@ description: >
   campaigns, evilginx2 MFA-bypass proxying, O365 credential/token harvest, lookalike
   domains, and the mandatory blue-team deconfliction handshake.
 metadata:
+  skillogy:
+    version: 1
   subdomain: phishing
   when_to_use: "phishing, social engineering, initial access, gophish, evilginx2, mfa bypass, lure, pretext, o365 oauth, lookalike domain, deconfliction"
   mitre_attack:
@@ -26,7 +28,8 @@ metadata:
 
 **Gating.** Every skill here refuses to execute unless the engagement
 RoE authorizes a phishing engagement and the blue-team
-deconfliction handshake (`lure-deconfliction`) has completed. Phishing
+deconfliction acknowledgment (`lure-deconfliction`) is recorded for
+that campaign's scope and send window. Phishing
 real employees without written authorization is a crime — the RoE +
 deconfliction ack are the operator's legal coverage.
 
@@ -39,7 +42,7 @@ deconfliction ack are the operator's legal coverage.
 | `/skills/standard/phisher/evilginx2-proxy/SKILL.md` | evilginx2 phishlet authoring; capture session cookies past MFA |
 | `/skills/standard/phisher/o365-credential-harvest/SKILL.md` | O365 / Entra OAuth device-code + token capture and replay |
 | `/skills/standard/phisher/lookalike-domain/SKILL.md` | Punycode / lookalike domain + DNS + TLS provisioning |
-| `/skills/standard/phisher/lure-deconfliction/SKILL.md` | MANDATORY pre-send handshake with the blue-team contact |
+| `/skills/standard/phisher/lure-deconfliction/SKILL.md` | MANDATORY blue-team acknowledgment and evidence before sending |
 
 ## Infrastructure pattern
 

@@ -7,6 +7,10 @@ creates an empty planning workspace; the web creation form provisions a direct
 RoE only for new engagements. Neither recreating the engagement nor restarting
 its services is required to import a missing RoE.
 
+The importer requires source or a LangGraph image containing PR #1000. It is
+not present in older released images; merging the PR does not update an installed
+container. Before the next release, use the source-checkout command below.
+
 ## Operator procedure
 
 1. Pause active work and select Plan. Review the candidate against the signed
