@@ -16,7 +16,8 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 
 - Provision a missing RoE for an existing engagement through an operator-confirmed
   import command, preserving plans and requiring fresh execution approval.
-  ([#998](https://github.com/BitterSecurity/Decepticon/issues/998); PR forthcoming)
+  ([#998](https://github.com/BitterSecurity/Decepticon/issues/998);
+  [proposed changes](https://github.com/BitterSecurity/Decepticon/compare/main...fix/roe-provisioning-998))
 
 ### Fixed
 
