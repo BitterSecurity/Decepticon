@@ -11,7 +11,8 @@ CLI engagement creation asks only for a name and opens **Plan** with Soundwave. 
 Choose **New engagement**, enter a lowercase name with optional internal
 hyphens, and submit. The launcher creates the workspace and its empty `plan/`
 directory. It does not ask for a mode, target, or authorization reference.
-Supply the target and scope during the planning conversation, then review the
+Supply the target and scope during the planning conversation, then have an
+authorized operator [provision the reviewed RoE](roe-provisioning.md). Review the
 validated scope before Red execution. Saved engagements retain their scope.
 
 ### Web dashboard setup
@@ -48,7 +49,8 @@ The interview streams in real time — you respond to each question.
 
 ### Document generation
 
-From the interview, Soundwave writes an eight-document engagement bundle to
+From the interview, Soundwave writes seven planning documents alongside the
+operator-provisioned RoE, forming an eight-document bundle in
 `<engagement>/plan/` as JSON:
 
 | Document | Contents |

@@ -1,6 +1,6 @@
 ---
 name: finding-report
-description: "Complete an independently verified finding in its canonical file."
+description: "Interpret finding verdicts, preserve evidence fields and present justified severity and remediation."
 allowed-tools: Read Write
 metadata:
   subdomain: reporting
@@ -14,8 +14,9 @@ metadata:
 
 # Finding report
 
-Read `findings/FIND-NNN.md`, its evidence references and the verifier's
-`verification_status` and `verification_rationale`. Work in that same file.
+A finding's evidence references, `verification_status` and
+`verification_rationale` constrain its supported conclusions. The selected
+workflow owns authorship, canonical paths, completion and handoff.
 
 ## Verdict handling
 
@@ -37,6 +38,5 @@ Complete supported fields such as `severity_rationale`, `cvss_vector`,
 `report_status`. Unknown values may remain absent. Use sections for Summary,
 Verification, Steps to Reproduce, Proof of Concept, Attack Scenario, Impact,
 Controls and Limitations, CVSS, Remediation, and References. Cite exact paths.
-The agent must read back the saved file and evidence before marking it complete.
-
-The final engagement report links to `findings/FIND-NNN.md`; it never copies it.
+The final engagement report links to the canonical finding rather than creating
+a second record with an independently mutable verdict.

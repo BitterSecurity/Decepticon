@@ -3,6 +3,8 @@ name: lure-deconfliction
 description: Mandatory out-of-band handshake with the blue-team contact BEFORE any phishing campaign sends. Skipping this is a critical RoE violation - the engagement has no legal coverage for unannounced phishing of real employees.
 allowed-tools: Bash Read Write
 metadata:
+  skillogy:
+    version: 1
   subdomain: deconfliction
   when_to_use: send phishing campaign, launch lure, evilginx2 lure activation, oauth device-code attack
   tags: deconfliction, blue-team, opsec, legal
@@ -48,9 +50,9 @@ From `plan/roe.json`:
 }
 ```
 
-## Handshake payload
+## Required acknowledgment metadata
 
-Construct ONE message containing:
+The blue-team acknowledgment must cover the campaign metadata:
 
 ```
 Subject: [DECEPTICON RT-2026-0142] Phishing campaign deconfliction
@@ -64,41 +66,15 @@ Pretext class: <internal_it_password_reset | external_invoice | shared_doc | ...
 Lure URL: https://login.acme-portal.example/
 Lure domain registration: 2026-05-26 (lookalike of acme.com)
 Opt-out URL (in every lure): https://decepticon.example/optout/RT-2026-0142
-
-REQUEST: confirm you've received this message before 13:30 KST.
-If we have not received an ack by 13:45 KST, the campaign WILL NOT send
-and the objective will be marked BLOCKED.
 ```
 
-## Send it via the configured channel
+## Required acknowledgment evidence
 
-The `ack_method` in roe.json drives:
-
-- `signal_message`: `bash -c 'signal-cli -u <operator> send -m "..." <contact>'`
-- `email_reply`: standard SMTP via the engagement's deconfliction
-  mailbox.
-- `voice_confirm`: log the planned call in `plan/phisher/deconfliction-log.md`;
-  operator must complete the call out-of-band and update the log
-  before the campaign send-time.
-
-## Wait for ack
-
-Poll the channel until the ack arrives OR the deadline expires.
-
-```bash
-while true; do
-  if ack_received; then break; fi
-  if past_deadline; then
-    return a blocked result: blue-team contact unreachable for lure-deconfliction
-    return
-  fi
-  sleep 60
-done
-```
-
-## Record evidence
-
-Append to `plan/phisher/deconfliction-log.md`:
+Before sending, `plan/phisher/deconfliction-log.md` must identify the
+contact, configured acknowledgment method, approved send window, and
+acknowledgment timestamp / message reference. For `voice_confirm`, the
+operator must have completed the call out-of-band and recorded the
+confirmation before campaign send-time.
 
 ```markdown
 ## Campaign RT-2026-0142 / gophish-id-12
@@ -114,17 +90,14 @@ Persist as a Finding node in the knowledge graph with
 `finding_type: "deconfliction_ack"`, the ack message id, and the
 timestamp. This is the audit trail for the engagement deliverable.
 
-## Failure modes
+## Send authorization constraints
 
-- **Contact unreachable**: pause objective, ask operator via
-  `ask_user_question` for an alternate contact or a write-down.
-- **Contact denies the campaign**: the campaign DOES NOT send.
-  The objective is marked BLOCKED with the denial recorded. The
-  orchestrator may dispatch you against a different target user set,
-  or move to a different INITIAL_ACCESS technique.
-- **Contact requests modification** (e.g. "not the CFO, but their
-  assistant is fine"): update the target list and re-send the
-  handshake.
+- **Missing acknowledgment**: the campaign DOES NOT send, including
+  when the contact is unreachable or the acknowledgment deadline passed.
+- **Contact denies the campaign**: the campaign DOES NOT send; retain
+  the denial as evidence.
+- **Changed campaign scope or send window**: the campaign DOES NOT send
+  until the blue-team contact acknowledges the revised metadata.
 
 ## ZFP
 

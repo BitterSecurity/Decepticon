@@ -8,6 +8,8 @@ description: >
   breach-data lookups, GitHub code search, Wayback Machine archives,
   certificate transparency, BGP/ASN mapping.
 metadata:
+  skillogy:
+    version: 1
   subdomain: osint
   when_to_use: "osint passive reconnaissance maltego shodan censys hunter breach data github code search wayback machine certificate transparency bgp asn outbound only bug bounty"
   subdomain: osint
@@ -27,7 +29,7 @@ Censys, Hunter, GitHub API, crt.sh, Wayback, etc.).
 > **Inline technique reference — not separately loadable skills.** The entries below
 > are summarized here for direct use; there is no separate `SKILL.md` to open for
 > each. Do NOT call the skill loader on them — apply the technique with your tools
-> using this summary and the Workflow in this file.
+> using this summary and the passive analysis guidance in this file.
 
 
 | Technique | Use for |
@@ -45,7 +47,7 @@ Censys, Hunter, GitHub API, crt.sh, Wayback, etc.).
 | **cryptocurrency** | Chain analysis (Etherscan / Mempool.space / Arkham) for crypto-adjacent targets |
 | **geospatial** | Image geolocation, EXIF mining, satellite/streetview cross-reference |
 
-## Workflow
+## Passive analysis
 
 1. **Seed**: from the engagement target (domain, company name, brand).
 2. **Domain layer**: whois, reverse-IP, CT logs → enumerate every
@@ -58,9 +60,9 @@ Censys, Hunter, GitHub API, crt.sh, Wayback, etc.).
    HaveIBeenPwned for credential reuse.
 6. **Infrastructure layer**: BGP + ASN ownership; Wayback retired
    endpoints; SSL/TLS cert history.
-7. **Synthesis**: project the graph into Neo4j as a pre-engagement map;
-   hand off to the Recon agent for active confirmation only if RoE
-   permits.
+7. **Synthesis**: project the graph into Neo4j as a pre-engagement map.
+   Active confirmation requires RoE permission and is outside this
+   passive-only catalog.
 
 ## Network policy
 

@@ -1,5 +1,14 @@
 # Decepticon change history
 
-[CHANGELOG.md](CHANGELOG.md) is the canonical version history, including [Unreleased changes](CHANGELOG.md#unreleased). This entry point preserves the requested `Chagelog.md` filename without duplicating release history.
+[CHANGELOG.md](CHANGELOG.md) is the canonical version history and release-automation
+source. See its [Unreleased section](CHANGELOG.md#unreleased) for proposed and
+merged changes, and its dated version sections for released changes. This entry
+point intentionally does not duplicate that history. OSS package versions are
+independent of production/SaaS image and release identifiers.
 
-Proposed, merged, and released changes are identified in the canonical history. OSS package versions and SaaS deployment identifiers are independent.
+Unreleased distinguishes proposed work from merged changes. The status of each
+linked PR records integration; only dated release sections describe shipped work.
+Related PRs: [#995](https://github.com/BitterSecurity/Decepticon/pull/995),
+[#997](https://github.com/BitterSecurity/Decepticon/pull/997),
+[#999](https://github.com/BitterSecurity/Decepticon/pull/999),
+[#1000](https://github.com/BitterSecurity/Decepticon/pull/1000).

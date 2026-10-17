@@ -1041,3 +1041,182 @@ def test_cheaper_inference_key_only_generated_model_list(tmp_path: Path) -> None
         assert params["model"] == f"openai/{alias.split('/', 1)[1]}"
         assert params["api_base"] == "https://api.cheaperinference.com/v1"
         assert params["api_key"] == "os.environ/CHEAPER_INFERENCE_API_KEY"
+
+
+# ── Generic OpenAI-compatible gateway (opt-in, #989) ────────────────────
+
+
+def test_compat_gateway_registered_in_openai_compat_gateways() -> None:
+    base, key_env = OPENAI_COMPAT_GATEWAYS["compat"]
+    assert base == "os.environ/OPENAI_COMPAT_GATEWAY_API_BASE"
+    assert key_env == "OPENAI_COMPAT_GATEWAY_API_KEY"
+
+
+def test_build_model_entry_routes_compat_gateway() -> None:
+    entry = build_model_entry("compat/gpt-4o-mini")
+
+    assert entry["litellm_params"] == {
+        "model": "openai/gpt-4o-mini",
+        "api_key": "os.environ/OPENAI_COMPAT_GATEWAY_API_KEY",
+        "api_base": "os.environ/OPENAI_COMPAT_GATEWAY_API_BASE",
+    }
+
+
+def test_validate_model_name_accepts_compat_gateway_models() -> None:
+    validate_model_name("compat/gpt-4o-mini")
+    validate_model_name("compat/vendor/model-slug")
+
+
+def test_compat_gateway_default_off_registers_no_models() -> None:
+    """Stock env with no OPENAI_COMPAT_GATEWAY_* vars must not opt in."""
+    models = collect_requested_models({})
+    assert not any(m.startswith("compat/") for m in models)
+
+
+def test_compat_gateway_placeholder_key_stays_off() -> None:
+    models = collect_requested_models(
+        {
+            "OPENAI_COMPAT_GATEWAY_API_BASE": "https://gateway.example.com/v1",
+            "OPENAI_COMPAT_GATEWAY_API_KEY": "your-openai-compat-gateway-key-here",
+            "OPENAI_COMPAT_GATEWAY_MODEL": "gpt-4o-mini",
+        }
+    )
+    assert not any(m.startswith("compat/") for m in models)
+
+
+def test_compat_gateway_opt_in_registers_model_routes() -> None:
+    models = collect_requested_models(
+        {
+            "OPENAI_COMPAT_GATEWAY_API_BASE": "https://gateway.example.com/v1",
+            "OPENAI_COMPAT_GATEWAY_API_KEY": "sk-compat-" + "a" * 24,
+            "OPENAI_COMPAT_GATEWAY_MODEL": "gpt-4o-mini",
+        }
+    )
+    assert "compat/gpt-4o-mini" in models
+
+
+def test_compat_gateway_per_tier_models(tmp_path: Path) -> None:
+    """Per-tier model envs produce distinct compat/* routes in generated config."""
+    env = {
+        "OPENAI_COMPAT_GATEWAY_API_BASE": "https://gateway.example.com/v1",
+        "OPENAI_COMPAT_GATEWAY_API_KEY": "sk-compat-" + "a" * 24,
+        "OPENAI_COMPAT_GATEWAY_MODEL_HIGH": "big-model",
+        "OPENAI_COMPAT_GATEWAY_MODEL_MID": "mid-model",
+        "OPENAI_COMPAT_GATEWAY_MODEL_LOW": "small-model",
+    }
+    config_path = _MODULE_PATH.parent / "litellm.yaml"
+    with patch.dict(os.environ, env, clear=True):
+        output = write_dynamic_config(config_path, tmp_path / "generated.yaml")
+
+    generated = yaml.safe_load(output.read_text(encoding="utf-8"))
+    routes = {entry["model_name"]: entry["litellm_params"] for entry in generated["model_list"]}
+    for alias, slug in (
+        ("compat/big-model", "big-model"),
+        ("compat/mid-model", "mid-model"),
+        ("compat/small-model", "small-model"),
+    ):
+        assert alias in routes, f"{alias} missing from generated model_list"
+        params = routes[alias]
+        assert params["model"] == f"openai/{slug}"
+        assert params["api_base"] == "os.environ/OPENAI_COMPAT_GATEWAY_API_BASE"
+        assert params["api_key"] == "os.environ/OPENAI_COMPAT_GATEWAY_API_KEY"
+
+
+def test_compat_gateway_key_only_resolves_end_to_end(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Credential detection -> tier model selection -> proxy registration."""
+    from decepticon.llm.factory import auth_inventory  # noqa: PLC0415
+    from decepticon_core.types.llm import (  # noqa: PLC0415
+        AuthMethod,
+        Credentials,
+        Tier,
+        resolve_chain,
+    )
+
+    monkeypatch.setenv("DECEPTICON_AUTH_PRIORITY", "openai_compat_gateway_api")
+    monkeypatch.setenv("OPENAI_COMPAT_GATEWAY_API_BASE", "https://gateway.example.com/v1")
+    monkeypatch.setenv("OPENAI_COMPAT_GATEWAY_API_KEY", "sk-compat-" + "a" * 24)
+    monkeypatch.setenv("OPENAI_COMPAT_GATEWAY_MODEL", "gpt-4o-mini")
+
+    inventory = auth_inventory()
+    assert inventory.resolved_chain == (AuthMethod.OPENAI_COMPAT_GATEWAY_API,)
+
+    credentials = Credentials(methods=list(inventory.resolved_chain))
+    for tier in (Tier.HIGH, Tier.MID, Tier.LOW):
+        assert resolve_chain(tier, credentials) == ["compat/gpt-4o-mini"]
+
+
+@pytest.mark.parametrize(
+    ("name", "value"),
+    [
+        ("OPENAI_COMPAT_GATEWAY_API_BASE", "not-a-url"),
+        ("OPENAI_COMPAT_GATEWAY_API_BASE", "ftp://gateway.example/v1"),
+        ("OPENAI_COMPAT_GATEWAY_API_BASE", "https://"),
+        ("OPENAI_COMPAT_GATEWAY_API_BASE", "https://gateway.example:bad/v1"),
+        ("OPENAI_COMPAT_GATEWAY_API_KEY", "sk-placeholder-" + "a" * 24),
+        ("OPENAI_COMPAT_GATEWAY_API_KEY", "sk-dummy-" + "a" * 24),
+        ("OPENAI_COMPAT_GATEWAY_MODEL", "none"),
+        ("OPENAI_COMPAT_GATEWAY_MODEL", "null"),
+        ("OPENAI_COMPAT_GATEWAY_MODEL", "-"),
+        ("OPENAI_COMPAT_GATEWAY_MODEL", "compat/"),
+        ("OPENAI_COMPAT_GATEWAY_MODEL", "bad model"),
+    ],
+)
+def test_compat_invalid_configuration_disables_factory_and_routes(name: str, value: str) -> None:
+    from decepticon.llm.factory import _openai_compat_gateway_configured
+
+    # Given a complete opt-in with one invalid setting.
+    env = {
+        "OPENAI_COMPAT_GATEWAY_API_BASE": "http://127.0.0.1:8080/v1",
+        "OPENAI_COMPAT_GATEWAY_API_KEY": "sk-compat-" + "a" * 24,
+        "OPENAI_COMPAT_GATEWAY_MODEL": "vendor/model",
+        name: value,
+    }
+    # When both processes inspect the same environment.
+    with patch.dict(os.environ, env, clear=True):
+        configured = _openai_compat_gateway_configured()
+        models = collect_requested_models(env)
+    # Then neither advertises a usable gateway.
+    assert (configured, models) == (False, set())
+
+
+def test_compat_sentinel_override_falls_back_to_shared_model() -> None:
+    from decepticon_core.types.llm import AuthMethod, Credentials, Tier, resolve_chain
+
+    # Given a sentinel tier override and a valid shared model.
+    env = {
+        "OPENAI_COMPAT_GATEWAY_API_BASE": "http://127.0.0.1:8080/v1",
+        "OPENAI_COMPAT_GATEWAY_API_KEY": "sk-compat-" + "a" * 24,
+        "OPENAI_COMPAT_GATEWAY_MODEL": "vendor/shared",
+        "OPENAI_COMPAT_GATEWAY_MODEL_HIGH": "none",
+    }
+    credentials = Credentials(methods=[AuthMethod.OPENAI_COMPAT_GATEWAY_API])
+    # When selecting the high tier and generating proxy routes.
+    with patch.dict(os.environ, env, clear=True):
+        chain = resolve_chain(Tier.HIGH, credentials)
+        models = collect_requested_models(env)
+    # Then the selected shared model has a registered route.
+    assert chain == ["compat/vendor/shared"]
+    assert set(chain) <= models
+
+
+@pytest.mark.parametrize("explicit_gateway_first", [False, True])
+def test_compat_gateway_respects_provider_priority(explicit_gateway_first: bool) -> None:
+    from decepticon.llm.factory import auth_inventory
+    from decepticon_core.types.llm import AuthMethod
+
+    # Given both a standard provider and the optional gateway.
+    env = {
+        "OPENAI_API_KEY": "sk-" + "b" * 24,
+        "OPENAI_COMPAT_GATEWAY_API_BASE": "http://127.0.0.1:8080/v1",
+        "OPENAI_COMPAT_GATEWAY_API_KEY": "sk-compat-" + "a" * 24,
+        "OPENAI_COMPAT_GATEWAY_MODEL": "vendor/model",
+    }
+    expected = (AuthMethod.OPENAI_API, AuthMethod.OPENAI_COMPAT_GATEWAY_API)
+    if explicit_gateway_first:
+        env["DECEPTICON_AUTH_PRIORITY"] = "openai_compat_gateway_api,openai_api"
+        expected = tuple(reversed(expected))
+    # When credential priority is resolved.
+    with patch.dict(os.environ, env, clear=True):
+        chain = auth_inventory().resolved_chain
+    # Then default and explicit ordering are honored.
+    assert chain == expected

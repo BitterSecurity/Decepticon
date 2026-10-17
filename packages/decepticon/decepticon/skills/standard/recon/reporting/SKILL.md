@@ -1,8 +1,10 @@
 ---
 name: recon-reporting
-description: "Recon output formatting — report structure, CVSS v4.0 scoring (primary), MITRE ATT&CK mapping, finding prioritization, Markdown output, detection gap tracking, handoff checklists."
+description: "Recon output formatting — report structure, CVSS v4.0 scoring (primary), MITRE ATT&CK mapping, finding prioritization, Markdown output, detection gap tracking, evidence coverage references."
 allowed-tools: Read Write
 metadata:
+  skillogy:
+    version: 1
   subdomain: reporting
   kind: reporting
   when_to_use: "generate report, write report, summarize findings, CVSS score, prioritize findings, recon report, final report, handoff"
@@ -12,13 +14,13 @@ metadata:
 
 # Reconnaissance Reporting Knowledge Base
 
-Effective reconnaissance is only as valuable as the intelligence it communicates. This skill defines how to structure, prioritize, and present findings for actionable handoff to the next engagement phase.
+Effective reconnaissance is only as valuable as the intelligence it communicates. This skill defines how to structure, prioritize, and present findings with traceable evidence and coverage limitations.
 
 All agent-authored documents MUST be Markdown format (`.md`). Scan output files (`.txt`, `.xml`) are operational data and are not documents.
 
 ## 1. Report Structure
 
-Every recon engagement produces a structured report with these sections:
+A reconnaissance report can use these sections when required by the active workflow:
 
 ### Executive Summary
 A 2-3 sentence overview of what was found, the overall attack surface size, and the most critical findings.
@@ -445,47 +447,28 @@ Individual findings combine into attack chains. Document these explicitly — th
 - Always save scan output with `-oN` (nmap), `-o` (subfinder/nuclei/httpx), or output flags (ffuf)
 - Keep raw data — the final report synthesizes, but raw data enables re-analysis
 
-## 11. OPPLAN Feedback Loop
+## 11. Objective and Evidence References
 
-After generating the report, return the objective IDs, evidence paths, and proposed follow-up work to the orchestrator. The orchestrator owns OPPLAN mutations under the injected workflow.
+Associate reported observations with the actual objective IDs and evidence paths.
+Coverage descriptions distinguish tested, negative, blocked, partial, and untested
+work. Follow-up suggestions identify the finding, target, rationale, prerequisites,
+and scope constraints; they are not authorization or a plan mutation.
 
-### Update Completed Objectives
+## 12. Evidence Coverage Reference
 
-For each recon objective, report whether its acceptance criteria were met, cite the supporting evidence, and explain any blocked or partial work.
+For the reconnaissance work actually assigned, document available evidence and
+omissions across the relevant categories:
 
-### Create Follow-Up Objectives
+- Subdomain enumeration and resolution
+- DNS infrastructure mapping
+- In-scope port scans and service versions
+- Technology identification for relevant assets
+- Vulnerability scan coverage and raw results
+- Canonical `findings/FIND-{NNN}.md` documents for supported findings
+- Versioned CVSS scores and vectors, with dual-reporting when required
+- MITRE ATT&CK mappings and detection observations
+- Finding priority rationale and supported attack chains
+- Raw evidence in `findings/evidence/` and scan data in `recon/`
 
-When the report reveals new targets or attack paths not in the original OPPLAN:
-1. Propose follow-up objectives to the orchestrator; do not assign IDs or insert them into the plan yourself.
-2. Include the finding ID, target, suggested priority, scope and OPSEC checks, and evidence-based acceptance criteria.
-3. Identify prerequisite work separately from finding IDs. The orchestrator validates scope and revises the DAG through the injected OPPLAN workflow.
-
-### Report → OPPLAN Mapping
-
-```markdown
-| Report Finding | Completed Objective | New Objective (if authorized) |
-|----------------|--------------------|-----------------------------|
-| FIND-001: Exposed MySQL (CRITICAL, CVSS 9.3) | Port scan (saved objective ID) | Test MySQL default credentials (ID assigned at commit) |
-| FIND-002: Dangling CNAME (HIGH, CVSS 8.7) | Subdomain enumeration (saved objective ID) | Attempt subdomain takeover (ID assigned at commit) |
-```
-
-## 12. Handoff Checklist
-
-Before concluding reconnaissance and handing off to the exploitation phase:
-
-- [ ] All subdomains enumerated and resolved
-- [ ] DNS infrastructure fully mapped
-- [ ] All in-scope IPs port-scanned with service versions
-- [ ] Technology stack identified for key assets
-- [ ] Vulnerability scan (nuclei) run on all live web targets
-- [ ] Each significant finding has a `findings/FIND-{NNN}.md` document
-- [ ] All findings scored with CVSS 4.0 (v3.1 added if dual-reporting required)
-- [ ] Findings mapped to MITRE ATT&CK techniques
-- [ ] Detection gap analysis completed for each finding
-- [ ] Findings prioritized by exploitability and chained risk
-- [ ] Raw evidence saved to `findings/evidence/` with correct naming
-- [ ] Raw scan data preserved in `recon/` directory
-- [ ] Attack chains documented in consolidated report
-- [ ] Consolidated recon report saved to `recon/report_<target>.md`
-- [ ] Objective IDs, results, evidence paths, and follow-up proposals returned to the orchestrator
-- [ ] No direct OPPLAN file edits made by the specialist
+These categories describe evidence coverage; the active workflow determines
+required artifacts, coverage breadth, follow-up work, and phase completion.

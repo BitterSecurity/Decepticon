@@ -596,3 +596,38 @@ class TestProxyConfig:
         assert c.url == "http://localhost:4000"
         assert c.timeout == 120
         assert c.max_retries == 2
+
+
+# ── Generic OpenAI-compatible gateway (opt-in, #989) ────────────────────
+
+
+class TestOpenAICompatGatewayChain:
+    """Env-driven compat gateway: DEFAULT OFF, no vendor hardcoded."""
+
+    def test_unset_env_yields_empty_chain(self, monkeypatch):
+        monkeypatch.delenv("OPENAI_COMPAT_GATEWAY_API_BASE", raising=False)
+        monkeypatch.delenv("OPENAI_COMPAT_GATEWAY_API_KEY", raising=False)
+        monkeypatch.delenv("OPENAI_COMPAT_GATEWAY_MODEL", raising=False)
+        monkeypatch.delenv("OPENAI_COMPAT_GATEWAY_MODEL_HIGH", raising=False)
+        creds = Credentials(methods=[AuthMethod.OPENAI_COMPAT_GATEWAY_API])
+        assert resolve_chain(Tier.HIGH, creds) == []
+
+    def test_shared_model_resolves_all_tiers(self, monkeypatch):
+        monkeypatch.setenv("OPENAI_COMPAT_GATEWAY_MODEL", "gpt-4o-mini")
+        creds = Credentials(methods=[AuthMethod.OPENAI_COMPAT_GATEWAY_API])
+        for tier in (Tier.HIGH, Tier.MID, Tier.LOW):
+            assert resolve_chain(tier, creds) == ["compat/gpt-4o-mini"]
+
+    def test_per_tier_models(self, monkeypatch):
+        monkeypatch.setenv("OPENAI_COMPAT_GATEWAY_MODEL_HIGH", "big")
+        monkeypatch.setenv("OPENAI_COMPAT_GATEWAY_MODEL_MID", "mid")
+        monkeypatch.setenv("OPENAI_COMPAT_GATEWAY_MODEL_LOW", "small")
+        creds = Credentials(methods=[AuthMethod.OPENAI_COMPAT_GATEWAY_API])
+        assert resolve_chain(Tier.HIGH, creds) == ["compat/big"]
+        assert resolve_chain(Tier.MID, creds) == ["compat/mid"]
+        assert resolve_chain(Tier.LOW, creds) == ["compat/small"]
+
+    def test_prefix_already_present_is_preserved(self, monkeypatch):
+        monkeypatch.setenv("OPENAI_COMPAT_GATEWAY_MODEL", "compat/already-prefixed")
+        creds = Credentials(methods=[AuthMethod.OPENAI_COMPAT_GATEWAY_API])
+        assert resolve_chain(Tier.HIGH, creds) == ["compat/already-prefixed"]

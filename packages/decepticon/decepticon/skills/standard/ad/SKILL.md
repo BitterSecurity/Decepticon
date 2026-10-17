@@ -2,6 +2,8 @@
 name: ad-overview
 description: Active Directory attack lane — BloodHound ingestion, Kerberoasting, ADCS ESC scanning, DCSync, LAPS extraction.
 metadata:
+  skillogy:
+    version: 1
   subdomain: active-directory
   when_to_use: "active directory ad attack lane overview routing bloodhound kerberoast adcs dcsync laps domain compromise"
   mitre_attack:
@@ -36,9 +38,9 @@ metadata:
 | `/skills/standard/ad/laps/SKILL.md`             | LAPS local admin password extraction |
 | `/skills/standard/ad/netexec/SKILL.md`          | NetExec (formerly CrackMapExec) cheatsheet — SMB/WinRM/LDAP/MSSQL modules |
 
-## Workflow
+## Collection prerequisites and analysis
 
-1. Check the actual authorized domain, collection access, and active BloodHound runtime. In hosted engagements, delegate AD analysis to the AD operator and use the engagement-isolated `bloodhound_mcp_*` tools. Standalone OSS may instead expose `bhce_*` tools for its local instance.
+1. Check the actual authorized domain, collection access, and active BloodHound runtime. In hosted engagements, use the engagement-isolated `bloodhound_mcp_*` tools. Standalone OSS may instead expose `bhce_*` tools for its local instance.
 2. Upload a compatible collection ZIP and verify successful completion. A discovered hostname alone does not populate BloodHound. Inspect collection coverage before interpreting absent results.
 3. Use object profiles, exposure search, and bounded shortest paths to identify candidates. Treat replication rights, SPNs, and pre-authentication settings as leads until independently validated.
-4. Record evidence and update executable objectives through the active OPPLAN tools. BloodHound graph results alone do not authorize target-facing work or prove compromise.
+4. Record evidence. BloodHound graph results alone do not authorize target-facing work or prove compromise.

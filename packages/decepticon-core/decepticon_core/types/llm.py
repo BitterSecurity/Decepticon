@@ -66,6 +66,7 @@ collide in the model_list.
   qianfan_api      qianfan/ernie-4.5-turbo-128k  qianfan/ernie-4.5-turbo-32k   qianfan/ernie-speed-pro-128k
   cloudflare_gw    cfgateway/anthropic/…opus     cfgateway/anthropic/…sonnet   cfgateway/anthropic/…haiku
   cheaper_inf      cheaperinference/…sonnet-5    cheaperinference/gpt-5.4      cheaperinference/gpt-5.4-mini
+  openai_compat_gw compat/<OPENAI_COMPAT_GATEWAY_MODEL_*>   (env-driven; DEFAULT OFF)
 
 Code-heavy override
 -------------------
@@ -166,6 +167,9 @@ class AuthMethod(StrEnum):
     QIANFAN_API = "qianfan_api"  # Baidu Qianfan (ERNIE) v2 OpenAI-compatible
     CLOUDFLARE_GATEWAY_API = "cloudflare_gateway_api"  # Cloudflare AI Gateway
     CHEAPER_INFERENCE_API = "cheaper_inference_api"  # Cheaper Inference (cheaperinference.com)
+    # Generic opt-in OpenAI-compatible gateway (env-driven base URL + key + model).
+    # DEFAULT OFF — no vendor endpoint is hardcoded. See #989.
+    OPENAI_COMPAT_GATEWAY_API = "openai_compat_gateway_api"
 
 
 # ── Tier × AuthMethod → model_id matrix ─────────────────────────────────
@@ -774,6 +778,33 @@ def _resolve_custom_openai_model() -> str | None:
     return f"custom/{model}"
 
 
+def _clean_compat_gateway_model(value: str) -> str | None:
+    model = value.strip()
+    slug = model.split("/", 1)[1] if model.lower().startswith("compat/") else model
+    if slug.lower() in {"", "none", "null", "-"} or any(c.isspace() for c in slug):
+        return None
+    return model if model.lower().startswith("compat/") else f"compat/{model}"
+
+
+def _resolve_openai_compat_gateway_model(tier: Tier) -> str | None:
+    """Return ``compat/<model>`` for ``tier`` when the generic gateway is wired.
+
+    Reads ``OPENAI_COMPAT_GATEWAY_MODEL_{HIGH,MID,LOW}`` first, then falls
+    back to ``OPENAI_COMPAT_GATEWAY_MODEL`` for every tier. Returns None when
+    neither the shared nor the tier-specific model env is set — the method
+    is then skipped in ``resolve_chain`` (DEFAULT OFF alongside the factory
+    credential check that also requires base URL + key).
+    """
+    tier_env = {
+        Tier.HIGH: "OPENAI_COMPAT_GATEWAY_MODEL_HIGH",
+        Tier.MID: "OPENAI_COMPAT_GATEWAY_MODEL_MID",
+        Tier.LOW: "OPENAI_COMPAT_GATEWAY_MODEL_LOW",
+    }[tier]
+    return _clean_compat_gateway_model(os.getenv(tier_env, "")) or _clean_compat_gateway_model(
+        os.getenv("OPENAI_COMPAT_GATEWAY_MODEL", "")
+    )
+
+
 def resolve_chain(tier: Tier, credentials: Credentials) -> list[str]:
     """Build the model chain (primary first, then fallbacks) for a tier.
 
@@ -815,6 +846,11 @@ def resolve_chain(tier: Tier, credentials: Credentials) -> list[str]:
             custom_model = _resolve_custom_openai_model()
             if custom_model is not None:
                 chain.append(custom_model)
+            continue
+        if method == AuthMethod.OPENAI_COMPAT_GATEWAY_API:
+            compat_model = _resolve_openai_compat_gateway_model(tier)
+            if compat_model is not None:
+                chain.append(compat_model)
             continue
         model = METHOD_MODELS[method].get(tier)
         if model is not None:

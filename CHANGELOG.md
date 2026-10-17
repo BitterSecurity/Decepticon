@@ -6,27 +6,60 @@ follows [Semantic Versioning](https://semver.org/) from `1.0.0`
 onward (the `0.x` cycle is pre-stable per the core/framework/sdk split
 design spec, §13.4).
 
-Add pending changes to **Unreleased**, marking proposed changes explicitly.
-When merged, remove the proposed label; only dated release sections represent releases. At release,
-move those entries into a dated version section, link the PRs, and add a
-comparison link. Keep proposed and unmerged changes out of released sections.
+Before opening or updating a PR, record its changes and PR link under
+**Unreleased**. An open linked PR means proposed work; a merged linked PR means
+integrated but unreleased work. Only dated release sections describe shipped work.
+Update the root [Chagelog.md](Chagelog.md) entry point in the same PR. At release,
+move merged entries into a dated version section and add a comparison link.
+Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-### Proposed
+### Added
 
 - Add a persistent light/dark dashboard toggle, retaining dark as the default.
-  Honor existing system preferences when toggling and keep status/severity labels
-  readable in light mode. Fixed dark terminal and graph surfaces retain their palette.
-  Compatibility: browser-local preference only; no database migration, package version
-  change, or configuration upgrade is required. This change is not released or deployed.
+  Honor system preferences when toggling and keep status/severity labels readable
+  in light mode. Fixed dark terminal and graph surfaces retain their palette.
+  Browser-local preference only: no database migration, package version change
+  or configuration upgrade is required.
   ([#997](https://github.com/BitterSecurity/Decepticon/pull/997))
-- Add `Chagelog.md` as the entry point to this canonical history and document the
-  repository PR changelog requirement.
-  ([#997](https://github.com/BitterSecurity/Decepticon/pull/997))
+
+- Optional vendor-neutral OpenAI-compatible gateway (`compat/…`) driven by
+  `OPENAI_COMPAT_GATEWAY_API_BASE`, `OPENAI_COMPAT_GATEWAY_API_KEY`, and
+  `OPENAI_COMPAT_GATEWAY_MODEL` (or per-tier `*_MODEL_{HIGH,MID,LOW}`).
+  Default off; no vendor endpoint is hardcoded. Addresses the capability in
+  [#989](https://github.com/BitterSecurity/Decepticon/issues/989) through
+  [#995](https://github.com/BitterSecurity/Decepticon/pull/995).
+  Existing provider ordering and `CUSTOM_OPENAI_*` remain supported. Invalid URLs,
+  placeholder keys and empty model slugs stay disabled consistently in credential
+  detection and proxy route generation; sentinel tier models use the shared model.
+  Requires code/images containing this change; no release version is assigned.
+
+- [PR #999](https://github.com/BitterSecurity/Decepticon/pull/999): separate stable
+  capability specialists and reusable `SKILL.md` knowledge from individual
+  `WORKFLOW.md` playbooks for bug bounty, red team, pentest and vulnerability
+  research. Pin workflow content in checkpoints and inherit it in subagents;
+  enforce evidence dependencies through OPPLAN. Review core prompts and migrate
+  startup/lifecycle business procedures out of skills.
+- Compatibility/upgrade for PR #999: add optional `Objective.workflow_stage`;
+  preserve existing unbound plans through a policy-only compatibility snapshot.
+  Workflow updates affect new executions; existing checkpoint pins remain stable.
+  Optional legacy VR, benchmark and Soundwave planning contracts retain their
+  separately documented integration boundaries. Add root change-tracking
+  instructions and the `Chagelog.md` entry point while preserving this canonical
+  history and release automation. No new package version is assigned by this PR.
+- Regenerate the checked-in Skillogy graph from the changed skill corpus so
+  retrieval metadata and the deterministic CI build gate match the source (#999).
 
 ### Fixed
 
+- Add an operator-confirmed, create-only RoE import for existing engagements,
+  preserving planning artifacts and requiring fresh planning/Red approval.
+  Includes canonical schema export and installed/source usage instructions.
+  ([#1000](https://github.com/BitterSecurity/Decepticon/pull/1000), fixes
+  [#998](https://github.com/BitterSecurity/Decepticon/issues/998))
+  Requires source or an image containing this change; existing released images
+  do not gain the command until rebuilt or upgraded to a future release.
 - Expect the unauthorized call to revert in generated Foundry access-control tests.
   ([#991](https://github.com/BitterSecurity/Decepticon/pull/991))
 - Retain file-backed approval decisions until their matching request consumes them.

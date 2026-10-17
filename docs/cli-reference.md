@@ -17,6 +17,13 @@
 
 > **Web dashboard** is *dynamic-spawn* — it does **not** come up with the default stack. Start it from inside the CLI with the `/web` slash command (which runs `docker compose --profile web up -d web`), then open `http://localhost:3000` (configurable via `WEB_PORT` in `.env`). See [Web Dashboard](web-dashboard.md).
 
+### Provision a missing RoE
+
+Authorized operators can run `python -m decepticon.provision_roe` inside the
+running LangGraph container to import a reviewed RoE without restarting an
+engagement. See [RoE provisioning](roe-provisioning.md) for the installed Compose
+command, required schema, confirmation, and separate Red approval.
+
 ### `decepticon logs` — Service names
 
 ```bash

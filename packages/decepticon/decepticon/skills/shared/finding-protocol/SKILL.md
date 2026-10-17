@@ -1,8 +1,10 @@
 ---
 name: finding-protocol
-description: "Canonical finding template, enriched in place through verification and reporting."
+description: "Canonical finding schema, evidence references, verification semantics, and report quality."
 allowed-tools: Read Write
 metadata:
+  skillogy:
+    version: 1
   subdomain: reporting
   when_to_use: "write finding, record finding, create finding, document vulnerability, FIND-, findings/, severity"
   tags: finding, protocol, template, severity, reporting, documentation, operational
@@ -11,9 +13,10 @@ metadata:
 
 # Finding Protocol — One Canonical File
 
-Start with the evidence another agent needs to decide what to do next. The
-independent verifier then adjudicates the same file, and the reporter completes
-it in place. Engagement summaries link to this canonical finding.
+A canonical finding records observed facts, evidence, independent verification,
+and supported report detail in one file. Engagement summaries link to this
+canonical finding. Assignment order and completion decisions belong to the
+active workflow.
 
 ## File Naming Convention
 
@@ -37,8 +40,8 @@ id: FIND-001
 severity: critical
 severity_rationale: "Why this severity applies to this target and observed impact"
 result_kind: vulnerability # vulnerability | negative_result | observation | hypothesis
-verification_status: unverified # independent verifier updates this
-report_status: draft # reporter sets complete after read-back checks
+verification_status: unverified # verified | false_positive | unverified
+report_status: draft # draft | complete; report quality, separate from verification
 title: <one-line summary>
 cwe: CWE-89               # optional; only if evidence supports classification
 vrt: server-side-injection/sql-injection/blind   # optional Bugcrowd VRT path (category/sub-category/variant)
@@ -71,8 +74,8 @@ OR
 blocking — <reason>
 ```
 
-The `## Next` section is the decision-support hook — the orchestrator
-reads it to choose the next dispatch.
+The `## Next` section records evidence-supported follow-up suggestions or
+blockers. It does not authorize additional work.
 
 ## Severity Guide (operational, principle-only)
 
@@ -83,8 +86,8 @@ reads it to choose the next dispatch.
 - **INFORMATIONAL**: Observation, no direct security impact
 
 When a CVSS score is recorded, always store its vector and version alongside
-the numeric score. The reporter uses the deterministic `cvss_score` tool for
-CVSS 3.1; never infer a numeric score from a severity label.
+the numeric score. Use the deterministic `cvss_score` tool for CVSS 3.1;
+never infer a numeric score from a severity label.
 
 ## Classification fields (CWE + VRT)
 
@@ -120,12 +123,13 @@ Use exactly one of these schemes and normalize the value before writing it:
 | `mobile` | `platform:package-or-bundle-id` | Lowercase platform and use the canonical application identifier. |
 | `device` | `manufacturer:model[:firmware]` | Use manufacturer and model identifiers; include the exact firmware version when relevant. |
 
-## After Creating a Finding
+## Evidence and Event References
 
-1. Save raw evidence to `findings/evidence/FIND-{NNN}_{description}.txt`
-   only when it supports the finding.
-2. Append a timeline entry to `timeline.jsonl` for the real finding event:
-   `{"ts":"...","type":"finding","id":"FIND-001","severity":"critical","agent":"recon","objective":"<server-issued-objective-id>"}`
+Raw evidence uses `findings/evidence/FIND-{NNN}_{description}.txt` and must
+support the finding. A finding event in `timeline.jsonl` references the same
+finding and actual objective ID:
+
+`{"ts":"...","type":"finding","id":"FIND-001","severity":"critical","agent":"recon","objective":"<server-issued-objective-id>"}`
 
 ## Rules
 
@@ -133,13 +137,18 @@ Use exactly one of these schemes and normalize the value before writing it:
 - ALL agent documents use Markdown format — never write JSON as a deliverable document
 - Do NOT create `findings.md`; each finding lives in its own `findings/FIND-{NNN}.md` file
 
-## Verification and reporting lifecycle
+## Verification and Report Status Semantics
 
-The first author records observed facts and evidence under the stable
-`findings/FIND-{NNN}.md` name with `report_status: draft`. A distinct verifier
-reproduces the claim and a negative control, then writes
-`verification_status: verified | false_positive | unverified` and
-`verification_rationale` into this same file. The reporter adds supported
-detail, uses `cvss_score` for justified CVSS 3.1 metrics, reads the saved file
-and evidence back, then sets `report_status: complete`. The orchestrator links
-to this file from both engagement summaries. It never copies it into `report/`.
+- `verification_status: verified` means independent evidence supports the claim;
+  for a negative result, it means reproduced coverage rather than a vulnerability.
+- `verification_status: false_positive` means the claim was refuted.
+- `verification_status: unverified` means evidence is insufficient or blocked.
+- `verification_rationale` explains the verdict with positive and equivalent
+  negative-control evidence. The proof producer cannot self-approve.
+- `report_status: draft | complete` describes documentation quality separately
+  from technical verification. Complete detail is supported by the saved finding
+  and referenced evidence, including justified versioned CVSS metrics where applicable.
+- Eligibility, duplicates, and presentation defects do not change technical validity.
+
+Keep the stable `findings/FIND-{NNN}.md` as the canonical record. Summaries link
+here rather than copying the finding into `report/`.
