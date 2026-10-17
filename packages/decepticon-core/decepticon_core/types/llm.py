@@ -778,6 +778,14 @@ def _resolve_custom_openai_model() -> str | None:
     return f"custom/{model}"
 
 
+def _clean_compat_gateway_model(value: str) -> str | None:
+    model = value.strip()
+    slug = model.split("/", 1)[1] if model.lower().startswith("compat/") else model
+    if slug.lower() in {"", "none", "null", "-"} or any(c.isspace() for c in slug):
+        return None
+    return model if model.lower().startswith("compat/") else f"compat/{model}"
+
+
 def _resolve_openai_compat_gateway_model(tier: Tier) -> str | None:
     """Return ``compat/<model>`` for ``tier`` when the generic gateway is wired.
 
@@ -792,12 +800,9 @@ def _resolve_openai_compat_gateway_model(tier: Tier) -> str | None:
         Tier.MID: "OPENAI_COMPAT_GATEWAY_MODEL_MID",
         Tier.LOW: "OPENAI_COMPAT_GATEWAY_MODEL_LOW",
     }[tier]
-    model = os.getenv(tier_env, "").strip() or os.getenv("OPENAI_COMPAT_GATEWAY_MODEL", "").strip()
-    if not model:
-        return None
-    if model.lower().startswith("compat/"):
-        return model
-    return f"compat/{model}"
+    return _clean_compat_gateway_model(os.getenv(tier_env, "")) or _clean_compat_gateway_model(
+        os.getenv("OPENAI_COMPAT_GATEWAY_MODEL", "")
+    )
 
 
 def resolve_chain(tier: Tier, credentials: Credentials) -> list[str]:

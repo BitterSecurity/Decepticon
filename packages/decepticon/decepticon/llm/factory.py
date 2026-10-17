@@ -28,6 +28,7 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Any, Literal
+from urllib.parse import urlsplit
 
 import httpx
 from langchain_core.language_models import BaseChatModel, LanguageModelInput
@@ -487,13 +488,20 @@ def _openai_compat_gateway_configured() -> bool:
     """
     base = os.getenv("OPENAI_COMPAT_GATEWAY_API_BASE", "").strip()
     key = os.getenv("OPENAI_COMPAT_GATEWAY_API_KEY", "")
-    model = (
-        os.getenv("OPENAI_COMPAT_GATEWAY_MODEL", "").strip()
-        or os.getenv("OPENAI_COMPAT_GATEWAY_MODEL_HIGH", "").strip()
-        or os.getenv("OPENAI_COMPAT_GATEWAY_MODEL_MID", "").strip()
-        or os.getenv("OPENAI_COMPAT_GATEWAY_MODEL_LOW", "").strip()
-    )
-    return bool(base) and bool(model) and _is_real_key(key)
+    try:
+        endpoint = urlsplit(base)
+        port = endpoint.port
+    except ValueError:
+        return False
+    if (
+        endpoint.scheme not in {"http", "https"}
+        or not endpoint.hostname
+        or port == 0
+        or any(c.isspace() for c in base)
+    ):
+        return False
+    credentials = Credentials(methods=[AuthMethod.OPENAI_COMPAT_GATEWAY_API])
+    return _is_real_key(key) and any(resolve_chain(tier, credentials) for tier in Tier)
 
 
 def _is_real_key(value: str, method: AuthMethod | None = None) -> bool:

@@ -335,6 +335,12 @@ default fallback chain; pick a specific route at runtime with `/model`
 > The generic OpenAI-compatible gateway is **DEFAULT OFF**: all three of
 > base URL, key, and model must be set. No vendor endpoint is hardcoded
 > (`compat/<model>` routes through whatever base URL you supply).
+> The base URL must be an absolute HTTP(S) URL. Keys follow the existing
+> credential policy: at least 24 characters and no placeholder tokens. Model
+> slugs must be nonempty and contain no whitespace. A shared model covers all
+> tiers; `OPENAI_COMPAT_GATEWAY_MODEL_HIGH`, `_MID`, and `_LOW` override individual
+> tiers. If only tier overrides are provided, unconfigured tiers need another
+> configured provider. Empty values and `none`, `null`, or `-` use the shared model.
 
 ---
 

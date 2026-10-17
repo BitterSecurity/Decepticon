@@ -22,6 +22,7 @@ import os
 from collections.abc import Mapping, MutableMapping
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 import yaml
 
@@ -475,6 +476,14 @@ def _vllm_model_from_env(source: Mapping[str, str]) -> str | None:
     return f"hosted_vllm/{model}"
 
 
+def _clean_compat_gateway_model(value: str | None) -> str | None:
+    model = (value or "").strip()
+    slug = model.split("/", 1)[1] if model.lower().startswith("compat/") else model
+    if slug.lower() in {"", "none", "null", "-"} or any(c.isspace() for c in slug):
+        return None
+    return model if model.lower().startswith("compat/") else f"compat/{model}"
+
+
 def _compat_gateway_models_from_env(source: Mapping[str, str]) -> set[str]:
     """Derive ``compat/<model>`` aliases when the generic gateway is wired.
 
@@ -488,24 +497,38 @@ def _compat_gateway_models_from_env(source: Mapping[str, str]) -> set[str]:
     key = (source.get("OPENAI_COMPAT_GATEWAY_API_KEY") or "").strip()
     if not base or not key:
         return set()
+    try:
+        endpoint = urlsplit(base)
+        port = endpoint.port
+    except ValueError:
+        return set()
+    if (
+        endpoint.scheme not in {"http", "https"}
+        or not endpoint.hostname
+        or port == 0
+        or any(c.isspace() for c in base)
+    ):
+        return set()
     # Reject obvious launcher placeholders so a stock .env does not opt in.
     lower = key.lower()
     if lower.startswith("your-") or lower.endswith("-key-here") or len(key) < 24:
         return set()
+    if any(
+        token in lower
+        for token in ("placeholder", "not-used", "not_used", "dummy", "fake", "example")
+    ):
+        return set()
     models: set[str] = set()
-    single = _clean_model(source.get("OPENAI_COMPAT_GATEWAY_MODEL"))
+    single = _clean_compat_gateway_model(source.get("OPENAI_COMPAT_GATEWAY_MODEL"))
     for tier_env in (
         "OPENAI_COMPAT_GATEWAY_MODEL_HIGH",
         "OPENAI_COMPAT_GATEWAY_MODEL_MID",
         "OPENAI_COMPAT_GATEWAY_MODEL_LOW",
     ):
-        m = _clean_model(source.get(tier_env)) or single
+        m = _clean_compat_gateway_model(source.get(tier_env)) or single
         if m is None:
             continue
-        if m.lower().startswith("compat/"):
-            models.add(m)
-        else:
-            models.add(f"compat/{m}")
+        models.add(m)
     return models
 
 

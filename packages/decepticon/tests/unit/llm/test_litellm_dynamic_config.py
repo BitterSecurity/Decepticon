@@ -1143,3 +1143,80 @@ def test_compat_gateway_key_only_resolves_end_to_end(monkeypatch: pytest.MonkeyP
     credentials = Credentials(methods=list(inventory.resolved_chain))
     for tier in (Tier.HIGH, Tier.MID, Tier.LOW):
         assert resolve_chain(tier, credentials) == ["compat/gpt-4o-mini"]
+
+
+@pytest.mark.parametrize(
+    ("name", "value"),
+    [
+        ("OPENAI_COMPAT_GATEWAY_API_BASE", "not-a-url"),
+        ("OPENAI_COMPAT_GATEWAY_API_BASE", "ftp://gateway.example/v1"),
+        ("OPENAI_COMPAT_GATEWAY_API_BASE", "https://"),
+        ("OPENAI_COMPAT_GATEWAY_API_BASE", "https://gateway.example:bad/v1"),
+        ("OPENAI_COMPAT_GATEWAY_API_KEY", "sk-placeholder-" + "a" * 24),
+        ("OPENAI_COMPAT_GATEWAY_API_KEY", "sk-dummy-" + "a" * 24),
+        ("OPENAI_COMPAT_GATEWAY_MODEL", "none"),
+        ("OPENAI_COMPAT_GATEWAY_MODEL", "null"),
+        ("OPENAI_COMPAT_GATEWAY_MODEL", "-"),
+        ("OPENAI_COMPAT_GATEWAY_MODEL", "compat/"),
+        ("OPENAI_COMPAT_GATEWAY_MODEL", "bad model"),
+    ],
+)
+def test_compat_invalid_configuration_disables_factory_and_routes(name: str, value: str) -> None:
+    from decepticon.llm.factory import _openai_compat_gateway_configured
+
+    # Given a complete opt-in with one invalid setting.
+    env = {
+        "OPENAI_COMPAT_GATEWAY_API_BASE": "http://127.0.0.1:8080/v1",
+        "OPENAI_COMPAT_GATEWAY_API_KEY": "sk-compat-" + "a" * 24,
+        "OPENAI_COMPAT_GATEWAY_MODEL": "vendor/model",
+        name: value,
+    }
+    # When both processes inspect the same environment.
+    with patch.dict(os.environ, env, clear=True):
+        configured = _openai_compat_gateway_configured()
+        models = collect_requested_models(env)
+    # Then neither advertises a usable gateway.
+    assert (configured, models) == (False, set())
+
+
+def test_compat_sentinel_override_falls_back_to_shared_model() -> None:
+    from decepticon_core.types.llm import AuthMethod, Credentials, Tier, resolve_chain
+
+    # Given a sentinel tier override and a valid shared model.
+    env = {
+        "OPENAI_COMPAT_GATEWAY_API_BASE": "http://127.0.0.1:8080/v1",
+        "OPENAI_COMPAT_GATEWAY_API_KEY": "sk-compat-" + "a" * 24,
+        "OPENAI_COMPAT_GATEWAY_MODEL": "vendor/shared",
+        "OPENAI_COMPAT_GATEWAY_MODEL_HIGH": "none",
+    }
+    credentials = Credentials(methods=[AuthMethod.OPENAI_COMPAT_GATEWAY_API])
+    # When selecting the high tier and generating proxy routes.
+    with patch.dict(os.environ, env, clear=True):
+        chain = resolve_chain(Tier.HIGH, credentials)
+        models = collect_requested_models(env)
+    # Then the selected shared model has a registered route.
+    assert chain == ["compat/vendor/shared"]
+    assert set(chain) <= models
+
+
+@pytest.mark.parametrize("explicit_gateway_first", [False, True])
+def test_compat_gateway_respects_provider_priority(explicit_gateway_first: bool) -> None:
+    from decepticon.llm.factory import auth_inventory
+    from decepticon_core.types.llm import AuthMethod
+
+    # Given both a standard provider and the optional gateway.
+    env = {
+        "OPENAI_API_KEY": "sk-" + "b" * 24,
+        "OPENAI_COMPAT_GATEWAY_API_BASE": "http://127.0.0.1:8080/v1",
+        "OPENAI_COMPAT_GATEWAY_API_KEY": "sk-compat-" + "a" * 24,
+        "OPENAI_COMPAT_GATEWAY_MODEL": "vendor/model",
+    }
+    expected = (AuthMethod.OPENAI_API, AuthMethod.OPENAI_COMPAT_GATEWAY_API)
+    if explicit_gateway_first:
+        env["DECEPTICON_AUTH_PRIORITY"] = "openai_compat_gateway_api,openai_api"
+        expected = tuple(reversed(expected))
+    # When credential priority is resolved.
+    with patch.dict(os.environ, env, clear=True):
+        chain = auth_inventory().resolved_chain
+    # Then default and explicit ordering are honored.
+    assert chain == expected

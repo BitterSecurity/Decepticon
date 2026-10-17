@@ -6,7 +6,7 @@ follows [Semantic Versioning](https://semver.org/) from `1.0.0`
 onward (the `0.x` cycle is pre-stable per the core/framework/sdk split
 design spec, §13.4).
 
-Add user-visible changes to **Unreleased** when their PR is merged. At release,
+Record proposed user-visible changes in **Unreleased** before updating their PR. At release,
 move those entries into a dated version section, link the PRs, and add a
 comparison link. Keep proposed and unmerged changes out of released sections.
 
@@ -19,7 +19,11 @@ comparison link. Keep proposed and unmerged changes out of released sections.
   `OPENAI_COMPAT_GATEWAY_MODEL` (or per-tier `*_MODEL_{HIGH,MID,LOW}`).
   DEFAULT OFF — no vendor URL is hardcoded. Addresses the capability ask in
   [#989](https://github.com/BitterSecurity/Decepticon/issues/989) without a
-  named third-party entry.
+  named third-party entry. Proposed in [#995](https://github.com/BitterSecurity/Decepticon/pull/995).
+  Existing provider ordering and `CUSTOM_OPENAI_*` remain supported; no dependency
+  or release version changes. Invalid gateway URLs, placeholder keys, and empty
+  model slugs stay disabled consistently in credential detection and proxy route
+  generation. Unset or sentinel tier models fall back to the shared model.
 
 ### Fixed
 
