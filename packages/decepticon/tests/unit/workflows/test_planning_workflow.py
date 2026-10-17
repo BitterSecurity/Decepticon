@@ -5,9 +5,8 @@ from pathlib import Path
 import pytest
 from deepagents.backends.filesystem import FilesystemBackend
 from langchain.agents import AgentState, create_agent
-from langchain.agents.factory import InputAgentState
 from langchain.agents.middleware import AgentMiddleware
-from langchain.agents.middleware.types import ModelRequest, ModelResponse
+from langchain.agents.middleware.types import InputAgentState, ModelRequest, ModelResponse
 from langchain_core.language_models.fake_chat_models import FakeListChatModel
 from langchain_core.messages import HumanMessage
 from langchain_core.runnables import RunnableConfig
