@@ -6,24 +6,44 @@ follows [Semantic Versioning](https://semver.org/) from `1.0.0`
 onward (the `0.x` cycle is pre-stable per the core/framework/sdk split
 design spec, §13.4).
 
-Record proposed user-visible changes in **Unreleased** before updating their PR. At release,
-move those entries into a dated version section, link the PRs, and add a
-comparison link. Keep proposed and unmerged changes out of released sections.
+Before opening or updating a PR, record its changes and PR link under
+**Unreleased**, marking unmerged proposals separately from merged changes.
+Update the root [Chagelog.md](Chagelog.md) entry point in the same PR. At release,
+move merged entries into a dated version section and add a comparison link.
+Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-### Added
+### Proposed — not merged or released
 
 - Optional vendor-neutral OpenAI-compatible gateway (`compat/…`) driven by
   `OPENAI_COMPAT_GATEWAY_API_BASE`, `OPENAI_COMPAT_GATEWAY_API_KEY`, and
   `OPENAI_COMPAT_GATEWAY_MODEL` (or per-tier `*_MODEL_{HIGH,MID,LOW}`).
-  DEFAULT OFF — no vendor URL is hardcoded. Addresses the capability ask in
-  [#989](https://github.com/BitterSecurity/Decepticon/issues/989) without a
-  named third-party entry. Proposed in [#995](https://github.com/BitterSecurity/Decepticon/pull/995).
-  Existing provider ordering and `CUSTOM_OPENAI_*` remain supported; no dependency
-  or release version changes. Invalid gateway URLs, placeholder keys, and empty
-  model slugs stay disabled consistently in credential detection and proxy route
-  generation. Unset or sentinel tier models fall back to the shared model.
+  Default off; no vendor endpoint is hardcoded. Addresses the capability in
+  [#989](https://github.com/BitterSecurity/Decepticon/issues/989) through
+  [#995](https://github.com/BitterSecurity/Decepticon/pull/995).
+  Existing provider ordering and `CUSTOM_OPENAI_*` remain supported. Invalid URLs,
+  placeholder keys and empty model slugs stay disabled consistently in credential
+  detection and proxy route generation; sentinel tier models use the shared model.
+  Requires code/images containing this change; no release version is assigned.
+
+### Added — merged, unreleased
+
+- [PR #999](https://github.com/BitterSecurity/Decepticon/pull/999): separate stable
+  capability specialists and reusable `SKILL.md` knowledge from individual
+  `WORKFLOW.md` playbooks for bug bounty, red team, pentest and vulnerability
+  research. Pin workflow content in checkpoints and inherit it in subagents;
+  enforce evidence dependencies through OPPLAN. Review core prompts and migrate
+  startup/lifecycle business procedures out of skills.
+- Compatibility/upgrade for PR #999: add optional `Objective.workflow_stage`;
+  preserve existing unbound plans through a policy-only compatibility snapshot.
+  Workflow updates affect new executions; existing checkpoint pins remain stable.
+  Optional legacy VR, benchmark and Soundwave planning contracts retain their
+  separately documented integration boundaries. Add root change-tracking
+  instructions and the `Chagelog.md` entry point while preserving this canonical
+  history and release automation. No new package version is assigned by this PR.
+- Regenerate the checked-in Skillogy graph from the changed skill corpus so
+  retrieval metadata and the deterministic CI build gate match the source (#999).
 
 ### Fixed
 

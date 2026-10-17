@@ -170,7 +170,7 @@ def _make_subagent(*, backend: Any, subagents: list | None = None, role: str = "
     if role == "decepticon":
         from decepticon.middleware.opplan_dispatch import planned_task_tool
 
-        m.tools = [planned_task_tool(m.tools[0])]
+        m.tools = [planned_task_tool(m.tools[0], backend=backend)]
     # Register the durable sub-agent transcript channel on the ORCHESTRATOR
     # state. ``AgentMiddleware.state_schema`` is the per-instance schema that
     # ``create_agent`` auto-merges into the compiled graph state at build time.

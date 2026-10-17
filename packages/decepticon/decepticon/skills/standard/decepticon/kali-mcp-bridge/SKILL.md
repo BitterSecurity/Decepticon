@@ -3,6 +3,8 @@ name: kali-mcp-bridge
 description: "Deploy and drive Kali Linux tools via MCP-Kali-Server — structured tool-call interface, SSH tunnel setup, prompt-injection hygiene for AI-assisted engagements."
 allowed-tools: Bash Read Write
 metadata:
+  skillogy:
+    version: 1
   subdomain: orchestration
   when_to_use: "mcp kali server, kali mcp, mcp-kali-server, ai pentest, mcp tool bridge, kali mcp bridge, ai-assisted pentest, mcp tool execution, kali tool via mcp"
   tags: mcp, kali, tool-bridge, ai-assisted-pentest, orchestration, prompt-injection-hygiene
@@ -176,38 +178,42 @@ Reserved for tools not wrapped by dedicated endpoints (e.g., `ffuf`, `enum4linux
 
 ---
 
-## 4. Engagement Workflow
+## 4. Connectivity prerequisite and scoped tool examples
 
-### Phase 1 — Verify connectivity
+Verify bridge connectivity and required tool availability before using it.
+Select examples that match the authorized objective and observed services;
+these are independent tool uses, not a required engagement sequence.
+
+### Verify connectivity
 ```
-server_health()       # confirm all tools available before engagement
+server_health()       # confirm required tools are available before use
 ```
 
-### Phase 2 — Port/service recon
+### Port/service recon
 ```
 nmap_scan(target="<IP>", scan_type="-sS -sV", ports="", additional_args="-T2 -oN /tmp/nmap_<IP>.txt")
 ```
-Parse output; extract open ports and services before proceeding.
+Parse output; extract open ports and services before selecting service-specific probes.
 
-### Phase 3 — Web surface
+### Web surface (for an identified HTTP service)
 ```
 gobuster_scan(url="http://<IP>", mode="dir", additional_args="-o /tmp/gobuster.txt")
 nikto_scan(target="http://<IP>")
 ```
 
-### Phase 4 — SQLi (if web form/params found)
+### SQLi (if web form/params found)
 ```
 sqlmap_scan(url="http://<IP>/page?id=1", additional_args="--batch --level=2 --risk=1 --dbs")
 ```
 
-### Phase 5 — Credential attacks (only with explicit RoE permission)
+### Credential attacks (only with explicit RoE permission)
 ```
 hydra_attack(target="<IP>", service="ssh", username_file="/usr/share/wordlists/user.txt",
              password_file="/usr/share/wordlists/rockyou.txt", additional_args="-t 4")
 john_crack(hash_file="/tmp/hashes.txt", format_type="nt")
 ```
 
-### Phase 6 — SMB enumeration
+### SMB enumeration (for an identified SMB service)
 ```
 enum4linux_scan(target="<IP>", additional_args="-a")
 ```

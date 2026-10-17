@@ -7,6 +7,8 @@ description: >
   artifacts using Volatility 3, plaso, and sigma-cli. Without this catalog,
   detection rules are theoretical.
 metadata:
+  skillogy:
+    version: 1
   subdomain: dfir
   when_to_use: "dfir validation sigma yara volatility plaso memory dump event log forensic artifact detection rule blue team"
   tags: dfir, memory, volatility, plaso, sigma, validation, blue-team
@@ -24,7 +26,7 @@ detection rules back through real forensic artifacts to confirm they fire
 > **Inline technique reference — not separately loadable skills.** The entries below
 > are summarized here for direct use; there is no separate `SKILL.md` to open for
 > each. Do NOT call the skill loader on them — apply the technique with your tools
-> using this summary and the Workflow in this file.
+> using this summary and the validation guidance in this file.
 
 
 | Technique | Use for |
@@ -38,25 +40,18 @@ detection rules back through real forensic artifacts to confirm they fire
 | **etw-trace** | ETW provider triage; .etl file extraction |
 | **edr-validation** | Replay an attack against a target with Velociraptor / OSQuery active; capture artifacts |
 
-## Loop closure workflow
+## Detection validation
 
-1. **Run an offensive technique** (e.g., `dcsync` from the ad-operator agent).
-2. **Detector agent emits Sigma rule** describing the expected detection
-   pattern (event 4662 with right `ControlAccessRights`, etc.).
-3. **Defender pushes the Sigma to the customer SIEM** via
-   `sigma_to_splunk_savedsearch` / `sigma_to_sentinel_analyticrule` /
-   `sigma_to_elastic_detection_rule`.
-4. **Forensicator validates** by:
-   - Collecting the event log from the DC at attack time.
-   - Running `sigma-cli convert --target sqlite` and matching against
-     the log file.
-   - If the match count is 0 → detection rule has a bug. Iterate with
-     Detector.
-   - If match count is N → detection works. Record the validation
-     evidence in the engagement knowledge graph.
-5. **Patcher proposes the fix**; Forensicator validates the patch
-   doesn't break the detection (verify the rule still fires on attempted
-   exploitation of the patched build).
+- Collect the event log from the relevant host at attack time, along with
+  the detection rule and expected event pattern (for example, event 4662
+  with the relevant `ControlAccessRights`).
+- Run `sigma-cli convert --target sqlite` and match against the log file.
+  A zero match count requires checking the rule and artifact coverage;
+  matches provide evidence that the rule detects the captured activity.
+- Record the match count and supporting forensic artifacts in the
+  engagement knowledge graph.
+- For patch-regression validation, verify whether the rule still fires
+  on attempted exploitation of the patched build.
 
 ## Tools sandbox
 

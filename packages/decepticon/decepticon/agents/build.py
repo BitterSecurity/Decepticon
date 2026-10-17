@@ -418,7 +418,11 @@ def build_middleware(
     }
     factories.update(resolved.middleware_replace)
 
+    from decepticon.middleware.workflow import WorkflowMiddleware
+
     result: list = []
+    if role in SLOTS_PER_ROLE and role not in {"soundwave", "autohunt", "blue_cell"}:
+        result.append(WorkflowMiddleware(role=role))
     for slot in MiddlewareSlot:  # canonical enum order
         if slot not in role_slots:
             continue

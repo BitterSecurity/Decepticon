@@ -3,6 +3,8 @@ name: apt34-oilrig
 description: "Adversary-emulation profile for APT34 / OilRig (G0049), an Iranian state-sponsored espionage group, mapping its ATT&CK TTPs to Decepticon tooling for authorized red-team emulation."
 allowed-tools: Bash Read Write
 metadata:
+  skillogy:
+    version: 1
   subdomain: adversary-emulation
   when_to_use: "APT34, OilRig, Helix Kitten, Hazel Sandstorm, Earth Simnavaz, Crambus, Cobalt Gypsy, Evasive Serpens, Iranian APT, MOIS, Middle East espionage, DNS tunneling, BONDUPDATER, POWRUNER, SideTwist, STEALHOOK, Outlook Home Page persistence, Exchange exfiltration, password filter DLL, emulate Iranian threat actor"
   tags: adversary-emulation, apt34, oilrig, iran, espionage, g0049, dns-tunneling, middle-east, mitre-attack, red-team
@@ -138,7 +140,7 @@ Map APT34's signature behaviors to Decepticon capabilities to reproduce the acto
 - **Collection & exfiltration (T1113/T1074.001/T1048.003):** Stage data in `%TEMP%`, capture screenshots, then emulate exfiltration through an in-scope Exchange/mail path (STEALHOOK pattern) or DNS tunnel to validate DLP/egress detections.
 - **Cloud (T1585.003):** Where the engagement includes M365/Azure, use the cloud skill to stand up an authorized cloud-mail C2 account mirroring the actor's M365 abuse.
 
-Sequence the emulation as the actor does: phish → execute loader → DNS/HTTP C2 → recon → credential harvest → escalate → lateral to DC → stage → exfil via mail/DNS — so the blue cell can validate detection at each hop.
+One illustrative combination is phish → loader → DNS/HTTP C2 → discovery → credential access → escalation → lateral access → staging → mail/DNS transfer. These links describe possible technical dependencies, not a compulsory campaign; the selected workflow and RoE determine which links are needed and authorized.
 
 ## Detection & defense
 - **Phishing/macros (T1566, T1204, T1218.001):** Block macros from the internet, disable Equation Editor, strip/ sandbox .rtf and .chm attachments; user-reporting + attachment detonation.

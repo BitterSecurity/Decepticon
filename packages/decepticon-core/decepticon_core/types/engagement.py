@@ -451,6 +451,11 @@ class Objective(BaseModel):
 
     id: str = Field(description="Opaque objective ID issued by the OPPLAN server")
     phase: ObjectivePhase
+    workflow_stage: str | None = Field(
+        default=None,
+        pattern=r"^[a-z][a-z0-9_-]*$",
+        description="Stage ID in the pinned WORKFLOW contract; required for workflow-bound leaf objectives",
+    )
     title: str
     description: str
     acceptance_criteria: list[str] = Field(

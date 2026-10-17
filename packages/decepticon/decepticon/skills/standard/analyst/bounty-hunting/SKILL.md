@@ -2,6 +2,8 @@
 name: bounty-hunting-methodology
 description: Bug bounty white-box hunting methodology. Load when the target is an open-source project with a security advisory program, bug bounty, or responsible disclosure policy.
 metadata:
+  skillogy:
+    version: 1
   subdomain: analyst
   when_to_use: "bug bounty white-box methodology open source security advisory program responsible disclosure policy h1 bugcrowd"
 ---
@@ -14,10 +16,11 @@ survive triage by an experienced security engineer.
 
 ## Target Assessment
 
-Before committing iteration budget, evaluate the target:
+The selected program and workflow determine effort allocation. Useful context
+for interpreting a supplied target includes:
 
-1. **Impact surface**: downloads/week, GitHub stars, dependency depth. A vuln in
-   lodash or React Router has 10-100x the impact of a vuln in a 200-star project.
+1. **Exposure context**: known deployments and dependency reach. Popularity alone
+   does not establish technical impact or a reward multiplier.
 2. **Trust boundary complexity**: Does the app load config from untrusted sources?
    Handle plugins? Parse user-controlled serialized data? Multi-tenant auth?
    Complex trust boundaries = more attack surface.
@@ -89,16 +92,17 @@ Every finding MUST go through `validate_finding` with:
 - `negative_patterns` matching the baseline response
 - Full `cvss_vector` string
 
-If you cannot reproduce it, it is NOT a finding. Record the failure and move on.
+An unreproduced claim remains unverified. Distinguish an unavailable prerequisite
+from a control that refutes the hypothesis; preserve the evidence and limitations.
 
-## High-Value Vulnerability Classes
+## Mechanism families
 
-Prioritize by typical bounty payout and acceptance rate:
+These are investigation categories, not a universal payout or priority ranking:
 
 1. **Remote Code Execution** — deserialization, template injection, command injection,
-   unsafe `eval`/`exec`, `shell: true` with user input. Highest payouts.
+   unsafe `eval`/`exec`, `shell: true` with user input.
 2. **Access Control Bypass** — IDOR, BOLA, missing ownership validation, broken
-   function-level authorization. Most common accepted finding class.
+   function-level authorization.
 3. **Authentication Bypass** — token leakage, session fixation, OAuth state confusion,
    JWT `alg=none`, password reset flaws.
 4. **Path Traversal / File Write** — directory escape in upload/download handlers,
@@ -123,11 +127,9 @@ Bad:
 - "Possible SQL injection" (speculative)
 - "Security issue in API" (says nothing)
 
-## What NOT to Do
+## Interpretation and disposition
 
-- Do NOT submit without a validated PoC
-- Do NOT inflate CVSS beyond demonstrated impact
-- Do NOT submit theoretical findings ("an attacker could potentially...")
-- Do NOT spam multiple low-quality reports — one rejected report damages signal
-- Do NOT submit to out-of-scope targets
-- Do NOT submit duplicate findings without checking `kg_query(kind="finding")`
+Keep hypotheses separate from reproduced effects and justify severity from the
+demonstrated impact. Scope exclusions forbid unauthorized testing. Eligibility,
+novelty, internal report completion and external disclosure are separate workflow
+decisions; this technical reference does not authorize submission.

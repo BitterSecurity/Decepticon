@@ -1,11 +1,11 @@
-# Contributor instructions
+# Versioned change tracking
 
-Before opening or updating any product, documentation, or maintenance PR, update
-[Chagelog.md](Chagelog.md) and the canonical [CHANGELOG.md](CHANGELOG.md) with a
-concise Unreleased entry, PR link, user-visible behavior, and compatibility notes.
-Keep Chagelog.md as the entry point rather than duplicating version history.
-Distinguish proposed, merged, and deployed/released changes. Preserve history and
-release automation; move entries to a dated real version or immutable release
-identifier only when released. SaaS and OSS versions are independent. Do not bump
-unrelated versions, invent release dates, or edit another dirty worktree for this
-requirement. Do not publish a release unless explicitly requested.
+Before opening or updating any PR, including documentation or maintenance changes,
+update root `Chagelog.md` and link it from the PR description. Preserve the canonical
+`CHANGELOG.md` history and release automation: keep `Chagelog.md` an entry point and
+update the canonical history in the same PR. Record user-visible changes, fixes and
+compatibility/upgrade notes with PR links under Unreleased; distinguish proposed,
+merged and released changes. On release, move entries into a dated section using
+the actual version or immutable release identifier. Do not invent dates, bump
+unrelated versions or edit another dirty worktree. SaaS releases and OSS package
+versions are independent.

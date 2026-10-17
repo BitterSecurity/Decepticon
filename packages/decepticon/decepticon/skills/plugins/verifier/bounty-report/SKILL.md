@@ -1,7 +1,9 @@
 ---
 name: bounty-report-formatter
-description: Bug bounty report formatting for HackerOne, Bugcrowd, Immunefi, and GitHub Security Advisories. Load after validate_finding succeeds and the finding needs to be submitted to a bounty program.
+description: Bug bounty report presentation, reproduction evidence and destination field conventions for HackerOne, Bugcrowd, Immunefi and GitHub Security Advisories.
 metadata:
+  skillogy:
+    version: 1
   subdomain: reporting
   when_to_use: "bug bounty report hackerone h1 bugcrowd immunefi github security advisory ghsa submission triage cvss writeup"
   upstream_ref: "HackerOne / Bugcrowd / Immunefi / GitHub Security Advisory submission templates"
@@ -34,7 +36,10 @@ Rules:
 
 ## Report Template
 
-Write to `workspace/findings/BOUNTY-{finding_id}.md`:
+The workflow selects the canonical record, requested destination schema and
+disclosure action. This optional presentation example does not create a second
+finding file or authorize submission. Destination-specific limits below are
+examples; the selected program's current requirements take precedence.
 
 ```markdown
 # {Title}
@@ -104,7 +109,7 @@ demonstrated in the PoC. Do NOT extrapolate to theoretical scenarios.}
 
 ## Quality Checklist
 
-Before writing the report, verify each item:
+Evidence and presentation questions for the requested destination:
 
 - [ ] Title follows `Component: VulnClass via Mechanism` format
 - [ ] Summary is ≤3 sentences
@@ -120,8 +125,8 @@ Before writing the report, verify each item:
 - [ ] No filler phrases: "an attacker could potentially", "this might allow",
       "it is recommended to", "in certain conditions"
 - [ ] No severity inflation beyond what the PoC proves
-- [ ] Finding is in scope for the target program
-- [ ] Not a duplicate of an existing finding (`kg_query(kind="finding")`)
+Program scope and duplicate disposition belong to the workflow and remain
+separate from technical validity and document quality.
 
 ## Platform-Specific Notes
 

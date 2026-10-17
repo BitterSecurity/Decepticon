@@ -8,6 +8,8 @@ description: >
   prevent duplication.
 allowed-tools: Bash Read Write
 metadata:
+  skillogy:
+    version: 1
   subdomain: wireless
   when_to_use: "Wi-Fi, 802.11, WPA2, WPA3, EAP, enterprise, evil-twin, deauth, WPS, PSK, SAE, wireless attack, airspace, WLAN, rogue AP"
   tags:
@@ -24,9 +26,9 @@ metadata:
 
 # 802.11 Wireless Attack Suite — Operator Index
 
-> Load your wireless workflow (loaded into your system prompt) first on every iteration (hardware mode
-> check, phase progression, scope rules, KG node contract). This file
-> is the routing layer on top of it.
+> Verify the configured hardware mode and authorized wireless scope
+> before using a leaf skill. This index maps the target's crypto mode
+> to the applicable techniques.
 
 ## Playbook table
 
@@ -46,7 +48,7 @@ metadata:
 
 ## Hardware mode pointer
 
-Leaf skills inherit the mode check from the wireless workflow:
+Leaf skills require the configured mode and its actual hardware access:
 
 ```
 mode = plan/roe.json:machine_enforcement.wireless.mode
@@ -75,7 +77,7 @@ After selecting the primary leaf, always check:
 
 ## KG node contract
 
-All wireless leaf skills write the same node types (mirrors the wireless workflow):
+All wireless leaf skills use the same node types:
 
 | Node kind | Typical props |
 |---|---|
@@ -93,4 +95,4 @@ All wireless leaf skills write the same node types (mirrors the wireless workflo
 | `loud` | + broadcast deauth, evil-twin, KARMA, beacon flood, online WPS brute |
 
 > Evil-twin always requires explicit `permitted_actions: evil_twin` in
-> `plan/roe.json` regardless of posture — see the wireless workflow scope rules in your system prompt.
+> `plan/roe.json` regardless of posture.

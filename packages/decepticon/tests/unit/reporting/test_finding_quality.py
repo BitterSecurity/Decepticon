@@ -7,6 +7,7 @@ from inspect import signature
 from types import SimpleNamespace
 from typing import Annotated, TypedDict
 
+import pytest
 from deepagents.backends.filesystem import FilesystemBackend
 from langchain.tools import ToolRuntime
 from langchain_core.messages import AIMessage
@@ -19,6 +20,15 @@ from decepticon.tools.reporting.finding_quality import (
     build_finding_quality_tool,
     check_finding_content,
 )
+
+
+@pytest.mark.parametrize("field", ["result_kind", "verification_status", "report_status"])
+@pytest.mark.parametrize("value", [[], {"unexpected": "mapping"}])
+def test_collection_status_fields_return_quality_errors(field: str, value: list | dict) -> None:
+    errors = check_finding_content(
+        "findings/FIND-001.md", finding(**{field: value}), evidence_exists=lambda _path: True
+    )
+    assert any(field in error for error in errors)
 
 
 def finding(**overrides):
