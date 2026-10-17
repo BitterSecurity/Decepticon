@@ -6,11 +6,29 @@ follows [Semantic Versioning](https://semver.org/) from `1.0.0`
 onward (the `0.x` cycle is pre-stable per the core/framework/sdk split
 design spec, §13.4).
 
-Add user-visible changes to **Unreleased** when their PR is merged. At release,
-move those entries into a dated version section, link the PRs, and add a
-comparison link. Keep proposed and unmerged changes out of released sections.
+Before opening or updating a PR, record its changes and PR link under
+**Unreleased**, marking unmerged proposals separately from merged changes.
+Update the root [Chagelog.md](Chagelog.md) entry point in the same PR. At release,
+move merged entries into a dated version section and add a comparison link.
+Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
+
+### Proposed — not merged or released
+
+- [PR #999](https://github.com/BitterSecurity/Decepticon/pull/999): separate stable
+  capability specialists and reusable `SKILL.md` knowledge from individual
+  `WORKFLOW.md` playbooks for bug bounty, red team, pentest and vulnerability
+  research. Pin workflow content in checkpoints and inherit it in subagents;
+  enforce evidence dependencies through OPPLAN. Review core prompts and migrate
+  startup/lifecycle business procedures out of skills.
+- Compatibility/upgrade for PR #999: add optional `Objective.workflow_stage`;
+  preserve existing unbound plans through a policy-only compatibility snapshot.
+  Workflow updates affect new executions; existing checkpoint pins remain stable.
+  Optional legacy VR, benchmark and Soundwave planning contracts retain their
+  separately documented integration boundaries. Add root change-tracking
+  instructions and the `Chagelog.md` entry point while preserving this canonical
+  history and release automation. No new package version is assigned by this PR.
 
 ### Fixed
 
