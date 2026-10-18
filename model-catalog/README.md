@@ -21,8 +21,8 @@ baseline, and is not a fresh claim about provider availability or current prices
 `overlay.json` holds local credential references, legacy/private local routes,
 settings, provider admission and compatibility patches. It generates:
 
-- `config/litellm.yaml`, preserving the 88 existing static routes and settings;
-- `config/litellm_prod_catalog.json`, preserving the 132 existing optional routes,
+- `config/litellm.yaml`, retaining baseline routes/settings and now containing 92 routes;
+- `config/litellm_prod_catalog.json`, now containing 136 optional routes,
   still enabled by `current_model_routes` only when required credentials exist;
 - the CLI's `currentProdModels.ts` catalog, retaining legacy groups/aliases.
 

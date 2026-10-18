@@ -15,6 +15,9 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- PR #1013 verification follow-up: format catalog tooling with repository Ruff
+  rules and keep safety assertions independent of the growing model count.
+
 - Proposed [PR #1013](https://github.com/BitterSecurity/Decepticon/pull/1013):
   refresh the shared public catalog from reviewed SaaS main pricing/model data,
   retaining context-tier prices and provenance. Include four public models and
