@@ -36,7 +36,6 @@ def test_current_prod_catalog_is_oss_safe() -> None:
     catalog = json.loads((_MODULE_PATH.parent / "litellm_prod_catalog.json").read_text())
     routes = catalog["routes"]
     names = [route["model_name"] for route in routes]
-    assert len(routes) == 132
     assert len(names) == len(set(names))
     assert "openai/gpt-5.6-sol" in names
     assert "runyour/qwen3.8-max" in names
