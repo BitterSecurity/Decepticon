@@ -249,7 +249,8 @@ export const CURRENT_PROD_MODELS: Record<string, string[]> = {
   "Shared catalog / anthropic": [
     "anthropic/claude-opus-4-8",
     "anthropic/claude-opus-4-7",
-    "anthropic/claude-sonnet-4-6"
+    "anthropic/claude-sonnet-4-6",
+    "anthropic/claude-haiku-5-5"
   ],
   "Shared catalog / bedrock": [
     "bedrock/anthropic.claude-opus-4-7",
@@ -270,7 +271,8 @@ export const CURRENT_PROD_MODELS: Record<string, string[]> = {
   ],
   "Shared catalog / gemini": [
     "gemini/gemini-embedding-001",
-    "gemini/gemini-3.1-flash-lite"
+    "gemini/gemini-3.1-flash-lite",
+    "gemini/gemini-4-argon"
   ],
   "Shared catalog / cerebras": [
     "cerebras/llama3.1-8b"
@@ -347,5 +349,11 @@ export const CURRENT_PROD_MODELS: Record<string, string[]> = {
     "openrouter/mistralai/mistral-small-2603",
     "openrouter/z-ai/glm-5.2",
     "openrouter/z-ai/glm-5-turbo"
+  ],
+  "Shared catalog / mistral": [
+    "mistral/mistral-large-4"
+  ],
+  "Shared catalog / moonshot": [
+    "moonshot/kimi-k2.7-code-highspeed"
   ]
 };

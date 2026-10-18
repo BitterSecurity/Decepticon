@@ -15,6 +15,13 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed [PR #1013](https://github.com/BitterSecurity/Decepticon/pull/1013):
+  refresh the shared public catalog from reviewed SaaS main pricing/model data,
+  retaining context-tier prices and provenance. Include four public models and
+  admit their metadata in the locally reviewed generator. Existing credentials,
+  defaults and explicit local compatibility overrides remain; this does not
+  publish an OSS version or prove provider availability.
+
 - Proposed [PR #1011](https://github.com/BitterSecurity/Decepticon/pull/1011):
   own a shared public LiteLLM model catalog and deterministic route/CLI generation
   for OSS and the pinned SaaS consumer. Retain existing route semantics,

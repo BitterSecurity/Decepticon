@@ -5,6 +5,12 @@ model identity, LiteLLM upstream routing, public capabilities/cost metadata and
 optional picker labels/reasoning choices. Add a public model here once. Never
 copy a SaaS model inventory into a product runtime by hand.
 
+The reviewed 2026-10-18 SaaS main refresh contains 202 public records, including
+context-tier rates and their existing source/check-date metadata. It preserves
+explicit product overrides; it does not independently re-audit provider prices
+or publish a package. New metadata fields require local generator review before
+consumers accept the data.
+
 Run `uv run model-catalog/generate.py`, then
 `uv run model-catalog/generate.py --check` and
 `uv run model-catalog/test_catalog.py`. Commit the source and generated outputs.

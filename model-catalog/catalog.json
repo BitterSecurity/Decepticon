@@ -234,7 +234,14 @@
         "model": "minimax/MiniMax-M2.5-lightning",
         "api_base": "https://api.minimax.io/v1"
       },
-      "info": {}
+      "info": {
+        "input_cost_per_token": "3e-7",
+        "output_cost_per_token": 2.4e-06,
+        "cache_read_input_token_cost": "3e-8",
+        "cache_creation_input_token_cost": 3.75e-07,
+        "pricing_source": "https://github.com/BerriAI/litellm/blob/cfee0ffe4186e2ac36cfaee4c4e10f6c3daafd2f/model_prices_and_context_window.json",
+        "pricing_checked_at": "2026-10-18"
+      }
     },
     {
       "id": "deepseek/deepseek-flash",
@@ -318,7 +325,11 @@
       "params": {
         "model": "openrouter/*"
       },
-      "info": {}
+      "info": {
+        "pricing_status": "provider-dependent",
+        "pricing_source": "https://openrouter.ai/api/v1/models",
+        "pricing_checked_at": "2026-10-18"
+      }
     },
     {
       "id": "openrouter/anthropic/claude-opus-5.5",
@@ -326,6 +337,12 @@
         "model": "openrouter/anthropic/claude-opus-5.5"
       },
       "info": {
+        "input_cost_per_token": 4e-06,
+        "output_cost_per_token": 2e-05,
+        "cache_read_input_token_cost": "2e-7",
+        "cache_creation_input_token_cost": 5e-06,
+        "pricing_source": "https://openrouter.ai/api/v1/models",
+        "pricing_checked_at": "2026-10-18",
         "supports_function_calling": true
       },
       "ui": {
@@ -340,6 +357,12 @@
         "model": "openrouter/anthropic/claude-sonnet-5.5"
       },
       "info": {
+        "input_cost_per_token": 2e-06,
+        "output_cost_per_token": 1e-05,
+        "cache_read_input_token_cost": "1e-7",
+        "cache_creation_input_token_cost": 2.5e-06,
+        "pricing_source": "https://openrouter.ai/api/v1/models",
+        "pricing_checked_at": "2026-10-18",
         "supports_function_calling": true
       },
       "ui": {
@@ -354,6 +377,14 @@
         "model": "openrouter/openai/gpt-6.1-sol"
       },
       "info": {
+        "input_cost_per_token": 2e-06,
+        "output_cost_per_token": 1e-05,
+        "cache_read_input_token_cost": "1e-7",
+        "cache_creation_input_token_cost": 2.5e-06,
+        "input_cost_per_token_above_272k_tokens": 4e-06,
+        "output_cost_per_token_above_272k_tokens": 1.5e-05,
+        "pricing_source": "https://openrouter.ai/api/v1/models",
+        "pricing_checked_at": "2026-10-18",
         "supports_function_calling": true
       },
       "ui": {
@@ -368,6 +399,12 @@
         "model": "openrouter/google/gemini-3.8-flash"
       },
       "info": {
+        "input_cost_per_token": 8.25e-07,
+        "output_cost_per_token": 4.125e-06,
+        "cache_read_input_token_cost": 8.25e-08,
+        "cache_creation_input_token_cost": 4.16666666667e-08,
+        "pricing_source": "https://openrouter.ai/api/v1/models",
+        "pricing_checked_at": "2026-10-18",
         "supports_function_calling": true
       },
       "ui": {
@@ -382,6 +419,11 @@
         "model": "openrouter/deepseek/deepseek-v4.1-flash"
       },
       "info": {
+        "input_cost_per_token": 6.48e-08,
+        "output_cost_per_token": 1.44e-07,
+        "cache_read_input_token_cost": 1.6e-09,
+        "pricing_source": "https://openrouter.ai/api/v1/models",
+        "pricing_checked_at": "2026-10-18",
         "supports_function_calling": true
       },
       "ui": {
@@ -428,7 +470,13 @@
       "params": {
         "model": "nvidia_nim/nvidia/nemotron-3-ultra-550b-a55b"
       },
-      "info": {},
+      "info": {
+        "input_cost_per_token": 0,
+        "output_cost_per_token": 0,
+        "pricing_source": "https://build.nvidia.com/nvidia/nemotron-3-ultra-550b-a55b",
+        "pricing_checked_at": "2026-10-18",
+        "pricing_zero_reason": "Hosted NVIDIA developer API endpoint; self-hosted compute is billed separately"
+      },
       "ui": {
         "id": "nvidia_nim/nvidia/nemotron-3-ultra-550b-a55b",
         "label": "Nemotron 3 Ultra (NVIDIA NIM)",
@@ -440,7 +488,13 @@
       "params": {
         "model": "nvidia_nim/nvidia/nemotron-3-super-120b-a12b"
       },
-      "info": {},
+      "info": {
+        "input_cost_per_token": 0,
+        "output_cost_per_token": 0,
+        "pricing_source": "https://build.nvidia.com/nvidia/nemotron-3-super-120b-a12b",
+        "pricing_checked_at": "2026-10-18",
+        "pricing_zero_reason": "Hosted NVIDIA developer API endpoint; self-hosted compute is billed separately"
+      },
       "ui": {
         "id": "nvidia_nim/nvidia/nemotron-3-super-120b-a12b",
         "label": "Nemotron 3 Super (NVIDIA NIM)",
@@ -452,7 +506,13 @@
       "params": {
         "model": "nvidia_nim/nvidia/nemotron-3-nano-30b-a3b"
       },
-      "info": {},
+      "info": {
+        "input_cost_per_token": 0,
+        "output_cost_per_token": 0,
+        "pricing_source": "https://build.nvidia.com/nvidia/nemotron-3-nano-30b-a3b",
+        "pricing_checked_at": "2026-10-18",
+        "pricing_zero_reason": "Hosted NVIDIA developer API endpoint; self-hosted compute is billed separately"
+      },
       "ui": {
         "id": "nvidia_nim/nvidia/nemotron-3-nano-30b-a3b",
         "label": "Nemotron 3 Nano (NVIDIA NIM)",
@@ -465,6 +525,11 @@
         "model": "nvidia_nim/nvidia/nemotron-3.5-lightning-30b-a3b"
       },
       "info": {
+        "input_cost_per_token": 0,
+        "output_cost_per_token": 0,
+        "pricing_source": "https://build.nvidia.com/nvidia/nemotron-3.5-lightning-30b-a3b",
+        "pricing_checked_at": "2026-10-18",
+        "pricing_zero_reason": "Hosted NVIDIA developer API endpoint; self-hosted compute is billed separately",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -485,7 +550,13 @@
           "temperature"
         ]
       },
-      "info": {},
+      "info": {
+        "cache_read_input_token_cost": "3e-7",
+        "input_cost_per_token": 3e-06,
+        "output_cost_per_token": 1.5e-05,
+        "pricing_source": "https://platform.kimi.ai/docs/pricing/chat-k3",
+        "pricing_checked_at": "2026-10-18"
+      },
       "ui": {
         "id": "moonshot/kimi-k3",
         "label": "Kimi K3",
@@ -497,7 +568,13 @@
       "params": {
         "model": "moonshot/kimi-k2.7-code"
       },
-      "info": {},
+      "info": {
+        "cache_read_input_token_cost": 1.9e-07,
+        "input_cost_per_token": 9.5e-07,
+        "output_cost_per_token": 4e-06,
+        "pricing_source": "https://platform.kimi.ai/docs/pricing/chat-k27-code",
+        "pricing_checked_at": "2026-10-18"
+      },
       "ui": {
         "id": "moonshot/kimi-k2.7-code",
         "label": "Kimi K2.7 Code",
@@ -647,6 +724,11 @@
         "api_base": "https://api.groq.com/openai/v1"
       },
       "info": {
+        "cache_read_input_token_cost": 3.75e-08,
+        "input_cost_per_token": 7.5e-08,
+        "output_cost_per_token": "3e-7",
+        "pricing_source": "https://github.com/BerriAI/litellm/blob/cfee0ffe4186e2ac36cfaee4c4e10f6c3daafd2f/model_prices_and_context_window.json",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -663,6 +745,11 @@
         "api_base": "https://api.groq.com/openai/v1"
       },
       "info": {
+        "cache_read_input_token_cost": 7.5e-08,
+        "input_cost_per_token": 1.5e-07,
+        "output_cost_per_token": "6e-7",
+        "pricing_source": "https://github.com/BerriAI/litellm/blob/cfee0ffe4186e2ac36cfaee4c4e10f6c3daafd2f/model_prices_and_context_window.json",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -679,6 +766,10 @@
         "api_base": "https://api.cerebras.ai/v1"
       },
       "info": {
+        "input_cost_per_token": 9.9e-07,
+        "output_cost_per_token": 1.49e-06,
+        "pricing_source": "https://api.cerebras.ai/public/v1/models/qwen-3.8-27b",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -695,6 +786,10 @@
         "api_base": "https://api.cerebras.ai/v1"
       },
       "info": {
+        "input_cost_per_token": 3.5e-07,
+        "output_cost_per_token": 7.5e-07,
+        "pricing_source": "https://www.cerebras.ai/blog/openai-gpt-oss-120b-runs-fastest-on-cerebras",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -711,6 +806,11 @@
         "api_base": "https://api.together.xyz/v1"
       },
       "info": {
+        "cache_read_input_token_cost": "6e-8",
+        "input_cost_per_token": "3e-7",
+        "output_cost_per_token": 1.2e-06,
+        "pricing_source": "https://api.together.ai/v1/models",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -727,6 +827,11 @@
         "api_base": "https://api.together.xyz/v1"
       },
       "info": {
+        "cache_read_input_token_cost": 2.6e-07,
+        "input_cost_per_token": 1.4e-06,
+        "output_cost_per_token": 4.4e-06,
+        "pricing_source": "https://api.together.ai/v1/models",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -743,6 +848,11 @@
         "api_base": "https://api.together.xyz/v1"
       },
       "info": {
+        "cache_read_input_token_cost": "3e-7",
+        "input_cost_per_token": 3e-06,
+        "output_cost_per_token": 1.5e-05,
+        "pricing_source": "https://api.together.ai/v1/models",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -759,6 +869,14 @@
         "api_base": "https://api.fireworks.ai/inference/v1"
       },
       "info": {
+        "cache_read_input_token_cost": "6e-9",
+        "cache_read_input_token_cost_priority": 7.5e-09,
+        "input_cost_per_token": "3e-7",
+        "input_cost_per_token_priority": 3.75e-07,
+        "output_cost_per_token": 1.2e-06,
+        "output_cost_per_token_priority": 1.5e-06,
+        "pricing_source": "https://docs.fireworks.ai/serverless/pricing",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -775,6 +893,14 @@
         "api_base": "https://api.fireworks.ai/inference/v1"
       },
       "info": {
+        "cache_read_input_token_cost": 2.6e-07,
+        "cache_read_input_token_cost_priority": 3.25e-07,
+        "input_cost_per_token": 1.4e-06,
+        "input_cost_per_token_priority": 1.75e-06,
+        "output_cost_per_token": 4.4e-06,
+        "output_cost_per_token_priority": 5.5e-06,
+        "pricing_source": "https://api.fireworks.ai/v1/serverless/models",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -791,6 +917,14 @@
         "api_base": "https://api.fireworks.ai/inference/v1"
       },
       "info": {
+        "cache_read_input_token_cost": "7e-9",
+        "cache_read_input_token_cost_priority": 8.75e-09,
+        "input_cost_per_token": 2.2e-07,
+        "input_cost_per_token_priority": 2.75e-07,
+        "output_cost_per_token": 6.6e-07,
+        "output_cost_per_token_priority": 8.25e-07,
+        "pricing_source": "https://api.fireworks.ai/v1/serverless/models",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -807,6 +941,11 @@
         "api_base": "https://api.deepinfra.com/v1/openai"
       },
       "info": {
+        "input_cost_per_token": 1.4e-07,
+        "output_cost_per_token": 4.2e-07,
+        "cache_read_input_token_cost": 4.2e-09,
+        "pricing_source": "https://api.deepinfra.com/models/list",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -823,6 +962,11 @@
         "api_base": "https://api.deepinfra.com/v1/openai"
       },
       "info": {
+        "input_cost_per_token": 7.5e-08,
+        "output_cost_per_token": 2.5e-07,
+        "cache_read_input_token_cost": 1.5e-08,
+        "pricing_source": "https://api.deepinfra.com/models/list",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -839,6 +983,11 @@
         "api_base": "https://api.deepinfra.com/v1/openai"
       },
       "info": {
+        "input_cost_per_token": "6e-8",
+        "output_cost_per_token": 1.8e-07,
+        "cache_read_input_token_cost": 1.5e-08,
+        "pricing_source": "https://api.deepinfra.com/models/list",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -855,6 +1004,10 @@
         "api_base": "https://api.sambanova.ai/v1"
       },
       "info": {
+        "input_cost_per_token": "6e-7",
+        "output_cost_per_token": 2.4e-06,
+        "pricing_source": "https://cloud.sambanova.ai/plans/pricing",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -871,6 +1024,11 @@
         "api_base": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
       },
       "info": {
+        "cache_read_input_token_cost": 2.5e-07,
+        "input_cost_per_token": 2e-06,
+        "output_cost_per_token": 6e-06,
+        "pricing_source": "https://www.alibabacloud.com/help/en/model-studio/models",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -887,6 +1045,12 @@
         "api_base": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
       },
       "info": {
+        "cache_creation_input_token_cost": "2e-7",
+        "cache_read_input_token_cost": 1.6e-08,
+        "input_cost_per_token": 1.5e-07,
+        "output_cost_per_token": 4.7e-07,
+        "pricing_source": "https://docs.modelstudio.console.alibabacloud.com/en/model-studio/model-pricing",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -903,6 +1067,15 @@
         "api_base": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
       },
       "info": {
+        "input_cost_per_token": 3.2e-07,
+        "output_cost_per_token": 1.28e-06,
+        "input_cost_per_token_above_256k_tokens": 9.6e-07,
+        "output_cost_per_token_above_256k_tokens": 3.84e-06,
+        "pricing_regular_input_cost_per_token": "4e-7",
+        "pricing_regular_output_cost_per_token": 1.6e-06,
+        "pricing_promotion": "International region 20% off; end date not published",
+        "pricing_source": "https://www.alibabacloud.com/help/en/model-studio/model-pricing",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -919,6 +1092,10 @@
         "api_base": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
       },
       "info": {
+        "input_cost_per_token": "4e-7",
+        "output_cost_per_token": 1.2e-06,
+        "pricing_source": "https://www.alibabacloud.com/help/en/model-studio/models",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -935,6 +1112,11 @@
         "api_base": "https://api.upstage.ai/v1"
       },
       "info": {
+        "input_cost_per_token": "3e-7",
+        "output_cost_per_token": 1.2e-06,
+        "cache_read_input_token_cost": "6e-8",
+        "pricing_source": "https://www.upstage.ai/pricing/api",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -951,6 +1133,11 @@
         "api_base": "https://api.cohere.ai/compatibility/v1"
       },
       "info": {
+        "input_cost_per_token": 0,
+        "output_cost_per_token": 0,
+        "pricing_source": "https://docs.cohere.com/v1/docs/command-a-plus",
+        "pricing_checked_at": "2026-10-18",
+        "pricing_zero_reason": "Provider-hosted free endpoint within rate limits; private Model Vault compute is not a token tariff.",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -967,6 +1154,9 @@
         "api_base": "https://router.huggingface.co/v1"
       },
       "info": {
+        "pricing_status": "provider-dependent",
+        "pricing_source": "https://huggingface.co/docs/inference-providers/en/index",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -983,6 +1173,10 @@
         "api_base": "https://api.tokenfactory.nebius.com/v1"
       },
       "info": {
+        "input_cost_per_token": "2e-7",
+        "output_cost_per_token": "6e-7",
+        "pricing_source": "https://tokenfactory.nebius.com/models/catalog/text2text/Qwen%2FQwen3-235B-A22B-Instruct-2507",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -999,6 +1193,11 @@
         "api_base": "https://api.novita.ai/v3/openai"
       },
       "info": {
+        "input_cost_per_token": 1.5e-07,
+        "output_cost_per_token": "5e-7",
+        "cache_read_input_token_cost": "3e-8",
+        "pricing_source": "https://novita.ai/pricing",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -1015,6 +1214,11 @@
         "api_base": "https://api.siliconflow.com/v1"
       },
       "info": {
+        "input_cost_per_token": 1.5e-07,
+        "output_cost_per_token": "6e-7",
+        "cache_read_input_token_cost": "3e-9",
+        "pricing_source": "https://www.siliconflow.com/pricing",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -1031,6 +1235,10 @@
         "api_base": "https://api.siliconflow.com/v1"
       },
       "info": {
+        "input_cost_per_token": 2.5e-07,
+        "output_cost_per_token": 1e-06,
+        "pricing_source": "https://github.com/anomalyco/models.dev/blob/e8dfd0760cb0be38f895039c11ba5871470f7f62/providers/siliconflow/models/deepseek-ai/DeepSeek-V3.toml",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -1047,6 +1255,12 @@
         "api_base": "https://router.requesty.ai/v1"
       },
       "info": {
+        "input_cost_per_token": 2e-06,
+        "output_cost_per_token": 1e-05,
+        "cache_read_input_token_cost": "2e-7",
+        "cache_creation_input_token_cost": 2.5e-06,
+        "pricing_source": "https://router.requesty.ai/v1/models",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -1066,6 +1280,12 @@
         }
       },
       "info": {
+        "input_cost_per_token": 5e-06,
+        "output_cost_per_token": 2.5e-05,
+        "cache_read_input_token_cost": "5e-7",
+        "cache_creation_input_token_cost": 6.25e-06,
+        "pricing_source": "https://ai-gateway.vercel.sh/v1/models",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -1085,6 +1305,14 @@
         }
       },
       "info": {
+        "input_cost_per_token": 2.5e-06,
+        "output_cost_per_token": 1.5e-05,
+        "cache_read_input_token_cost": 2.5e-07,
+        "input_cost_per_token_above_272k_tokens": 5e-06,
+        "output_cost_per_token_above_272k_tokens": 2.25e-05,
+        "cache_read_input_token_cost_above_272k_tokens": "5e-7",
+        "pricing_source": "https://ai-gateway.vercel.sh/v1/models",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -1104,6 +1332,11 @@
         }
       },
       "info": {
+        "input_cost_per_token": 7.5e-07,
+        "output_cost_per_token": 3.75e-06,
+        "cache_read_input_token_cost": 7.5e-08,
+        "pricing_source": "https://ai-gateway.vercel.sh/v1/models",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -1123,6 +1356,11 @@
         }
       },
       "info": {
+        "input_cost_per_token": 3e-06,
+        "output_cost_per_token": 1.5e-05,
+        "cache_read_input_token_cost": "3e-7",
+        "pricing_source": "https://ai-gateway.vercel.sh/v1/models",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -1142,6 +1380,12 @@
         }
       },
       "info": {
+        "input_cost_per_token": 2e-06,
+        "output_cost_per_token": 1e-05,
+        "cache_read_input_token_cost": "2e-7",
+        "cache_creation_input_token_cost": 2.5e-06,
+        "pricing_source": "https://api.kilo.ai/api/gateway/models",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -1161,6 +1405,12 @@
         }
       },
       "info": {
+        "input_cost_per_token": 5e-06,
+        "output_cost_per_token": 2.5e-05,
+        "cache_read_input_token_cost": "5e-7",
+        "cache_creation_input_token_cost": 6.25e-06,
+        "pricing_source": "https://api.kilo.ai/api/gateway/models",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -1180,6 +1430,12 @@
         }
       },
       "info": {
+        "input_cost_per_token": 1e-06,
+        "output_cost_per_token": 5e-06,
+        "cache_read_input_token_cost": "1e-7",
+        "cache_creation_input_token_cost": 1.25e-06,
+        "pricing_source": "https://api.kilo.ai/api/gateway/models",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -1199,6 +1455,11 @@
         }
       },
       "info": {
+        "input_cost_per_token": 2.5e-06,
+        "output_cost_per_token": 1.5e-05,
+        "cache_read_input_token_cost": 2.5e-07,
+        "pricing_source": "https://api.kilo.ai/api/gateway/models",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -1218,6 +1479,12 @@
         }
       },
       "info": {
+        "input_cost_per_token": 7.5e-07,
+        "output_cost_per_token": 3.75e-06,
+        "cache_read_input_token_cost": 7.5e-08,
+        "cache_creation_input_token_cost": 4.1667e-08,
+        "pricing_source": "https://api.kilo.ai/api/gateway/models",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -1237,6 +1504,12 @@
         }
       },
       "info": {
+        "input_cost_per_token": 3e-06,
+        "output_cost_per_token": 1.5e-05,
+        "cache_read_input_token_cost": "3e-7",
+        "cache_creation_input_token_cost": 3.75e-06,
+        "pricing_source": "https://api.kilo.ai/api/gateway/models",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -1256,6 +1529,11 @@
         }
       },
       "info": {
+        "input_cost_per_token": 3e-06,
+        "output_cost_per_token": 1.5e-05,
+        "cache_read_input_token_cost": "3e-7",
+        "pricing_source": "https://opencode.ai/v2/docs/console/models/",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -1275,6 +1553,11 @@
         }
       },
       "info": {
+        "input_cost_per_token": "3e-7",
+        "output_cost_per_token": 1.2e-06,
+        "cache_read_input_token_cost": "6e-8",
+        "pricing_source": "https://opencode.ai/v2/docs/console/models/",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -1294,6 +1577,11 @@
         }
       },
       "info": {
+        "input_cost_per_token": 1.4e-06,
+        "output_cost_per_token": 4.4e-06,
+        "cache_read_input_token_cost": 2.6e-07,
+        "pricing_source": "https://opencode.ai/v2/docs/console/models/",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -1313,6 +1601,11 @@
         }
       },
       "info": {
+        "input_cost_per_token": 1.5e-07,
+        "output_cost_per_token": "5e-7",
+        "cache_read_input_token_cost": "3e-8",
+        "pricing_source": "https://opencode.ai/v2/docs/console/models/",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -1332,6 +1625,11 @@
         }
       },
       "info": {
+        "input_cost_per_token": 1.74e-06,
+        "output_cost_per_token": 3.48e-06,
+        "cache_read_input_token_cost": 1.45e-07,
+        "pricing_source": "https://opencode.ai/v2/docs/console/models/",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -1351,6 +1649,11 @@
         }
       },
       "info": {
+        "input_cost_per_token": 1.4e-07,
+        "output_cost_per_token": 2.8e-07,
+        "cache_read_input_token_cost": 2.8e-08,
+        "pricing_source": "https://github.com/anomalyco/models.dev/blob/e8dfd0760cb0be38f895039c11ba5871470f7f62/providers/opencode/models/deepseek-v4-flash.toml",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -1373,6 +1676,12 @@
         }
       },
       "info": {
+        "input_cost_per_token": 0,
+        "output_cost_per_token": 0,
+        "pricing_reference_model": "moonshot/kimi-k3",
+        "pricing_source": "https://www.kimi.ai/help/kimi-code/models",
+        "pricing_checked_at": "2026-10-18",
+        "pricing_zero_reason": "Subscription access; displayed token value uses the equivalent API reference model",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -1401,6 +1710,12 @@
         }
       },
       "info": {
+        "input_cost_per_token": 0,
+        "output_cost_per_token": 0,
+        "pricing_reference_model": "moonshot/kimi-k3",
+        "pricing_source": "https://www.kimi.ai/help/kimi-code/models",
+        "pricing_checked_at": "2026-10-18",
+        "pricing_zero_reason": "Subscription access; displayed token value uses the equivalent API reference model",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -1429,6 +1744,12 @@
         }
       },
       "info": {
+        "input_cost_per_token": 0,
+        "output_cost_per_token": 0,
+        "pricing_status": "unpublished",
+        "pricing_zero_reason": "Subscription billing; K2.8 Preview has no published API-equivalent token price",
+        "pricing_source": "https://www.kimi.ai/help/kimi-code/models",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -1454,6 +1775,12 @@
         }
       },
       "info": {
+        "input_cost_per_token": 0,
+        "output_cost_per_token": 0,
+        "pricing_reference_model": "moonshot/kimi-k2.7-code-highspeed",
+        "pricing_zero_reason": "Subscription access; displayed token value uses the equivalent API reference model",
+        "pricing_source": "https://www.kimi.ai/help/kimi-code/models",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -1473,6 +1800,12 @@
         }
       },
       "info": {
+        "input_cost_per_token": 0,
+        "output_cost_per_token": 0,
+        "pricing_reference_model": "minimax/MiniMax-M3",
+        "pricing_source": "https://platform.minimax.io/docs/coding-plan/intro",
+        "pricing_checked_at": "2026-10-18",
+        "pricing_zero_reason": "Subscription access; displayed token value uses the equivalent API reference model",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -1492,6 +1825,12 @@
         }
       },
       "info": {
+        "input_cost_per_token": 0,
+        "output_cost_per_token": 0,
+        "pricing_reference_model": "minimax/MiniMax-M2.7",
+        "pricing_source": "https://platform.minimax.io/docs/coding-plan/intro",
+        "pricing_checked_at": "2026-10-18",
+        "pricing_zero_reason": "Subscription access; displayed token value uses the equivalent API reference model",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -1511,6 +1850,12 @@
         }
       },
       "info": {
+        "input_cost_per_token": 2e-06,
+        "output_cost_per_token": 1e-05,
+        "cache_read_input_token_cost": "1e-7",
+        "cache_creation_input_token_cost": 2.5e-06,
+        "pricing_source": "https://ai-gateway.vercel.sh/v1/models",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -1530,6 +1875,15 @@
         }
       },
       "info": {
+        "input_cost_per_token": 2e-06,
+        "output_cost_per_token": 1e-05,
+        "cache_read_input_token_cost": "1e-7",
+        "cache_creation_input_token_cost": 2.5e-06,
+        "input_cost_per_token_above_272k_tokens": 4e-06,
+        "output_cost_per_token_above_272k_tokens": 1.5e-05,
+        "cache_read_input_token_cost_above_272k_tokens": "2e-7",
+        "pricing_source": "https://ai-gateway.vercel.sh/v1/models",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -1546,6 +1900,12 @@
         "api_base": "https://ai-gateway.vercel.sh/v1"
       },
       "info": {
+        "input_cost_per_token": 2e-06,
+        "output_cost_per_token": 1e-05,
+        "cache_read_input_token_cost": "2e-7",
+        "cache_creation_input_token_cost": 2.5e-06,
+        "pricing_source": "https://ai-gateway.vercel.sh/v1/models",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -1565,6 +1925,11 @@
         }
       },
       "info": {
+        "input_cost_per_token": 1.85e-06,
+        "output_cost_per_token": 9.5e-06,
+        "cache_read_input_token_cost": 1.85e-07,
+        "pricing_source": "https://llm.chutes.ai/v1/models",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -1584,6 +1949,11 @@
         }
       },
       "info": {
+        "input_cost_per_token": 1.25e-06,
+        "output_cost_per_token": 3.95e-06,
+        "cache_read_input_token_cost": 1.25e-07,
+        "pricing_source": "https://llm.chutes.ai/v1/models",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -1603,6 +1973,11 @@
         }
       },
       "info": {
+        "input_cost_per_token": 4.4e-07,
+        "output_cost_per_token": 1.32e-06,
+        "cache_read_input_token_cost": 4.4e-08,
+        "pricing_source": "https://llm.chutes.ai/v1/models",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -1622,6 +1997,11 @@
         }
       },
       "info": {
+        "input_cost_per_token": 3e-06,
+        "output_cost_per_token": 1.5e-05,
+        "cache_read_input_token_cost": 4.5e-07,
+        "pricing_source": "https://api.synthetic.new/openai/v1/models",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -1641,6 +2021,11 @@
         }
       },
       "info": {
+        "input_cost_per_token": "6e-7",
+        "output_cost_per_token": 1.2e-06,
+        "cache_read_input_token_cost": "3e-8",
+        "pricing_source": "https://api.synthetic.new/openai/v1/models",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -1660,6 +2045,11 @@
         }
       },
       "info": {
+        "input_cost_per_token": 1.5e-07,
+        "output_cost_per_token": "5e-7",
+        "cache_read_input_token_cost": "4e-8",
+        "pricing_source": "https://api.synthetic.new/openai/v1/models",
+        "pricing_checked_at": "2026-10-18",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -1679,6 +2069,12 @@
         }
       },
       "info": {
+        "input_cost_per_token": 0,
+        "output_cost_per_token": 0,
+        "pricing_reference_model": "moonshot/kimi-k3",
+        "pricing_source": "https://ollama.com/pricing",
+        "pricing_checked_at": "2026-10-18",
+        "pricing_zero_reason": "Subscription access; displayed token value uses the equivalent API reference model",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -1698,6 +2094,12 @@
         }
       },
       "info": {
+        "input_cost_per_token": 0,
+        "output_cost_per_token": 0,
+        "pricing_reference_model": "zai/glm-5.3",
+        "pricing_source": "https://ollama.com/pricing",
+        "pricing_checked_at": "2026-10-18",
+        "pricing_zero_reason": "Subscription access; displayed token value uses the equivalent API reference model",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -1717,6 +2119,12 @@
         }
       },
       "info": {
+        "input_cost_per_token": 0,
+        "output_cost_per_token": 0,
+        "pricing_reference_model": "deepseek/deepseek-flash",
+        "pricing_source": "https://ollama.com/pricing",
+        "pricing_checked_at": "2026-10-18",
+        "pricing_zero_reason": "Subscription access; displayed token value uses the equivalent API reference model",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -1736,6 +2144,12 @@
         }
       },
       "info": {
+        "input_cost_per_token": 0,
+        "output_cost_per_token": 0,
+        "pricing_reference_model": "minimax/MiniMax-M3",
+        "pricing_source": "https://ollama.com/pricing",
+        "pricing_checked_at": "2026-10-18",
+        "pricing_zero_reason": "Subscription access; displayed token value uses the equivalent API reference model",
         "mode": "chat",
         "supports_function_calling": true
       },
@@ -1753,13 +2167,14 @@
           "temperature",
           "top_p",
           "top_k"
-        ],
-        "max_tokens": 128000
+        ]
       },
       "info": {
         "input_cost_per_token": 1e-05,
         "output_cost_per_token": 5e-05,
-        "cache_read_input_token_cost": 2.5e-07
+        "cache_read_input_token_cost": 2.5e-07,
+        "cache_creation_input_token_cost": 1.25e-05,
+        "supports_prompt_caching": true
       },
       "ui": {
         "id": "anthropic/claude-fable-5-1",
@@ -1775,13 +2190,14 @@
           "temperature",
           "top_p",
           "top_k"
-        ],
-        "max_tokens": 128000
+        ]
       },
       "info": {
         "input_cost_per_token": 4e-06,
         "output_cost_per_token": 2e-05,
-        "cache_read_input_token_cost": 2e-07
+        "cache_read_input_token_cost": 2e-07,
+        "cache_creation_input_token_cost": 5e-06,
+        "supports_prompt_caching": true
       },
       "ui": {
         "id": "anthropic/claude-opus-5-5",
@@ -1797,13 +2213,14 @@
           "temperature",
           "top_p",
           "top_k"
-        ],
-        "max_tokens": 128000
+        ]
       },
       "info": {
         "input_cost_per_token": 2e-06,
         "output_cost_per_token": 1e-05,
-        "cache_read_input_token_cost": 2e-07
+        "cache_read_input_token_cost": 2e-07,
+        "cache_creation_input_token_cost": 2.5e-06,
+        "supports_prompt_caching": true
       },
       "ui": {
         "id": "anthropic/claude-sonnet-5-5",
@@ -1853,12 +2270,14 @@
     {
       "id": "anthropic/claude-haiku-4-5",
       "params": {
-        "model": "anthropic/claude-haiku-4-5-20251001",
-        "max_tokens": 64000
+        "model": "anthropic/claude-haiku-4-5"
       },
       "info": {
         "input_cost_per_token": 1e-06,
-        "output_cost_per_token": 5e-06
+        "output_cost_per_token": 5e-06,
+        "cache_read_input_token_cost": 1e-07,
+        "cache_creation_input_token_cost": 1.25e-06,
+        "supports_prompt_caching": true
       },
       "ui": {
         "id": "anthropic/claude-haiku-4-5",
@@ -1909,7 +2328,12 @@
         "mode": "responses",
         "input_cost_per_token": 1e-05,
         "output_cost_per_token": 5e-05,
-        "cache_read_input_token_cost": 1e-06
+        "cache_read_input_token_cost": 1e-06,
+        "cache_creation_input_token_cost": 1.25e-05,
+        "input_cost_per_token_above_272k_tokens": 2e-05,
+        "output_cost_per_token_above_272k_tokens": 7.5e-05,
+        "cache_read_input_token_cost_above_272k_tokens": 2e-06,
+        "cache_creation_input_token_cost_above_272k_tokens": 2.5e-05
       },
       "ui": {
         "id": "openai/gpt-6-astra",
@@ -1943,7 +2367,12 @@
         "mode": "responses",
         "input_cost_per_token": 2e-06,
         "output_cost_per_token": 1e-05,
-        "cache_read_input_token_cost": 1e-07
+        "cache_read_input_token_cost": 1e-07,
+        "cache_creation_input_token_cost": 2.5e-06,
+        "input_cost_per_token_above_272k_tokens": 4e-06,
+        "output_cost_per_token_above_272k_tokens": 1.5e-05,
+        "cache_read_input_token_cost_above_272k_tokens": 2e-07,
+        "cache_creation_input_token_cost_above_272k_tokens": 5e-06
       },
       "ui": {
         "id": "openai/gpt-6.1-sol",
@@ -1977,7 +2406,12 @@
         "mode": "responses",
         "input_cost_per_token": 2e-06,
         "output_cost_per_token": 1e-05,
-        "cache_read_input_token_cost": 2e-07
+        "cache_read_input_token_cost": 2e-07,
+        "cache_creation_input_token_cost": 2.5e-06,
+        "input_cost_per_token_above_272k_tokens": 4e-06,
+        "output_cost_per_token_above_272k_tokens": 1.5e-05,
+        "cache_read_input_token_cost_above_272k_tokens": 4e-07,
+        "cache_creation_input_token_cost_above_272k_tokens": 5e-06
       },
       "ui": {
         "id": "openai/gpt-6-sol",
@@ -2012,7 +2446,12 @@
         "mode": "responses",
         "input_cost_per_token": 1e-07,
         "output_cost_per_token": 5e-07,
-        "cache_read_input_token_cost": 1e-08
+        "cache_read_input_token_cost": 1e-08,
+        "cache_creation_input_token_cost": 1.25e-07,
+        "input_cost_per_token_above_272k_tokens": 2e-07,
+        "output_cost_per_token_above_272k_tokens": 7.5e-07,
+        "cache_read_input_token_cost_above_272k_tokens": 2e-08,
+        "cache_creation_input_token_cost_above_272k_tokens": 2.5e-07
       },
       "ui": {
         "id": "openai/gpt-6-luna",
@@ -2045,7 +2484,11 @@
       },
       "info": {
         "input_cost_per_token": 2.5e-06,
-        "output_cost_per_token": 1.5e-05
+        "output_cost_per_token": 1.5e-05,
+        "cache_read_input_token_cost": 2.5e-07,
+        "input_cost_per_token_above_272k_tokens": 5e-06,
+        "output_cost_per_token_above_272k_tokens": 2.25e-05,
+        "cache_read_input_token_cost_above_272k_tokens": 5e-07
       }
     },
     {
@@ -2126,8 +2569,26 @@
         "model": "gemini/gemini-2.5-pro"
       },
       "info": {
+        "cache_read_input_token_cost": 1.25e-07,
+        "cache_read_input_token_cost_above_200k_tokens": 2.5e-07,
+        "cache_read_input_token_cost_above_200k_tokens_priority": 4.5e-07,
+        "cache_read_input_token_cost_batches": 1.25e-07,
+        "cache_read_input_token_cost_flex": 1.25e-07,
+        "cache_read_input_token_cost_priority": 2.25e-07,
         "input_cost_per_token": 1.25e-06,
-        "output_cost_per_token": 1e-05
+        "input_cost_per_token_above_200k_tokens": 2.5e-06,
+        "input_cost_per_token_priority": 2.25e-06,
+        "input_cost_per_token_above_200k_tokens_priority": 4.5e-06,
+        "output_cost_per_token": 1e-05,
+        "output_cost_per_token_above_200k_tokens": 1.5e-05,
+        "output_cost_per_token_priority": 1.8e-05,
+        "output_cost_per_token_above_200k_tokens_priority": 2.7e-05,
+        "input_cost_per_token_batches": 6.25e-07,
+        "input_cost_per_token_flex": 6.25e-07,
+        "output_cost_per_token_batches": 5e-06,
+        "output_cost_per_token_flex": 5e-06,
+        "pricing_source": "https://ai.google.dev/gemini-api/docs/pricing",
+        "pricing_checked_at": "2026-10-18"
       }
     },
     {
@@ -2137,7 +2598,8 @@
       },
       "info": {
         "input_cost_per_token": 3e-07,
-        "output_cost_per_token": 2.5e-06
+        "output_cost_per_token": 2.5e-06,
+        "cache_read_input_token_cost": 3e-08
       }
     },
     {
@@ -2146,8 +2608,20 @@
         "model": "gemini/gemini-2.5-flash-lite"
       },
       "info": {
-        "input_cost_per_token": 1e-07,
-        "output_cost_per_token": 4e-07
+        "cache_read_input_token_cost": "1e-8",
+        "cache_read_input_token_cost_batches": "1e-8",
+        "cache_read_input_token_cost_flex": "1e-8",
+        "cache_read_input_token_cost_priority": 1.8e-08,
+        "input_cost_per_token": "1e-7",
+        "output_cost_per_token": "4e-7",
+        "input_cost_per_token_batches": "5e-8",
+        "input_cost_per_token_flex": "5e-8",
+        "input_cost_per_token_priority": 1.8e-07,
+        "output_cost_per_token_batches": "2e-7",
+        "output_cost_per_token_flex": "2e-7",
+        "output_cost_per_token_priority": 7.2e-07,
+        "pricing_source": "https://ai.google.dev/gemini-api/docs/pricing",
+        "pricing_checked_at": "2026-10-18"
       }
     },
     {
@@ -2157,7 +2631,8 @@
       },
       "info": {
         "input_cost_per_token": 1.5e-06,
-        "output_cost_per_token": 9e-06
+        "output_cost_per_token": 9e-06,
+        "cache_read_input_token_cost": 1.5e-07
       },
       "ui": {
         "id": "gemini/gemini-3.5-flash",
@@ -2182,8 +2657,9 @@
         "api_base": "https://api.minimax.io/v1"
       },
       "info": {
-        "input_cost_per_token": 6e-07,
-        "output_cost_per_token": 2.4e-06
+        "input_cost_per_token": 3e-07,
+        "output_cost_per_token": 1.2e-06,
+        "cache_read_input_token_cost": 6e-08
       },
       "ui": {
         "id": "minimax/MiniMax-M3",
@@ -2198,8 +2674,9 @@
         "api_base": "https://api.minimax.io/v1"
       },
       "info": {
-        "input_cost_per_token": 3e-07,
-        "output_cost_per_token": 1.2e-06
+        "input_cost_per_token": 6e-07,
+        "output_cost_per_token": 2.4e-06,
+        "cache_read_input_token_cost": 6e-08
       },
       "ui": {
         "id": "minimax/MiniMax-M2.7-highspeed",
@@ -2213,8 +2690,12 @@
         "model": "deepseek/deepseek-v4-pro"
       },
       "info": {
-        "input_cost_per_token": 1.74e-06,
-        "output_cost_per_token": 3.48e-06
+        "input_cost_per_token": 1.32e-06,
+        "output_cost_per_token": 3.96e-06,
+        "cache_read_input_token_cost": 4.4e-08,
+        "pricing_source": "https://api-docs.deepseek.com/quick_start/pricing/",
+        "pricing_checked_at": "2026-10-18",
+        "pricing_note": "Peak list rate; off-peak billing is half this rate"
       }
     },
     {
@@ -2223,8 +2704,9 @@
         "model": "deepseek/deepseek-v4-flash"
       },
       "info": {
-        "input_cost_per_token": 1.4e-07,
-        "output_cost_per_token": 2.8e-07
+        "input_cost_per_token": 3e-07,
+        "output_cost_per_token": 1.2e-06,
+        "cache_read_input_token_cost": 6e-09
       }
     },
     {
@@ -2232,14 +2714,29 @@
       "params": {
         "model": "deepseek/deepseek-chat"
       },
-      "info": {}
+      "info": {
+        "cache_creation_input_token_cost": 0,
+        "cache_read_input_token_cost": 2.8e-08,
+        "input_cost_per_token": 2.8e-07,
+        "input_cost_per_token_cache_hit": 2.8e-08,
+        "output_cost_per_token": 4.2e-07,
+        "pricing_source": "https://api-docs.deepseek.com/quick_start/pricing",
+        "pricing_checked_at": "2026-10-18"
+      }
     },
     {
       "id": "deepseek/deepseek-reasoner",
       "params": {
         "model": "deepseek/deepseek-reasoner"
       },
-      "info": {}
+      "info": {
+        "cache_read_input_token_cost": 2.8e-08,
+        "input_cost_per_token": 2.8e-07,
+        "input_cost_per_token_cache_hit": 2.8e-08,
+        "output_cost_per_token": 4.2e-07,
+        "pricing_source": "https://api-docs.deepseek.com/quick_start/pricing",
+        "pricing_checked_at": "2026-10-18"
+      }
     },
     {
       "id": "xai/grok-4.7",
@@ -2249,7 +2746,10 @@
       "info": {
         "input_cost_per_token": 2e-06,
         "output_cost_per_token": 6e-06,
-        "cache_read_input_token_cost": 5e-07
+        "cache_read_input_token_cost": 5e-07,
+        "input_cost_per_token_above_200k_tokens": 4e-06,
+        "cache_read_input_token_cost_above_200k_tokens": 1e-06,
+        "output_cost_per_token_above_200k_tokens": 1.2e-05
       },
       "ui": {
         "id": "xai/grok-4.7",
@@ -2270,7 +2770,8 @@
       },
       "info": {
         "input_cost_per_token": 1.25e-06,
-        "output_cost_per_token": 2.5e-06
+        "output_cost_per_token": 2.5e-06,
+        "cache_read_input_token_cost": 2e-07
       },
       "ui": {
         "id": "xai/grok-4.3",
@@ -2284,8 +2785,10 @@
         "model": "xai/grok-4-1-fast-reasoning"
       },
       "info": {
-        "input_cost_per_token": 2e-07,
-        "output_cost_per_token": 5e-07
+        "input_cost_per_token": 1.25e-06,
+        "output_cost_per_token": 2.5e-06,
+        "pricing_source": "https://docs.x.ai/developers/migration/may-15-retirement",
+        "pricing_checked_at": "2026-10-18"
       }
     },
     {
@@ -2311,51 +2814,59 @@
     {
       "id": "openrouter/anthropic/claude-opus-4-8",
       "params": {
-        "model": "openrouter/anthropic/claude-opus-4-8",
+        "model": "openrouter/anthropic/claude-opus-4.8",
         "additional_drop_params": [
           "temperature"
-        ],
-        "max_tokens": 128000
+        ]
       },
       "info": {
         "input_cost_per_token": 5e-06,
-        "output_cost_per_token": 2.5e-05
+        "output_cost_per_token": 2.5e-05,
+        "cache_read_input_token_cost": "5e-7",
+        "cache_creation_input_token_cost": 6.25e-06,
+        "pricing_source": "https://openrouter.ai/anthropic/claude-opus-4.8",
+        "pricing_checked_at": "2026-10-18"
       }
     },
     {
       "id": "openrouter/anthropic/claude-opus-4-7",
       "params": {
-        "model": "openrouter/anthropic/claude-opus-4-7",
+        "model": "openrouter/anthropic/claude-opus-4.7",
         "additional_drop_params": [
           "temperature"
-        ],
-        "max_tokens": 128000
+        ]
       },
       "info": {
         "input_cost_per_token": 5e-06,
-        "output_cost_per_token": 2.5e-05
+        "output_cost_per_token": 2.5e-05,
+        "cache_read_input_token_cost": "5e-7",
+        "cache_creation_input_token_cost": 6.25e-06,
+        "pricing_source": "https://openrouter.ai/anthropic/claude-opus-4.7",
+        "pricing_checked_at": "2026-10-18"
       }
     },
     {
       "id": "openrouter/anthropic/claude-sonnet-4-6",
       "params": {
-        "model": "openrouter/anthropic/claude-sonnet-4-6",
-        "max_tokens": 64000
+        "model": "openrouter/anthropic/claude-sonnet-4.6"
       },
       "info": {
         "input_cost_per_token": 3e-06,
-        "output_cost_per_token": 1.5e-05
+        "output_cost_per_token": 1.5e-05,
+        "cache_read_input_token_cost": 3e-07,
+        "cache_creation_input_token_cost": 3.75e-06
       }
     },
     {
       "id": "openrouter/anthropic/claude-haiku-4-5",
       "params": {
-        "model": "openrouter/anthropic/claude-haiku-4-5",
-        "max_tokens": 64000
+        "model": "openrouter/anthropic/claude-haiku-4.5"
       },
       "info": {
         "input_cost_per_token": 1e-06,
-        "output_cost_per_token": 5e-06
+        "output_cost_per_token": 5e-06,
+        "cache_read_input_token_cost": 1e-07,
+        "cache_creation_input_token_cost": 1.25e-06
       },
       "ui": {
         "id": "openrouter/anthropic/claude-haiku-4-5",
@@ -2401,7 +2912,10 @@
       },
       "info": {
         "input_cost_per_token": 0,
-        "output_cost_per_token": 0
+        "output_cost_per_token": 0,
+        "pricing_source": "https://build.nvidia.com/meta/llama-3.3-70b-instruct",
+        "pricing_checked_at": "2026-10-18",
+        "pricing_zero_reason": "Hosted NVIDIA developer API endpoint; self-hosted compute is billed separately"
       }
     },
     {
@@ -2411,7 +2925,10 @@
       },
       "info": {
         "input_cost_per_token": 0,
-        "output_cost_per_token": 0
+        "output_cost_per_token": 0,
+        "pricing_source": "https://build.nvidia.com/nvidia/llama-3.1-nemotron-70b-instruct",
+        "pricing_checked_at": "2026-10-18",
+        "pricing_zero_reason": "Hosted NVIDIA developer API endpoint; self-hosted compute is billed separately"
       }
     },
     {
@@ -2421,7 +2938,10 @@
       },
       "info": {
         "input_cost_per_token": 0,
-        "output_cost_per_token": 0
+        "output_cost_per_token": 0,
+        "pricing_source": "https://build.nvidia.com/meta/llama-3.2-3b-instruct",
+        "pricing_checked_at": "2026-10-18",
+        "pricing_zero_reason": "Hosted NVIDIA developer API endpoint; self-hosted compute is billed separately"
       }
     },
     {
@@ -2483,11 +3003,20 @@
       "id": "vercel/anthropic/claude-haiku-4.5",
       "params": {
         "model": "openai/anthropic/claude-haiku-4.5",
-        "api_base": "https://ai-gateway.vercel.sh/v1"
+        "api_base": "https://ai-gateway.vercel.sh/v1",
+        "extra_headers": {
+          "User-Agent": "Decepticon/1.0"
+        }
       },
       "info": {
         "input_cost_per_token": 1e-06,
-        "output_cost_per_token": 5e-06
+        "output_cost_per_token": 5e-06,
+        "cache_read_input_token_cost": "1e-7",
+        "cache_creation_input_token_cost": 1.25e-06,
+        "pricing_source": "https://ai-gateway.vercel.sh/v1/models",
+        "pricing_checked_at": "2026-10-18",
+        "mode": "chat",
+        "supports_function_calling": true
       },
       "ui": {
         "id": "vercel/anthropic/claude-haiku-4.5",
@@ -3003,6 +3532,119 @@
         "id": "openrouter/z-ai/glm-5-turbo",
         "label": "GLM-5 Turbo via OpenRouter",
         "provider": "openrouter"
+      }
+    },
+    {
+      "id": "anthropic/claude-haiku-5-5",
+      "params": {
+        "model": "anthropic/claude-haiku-5-5",
+        "additional_drop_params": [
+          "temperature",
+          "top_p",
+          "top_k"
+        ]
+      },
+      "info": {
+        "supports_function_calling": true,
+        "supports_reasoning": true,
+        "supports_prompt_caching": true,
+        "max_input_tokens": 1000000,
+        "max_output_tokens": 128000,
+        "input_cost_per_token": 1e-07,
+        "output_cost_per_token": 5e-07,
+        "cache_read_input_token_cost": 1e-08,
+        "cache_creation_input_token_cost": 1.25e-07,
+        "input_cost_per_token_above_100k_tokens": 5e-07,
+        "output_cost_per_token_above_100k_tokens": 2.5e-06,
+        "cache_read_input_token_cost_above_100k_tokens": 5e-08,
+        "cache_creation_input_token_cost_above_100k_tokens": 6.25e-07,
+        "pricing_source": "https://platform.claude.com/docs/en/models/haiku-5-5/overview",
+        "pricing_checked_at": "2026-10-18"
+      },
+      "ui": {
+        "id": "anthropic/claude-haiku-5-5",
+        "label": "Claude Haiku 5.5",
+        "provider": "anthropic"
+      }
+    },
+    {
+      "id": "gemini/gemini-4-argon",
+      "params": {
+        "model": "gemini/gemini-4-argon",
+        "additional_drop_params": [
+          "temperature",
+          "top_p",
+          "top_k",
+          "thinking_budget",
+          "candidate_count"
+        ]
+      },
+      "info": {
+        "supports_function_calling": true,
+        "supports_reasoning": true,
+        "max_input_tokens": 1048576,
+        "max_output_tokens": 1048576,
+        "input_cost_per_token": 2e-06,
+        "output_cost_per_token": 1e-05,
+        "cache_read_input_token_cost": 1e-07,
+        "pricing_source": "https://ai.google.dev/gemini-api/docs/pricing",
+        "pricing_checked_at": "2026-10-18",
+        "pricing_valid_until": "2026-11-30",
+        "pricing_next_effective_at": "2026-12-01",
+        "pricing_next_input_cost_per_token": 4e-06,
+        "pricing_next_output_cost_per_token": 2e-05,
+        "pricing_next_cache_read_input_token_cost": 2e-07
+      },
+      "ui": {
+        "id": "gemini/gemini-4-argon",
+        "label": "Gemini 4 Argon",
+        "provider": "google"
+      }
+    },
+    {
+      "id": "mistral/mistral-large-4",
+      "params": {
+        "model": "mistral/mistral-large-4"
+      },
+      "info": {
+        "supports_function_calling": true,
+        "max_input_tokens": 1000000,
+        "input_cost_per_token": 6.8e-07,
+        "output_cost_per_token": 2.09e-06,
+        "cache_read_input_token_cost": 7e-08,
+        "pricing_source": "https://docs.mistral.ai/models/mistral-large-4-0",
+        "pricing_checked_at": "2026-10-18",
+        "pricing_promotion": "50% public-preview sale; provider has not published an end date",
+        "pricing_regular_input_cost_per_token": 1.36e-06,
+        "pricing_regular_output_cost_per_token": 4.18e-06,
+        "pricing_regular_cache_read_input_token_cost": 1.4e-07
+      },
+      "ui": {
+        "id": "mistral/mistral-large-4",
+        "label": "Mistral Large 4 (Preview)",
+        "provider": "mistral"
+      }
+    },
+    {
+      "id": "moonshot/kimi-k2.7-code-highspeed",
+      "params": {
+        "model": "moonshot/kimi-k2.7-code-highspeed",
+        "additional_drop_params": [
+          "temperature"
+        ]
+      },
+      "info": {
+        "supports_function_calling": true,
+        "input_cost_per_token": 1.9e-06,
+        "output_cost_per_token": 8e-06,
+        "cache_read_input_token_cost": 3.8e-07,
+        "pricing_source": "https://platform.kimi.ai/docs/pricing/chat",
+        "pricing_checked_at": "2026-10-18"
+      },
+      "ui": {
+        "id": "moonshot/kimi-k2.7-code-highspeed",
+        "label": "Kimi K2.7 Code HighSpeed",
+        "provider": "moonshot"
       }
     }
   ]

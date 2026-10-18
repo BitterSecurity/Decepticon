@@ -7,12 +7,13 @@ model_list:
         - temperature
         - top_p
         - top_k
-      max_tokens: 128000
       api_key: os.environ/ANTHROPIC_API_KEY
     model_info:
       input_cost_per_token: 1.0e-05
       output_cost_per_token: 5.0e-05
       cache_read_input_token_cost: 2.5e-07
+      cache_creation_input_token_cost: 1.25e-05
+      supports_prompt_caching: true
   - model_name: anthropic/claude-opus-5-5
     litellm_params:
       model: anthropic/claude-opus-5-5
@@ -20,12 +21,13 @@ model_list:
         - temperature
         - top_p
         - top_k
-      max_tokens: 128000
       api_key: os.environ/ANTHROPIC_API_KEY
     model_info:
       input_cost_per_token: 4.0e-06
       output_cost_per_token: 2.0e-05
       cache_read_input_token_cost: 2.0e-07
+      cache_creation_input_token_cost: 5.0e-06
+      supports_prompt_caching: true
   - model_name: anthropic/claude-sonnet-5-5
     litellm_params:
       model: anthropic/claude-sonnet-5-5
@@ -33,12 +35,13 @@ model_list:
         - temperature
         - top_p
         - top_k
-      max_tokens: 128000
       api_key: os.environ/ANTHROPIC_API_KEY
     model_info:
       input_cost_per_token: 2.0e-06
       output_cost_per_token: 1.0e-05
       cache_read_input_token_cost: 2.0e-07
+      cache_creation_input_token_cost: 2.5e-06
+      supports_prompt_caching: true
   - model_name: anthropic/claude-opus-4-8
     litellm_params:
       model: anthropic/claude-opus-4-8
@@ -69,12 +72,14 @@ model_list:
       output_cost_per_token: 1.5e-05
   - model_name: anthropic/claude-haiku-4-5
     litellm_params:
-      model: anthropic/claude-haiku-4-5-20251001
-      max_tokens: 64000
+      model: anthropic/claude-haiku-4-5
       api_key: os.environ/ANTHROPIC_API_KEY
     model_info:
       input_cost_per_token: 1.0e-06
       output_cost_per_token: 5.0e-06
+      cache_read_input_token_cost: 1.0e-07
+      cache_creation_input_token_cost: 1.25e-06
+      supports_prompt_caching: true
   - model_name: bedrock/anthropic.claude-opus-4-7
     litellm_params:
       model: bedrock/anthropic.claude-opus-4-7
@@ -103,6 +108,11 @@ model_list:
       input_cost_per_token: 1.0e-05
       output_cost_per_token: 5.0e-05
       cache_read_input_token_cost: 1.0e-06
+      cache_creation_input_token_cost: 1.25e-05
+      input_cost_per_token_above_272k_tokens: 2.0e-05
+      output_cost_per_token_above_272k_tokens: 7.5e-05
+      cache_read_input_token_cost_above_272k_tokens: 2.0e-06
+      cache_creation_input_token_cost_above_272k_tokens: 2.5e-05
   - model_name: openai/gpt-6.1-sol
     litellm_params:
       model: openai/gpt-6.1-sol
@@ -120,6 +130,11 @@ model_list:
       input_cost_per_token: 2.0e-06
       output_cost_per_token: 1.0e-05
       cache_read_input_token_cost: 1.0e-07
+      cache_creation_input_token_cost: 2.5e-06
+      input_cost_per_token_above_272k_tokens: 4.0e-06
+      output_cost_per_token_above_272k_tokens: 1.5e-05
+      cache_read_input_token_cost_above_272k_tokens: 2.0e-07
+      cache_creation_input_token_cost_above_272k_tokens: 5.0e-06
   - model_name: openai/gpt-6-sol
     litellm_params:
       model: openai/gpt-6-sol
@@ -137,6 +152,11 @@ model_list:
       input_cost_per_token: 2.0e-06
       output_cost_per_token: 1.0e-05
       cache_read_input_token_cost: 2.0e-07
+      cache_creation_input_token_cost: 2.5e-06
+      input_cost_per_token_above_272k_tokens: 4.0e-06
+      output_cost_per_token_above_272k_tokens: 1.5e-05
+      cache_read_input_token_cost_above_272k_tokens: 4.0e-07
+      cache_creation_input_token_cost_above_272k_tokens: 5.0e-06
   - model_name: openai/gpt-6-luna
     litellm_params:
       model: openai/gpt-6-luna
@@ -154,6 +174,11 @@ model_list:
       input_cost_per_token: 1.0e-07
       output_cost_per_token: 5.0e-07
       cache_read_input_token_cost: 1.0e-08
+      cache_creation_input_token_cost: 1.25e-07
+      input_cost_per_token_above_272k_tokens: 2.0e-07
+      output_cost_per_token_above_272k_tokens: 7.5e-07
+      cache_read_input_token_cost_above_272k_tokens: 2.0e-08
+      cache_creation_input_token_cost_above_272k_tokens: 2.5e-07
   - model_name: openai/gpt-5.5
     litellm_params:
       model: openai/gpt-5.5
@@ -168,6 +193,10 @@ model_list:
     model_info:
       input_cost_per_token: 2.5e-06
       output_cost_per_token: 1.5e-05
+      cache_read_input_token_cost: 2.5e-07
+      input_cost_per_token_above_272k_tokens: 5.0e-06
+      output_cost_per_token_above_272k_tokens: 2.25e-05
+      cache_read_input_token_cost_above_272k_tokens: 5.0e-07
   - model_name: openai/gpt-5-nano
     litellm_params:
       model: openai/gpt-5-nano
@@ -221,8 +250,26 @@ model_list:
       model: gemini/gemini-2.5-pro
       api_key: os.environ/GEMINI_API_KEY
     model_info:
+      cache_read_input_token_cost: 1.25e-07
+      cache_read_input_token_cost_above_200k_tokens: 2.5e-07
+      cache_read_input_token_cost_above_200k_tokens_priority: 4.5e-07
+      cache_read_input_token_cost_batches: 1.25e-07
+      cache_read_input_token_cost_flex: 1.25e-07
+      cache_read_input_token_cost_priority: 2.25e-07
       input_cost_per_token: 1.25e-06
+      input_cost_per_token_above_200k_tokens: 2.5e-06
+      input_cost_per_token_priority: 2.25e-06
+      input_cost_per_token_above_200k_tokens_priority: 4.5e-06
       output_cost_per_token: 1.0e-05
+      output_cost_per_token_above_200k_tokens: 1.5e-05
+      output_cost_per_token_priority: 1.8e-05
+      output_cost_per_token_above_200k_tokens_priority: 2.7e-05
+      input_cost_per_token_batches: 6.25e-07
+      input_cost_per_token_flex: 6.25e-07
+      output_cost_per_token_batches: 5.0e-06
+      output_cost_per_token_flex: 5.0e-06
+      pricing_source: https://ai.google.dev/gemini-api/docs/pricing
+      pricing_checked_at: '2026-10-18'
   - model_name: gemini/gemini-2.5-flash
     litellm_params:
       model: gemini/gemini-2.5-flash
@@ -230,13 +277,26 @@ model_list:
     model_info:
       input_cost_per_token: 3.0e-07
       output_cost_per_token: 2.5e-06
+      cache_read_input_token_cost: 3.0e-08
   - model_name: gemini/gemini-2.5-flash-lite
     litellm_params:
       model: gemini/gemini-2.5-flash-lite
       api_key: os.environ/GEMINI_API_KEY
     model_info:
-      input_cost_per_token: 1.0e-07
-      output_cost_per_token: 4.0e-07
+      cache_read_input_token_cost: 1e-8
+      cache_read_input_token_cost_batches: 1e-8
+      cache_read_input_token_cost_flex: 1e-8
+      cache_read_input_token_cost_priority: 1.8e-08
+      input_cost_per_token: 1e-7
+      output_cost_per_token: 4e-7
+      input_cost_per_token_batches: 5e-8
+      input_cost_per_token_flex: 5e-8
+      input_cost_per_token_priority: 1.8e-07
+      output_cost_per_token_batches: 2e-7
+      output_cost_per_token_flex: 2e-7
+      output_cost_per_token_priority: 7.2e-07
+      pricing_source: https://ai.google.dev/gemini-api/docs/pricing
+      pricing_checked_at: '2026-10-18'
   - model_name: gemini/gemini-3.5-flash
     litellm_params:
       model: gemini/gemini-3.5-flash
@@ -244,6 +304,7 @@ model_list:
     model_info:
       input_cost_per_token: 1.5e-06
       output_cost_per_token: 9.0e-06
+      cache_read_input_token_cost: 1.5e-07
   - model_name: gemini/gemini-3.1-flash-lite
     litellm_params:
       model: gemini/gemini-3.1-flash-lite
@@ -257,16 +318,18 @@ model_list:
       api_base: https://api.minimax.io/v1
       api_key: os.environ/MINIMAX_API_KEY
     model_info:
-      input_cost_per_token: 6.0e-07
-      output_cost_per_token: 2.4e-06
+      input_cost_per_token: 3.0e-07
+      output_cost_per_token: 1.2e-06
+      cache_read_input_token_cost: 6.0e-08
   - model_name: minimax/MiniMax-M2.7-highspeed
     litellm_params:
       model: minimax/MiniMax-M2.7-highspeed
       api_base: https://api.minimax.io/v1
       api_key: os.environ/MINIMAX_API_KEY
     model_info:
-      input_cost_per_token: 3.0e-07
-      output_cost_per_token: 1.2e-06
+      input_cost_per_token: 6.0e-07
+      output_cost_per_token: 2.4e-06
+      cache_read_input_token_cost: 6.0e-08
   - model_name: auth/claude-opus-4-8
     litellm_params:
       model: auth/claude-opus-4-8
@@ -324,23 +387,43 @@ model_list:
       model: deepseek/deepseek-v4-pro
       api_key: os.environ/DEEPSEEK_API_KEY
     model_info:
-      input_cost_per_token: 1.74e-06
-      output_cost_per_token: 3.48e-06
+      input_cost_per_token: 1.32e-06
+      output_cost_per_token: 3.96e-06
+      cache_read_input_token_cost: 4.4e-08
+      pricing_source: https://api-docs.deepseek.com/quick_start/pricing/
+      pricing_checked_at: '2026-10-18'
+      pricing_note: Peak list rate; off-peak billing is half this rate
   - model_name: deepseek/deepseek-v4-flash
     litellm_params:
       model: deepseek/deepseek-v4-flash
       api_key: os.environ/DEEPSEEK_API_KEY
     model_info:
-      input_cost_per_token: 1.4e-07
-      output_cost_per_token: 2.8e-07
+      input_cost_per_token: 3.0e-07
+      output_cost_per_token: 1.2e-06
+      cache_read_input_token_cost: 6.0e-09
   - model_name: deepseek/deepseek-chat
     litellm_params:
       model: deepseek/deepseek-chat
       api_key: os.environ/DEEPSEEK_API_KEY
+    model_info:
+      cache_creation_input_token_cost: 0
+      cache_read_input_token_cost: 2.8e-08
+      input_cost_per_token: 2.8e-07
+      input_cost_per_token_cache_hit: 2.8e-08
+      output_cost_per_token: 4.2e-07
+      pricing_source: https://api-docs.deepseek.com/quick_start/pricing
+      pricing_checked_at: '2026-10-18'
   - model_name: deepseek/deepseek-reasoner
     litellm_params:
       model: deepseek/deepseek-reasoner
       api_key: os.environ/DEEPSEEK_API_KEY
+    model_info:
+      cache_read_input_token_cost: 2.8e-08
+      input_cost_per_token: 2.8e-07
+      input_cost_per_token_cache_hit: 2.8e-08
+      output_cost_per_token: 4.2e-07
+      pricing_source: https://api-docs.deepseek.com/quick_start/pricing
+      pricing_checked_at: '2026-10-18'
   - model_name: xai/grok-4.7
     litellm_params:
       model: xai/grok-4.7
@@ -349,6 +432,9 @@ model_list:
       input_cost_per_token: 2.0e-06
       output_cost_per_token: 6.0e-06
       cache_read_input_token_cost: 5.0e-07
+      input_cost_per_token_above_200k_tokens: 4.0e-06
+      cache_read_input_token_cost_above_200k_tokens: 1.0e-06
+      output_cost_per_token_above_200k_tokens: 1.2e-05
   - model_name: xai/grok-4.3
     litellm_params:
       model: xai/grok-4.3
@@ -356,13 +442,16 @@ model_list:
     model_info:
       input_cost_per_token: 1.25e-06
       output_cost_per_token: 2.5e-06
+      cache_read_input_token_cost: 2.0e-07
   - model_name: xai/grok-4-1-fast-reasoning
     litellm_params:
       model: xai/grok-4-1-fast-reasoning
       api_key: os.environ/XAI_API_KEY
     model_info:
-      input_cost_per_token: 2.0e-07
-      output_cost_per_token: 5.0e-07
+      input_cost_per_token: 1.25e-06
+      output_cost_per_token: 2.5e-06
+      pricing_source: https://docs.x.ai/developers/migration/may-15-retirement
+      pricing_checked_at: '2026-10-18'
   - model_name: mistral/mistral-large-latest
     litellm_params:
       model: mistral/mistral-large-latest
@@ -379,40 +468,48 @@ model_list:
       output_cost_per_token: 9.0e-07
   - model_name: openrouter/anthropic/claude-opus-4-8
     litellm_params:
-      model: openrouter/anthropic/claude-opus-4-8
+      model: openrouter/anthropic/claude-opus-4.8
       additional_drop_params:
         - temperature
-      max_tokens: 128000
       api_key: os.environ/OPENROUTER_API_KEY
     model_info:
       input_cost_per_token: 5.0e-06
       output_cost_per_token: 2.5e-05
+      cache_read_input_token_cost: 5e-7
+      cache_creation_input_token_cost: 6.25e-06
+      pricing_source: https://openrouter.ai/anthropic/claude-opus-4.8
+      pricing_checked_at: '2026-10-18'
   - model_name: openrouter/anthropic/claude-opus-4-7
     litellm_params:
-      model: openrouter/anthropic/claude-opus-4-7
+      model: openrouter/anthropic/claude-opus-4.7
       additional_drop_params:
         - temperature
-      max_tokens: 128000
       api_key: os.environ/OPENROUTER_API_KEY
     model_info:
       input_cost_per_token: 5.0e-06
       output_cost_per_token: 2.5e-05
+      cache_read_input_token_cost: 5e-7
+      cache_creation_input_token_cost: 6.25e-06
+      pricing_source: https://openrouter.ai/anthropic/claude-opus-4.7
+      pricing_checked_at: '2026-10-18'
   - model_name: openrouter/anthropic/claude-sonnet-4-6
     litellm_params:
-      model: openrouter/anthropic/claude-sonnet-4-6
-      max_tokens: 64000
+      model: openrouter/anthropic/claude-sonnet-4.6
       api_key: os.environ/OPENROUTER_API_KEY
     model_info:
       input_cost_per_token: 3.0e-06
       output_cost_per_token: 1.5e-05
+      cache_read_input_token_cost: 3.0e-07
+      cache_creation_input_token_cost: 3.75e-06
   - model_name: openrouter/anthropic/claude-haiku-4-5
     litellm_params:
-      model: openrouter/anthropic/claude-haiku-4-5
-      max_tokens: 64000
+      model: openrouter/anthropic/claude-haiku-4.5
       api_key: os.environ/OPENROUTER_API_KEY
     model_info:
       input_cost_per_token: 1.0e-06
       output_cost_per_token: 5.0e-06
+      cache_read_input_token_cost: 1.0e-07
+      cache_creation_input_token_cost: 1.25e-06
   - model_name: cerebras/llama3.1-8b
     litellm_params:
       model: cerebras/llama3.1-8b
@@ -439,6 +536,10 @@ model_list:
     model_info:
       input_cost_per_token: 0
       output_cost_per_token: 0
+      pricing_source: https://build.nvidia.com/meta/llama-3.3-70b-instruct
+      pricing_checked_at: '2026-10-18'
+      pricing_zero_reason: Hosted NVIDIA developer API endpoint; self-hosted compute
+        is billed separately
   - model_name: nvidia_nim/nvidia/llama-3.1-nemotron-70b-instruct
     litellm_params:
       model: nvidia_nim/nvidia/llama-3.1-nemotron-70b-instruct
@@ -446,6 +547,10 @@ model_list:
     model_info:
       input_cost_per_token: 0
       output_cost_per_token: 0
+      pricing_source: https://build.nvidia.com/nvidia/llama-3.1-nemotron-70b-instruct
+      pricing_checked_at: '2026-10-18'
+      pricing_zero_reason: Hosted NVIDIA developer API endpoint; self-hosted compute
+        is billed separately
   - model_name: nvidia_nim/meta/llama-3.2-3b-instruct
     litellm_params:
       model: nvidia_nim/meta/llama-3.2-3b-instruct
@@ -453,6 +558,10 @@ model_list:
     model_info:
       input_cost_per_token: 0
       output_cost_per_token: 0
+      pricing_source: https://build.nvidia.com/meta/llama-3.2-3b-instruct
+      pricing_checked_at: '2026-10-18'
+      pricing_zero_reason: Hosted NVIDIA developer API endpoint; self-hosted compute
+        is billed separately
   - model_name: opencode/claude-opus-4-6
     litellm_params:
       model: openai/claude-opus-4-6
@@ -497,10 +606,18 @@ model_list:
     litellm_params:
       model: openai/anthropic/claude-haiku-4.5
       api_base: https://ai-gateway.vercel.sh/v1
+      extra_headers:
+        User-Agent: Decepticon/1.0
       api_key: os.environ/VERCEL_AI_GATEWAY_API_KEY
     model_info:
       input_cost_per_token: 1.0e-06
       output_cost_per_token: 5.0e-06
+      cache_read_input_token_cost: 1e-7
+      cache_creation_input_token_cost: 1.25e-06
+      pricing_source: https://ai-gateway.vercel.sh/v1/models
+      pricing_checked_at: '2026-10-18'
+      mode: chat
+      supports_function_calling: true
   - model_name: hf/deepseek-ai/DeepSeek-V3.1
     litellm_params:
       model: openai/deepseek-ai/DeepSeek-V3.1
@@ -723,6 +840,72 @@ model_list:
     model_info:
       input_cost_per_token: 0
       output_cost_per_token: 0
+  - model_name: anthropic/claude-haiku-5-5
+    litellm_params:
+      model: anthropic/claude-haiku-5-5
+      additional_drop_params:
+        - temperature
+        - top_p
+        - top_k
+      api_key: os.environ/ANTHROPIC_API_KEY
+    model_info:
+      supports_function_calling: true
+      supports_reasoning: true
+      supports_prompt_caching: true
+      max_input_tokens: 1000000
+      max_output_tokens: 128000
+      input_cost_per_token: 1.0e-07
+      output_cost_per_token: 5.0e-07
+      cache_read_input_token_cost: 1.0e-08
+      cache_creation_input_token_cost: 1.25e-07
+      input_cost_per_token_above_100k_tokens: 5.0e-07
+      output_cost_per_token_above_100k_tokens: 2.5e-06
+      cache_read_input_token_cost_above_100k_tokens: 5.0e-08
+      cache_creation_input_token_cost_above_100k_tokens: 6.25e-07
+      pricing_source: https://platform.claude.com/docs/en/models/haiku-5-5/overview
+      pricing_checked_at: '2026-10-18'
+  - model_name: gemini/gemini-4-argon
+    litellm_params:
+      model: gemini/gemini-4-argon
+      additional_drop_params:
+        - temperature
+        - top_p
+        - top_k
+        - thinking_budget
+        - candidate_count
+      api_key: os.environ/GEMINI_API_KEY
+    model_info:
+      supports_function_calling: true
+      supports_reasoning: true
+      max_input_tokens: 1048576
+      max_output_tokens: 1048576
+      input_cost_per_token: 2.0e-06
+      output_cost_per_token: 1.0e-05
+      cache_read_input_token_cost: 1.0e-07
+      pricing_source: https://ai.google.dev/gemini-api/docs/pricing
+      pricing_checked_at: '2026-10-18'
+      pricing_valid_until: '2026-11-30'
+      pricing_next_effective_at: '2026-12-01'
+      pricing_next_input_cost_per_token: 4.0e-06
+      pricing_next_output_cost_per_token: 2.0e-05
+      pricing_next_cache_read_input_token_cost: 2.0e-07
+  - model_name: mistral/mistral-large-4
+    litellm_params:
+      model: mistral/mistral-large-4
+      api_key: os.environ/MISTRAL_API_KEY
+    model_info:
+      supports_function_calling: true
+      max_input_tokens: 1000000
+      input_cost_per_token: 6.8e-07
+      output_cost_per_token: 2.09e-06
+      cache_read_input_token_cost: 7.0e-08
+      pricing_source: https://docs.mistral.ai/models/mistral-large-4-0
+      pricing_checked_at: '2026-10-18'
+      pricing_promotion: 50% public-preview sale; provider has not published an end
+        date
+      pricing_regular_input_cost_per_token: 1.36e-06
+      pricing_regular_output_cost_per_token: 4.18e-06
+      pricing_regular_cache_read_input_token_cost: 1.4e-07
 litellm_settings:
   num_retries: 3
   retry_after: 30
