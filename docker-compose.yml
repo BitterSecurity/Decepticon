@@ -497,8 +497,19 @@ services:
       - BLUE_MONITOR_URL=http://blue-monitor:8085
       - TERM=xterm-256color
       - COLORTERM=truecolor
+      # Blue Cell's background polling (useBlueNotifications) hits
+      # blue-monitor/blue-receiver every few seconds. When those services
+      # aren't running (Blue Cell not in use), each DNS lookup takes the
+      # full timeout to fail and ties up a libuv threadpool slot (default
+      # size 4). That starves unrelated dns.lookup() calls used by fetch()
+      # elsewhere in the process (e.g. to langgraph), which then exceed
+      # their own timeouts with the same generic "aborted due to timeout"
+      # error. Raise the pool so Blue Cell's failed lookups can't starve
+      # everything else.
+      - UV_THREADPOOL_SIZE=64
       - DECEPTICON_VERSION=${DECEPTICON_VERSION:-}
       - DECEPTICON_STACK_NAME=${DECEPTICON_STACK_NAME:-}
+      - DECEPTICON_ENGAGEMENT=${DECEPTICON_ENGAGEMENT:-}
       - DECEPTICON_HOME=/decepticon-home
       - DECEPTICON_HOST_HOME=${DECEPTICON_HOME:-}
       - DECEPTICON_COMPOSE_FILE=/decepticon-home/docker-compose.yml
