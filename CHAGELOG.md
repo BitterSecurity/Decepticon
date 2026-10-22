@@ -15,7 +15,7 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed [PR #PRNUM](https://github.com/BitterSecurity/Decepticon/pull/PRNUM):
+- Proposed [PR #1055](https://github.com/BitterSecurity/Decepticon/pull/1055):
   restrict the MCP `decepticon_start_engagement` to orchestration graphs
   (decepticon / soundwave / blue_cell + plugin orchestrators). Starting a bash
   specialist (recon, exploit, the operators, …) directly skipped the
