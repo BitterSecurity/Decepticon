@@ -15,6 +15,14 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed [PR #1049](https://github.com/BitterSecurity/Decepticon/pull/1049):
+  add a background engagement session lifecycle — `decepticon start --background`
+  prepares the stack and engagement workspace without opening the interactive
+  CLI, `decepticon attach <name>` re-opens an existing engagement, and
+  `decepticon engagements` lists workspaces with Red-approval state. Follows the
+  `--bg` → `attach` pattern from mature agent CLIs, adapted to engagement-resume
+  semantics. First slice of issue #1041.
+
 - Review corrections for [PR #1036](https://github.com/BitterSecurity/Decepticon/pull/1036):
   decode cumulative SDK `messages/partial` and `messages/complete` events and
   single message tuples correctly. Retire live text by message ID, ignore late
