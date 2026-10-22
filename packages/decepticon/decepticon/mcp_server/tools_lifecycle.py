@@ -22,7 +22,30 @@ from decepticon.mcp_server.models import (
     StartResult,
     StatusResult,
 )
+from decepticon_core.contracts.slots import SLOTS_PER_ROLE, MiddlewareSlot
+from decepticon_core.registry.roles import RoleRegistry, default_role_purpose
 from decepticon_core.utils.engagement_scope import is_valid_engagement_label
+
+# Engagements start through an *orchestration* graph only — the main
+# orchestrator (carries the SUBAGENT slot), the planner (soundwave,
+# purpose=planning) or the blue observer (blue_cell, purpose=observation).
+# Bash specialists (recon, exploit, the operators, …) are execution sub-agents
+# the orchestrator reaches via its task() tool; started directly they skip the
+# orchestrator's RoE/OPPLAN generation, so RoEGuardrailMiddleware finds no
+# plan/roe.json and falls back to audit-only mode (no scope enforcement — see
+# middleware/roe.py). This mirrors the CLI's documented contract (see
+# clients/cli/src/commands/agent.ts: "Only orchestration agents are surfaced …
+# sub-agents … shouldn't be selected directly") on the MCP start path.
+_ORCHESTRATION_PURPOSES = frozenset({"planning", "observation"})
+
+
+def is_engagement_entry_graph(assistant: str) -> bool:
+    """True when ``assistant`` is an orchestration graph safe to start directly."""
+    role = RoleRegistry.get(assistant)
+    purpose = role.purpose if role else default_role_purpose(assistant)
+    if purpose in _ORCHESTRATION_PURPOSES:
+        return True
+    return MiddlewareSlot.SUBAGENT in SLOTS_PER_ROLE.get(assistant, frozenset())
 
 
 def default_engagement_name() -> str:
@@ -87,12 +110,24 @@ def register_lifecycle_tools(
                 f"invalid engagement_name {name!r}; must match "
                 "[A-Za-z0-9][A-Za-z0-9._-]{0,127} (no path separators or '..')"
             )
+        resolved_assistant = assistant or config.default_assistant
+        if not is_engagement_entry_graph(resolved_assistant):
+            raise ValueError(
+                f"assistant {resolved_assistant!r} is a specialist sub-agent, not an "
+                "engagement orchestrator, so it cannot start an engagement directly. "
+                "Use an orchestration graph — decepticon (Red kill-chain), soundwave "
+                "(Plan) or blue_cell (Blue) — which reaches specialists through its "
+                "task() tool and generates the plan/roe.json the guardrail enforces. "
+                "Starting a specialist directly would skip RoE generation and leave "
+                "RoEGuardrailMiddleware in audit-only mode (no scope enforcement). "
+                "List startable graphs with decepticon_list_graphs."
+            )
         return await engagements.start(
             targets=targets,
             instruction=instruction,
             scan_mode=scan_mode,
             engagement_name=name,
-            assistant=assistant or config.default_assistant,
+            assistant=resolved_assistant,
             workflow_id=workflow_id,
             workflow_version=workflow_version,
         )

@@ -15,6 +15,15 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed [PR #PRNUM](https://github.com/BitterSecurity/Decepticon/pull/PRNUM):
+  restrict the MCP `decepticon_start_engagement` to orchestration graphs
+  (decepticon / soundwave / blue_cell + plugin orchestrators). Starting a bash
+  specialist (recon, exploit, the operators, …) directly skipped the
+  orchestrator's RoE/OPPLAN generation, leaving `RoEGuardrailMiddleware` in
+  audit-only mode (no scope enforcement); the tool now refuses with guidance to
+  use an orchestrator, matching the CLI's documented contract. Source only,
+  unreleased.
+
 - Review corrections for [PR #1036](https://github.com/BitterSecurity/Decepticon/pull/1036):
   decode cumulative SDK `messages/partial` and `messages/complete` events and
   single message tuples correctly. Retire live text by message ID, ignore late
