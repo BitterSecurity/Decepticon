@@ -181,4 +181,54 @@ describe("Blue Cell chat notifications", () => {
     expect(formatBlueNotification(notice)).toContain("incident-ko");
     expect(formatBlueNotification(notice, "unknown")).toContain("assessment ready");
   });
+
+  it("backs off under repeated monitor failures and recovers", async () => {
+    vi.useFakeTimers();
+    vi.stubEnv("BLUE_MONITOR_URL", "http://blue-backoff:8085");
+    let calls = 0;
+    let healthy = false;
+    const fetchMock = vi.fn(async () => {
+      calls += 1;
+      if (!healthy) throw new TypeError("fetch failed");
+      return { ok: true, json: async () => ({ notifications: [], has_more: false }) };
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { result, unmount } = renderHook(() => useBlueNotifications(() => {}));
+
+    // 31 s of hard failure: the bare 1 s interval alone would produce ~30
+    // polls; the exponential backoff must keep the count far below that.
+    await act(async () => { await vi.advanceTimersByTimeAsync(31000); });
+    const failures = calls;
+    expect(failures).toBeGreaterThan(2);
+    expect(failures).toBeLessThanOrEqual(8);
+    expect(result.current.status).not.toBe("connected");
+
+    healthy = true;
+    await act(async () => { await vi.advanceTimersByTimeAsync(45000); });
+    expect(result.current.status).toBe("connected");
+    const afterRecovery = calls - failures;
+    expect(afterRecovery).toBeGreaterThan(0);
+    const recovered = calls;
+    await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
+    expect(calls - recovered).toBe(3); // Success restores the normal 1 s cadence.
+    unmount();
+    const stopped = calls;
+    await act(async () => { await vi.advanceTimersByTimeAsync(60000); });
+    expect(calls).toBe(stopped);
+  });
+
+  it("does not keep retrying after unmount during an outage", async () => {
+    vi.useFakeTimers();
+    vi.stubEnv("BLUE_MONITOR_URL", "http://blue-offline:8085");
+    const fetchMock = vi.fn(async () => { throw new TypeError("offline"); });
+    vi.stubGlobal("fetch", fetchMock);
+    const { unmount } = renderHook(() => useBlueNotifications(() => {}));
+    await act(async () => { await vi.advanceTimersByTimeAsync(31000); });
+    const calls = fetchMock.mock.calls.length;
+    expect(calls).toBeLessThanOrEqual(8);
+    unmount();
+    await act(async () => { await vi.advanceTimersByTimeAsync(60000); });
+    expect(fetchMock).toHaveBeenCalledTimes(calls);
+  });
 });

@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -214,11 +215,12 @@ func runStartMode(cmd *cobra.Command, args []string, existingEngagement string, 
 		return fmt.Errorf("Docker is not installed or not in PATH. Install from https://docs.docker.com/get-docker/")
 	}
 	// Verify Docker Compose V2
-	probeCtx, cancelProbe := context.WithTimeout(cmd.Context(), 3*time.Second)
-	defer cancelProbe()
-	out, err := exec.CommandContext(probeCtx, "docker", "compose", "version").CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("Docker Compose V2 is required. Got: %s. Upgrade Docker Desktop or install the compose plugin.", strings.TrimSpace(string(out)))
+	if err := checkComposeVersion(cmd.Context(), func(ctx context.Context) ([]byte, error) {
+		return exec.CommandContext(ctx, "docker", "compose", "version").CombinedOutput()
+	}); errors.Is(err, errComposeProbeTimeout) {
+		ui.Info("Docker Compose version discovery is slow; checking the actual startup command.")
+	} else if err != nil {
+		return err
 	}
 
 	// Warn — don't block — if Ollama is selected but the URL doesn't

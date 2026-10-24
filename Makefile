@@ -290,7 +290,7 @@ quality-cli: node-install
 	npm run build --workspace=@decepticon/streaming
 	npm run typecheck --workspace=@decepticon/cli
 	npm run build --workspace=@decepticon/cli
-	npm run test --workspace=@decepticon/cli
+	npm run test --workspace=@decepticon/cli -- $(CLI_TEST_ARGS)
 
 ## PR gate — mirrors CI PR lane (errors-only typecheck + fast pytest + CLI + Web).
 ## Use before opening a PR; passing this guarantees CI will pass.

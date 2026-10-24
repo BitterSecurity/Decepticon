@@ -113,9 +113,11 @@ export function useBlueNotifications(addSystemEvent: (message: string) => void) 
     let polling = false;
     let connected = false;
     let disconnected = false;
+    let failureStreak = 0;
+    let nextPollAt = 0;
     const revisions = new Set<string>();
     async function poll(): Promise<void> {
-      if (stopped || polling) return;
+      if (stopped || polling || Date.now() < nextPollAt) return;
       polling = true;
       try {
         for (let pageNumber = 0; pageNumber < 10 && !stopped; pageNumber++) {
@@ -126,6 +128,8 @@ export function useBlueNotifications(addSystemEvent: (message: string) => void) 
           if (stopped) return;
           connected = true;
           disconnected = false;
+          failureStreak = 0;
+          nextPollAt = 0;
           if ((page.latest_seq ?? page.next_after) !== undefined && (page.latest_seq ?? page.next_after ?? cursor.current.after) < cursor.current.after) {
             cursor.current = { after: 0, acknowledged: 0 };
             revisions.clear();
@@ -160,6 +164,12 @@ export function useBlueNotifications(addSystemEvent: (message: string) => void) 
         setState(previous => ({ ...previous, status: connected ? "disconnected" : "unavailable", error: message, collectorStatus: "unknown", aiStatus: "unknown" }));
         if (connected && !disconnected) callback.current(`[Blue Cell] Monitor disconnected: ${message}`);
         disconnected = true;
+        // The Blue stack is optional. Bound retries when it is unavailable;
+        // keep the existing overlap guard and restore 1 s polling on success.
+        failureStreak = Math.min(failureStreak + 1, 7);
+        if (failureStreak >= 2) {
+          nextPollAt = Date.now() + Math.min(1000 * 2 ** (failureStreak - 2), 30000);
+        }
       } finally { polling = false; }
     }
     void poll();

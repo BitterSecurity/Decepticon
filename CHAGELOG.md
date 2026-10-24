@@ -15,10 +15,21 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed [PR #1083](https://github.com/BitterSecurity/Decepticon/pull/1083): integrate external [PR #1082](https://github.com/BitterSecurity/Decepticon/pull/1082) with current localized Blue notifications. Back off optional-monitor failures to a 30-second cap, reset to normal polling on success and stop retries on unmount. Preserve the ES2022 CLI target and existing non-overlapping pagination; no Blue service is required for ordinary Red/Plan use.
+
 - Proposed [PR #1081](https://github.com/BitterSecurity/Decepticon/pull/1081): prevent web terminal reconnect loops from deferred StrictMode initialization and obsolete WebSocket callbacks. Only the current connection can update terminal/session state or schedule reconnection; real current-connection failures still recover.
 
-- Proposed [PR #1080](https://github.com/BitterSecurity/Decepticon/pull/1080): align launcher-bound web sessions with the CLI/server engagement mount, while keeping existing web checkpoint namespaces and files intact. Reject sibling engagement connections and stale model/tool dispatch after a runtime rebind; shared-root Compose and native policy adapters retain their existing behavior.
-- Proposed [PR #1077](https://github.com/BitterSecurity/Decepticon/pull/1077) (issue #1044): subscription effort routing correction: allow the
+- Proposed [PR #1079](https://github.com/BitterSecurity/Decepticon/pull/1079): release qualification: integrate the final subscription-effort and
+  Compose-discovery and web mount/socket follow-ups, record actual WSL and
+  desktop-browser model/scope/upgrade evidence,
+  and reconcile the already-published 1.5.4 history against its tag and real
+  publication metadata. Quality targets accept `CLI_TEST_ARGS` for bounded
+  local test workers. The next candidate is 1.6.0; publication is pending
+  final quality, CI/security and distribution checks. See
+  [qualification record](docs/releases/1.6.0-qualification.md).
+
+- Merged [PR #1080](https://github.com/BitterSecurity/Decepticon/pull/1080): align launcher-bound web sessions with the CLI/server engagement mount, while keeping existing web checkpoint namespaces and files intact. Reject sibling engagement connections and stale model/tool dispatch after a runtime rebind; shared-root Compose and native policy adapters retain their existing behavior.
+- Merged [PR #1077](https://github.com/BitterSecurity/Decepticon/pull/1077) (issue #1044): subscription effort routing correction: allow the
   reasoning-effort parameter on Codex OAuth and Claude subscription routes
   whose custom handlers already translate it. Declare the Claude allowlist in
   the local model overlay and regenerate its YAML, preserving the shared
@@ -26,7 +37,7 @@ Keep proposed and unmerged changes out of released sections.
   seen with per-session/host-selected effort; keep ordinary provider validation,
   default effort and scoped credential handling unchanged. No account migration.
 
-- Proposed [PR #1074](https://github.com/BitterSecurity/Decepticon/pull/1074): dependency security refresh: update the workspace lockfile and
+- Merged [PR #1074](https://github.com/BitterSecurity/Decepticon/pull/1074): dependency security refresh: update the workspace lockfile and
   Next.js/Sharp/test-runner versions to patched releases; remove unused OpenUI
   packages (the shipped chat uses its existing Markdown renderer). The npm
   audit falls from 42 findings, including 4 critical, to zero without advisory
@@ -36,15 +47,23 @@ Keep proposed and unmerged changes out of released sections.
   startup deadline). No credentials, saved conversations or database migration
   are changed.
 
-- Proposed [PR #1076](https://github.com/BitterSecurity/Decepticon/pull/1076): image build availability fix: use Kali’s official Cloudflare CDN
+- Merged [PR #1076](https://github.com/BitterSecurity/Decepticon/pull/1076): image build availability fix: use Kali’s official Cloudflare CDN
   package mirror for sandbox and Sliver images after the regional redirector
   repeatedly selected an unreachable mirror. Preserve pinned base images, APT
   signature verification and the existing HTTPS bootstrap; no runtime or data
   migration changes.
 
-- Proposed public Claude legacy selection ([PR #1075](https://github.com/BitterSecurity/Decepticon/pull/1075)): expose Opus 4.8/4.7 and Sonnet 4.6 picker metadata and add active Opus 4.6/4.5 public API routes. Keep public identity separate from tenant subscription access; no provider calls, package publication or SaaS deployment is implied.
+- Proposed [PR #1078](https://github.com/BitterSecurity/Decepticon/pull/1078): launcher startup correction: allow a bounded 15 seconds for the
+  Compose version probe, avoiding false missing-plugin errors when a healthy
+  Docker installation takes longer than three seconds to respond. Report
+  timeout/cancellation distinctly with a direct diagnostic command. A local
+  discovery timeout defers to the actual Compose startup/readiness gates;
+  parent cancellation and a genuinely missing plugin still stop startup.
+  Saved installation data remains unchanged.
 
-- Proposed [PR #1073](https://github.com/BitterSecurity/Decepticon/pull/1073) (issue #1044): add per-session fallback, effort and
+- Merged public Claude legacy selection ([PR #1075](https://github.com/BitterSecurity/Decepticon/pull/1075)): expose Opus 4.8/4.7 and Sonnet 4.6 picker metadata and add active Opus 4.6/4.5 public API routes. Keep public identity separate from tenant subscription access; no provider calls, package publication or SaaS deployment is implied.
+
+- Merged [PR #1073](https://github.com/BitterSecurity/Decepticon/pull/1073) (issue #1044): add per-session fallback, effort and
   autocompaction launcher flags and checkpointed overrides; show observed model
   routing, fallback attempts, context/compaction checks and cached budget usage
   in the TUI. Preserve default routing, tenant credentials and authoritative
@@ -58,20 +77,20 @@ Keep proposed and unmerged changes out of released sections.
   missing or unusable machine scopes remain blocked. Web creation also stops
   writing the retired mode field. Existing valid scopes need no migration.
 
-- Proposed [PR #1066](https://github.com/BitterSecurity/Decepticon/pull/1066):
+- Merged [PR #1066](https://github.com/BitterSecurity/Decepticon/pull/1066):
   integrate host-scoped Desktop model/tool policy (#1027), native terminal and
   selected-account handoff, and planning-role tool isolation (#1067). Preserve
   existing default CLI behavior and saved policies. Fix qualification checks for
   canonical macOS/Windows host paths and platform-specific permission semantics;
   keep private POSIX modes enforced and format the integrated Python sources.
 
-- Proposed Desktop tool-scope correction ([#1067](https://github.com/BitterSecurity/Decepticon/pull/1067), follow-up to [#1066](https://github.com/BitterSecurity/Decepticon/pull/1066)): saved external HTTP tool grants no longer expand planning roles or prevent Soundwave's graph from loading. Honor registered role purpose, including custom planners, while preserving execution/observation grants, explicit model routing and stale-handle revocation. No release or version bump is implied.
+- Merged Desktop tool-scope correction ([#1067](https://github.com/BitterSecurity/Decepticon/pull/1067), follow-up to [#1066](https://github.com/BitterSecurity/Decepticon/pull/1066)): saved external HTTP tool grants no longer expand planning roles or prevent Soundwave's graph from loading. Honor registered role purpose, including custom planners, while preserving execution/observation grants, explicit model routing and stale-handle revocation. No release or version bump is implied.
 
 - Accept a native-selected, bounded regular subscription profile during Desktop service startup, including Windows account paths translated for WSL ([PR #1066](https://github.com/BitterSecurity/Decepticon/pull/1066)). Only the selected provider receives it; unrelated profiles remain unmounted and ordinary CLI home discovery is preserved. This connects native OS authorization custody to the existing provider adapters without sending account material through the renderer.
 
 - Tag internal search-continuation directives in message metadata so native transcript hosts can separate runtime coordination from the operator's own messages ([PR #1066](https://github.com/BitterSecurity/Decepticon/pull/1066)). The agent's search contract and checkpoint content are preserved.
 
-- Proposed native Desktop runtime integration ([PR #1066](https://github.com/BitterSecurity/Decepticon/pull/1066)): the following service, policy, image, model relay and terminal changes are source candidates. See the [native contract](docs/design/desktop-native-terminal.md); no published release or Windows acceptance is claimed.
+- Merged native Desktop runtime integration ([PR #1066](https://github.com/BitterSecurity/Decepticon/pull/1066)): the following service, policy, image, model relay and terminal changes are source candidates. See the [native contract](docs/design/desktop-native-terminal.md); no published release or Windows acceptance is claimed.
 
 - Include the validated native policy revision in the agent service environment, so applying changed agent/tool settings reconstructs cached graphs during idle startup instead of leaving old policy handles active. Missing, oversized, redirected or mismatched owner policy files fail before Compose.
 
@@ -83,9 +102,9 @@ Keep proposed and unmerged changes out of released sections.
 
 - Desktop service-only startup now starts the agent/knowledge services and their dependencies without the separate web dashboard or interactive CLI container. Normal CLI start/attach retains its existing topology. This reduces unused local resources while preserving service health checks.
 
-- Proposed Desktop native terminal integration: accept a complete native-issued workspace/engagement/resource identity and nonce only during service startup, label the owned sandbox and return its immutable container identity plus the measured tmux status height. Preserve an existing agent shell, validate labels before publishing the registration and keep policy overlays private. Desktop independently verifies the container and mount before enabling PTY access. Integrates the pending #1027 settings policy with current main; no OSS version/tag or published image change is claimed.
+- Integrated Desktop native terminal integration: accept a complete native-issued workspace/engagement/resource identity and nonce only during service startup, label the owned sandbox and return its immutable container identity plus the measured tmux status height. Preserve an existing agent shell, validate labels before publishing the registration and keep policy overlays private. Desktop independently verifies the container and mount before enabling PTY access. Integrates the pending #1027 settings policy with current main; no OSS version/tag or published image change is claimed.
 
-- Proposed [PR #1027](https://github.com/BitterSecurity/Decepticon/pull/1027)
+- Merged [PR #1027](https://github.com/BitterSecurity/Decepticon/pull/1027)
   Desktop settings policy adapter: host-owned,
   workspace/engagement-scoped model routing and tool approval with explicit
   selected-model failures and revocation checks before dispatch and result
@@ -97,6 +116,45 @@ Keep proposed and unmerged changes out of released sections.
   dependency from 83.0.0 to 84.2.1, fixing GHSA-xmj3-9gf7-h52w and restoring
   the blocking dependency audit without suppressing findings. No API or data
   migration is required.
+
+- Merged [PR #1072](https://github.com/BitterSecurity/Decepticon/pull/1072): reattach once after an interrupted
+  stream using the existing run and event cursor; show reconnect progress.
+  Transcript view gains bounded PgUp/PgDn navigation and the normal slash-command
+  dispatcher. Existing error dismissal, numbered question answers, contextual
+  Blue footer and unused-component cleanup are preserved. Blue notices follow
+  the configured English/Korean language, with English fallback. Internal runtime
+  directives remain outside the restored operator transcript. No migration required.
+
+- Merged [PR #1065](https://github.com/BitterSecurity/Decepticon/pull/1065):
+  add read-only in-session `/doctor` diagnostics, including scoped checkpoint ID,
+  OPPLAN revision, actual workflow ID/version/SHA pins, pending tasks, runtime
+  plugin bundles, machine-scope readiness and budget. Launch selections are
+  distinguished from persisted pins; unavailable reads are explicit and do not
+  start or mutate runs; checkpoint reads have a shared 10-second deadline. Host `doctor --deep --engagement <name>` adds scoped KG
+  revision/node counts, sandbox HTTP liveness/advertised API probes and per-role
+  fallback-slot readiness. Addresses
+  issue #1040; no migration is required.
+
+- Merged [PR #1071](https://github.com/BitterSecurity/Decepticon/pull/1071): use the complete `tsx` loader for
+  the actual PTY CLI process, preserving CommonJS JSON dependencies. Fixes CLI
+  startup exiting with a JSON parse error under `tsx/esm`; no dependency or
+  workspace migration is required. A real WebSocket-to-PTY startup regression
+  check verifies the connected composer and absence of agent run creation,
+  with an explicitly interactive PTY child even when its parent runs in CI.
+
+- Merged [PR #1070](https://github.com/BitterSecurity/Decepticon/pull/1070): document the shared engagement/thread/
+  run binding, lifecycle mappings, transcript and SSE cursors, authorization and
+  adapter acceptance for CLI/MCP and downstream Desktop Local/Cloud. Clarify that
+  background preparation is not agent execution and attaching does not duplicate
+  runs. Documentation only; no API, storage or migration change.
+
+## [1.5.4] — 2026-10-23
+
+Published at `2026-10-23T05:59:20Z` from tag commit
+`3eb96117da314e0387c04086a3bd5ea005a06470`. These entries were carried
+under Unreleased in that tag and are reconciled here using source ancestry;
+1.5.3 remained an unpublished draft. SaaS deployment and native Desktop
+acceptance are separate from this OSS publication.
 
 - **Breaking** (SAST entry removal, [issue #1059](https://github.com/BitterSecurity/Decepticon/issues/1059)): the standalone
   static/CI code-scanning surface is removed — `decepticon-cli scan`
@@ -113,30 +171,13 @@ Keep proposed and unmerged changes out of released sections.
   are read through `decepticon_engagement_findings` (MCP) or the
   workspace graph instead of a local SARIF file.
 
-- Proposed [PR #1072](https://github.com/BitterSecurity/Decepticon/pull/1072): reattach once after an interrupted
-  stream using the existing run and event cursor; show reconnect progress.
-  Transcript view gains bounded PgUp/PgDn navigation and the normal slash-command
-  dispatcher. Existing error dismissal, numbered question answers, contextual
-  Blue footer and unused-component cleanup are preserved. Blue notices follow
-  the configured English/Korean language, with English fallback. Internal runtime
-  directives remain outside the restored operator transcript. No migration required.
-
-- Proposed [PR #1046](https://github.com/BitterSecurity/Decepticon/pull/1046):
+- [PR #1046](https://github.com/BitterSecurity/Decepticon/pull/1046):
   add read-only runtime diagnostics — `decepticon doctor --deep` reports the
   middleware slot matrix for every role (KG/HITL/model_fallback previously
   failed silently), KG reachability, Skillogy health and MCP auth mode.
   Addresses issue #1040.
 
-- Proposed [PR #1065](https://github.com/BitterSecurity/Decepticon/pull/1065):
-  add read-only in-session `/doctor` diagnostics, including scoped checkpoint ID,
-  OPPLAN revision, actual workflow ID/version/SHA pins, pending tasks, runtime
-  plugin bundles, machine-scope readiness and budget. Launch selections are
-  distinguished from persisted pins; unavailable reads are explicit and do not
-  start or mutate runs; checkpoint reads have a shared 10-second deadline. Host `doctor --deep --engagement <name>` adds scoped KG
-  revision/node counts, sandbox HTTP liveness/advertised API probes and per-role
-  fallback-slot readiness. Addresses
-  issue #1040; no migration is required.
-- Proposed (launcher scope recommendations): engagement creation now runs
+- (launcher scope recommendations): engagement creation now runs
   passive discovery — certificate-transparency logs (crt.sh) and passive DNS
   (HackerTarget, both keyless) — against the first hostname target and
   suggests in-scope entries through a pre-checked multi-select the operator
@@ -146,7 +187,7 @@ Keep proposed and unmerged changes out of released sections.
   strictly optional: a timeout or source failure folds back to the typed
   targets with a note, so creation never blocks on the network.
 
-- Proposed [PR #1058](https://github.com/BitterSecurity/Decepticon/pull/1058): mechanical engagement creation across the Go launcher. The
+- [PR #1058](https://github.com/BitterSecurity/Decepticon/pull/1058): mechanical engagement creation across the Go launcher. The
   launcher now generates the same machine-enforceable `plan/roe.json` the MCP
   bridge and CLI scan produce, from a broadened creation grammar — multiple
   targets (URLs, hostnames, CIDRs, `*.domain` globs) plus an optional
@@ -162,7 +203,8 @@ Keep proposed and unmerged changes out of released sections.
   entries, denylist, and dropped patterns) requires an explicit Create
   confirmation — and the engagement picker shows each engagement's scope
   summary (in-scope/denied counts and first target). Source only, unreleased.
-- Proposed [PR #1051](https://github.com/BitterSecurity/Decepticon/pull/1051):
+
+- [PR #1051](https://github.com/BitterSecurity/Decepticon/pull/1051):
   structured tool errors — the ops tools report failures as
   `{is_error, tool, cause, recovery}` envelopes built by
   `decepticon.tools.errors.tool_error`, and the TUI routes tool results
@@ -170,32 +212,37 @@ Keep proposed and unmerged changes out of released sections.
   recovery rendered separately) instead of dumping raw JSON. Removes an
   internal design note accidentally committed at the repository root.
   Source only, unreleased.
-- Proposed [PR #1038](https://github.com/BitterSecurity/Decepticon/pull/1038):
+
+- [PR #1038](https://github.com/BitterSecurity/Decepticon/pull/1038):
   TUI slash-command UX parity — completion, suggestions, /help grouping.
   Path completions for `/file` keep the typed directory prefix, so
   `sub/bri<tab>` completes to `sub/brief.md` and `~/`-relative suggestions
   stay home-anchored instead of collapsing to a bare entry name.
-- Proposed [PR #1039](https://github.com/BitterSecurity/Decepticon/pull/1039):
+
+- [PR #1039](https://github.com/BitterSecurity/Decepticon/pull/1039):
   TUI error-recovery polish — esc-to-dismiss error banners, number-key question
   selection (including the "Other" free-text entry, previously only reachable with
   the arrow keys), a Blue footer that only renders while monitoring is relevant, removal of
   dead client code (SessionPicker, SpinnerIcon) and English blue notification templates.
   Auto-reconnect and transcript interactivity are deferred as designed follow-ups.
   Partially addresses issue #1034.
-- Proposed [PR #1050](https://github.com/BitterSecurity/Decepticon/pull/1050):
+
+- [PR #1050](https://github.com/BitterSecurity/Decepticon/pull/1050):
   page `assistants.search` in the MCP `decepticon_list_graphs` tool so every
   exposed graph is returned. The LangGraph SDK defaults to `limit=10`, which
   silently hid agents (`recon`, `soundwave`, the `decepticon` orchestrator, …)
   on installs shipping more than ten graphs — the `standard` bundle ships 22.
   Source only, unreleased.
-- Proposed [PR #1054](https://github.com/BitterSecurity/Decepticon/pull/1054):
+
+- [PR #1054](https://github.com/BitterSecurity/Decepticon/pull/1054):
   surface budget usage in the REPL footer from BudgetMiddleware's
   `budget_warning` custom event. The footer line is extracted into a
   `BudgetFooter` component so it is testable with real Ink rendering;
   `ink-testing-library` is added to the CLI devDependencies (the test
   suite could not load without it under CI's `npm ci`). Source only,
   unreleased.
-- Proposed [PR #1053](https://github.com/BitterSecurity/Decepticon/pull/1053):
+
+- [PR #1053](https://github.com/BitterSecurity/Decepticon/pull/1053):
   emit `compact.start` / `compact.end` / `compact.summarization_skipped`
   lifecycle events from the summarization slot so a silent skip becomes
   observable. The emitter now writes through `EventLog.for_workspace`
@@ -205,7 +252,8 @@ Keep proposed and unmerged changes out of released sections.
   `EventLogMiddleware._resolve_scope` — instead of an orphaned
   `engagements/<id>/events.jsonl` keyed on a non-existent env var.
   Source only, unreleased.
-- Proposed [PR #1057](https://github.com/BitterSecurity/Decepticon/pull/1057): RoE unification phase 1 — engagement creation now mechanically
+
+- [PR #1057](https://github.com/BitterSecurity/Decepticon/pull/1057): RoE unification phase 1 — engagement creation now mechanically
   generates the enforced `plan/roe.json` from the creation data only (MCP
   `start_engagement`: `targets` + optional `out_of_scope`). Creation targets
   are normalized before they become scope rules: embedded lists split
@@ -229,7 +277,8 @@ Keep proposed and unmerged changes out of released sections.
   always fail-closed enforce, so `machine_enforcement` no longer carries a
   `mode` key and `EnforcementMode` leaves the core public API
   (`CORE_PUBLIC_API` 75 -> 74). Source only, unreleased.
-- Proposed [PR #1052](https://github.com/BitterSecurity/Decepticon/pull/1052):
+
+- [PR #1052](https://github.com/BitterSecurity/Decepticon/pull/1052):
   stop mislabelling a LiteLLM cooldown (`RouterRateLimitError` — "No deployments
   available ... cooldown_list") as a provider rate limit. A fatal upstream error
   (e.g. a 404 `model_not_found` from a custom OpenAI endpoint) cools the
@@ -252,7 +301,7 @@ Keep proposed and unmerged changes out of released sections.
   helper from host clipboard-tool discovery without changing product deadlines.
   Source only, unreleased.
 
-- Proposed [PR #1035](https://github.com/BitterSecurity/Decepticon/pull/1035):
+- [PR #1035](https://github.com/BitterSecurity/Decepticon/pull/1035):
   finish the launcher CLI docs pass — Long descriptions and Example blocks for doctor,
   update, stop, remove, onboard, skill, mcp, kg-health and serve (logs/status/start landed
   earlier), a root-help recipe block covering session selection and stack management, and
@@ -261,26 +310,28 @@ Keep proposed and unmerged changes out of released sections.
   root keeps ArbitraryArgs so `--resume` + positional thread ID still work). No flag
   semantics or human output-format changes. Addresses the remainder of issue #1018.
 
-- Proposed [PR #1047](https://github.com/BitterSecurity/Decepticon/pull/1047):
+- [PR #1047](https://github.com/BitterSecurity/Decepticon/pull/1047):
   update certifi to 2026.10.19 for PYSEC-2026-4320 / GHSA-6q48-6c7w-9gw2.
   Require the fixed minimum in published package metadata as well as the
   workspace lock so pip installations upgrade vulnerable transitive copies.
   Rebuild container images when released; existing images are not changed by
   this source update. No product version bump or release is included.
 
-- Proposed [PR #1036](https://github.com/BitterSecurity/Decepticon/pull/1036):
+- [PR #1036](https://github.com/BitterSecurity/Decepticon/pull/1036):
   render token-level streaming output in the TUI — cumulative AI partials from the
   already-subscribed LangGraph `messages` mode now update a live buffer with a cursor,
   finalized by the matching values snapshot, and in-flight tool calls render as a compact
   `● Tool(args…) …` header. Pure Ink primitives, no platform-specific terminal behavior.
   Addresses issue #1032.
-- Proposed [PR #1039](https://github.com/BitterSecurity/Decepticon/pull/1039):
+
+- [PR #1039](https://github.com/BitterSecurity/Decepticon/pull/1039):
   TUI error-recovery polish — esc-to-dismiss error banners, number-key question
   selection, a Blue footer that only renders while monitoring is relevant, removal of
   dead client code (SessionPicker, SpinnerIcon) and English blue notification templates.
   Auto-reconnect and transcript interactivity are deferred as designed follow-ups.
   Partially addresses issue #1034.
-- Proposed [PR #1045](https://github.com/BitterSecurity/Decepticon/pull/1045):
+
+- [PR #1045](https://github.com/BitterSecurity/Decepticon/pull/1045):
   bind MCP `decepticon_start_engagement` to an explicit `workspace_path`
   (default `/workspace`, traversal-validated) and return the binding in
   `StartResult`, so coding agents start engagements against the workspace the
@@ -288,13 +339,13 @@ Keep proposed and unmerged changes out of released sections.
   directory (final segment = `engagement_name`), so one engagement's run can
   never write into another engagement's workspace. Addresses issue #1042.
 
-- Proposed [PR #1031](https://github.com/BitterSecurity/Decepticon/pull/1031):
+- [PR #1031](https://github.com/BitterSecurity/Decepticon/pull/1031):
   simplify the README demo area by removing the repeated OSS capability list and
   trailing decorative image. Add acknowledgements for integrated open-source
   projects, adapted code, security references and CLI design inspiration, with
   upstream links and existing attribution notices. Documentation only.
 
-- Proposed [PR #1030](https://github.com/BitterSecurity/Decepticon/pull/1030):
+- [PR #1030](https://github.com/BitterSecurity/Decepticon/pull/1030):
   document interactive CLI commands and familiar keys in the README and getting
   started guide. Correct the direct Red setup flow, explain `/new` session and
   scrollback preservation, and distinguish merged source from released images.
@@ -318,7 +369,7 @@ Keep proposed and unmerged changes out of released sections.
   Negotiate enhanced keys only with supported terminals; portable fallbacks remain.
   No release or terminal configuration rewrite is included.
 
-- Proposed [PR #1015](https://github.com/BitterSecurity/Decepticon/pull/1015)
+- [PR #1015](https://github.com/BitterSecurity/Decepticon/pull/1015)
   lifecycle completion: add protected per-run directory mounts and a trusted SDK
   caller that registers the API-generated run UUID after startup, publishes fresh
   credentials atomically, handshakes before model work after queue admission,
@@ -359,7 +410,7 @@ Keep proposed and unmerged changes out of released sections.
   This fixes false failures when the two configurations disagree; it does not
   establish resolution of the affected host's separate timeout in issue #1004.
 
-- Proposed [PR #1023](https://github.com/BitterSecurity/Decepticon/pull/1023):
+- [PR #1023](https://github.com/BitterSecurity/Decepticon/pull/1023):
   name the workload-lifecycle command and Go packages `infracontrol`, while
   retaining `decepticon opscontrol` as an alias. New service units invoke the
   new command; installed unit names, legacy units, environment variables,
@@ -385,7 +436,7 @@ Keep proposed and unmerged changes out of released sections.
   Picker eligibility does not verify live provider entitlement. Source change
   only; no OSS release is published.
 
-- Proposed [PR #1012](https://github.com/BitterSecurity/Decepticon/pull/1012):
+- [PR #1012](https://github.com/BitterSecurity/Decepticon/pull/1012):
   add UUID artifact revisions, immutable snapshots, a structured Info log and
   OPPLAN search toward independently verified High/Critical findings. Preserve
   legacy workflow checkpoints and finding readers. Review follow-up restores
@@ -397,7 +448,8 @@ Keep proposed and unmerged changes out of released sections.
   graph after protocol edits.
   This source integration does not publish a release or deploy SaaS. Paired SaaS
   integration: [decepticon-saas#1294](https://github.com/BitterSecurity/decepticon-saas/pull/1294).
-- Proposed [PR #1015](https://github.com/BitterSecurity/Decepticon/pull/1015):
+
+- [PR #1015](https://github.com/BitterSecurity/Decepticon/pull/1015):
   Desktop owned-browser-v1 adapter with trusted per-run browser injection,
   authenticated capability/identity negotiation, protected launcher socket mounts,
   bounded cancellation and fail-closed protocol errors preserve the existing
@@ -406,14 +458,7 @@ Keep proposed and unmerged changes out of released sections.
   graph run registration and Windows forwarding still require qualification.
   No SaaS pin or release changes.
 
-- Proposed [PR #1071](https://github.com/BitterSecurity/Decepticon/pull/1071): use the complete `tsx` loader for
-  the actual PTY CLI process, preserving CommonJS JSON dependencies. Fixes CLI
-  startup exiting with a JSON parse error under `tsx/esm`; no dependency or
-  workspace migration is required. A real WebSocket-to-PTY startup regression
-  check verifies the connected composer and absence of agent run creation,
-  with an explicitly interactive PTY child even when its parent runs in CI.
-
-- Proposed [PR #1009](https://github.com/BitterSecurity/Decepticon/pull/1009): add the Desktop `serve --engagement` adapter for existing local
+- [PR #1009](https://github.com/BitterSecurity/Decepticon/pull/1009): add the Desktop `serve --engagement` adapter for existing local
   engagements, with native model selection, private runtime configuration and
   engagement-scoped mounts. Preserve normal CLI startup and existing homes.
   Support canonical Desktop workspace/engagement document paths alongside legacy
@@ -432,26 +477,25 @@ Keep proposed and unmerged changes out of released sections.
 - PR #1013 verification follow-up: format catalog tooling with repository Ruff
   rules and keep safety assertions independent of the growing model count.
 
-- Proposed [PR #1013](https://github.com/BitterSecurity/Decepticon/pull/1013):
+- [PR #1013](https://github.com/BitterSecurity/Decepticon/pull/1013):
   refresh the shared public catalog from reviewed SaaS main pricing/model data,
   retaining context-tier prices and provenance. Include four public models and
   admit their metadata in the locally reviewed generator. Existing credentials,
   defaults and explicit local compatibility overrides remain; this does not
   publish an OSS version or prove provider availability.
 
-- Proposed [PR #1014](https://github.com/BitterSecurity/Decepticon/pull/1014):
+- [PR #1014](https://github.com/BitterSecurity/Decepticon/pull/1014):
   defer agent factory exports until requested, so framework role registration
   does not construct every agent graph during import. Preserve factory names,
   identity, signatures and all configured LangGraph endpoints. Existing startup
   health limits remain unchanged; this source fix is not a published release.
 
-- Proposed [PR #1011](https://github.com/BitterSecurity/Decepticon/pull/1011):
+- [PR #1011](https://github.com/BitterSecurity/Decepticon/pull/1011):
   own a shared public LiteLLM model catalog and deterministic route/CLI generation
   for OSS and the pinned SaaS consumer. Retain existing route semantics,
   credential references and local OAuth behavior; admit new providers explicitly.
   No runtime network dependency, version bump or release. See
   [catalog maintenance](model-catalog/README.md).
-
 
 - Consolidate version history into the single root `CHAGELOG.md`, preserving
   existing history and updating contributor guidance, links and tooling.
@@ -472,12 +516,6 @@ Keep proposed and unmerged changes out of released sections.
 - Record v1.5.2's actual publication date and included fixes; retain v1.5.1 as
   an incomplete candidate rather than a published final. Documentation only;
   no runtime or upgrade changes. [PR #1007](https://github.com/BitterSecurity/Decepticon/pull/1007).
-
-- Proposed [PR #1070](https://github.com/BitterSecurity/Decepticon/pull/1070): document the shared engagement/thread/
-  run binding, lifecycle mappings, transcript and SSE cursors, authorization and
-  adapter acceptance for CLI/MCP and downstream Desktop Local/Cloud. Clarify that
-  background preparation is not agent execution and attaching does not duplicate
-  runs. Documentation only; no API, storage or migration change.
 
 ## [1.5.2] — 2026-10-18
 
@@ -1769,7 +1807,8 @@ The following legacy import paths keep working but emit a
   atomic release.
 - Downstream plugin package lockstep migration.
 
-[Unreleased]: https://github.com/BitterSecurity/Decepticon/compare/v1.5.2...HEAD
+[Unreleased]: https://github.com/BitterSecurity/Decepticon/compare/v1.5.4...HEAD
+[1.5.4]: https://github.com/BitterSecurity/Decepticon/compare/v1.5.2...v1.5.4
 [1.5.2]: https://github.com/BitterSecurity/Decepticon/compare/v1.5.0...v1.5.2
 [1.5.0]: https://github.com/BitterSecurity/Decepticon/compare/v1.4.4...v1.5.0
 [1.4.4]: https://github.com/BitterSecurity/Decepticon/compare/v1.4.3...v1.4.4
