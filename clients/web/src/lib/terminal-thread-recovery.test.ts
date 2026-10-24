@@ -41,6 +41,7 @@ function server(options: {
   fetch?: (url: string, request: Request) => Promise<Response>;
   scope?: Promise<Buffer>;
   env?: Record<string, string>;
+  legacyState?: boolean;
 } = {}) {
   const calls: { url: string; method: string; body?: string }[] = [];
   const terms: { threadId: string; killed: boolean; env?: Record<string, string> }[] = [];
@@ -72,6 +73,7 @@ function server(options: {
       };
     } },
     resolve, dirname, join, fileURLToPath, createHash,
+    access: async () => { if (!options.legacyState) throw new Error("No legacy state"); },
     readFile: async () => {
       if (options.scope) return options.scope;
       throw new Error("No approval documents");
@@ -291,3 +293,28 @@ for (const metadata of [{ engagement_name: "sibling", workspace_path: "/workspac
     assert.deepEqual(fixture.calls.map(call => call.method), ["GET"]);
   });
 }
+
+test("container web state is private to its engagement and mode", async () => {
+  const fixture = server({ env: { DECEPTICON_WEB_STATE_DIR: "/var/lib/decepticon-web" } });
+  await fixture.connect(new Socket(), "");
+  assert.equal(fixture.terms[0].env!.DECEPTICON_STATE_DIR, "/var/lib/decepticon-web/owned-case/soundwave");
+});
+
+test("an explicit CLI state override remains unchanged", async () => {
+  const fixture = server({ env: { DECEPTICON_WEB_STATE_DIR: "/var/lib/decepticon-web", DECEPTICON_STATE_DIR: "/operator-state" } });
+  await fixture.connect(new Socket(), "");
+  assert.equal(fixture.terms[0].env!.DECEPTICON_STATE_DIR, "/operator-state");
+});
+
+test("existing operator installation drafts and cursors keep their original location", async () => {
+  const fixture = server({ env: { DECEPTICON_WEB_STATE_DIR: "/var/lib/decepticon-web", DECEPTICON_HOME: "/existing-home" }, legacyState: true });
+  await fixture.connect(new Socket(), "");
+  assert.equal(fixture.terms[0].env!.DECEPTICON_STATE_DIR, undefined);
+  assert.equal(fixture.terms[0].env!.DECEPTICON_HOME, "/existing-home");
+});
+
+test("an unmapped host installation path does not defeat the writable container state", async () => {
+  const fixture = server({ env: { DECEPTICON_WEB_STATE_DIR: "/var/lib/decepticon-web", DECEPTICON_HOME: "/host-only-home" } });
+  await fixture.connect(new Socket(), "");
+  assert.equal(fixture.terms[0].env!.DECEPTICON_STATE_DIR, "/var/lib/decepticon-web/owned-case/soundwave");
+});

@@ -123,7 +123,15 @@ COPY --chmod=755 containers/web-entrypoint.sh /web-entrypoint.sh
 # whose checkout introduced CRLF line endings.
 RUN sed -i 's/\r$//' /web-entrypoint.sh
 
+# System users have /nonexistent as their home on Debian. Store web CLI drafts
+# and observation cursors in a private, non-root-writable volume instead.
+ENV DECEPTICON_WEB_STATE_DIR=/var/lib/decepticon-web
+RUN install -d -m 0700 -o nextjs -g nodejs /var/lib/decepticon-web
+
 USER nextjs
+
+# Check the actual runtime identity, not a root build-stage permission check.
+RUN node -e 'const fs=require("fs"),path=require("path");if(process.getuid()===0)throw Error("Web runtime must be non-root");const dir=fs.mkdtempSync(path.join(process.env.DECEPTICON_WEB_STATE_DIR,"permission-check-"));fs.writeFileSync(path.join(dir,"state.json"),"{}",{mode:0o600});fs.rmSync(dir,{recursive:true});'
 
 EXPOSE 3000 3003
 

@@ -30,7 +30,7 @@ import * as pty from "node-pty";
 import { resolve, dirname } from "path";
 import { join } from "path";
 import { fileURLToPath } from "url";
-import { readFile } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -168,6 +168,20 @@ async function threadWorkspace(threadId: string, slug: string, defaultPath: stri
   }
 }
 
+async function cliStateEnvironment(slug: string, assistant: string): Promise<Record<string, string>> {
+  const root = process.env.DECEPTICON_WEB_STATE_DIR;
+  if (!root || process.env.DECEPTICON_STATE_DIR) return {};
+  // Keep an operator's existing installation state in place. The image's
+  // /nonexistent home cannot contain default state; new installs use the volume.
+  if (process.env.DECEPTICON_HOME) {
+    for (const directory of ["composer", "blue-cursors"]) {
+      try { await access(join(process.env.DECEPTICON_HOME, directory)); return {}; }
+      catch { /* No readable legacy state in this container. */ }
+    }
+  }
+  return { DECEPTICON_STATE_DIR: join(root, slug, assistant) };
+}
+
 function sendJson(ws: WebSocket, payload: Record<string, unknown>): void {
   if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(payload));
 }
@@ -292,6 +306,7 @@ wss.on("connection", async (ws: WebSocket, req) => {
 
   const env: Record<string, string> = {
     ...process.env as Record<string, string>,
+    ...await cliStateEnvironment(engagementSlug, agentId),
     TERM: "xterm-256color",
     FORCE_COLOR: "1",
     DECEPTICON_ASSISTANT_ID: agentId,
@@ -306,6 +321,7 @@ wss.on("connection", async (ws: WebSocket, req) => {
   };
   if (threadId) env.DECEPTICON_THREAD_ID = threadId;
 
+  if (ws.readyState !== WebSocket.OPEN) return;
   let term: pty.IPty;
   try {
     term = pty.spawn("node", ["--import", "tsx", CLI_PATH], {

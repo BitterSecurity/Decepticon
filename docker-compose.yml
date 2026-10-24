@@ -442,6 +442,7 @@ services:
       - BLUE_MONITOR_URL=http://blue-monitor:8085
     volumes:
       - ${DECEPTICON_HOME:-~/.decepticon}/workspace:/workspace
+      - web_state:/var/lib/decepticon-web
     depends_on:
       langgraph:
         condition: service_healthy
@@ -765,6 +766,7 @@ services:
       - ad
 
 volumes:
+  web_state:
   langgraph_data:
   postgres_data:
   sliver_data:

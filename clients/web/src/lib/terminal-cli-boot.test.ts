@@ -4,7 +4,7 @@ import { createServer } from "node:http";
 import { createServer as createTcpServer } from "node:net";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -40,7 +40,7 @@ test("web terminal boots the real CLI and renders its connected composer", { tim
   await new Promise<void>(resolve => reservation.close(() => resolve()));
   const child = spawn(process.execPath, ["--import", "tsx", fileURLToPath(new URL("../../server/terminal-server.ts", import.meta.url))], {
     cwd: fileURLToPath(new URL("../../", import.meta.url)),
-    env: { ...process.env, CI: "false", CONTINUOUS_INTEGRATION: "false", TERMINAL_PORT: String(address.port), WEB_PORT: "3000", LANGGRAPH_API_URL: apiUrl, BLUE_MONITOR_URL: apiUrl, WORKSPACE_PATH: join(root, "workspace"), DECEPTICON_RUNTIME_ENGAGEMENT: "loader-test", DECEPTICON_HOME: root, DECEPTICON_INITIAL_MESSAGE: "", DECEPTICON_LANGUAGE: "en" },
+    env: { ...process.env, CI: "false", CONTINUOUS_INTEGRATION: "false", TERMINAL_PORT: String(address.port), WEB_PORT: "3000", LANGGRAPH_API_URL: apiUrl, BLUE_MONITOR_URL: apiUrl, WORKSPACE_PATH: join(root, "workspace"), DECEPTICON_RUNTIME_ENGAGEMENT: "loader-test", DECEPTICON_HOME: root, DECEPTICON_WEB_STATE_DIR: join(root, "web-state"), DECEPTICON_INITIAL_MESSAGE: "", DECEPTICON_LANGUAGE: "en" },
     stdio: ["ignore", "pipe", "pipe"],
   });
   let serverOutput = "";
@@ -66,7 +66,23 @@ test("web terminal boots the real CLI and renders its connected composer", { tim
       socket!.once("close", () => { clearTimeout(timer); reject(new Error(stripVTControlCharacters(output).slice(-1200))); });
     });
     assert.match(text, /loader-test/);
-    assert.doesNotMatch(text, /SyntaxError|Unexpected token/);
+    assert.doesNotMatch(text, /SyntaxError|Unexpected token|EACCES/);
+    const composer = join(root, "web-state", "loader-test", "decepticon", "composer");
+    socket.send("unsent web draft");
+    let storedDraft = false;
+    const deadline = Date.now() + 10_000;
+    while (Date.now() < deadline && !storedDraft) {
+      try {
+        for (const name of (await readdir(composer)).filter(name => name.endsWith(".json"))) {
+          const memory = JSON.parse(await readFile(join(composer, name), "utf8"));
+          if (memory.draft === "unsent web draft") storedDraft = true;
+        }
+      } catch (error) {
+        if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error;
+      }
+      if (!storedDraft) await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    assert.ok(storedDraft, "actual PTY input must persist under the private web state root");
     assert.deepEqual(mutations, ["POST /threads"], "opening a terminal may create its thread but must not execute an agent run");
   } finally {
     socket?.terminate();
