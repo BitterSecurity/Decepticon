@@ -9,6 +9,12 @@ export const CONFIGURED_MODEL_ROUTES: Record<string, readonly string[]> = {
   "anthropic/claude-haiku-5-5": [
     "ANTHROPIC_API_KEY"
   ],
+  "anthropic/claude-opus-4-5": [
+    "ANTHROPIC_API_KEY"
+  ],
+  "anthropic/claude-opus-4-6": [
+    "ANTHROPIC_API_KEY"
+  ],
   "anthropic/claude-opus-4-7": [
     "ANTHROPIC_API_KEY"
   ],

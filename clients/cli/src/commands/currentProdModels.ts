@@ -250,7 +250,9 @@ export const CURRENT_PROD_MODELS: Record<string, string[]> = {
     "anthropic/claude-opus-4-8",
     "anthropic/claude-opus-4-7",
     "anthropic/claude-sonnet-4-6",
-    "anthropic/claude-haiku-5-5"
+    "anthropic/claude-haiku-5-5",
+    "anthropic/claude-opus-4-6",
+    "anthropic/claude-opus-4-5"
   ],
   "Shared catalog / bedrock": [
     "bedrock/anthropic.claude-opus-4-7",

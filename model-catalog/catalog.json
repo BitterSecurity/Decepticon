@@ -2240,6 +2240,11 @@
       "info": {
         "input_cost_per_token": 5e-06,
         "output_cost_per_token": 2.5e-05
+      },
+      "ui": {
+        "id": "anthropic/claude-opus-4-8",
+        "label": "Claude Opus 4.8",
+        "provider": "anthropic"
       }
     },
     {
@@ -2254,6 +2259,11 @@
       "info": {
         "input_cost_per_token": 5e-06,
         "output_cost_per_token": 2.5e-05
+      },
+      "ui": {
+        "id": "anthropic/claude-opus-4-7",
+        "label": "Claude Opus 4.7",
+        "provider": "anthropic"
       }
     },
     {
@@ -2265,6 +2275,11 @@
       "info": {
         "input_cost_per_token": 3e-06,
         "output_cost_per_token": 1.5e-05
+      },
+      "ui": {
+        "id": "anthropic/claude-sonnet-4-6",
+        "label": "Claude Sonnet 4.6",
+        "provider": "anthropic"
       }
     },
     {
@@ -3645,6 +3660,48 @@
         "id": "moonshot/kimi-k2.7-code-highspeed",
         "label": "Kimi K2.7 Code HighSpeed",
         "provider": "moonshot"
+      }
+    },
+    {
+      "id": "anthropic/claude-opus-4-6",
+      "params": {
+        "model": "anthropic/claude-opus-4-6",
+        "max_tokens": 128000
+      },
+      "info": {
+        "input_cost_per_token": 5e-06,
+        "output_cost_per_token": 2.5e-05,
+        "cache_read_input_token_cost": 5e-07,
+        "cache_creation_input_token_cost": 6.25e-06,
+        "supports_prompt_caching": true,
+        "pricing_source": "https://platform.claude.com/docs/en/models/opus-4-6/overview",
+        "pricing_checked_at": "2026-10-24"
+      },
+      "ui": {
+        "id": "anthropic/claude-opus-4-6",
+        "label": "Claude Opus 4.6",
+        "provider": "anthropic"
+      }
+    },
+    {
+      "id": "anthropic/claude-opus-4-5",
+      "params": {
+        "model": "anthropic/claude-opus-4-5",
+        "max_tokens": 64000
+      },
+      "info": {
+        "input_cost_per_token": 5e-06,
+        "output_cost_per_token": 2.5e-05,
+        "cache_read_input_token_cost": 5e-07,
+        "cache_creation_input_token_cost": 6.25e-06,
+        "supports_prompt_caching": true,
+        "pricing_source": "https://platform.claude.com/docs/en/models/opus-4-5/overview",
+        "pricing_checked_at": "2026-10-24"
+      },
+      "ui": {
+        "id": "anthropic/claude-opus-4-5",
+        "label": "Claude Opus 4.5",
+        "provider": "anthropic"
       }
     }
   ]

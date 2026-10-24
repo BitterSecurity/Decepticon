@@ -906,6 +906,32 @@ model_list:
       pricing_regular_input_cost_per_token: 1.36e-06
       pricing_regular_output_cost_per_token: 4.18e-06
       pricing_regular_cache_read_input_token_cost: 1.4e-07
+  - model_name: anthropic/claude-opus-4-6
+    litellm_params:
+      model: anthropic/claude-opus-4-6
+      max_tokens: 128000
+      api_key: os.environ/ANTHROPIC_API_KEY
+    model_info:
+      input_cost_per_token: 5.0e-06
+      output_cost_per_token: 2.5e-05
+      cache_read_input_token_cost: 5.0e-07
+      cache_creation_input_token_cost: 6.25e-06
+      supports_prompt_caching: true
+      pricing_source: https://platform.claude.com/docs/en/models/opus-4-6/overview
+      pricing_checked_at: '2026-10-24'
+  - model_name: anthropic/claude-opus-4-5
+    litellm_params:
+      model: anthropic/claude-opus-4-5
+      max_tokens: 64000
+      api_key: os.environ/ANTHROPIC_API_KEY
+    model_info:
+      input_cost_per_token: 5.0e-06
+      output_cost_per_token: 2.5e-05
+      cache_read_input_token_cost: 5.0e-07
+      cache_creation_input_token_cost: 6.25e-06
+      supports_prompt_caching: true
+      pricing_source: https://platform.claude.com/docs/en/models/opus-4-5/overview
+      pricing_checked_at: '2026-10-24'
 litellm_settings:
   num_retries: 3
   retry_after: 30

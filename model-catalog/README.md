@@ -55,3 +55,16 @@ Tests execute the actual generator CLI with synthetic records in temporary trees
 one admitted-provider addition flows to routes (and SaaS picker), a new provider
 remains disabled, manual generated drift fails, and private/duplicate records are
 rejected. These are offline fixture scenarios, not provider inference evidence.
+
+## Claude legacy availability review — 2026-10-24
+
+Opus 4.8, 4.7, 4.6, 4.5 and Sonnet 4.6 remain active legacy models in
+[Anthropic's lifecycle table](https://platform.claude.com/docs/en/about-claude/model-deprecations).
+Their public picker metadata does not grant subscription access. Opus 4.5 uses
+the documented `claude-opus-4-5` alias; its pinned API identifier is
+`claude-opus-4-5-20251101`. New Opus 4.6/4.5 output limits and public price
+metadata come from their [4.6](https://platform.claude.com/docs/en/models/opus-4-6/overview)
+and [4.5](https://platform.claude.com/docs/en/models/opus-4-5/overview) references.
+Retired models are not reintroduced. Existing Haiku 4.5 admission is preserved.
+SaaS must separately admit customer-bound subscription routes and verify routing;
+a chat subscription and Console API credentials are distinct funding paths.
