@@ -15,6 +15,13 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed [PR #1090](https://github.com/BitterSecurity/Decepticon/pull/1090):
+  make LiteLLM and LangGraph healthcheck startup grace honor the launcher's
+  validated `DECEPTICON_STARTUP_TIMEOUT_SECONDS` budget (default 600 seconds).
+  Slow initialization no longer fails on a separate, shorter fixed health
+  deadline. Readiness probes, overall wait failures, and post-start retries
+  remain enforced; existing data and credentials are preserved.
+
 - Proposed [PR #1089](https://github.com/BitterSecurity/Decepticon/pull/1089),
   following #1088: audit all 295 configured/picker model routes as of 2026-10-25 KST,
   with per-route sources, explicit unresolved contracts and redacted managed

@@ -179,7 +179,11 @@ func (c *Compose) composeEnv() []string {
 	// containers (testcontainers, kubectl-with-docker-shim) find the
 	// Podman socket. No-op for Docker.
 	env = c.Runtime.Apply(env)
-	return append(env, c.ExtraEnv...)
+	env = append(env, c.ExtraEnv...)
+	// Compose's startup grace must use the same validated value as --wait-timeout.
+	// Otherwise an invalid raw value breaks duration interpolation, or a fixed
+	// health deadline rejects a slow service before the operator's budget expires.
+	return append(env, "DECEPTICON_STARTUP_TIMEOUT_SECONDS="+startupTimeoutSeconds())
 }
 
 // run executes a compose command via the detected runtime.
