@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/config"
@@ -179,11 +178,7 @@ func (c *Compose) composeEnv() []string {
 	// containers (testcontainers, kubectl-with-docker-shim) find the
 	// Podman socket. No-op for Docker.
 	env = c.Runtime.Apply(env)
-	env = append(env, c.ExtraEnv...)
-	// Compose's startup grace must use the same validated value as --wait-timeout.
-	// Otherwise an invalid raw value breaks duration interpolation, or a fixed
-	// health deadline rejects a slow service before the operator's budget expires.
-	return append(env, "DECEPTICON_STARTUP_TIMEOUT_SECONDS="+startupTimeoutSeconds())
+	return append(env, c.ExtraEnv...)
 }
 
 // run executes a compose command via the detected runtime.
@@ -240,12 +235,7 @@ func (c *Compose) UpDesktop() error {
 // startupTimeoutSeconds returns the --wait-timeout value as a string.
 // User override via DECEPTICON_STARTUP_TIMEOUT_SECONDS; falls back to 600s.
 func startupTimeoutSeconds() string {
-	if v := os.Getenv("DECEPTICON_STARTUP_TIMEOUT_SECONDS"); v != "" {
-		if n, err := strconv.Atoi(v); err == nil && n > 0 {
-			return strconv.Itoa(n)
-		}
-	}
-	return "600"
+	return config.StartupTimeoutSeconds()
 }
 
 // Down stops and removes containers using all profiles for clean teardown.

@@ -21,6 +21,8 @@ Keep proposed and unmerged changes out of released sections.
   Slow initialization no longer fails on a separate, shorter fixed health
   deadline. Readiness probes, overall wait failures, and post-start retries
   remain enforced; existing data and credentials are preserved.
+  Launcher and opscontrol share budget normalization to avoid configuration
+  drift when later starting optional workloads.
 
 - Proposed [PR #1089](https://github.com/BitterSecurity/Decepticon/pull/1089),
   following #1088: audit all 295 configured/picker model routes as of 2026-10-25 KST,
