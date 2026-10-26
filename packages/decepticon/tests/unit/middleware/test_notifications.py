@@ -281,6 +281,7 @@ def test_native_run_notifications_use_each_binding_and_never_the_construction_ba
 
     first = middleware.before_model(_state(), runtime("a"))
     second = middleware.before_model(_state(), runtime("b"))
+    assert first is not None and second is not None
     assert "A-completed" in first["messages"][0].content
     assert "B-completed" not in first["messages"][0].content
     assert "B-completed" in second["messages"][0].content
@@ -324,6 +325,7 @@ def test_parallel_native_notification_hooks_keep_same_named_jobs_separate(monkey
         )
 
     first, second = asyncio.run(run())
+    assert first is not None and second is not None
     assert "alpha-output" in first["messages"][0].content
     assert "beta-output" not in first["messages"][0].content
     assert "beta-output" in second["messages"][0].content
