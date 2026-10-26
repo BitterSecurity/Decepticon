@@ -96,3 +96,19 @@ Python async cancellation does not stop a remote mutation; explicit runtime
 revocation/session cleanup remains necessary. The normal 60-second automatic
 background threshold and production auth/resume behavior are not claimed as
 qualified by these short local tests.
+
+## Host-required provider and notification isolation, 2026-10-27
+
+A trusted host may set `DECEPTICON_SANDBOX_PROVIDER=openshell`. This requires
+an installed admission resolver, rejects an explicit HTTP downgrade, and routes
+the legacy bash URL shortcut through the resolver. Static graph construction
+receives an unbound backend that cannot execute or open HTTP; a real run must
+resolve an admitted native backend. Existing default-provider deployments do
+not change. The host must return the cached backend for each binding.
+
+Job notification middleware resolves the current run's backend and maintains
+separate notification/retry state for each native binding. Tests cover two
+engagements with the same tmux session name, including concurrent asynchronous
+notification delivery. The affected backend, bash, filesystem and notification
+suites passed **258 tests**; Ruff passed. This is source qualification, not an
+E2B production control plane or a full engagement-creation journey.

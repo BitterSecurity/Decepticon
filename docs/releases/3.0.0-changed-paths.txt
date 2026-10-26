@@ -65,6 +65,7 @@ M	packages/decepticon/decepticon/cli/scan.py
 M	packages/decepticon/decepticon/graph_registry.py
 M	packages/decepticon/decepticon/mcp_server/tools_lifecycle.py
 M	packages/decepticon/decepticon/middleware/filesystem.py
+M	packages/decepticon/decepticon/middleware/notifications.py
 M	packages/decepticon/decepticon/passive_discovery.py
 M	packages/decepticon/decepticon/sandbox_server/app.py
 A	packages/decepticon/decepticon/sandbox_server/session_client.py
@@ -105,6 +106,7 @@ D	packages/decepticon/tests/unit/blue_cell/test_sensor_tools.py
 D	packages/decepticon/tests/unit/blue_cell/test_tap.py
 R065	packages/decepticon-sdk/tests/test_framework_import_smoke.py	packages/decepticon/tests/unit/contracts/test_framework_import_smoke.py
 M	packages/decepticon/tests/unit/middleware/test_filesystem.py
+M	packages/decepticon/tests/unit/middleware/test_notifications.py
 M	packages/decepticon/tests/unit/middleware/test_roe.py
 M	packages/decepticon/tests/unit/reporting/test_sarif_remote.py
 M	packages/decepticon/tests/unit/research/test_bounty_extended.py
