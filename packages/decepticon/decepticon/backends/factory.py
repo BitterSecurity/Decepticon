@@ -25,11 +25,35 @@ from __future__ import annotations
 
 import functools
 import os
+from collections.abc import Callable
 from typing import Any
 
 from decepticon.backends.http_sandbox import HTTPSandbox
 
 _DEFAULT_SANDBOX_URL = "http://localhost:9999"
+_openshell_resolver: Callable[[Any], HTTPSandbox] | None = None
+
+
+def configure_openshell_resolver(resolver: Callable[[Any], HTTPSandbox] | None) -> None:
+    """Install a TRUSTED host resolver, never one supplied by agent config.
+
+    It must authenticate owner/run/custody, resolve the opaque binding reference
+    against host state, and cache one admitted backend per binding. A plain
+    sandbox ID or a model-generated admission receipt is not authorization.
+    """
+    global _openshell_resolver
+    _openshell_resolver = resolver
+
+
+def _run_config(config: Any = None) -> dict:
+    if config is not None:
+        return config if isinstance(config, dict) else {}
+    try:
+        from langgraph.config import get_config
+
+        return dict(get_config() or {})
+    except RuntimeError:
+        return {}
 
 
 # Sized for the multi-tenant case: a single SHARED langgraph process can serve
@@ -138,5 +162,17 @@ def build_sandbox_backend(config: Any = None) -> HTTPSandbox:
             Optional bearer token for daemon auth — recommended even on
             loopback as defence-in-depth.
     """
+    run_config = _run_config(config)
+    configurable = run_config.get("configurable", {})
+    if isinstance(configurable, dict) and configurable.get("sandbox_provider") == "openshell":
+        if _openshell_resolver is None:
+            raise RuntimeError("OpenShell provider requires a trusted host admission resolver")
+        from decepticon.backends.openshell_sandbox import OpenShellSandbox
+
+        backend = _openshell_resolver(run_config)
+        if not isinstance(backend, OpenShellSandbox):
+            raise RuntimeError("OpenShell resolver did not return an admitted OpenShell backend")
+        backend.check_admission()
+        return backend
     base_url, token = _resolve_endpoint(config)
     return _shared_sandbox(base_url, token)

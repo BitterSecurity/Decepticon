@@ -275,6 +275,10 @@ def _sandbox_from_config(config: RunnableConfig | None) -> BashSandboxProtocol |
     configurable = (config or {}).get("configurable", {})
     if not isinstance(configurable, dict):
         return None
+    if configurable.get("sandbox_provider") == "openshell":
+        from decepticon.backends.factory import build_sandbox_backend
+
+        return build_sandbox_backend(config)
     url = configurable.get("sandbox_url")
     if not isinstance(url, str) or not url:
         return None

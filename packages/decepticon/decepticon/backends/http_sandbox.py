@@ -286,7 +286,7 @@ class HTTPSandbox(BaseSandbox):
         out: list[FileDownloadResponse] = []
         for item in data["files"]:
             content_b64 = item.get("data_b64")
-            content = base64.b64decode(content_b64) if content_b64 else None
+            content = base64.b64decode(content_b64) if content_b64 is not None else None
             out.append(
                 FileDownloadResponse(
                     path=item["path"],

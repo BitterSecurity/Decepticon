@@ -15,6 +15,8 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed opt-in OpenShell session transport: route the retained tmux/daemon contract through an admitted OpenShell SDK session, with per-request admission checks and no direct daemon HTTP fallback. Preserve existing defaults; add stock-runtime tests for controlled network policy, sessions, interactive input, jobs and files. [Validation and remaining production gates](docs/validation/openshell-session-adapter-20261026.md). Depends on the agent-stack refresh; no E2B driver or production rollout.
+
 - Proposed agent-stack refresh ([#1119](https://github.com/BitterSecurity/Decepticon/pull/1119)): move the framework to Deep Agents 0.7.32, LangChain 1.4.7 and LangGraph 1.2.17. Preserve per-engagement filesystem/transport selection using task-local bindings after upstream removed backend factories and `_get_backend`; keep recursive delete unexposed until it has the same scope/RoE contract. Consolidate the complete version history into root `CHAGELOG.md` and update references. [Compatibility and validation](docs/validation/agent-stack-20261026.md). Source change only; no package release or SaaS deployment.
 
 - Released v2.1.1 — 2026-10-26: the sandbox image build fix (PR #1109) completes the v2.1.0 publication that was stopped on the Kali base-image drift (pip uninstall-no-record-file). The intermediate v2.1.0 PyPI wheels are immutable and remain; the v2.1.0 GitHub draft was superseded and never announced.
