@@ -1,6 +1,8 @@
 # Opt-in OpenShell session transport
 
-This source candidate builds on the agent-stack refresh (#1119). It does not
+This source candidate ([#1120](https://github.com/BitterSecurity/Decepticon/pull/1120))
+builds on the agent-stack refresh (#1119), which must merge first. The PR targets
+main so the repository's required CI triggers for the combined candidate. It does not
 switch the default backend, change SaaS pins or provide an E2B compute driver.
 
 ## Layering
