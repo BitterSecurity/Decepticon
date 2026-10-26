@@ -152,7 +152,11 @@ addopts = [
 ]
 
 [tool.coverage.run]
-source = ["packages/decepticon/decepticon"]
+source = [
+    "packages/decepticon/decepticon",
+    "packages/decepticon-core/decepticon_core",
+    "packages/decepticon-sdk/decepticon_sdk",
+]
 branch = true
 omit = [
     "packages/decepticon/decepticon/__main__.py",
