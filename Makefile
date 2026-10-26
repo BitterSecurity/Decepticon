@@ -435,3 +435,14 @@ terminal-bench-full:
 cve-bench-dry:
 	CVE_BENCH_DRY_RUN_SEED=0 PYTHONHASHSEED=0 \
 		uv run python -m benchmark.cve_bench.dry_run $(ARGS)
+
+# Local integration uses owned fixtures; live suites require explicit resources.
+.PHONY: test-unit test-integration test-live
+test-unit:
+	uv run pytest packages/decepticon-core/tests packages/decepticon/tests/unit packages/decepticon-sdk/tests -m "not slow" $(ARGS)
+
+test-integration:
+	uv run pytest packages/decepticon/tests/integration $(ARGS)
+
+test-live:
+	uv run pytest --live packages/decepticon/tests/live $(ARGS)

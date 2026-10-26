@@ -1,8 +1,7 @@
-"""Shared fixtures for KG integration tests against live Neo4j.
+"""Explicit live Neo4j fixtures; use a disposable, operator-selected instance.
 
-The fixtures skip every test cleanly when the env vars are not set or
-the driver cannot connect, so the integration suite is safe to run in
-any environment — it just no-ops on stacks without Neo4j.
+Configuration/connectivity failures fail the selected live lane. Ordinary test
+collection excludes this directory before importing service clients.
 """
 
 from __future__ import annotations
@@ -15,34 +14,17 @@ import pytest
 
 from decepticon.middleware.kg_internal.store import KGStore, KGStoreConfigError
 
-_DEFAULT_TEST_URI = "bolt://localhost:7687"
-_DEFAULT_TEST_USER = "neo4j"
-_DEFAULT_TEST_PASSWORD = "decepticon-graph"
-
-
-def _maybe_seed_defaults() -> None:
-    """If the developer hasn't set DECEPTICON_NEO4J_* but the compose
-    stack is running on localhost, fill in the compose defaults so the
-    integration suite "just works" on a normal dev box.
-
-    No-op when any var is already set — explicit values always win.
-    """
-    if not os.environ.get("DECEPTICON_NEO4J_URI"):
-        os.environ.setdefault("DECEPTICON_NEO4J_URI", _DEFAULT_TEST_URI)
-    if not os.environ.get("DECEPTICON_NEO4J_USER"):
-        os.environ.setdefault("DECEPTICON_NEO4J_USER", _DEFAULT_TEST_USER)
-    if not os.environ.get("DECEPTICON_NEO4J_PASSWORD"):
-        os.environ.setdefault("DECEPTICON_NEO4J_PASSWORD", _DEFAULT_TEST_PASSWORD)
-
 
 @pytest.fixture(scope="session")
 def kgstore() -> Iterator[KGStore]:
-    """A live :class:`KGStore` against compose Neo4j.
-
-    Skips the test when env vars are missing or the driver cannot
-    open / round-trip a trivial query.
-    """
-    _maybe_seed_defaults()
+    """A live KGStore against explicitly configured Neo4j."""
+    missing = [
+        key
+        for key in ("DECEPTICON_NEO4J_URI", "DECEPTICON_NEO4J_USER", "DECEPTICON_NEO4J_PASSWORD")
+        if not os.environ.get(key)
+    ]
+    if missing:
+        pytest.fail("Explicit live Neo4j configuration required: " + ", ".join(missing))
 
     # Single try-block keeps ``store`` definition + smoke check together
     # so CodeQL doesn't flag ``store.close()`` as touching a possibly
@@ -74,11 +56,11 @@ def kgstore() -> Iterator[KGStore]:
     except KGStoreConfigError as exc:
         if store is not None:
             store.close()
-        pytest.skip(f"DECEPTICON_NEO4J_* not configured: {exc}")
+        pytest.fail(f"Live Neo4j configuration invalid: {exc}")
     except Exception as exc:  # pragma: no cover — depends on live service
         if store is not None:
             store.close()
-        pytest.skip(f"Neo4j not reachable for KG integration tests: {exc}")
+        pytest.fail(f"Live Neo4j unavailable: {type(exc).__name__}")
 
     # ``store`` is guaranteed non-None here: every except path above
     # calls ``pytest.skip`` which raises. The assert narrows the type

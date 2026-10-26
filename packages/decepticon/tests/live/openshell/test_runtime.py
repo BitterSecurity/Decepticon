@@ -17,10 +17,6 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from uuid import uuid4
 
 import pytest
-
-if not os.environ.get("DECEPTICON_OPENSHELL_TEST_ENDPOINT"):
-    pytest.skip("explicit disposable OpenShell test gateway required", allow_module_level=True)
-
 from langchain_nvidia_openshell import OpenShellSandbox as UpstreamBackend
 from openshell import SandboxClient
 from openshell._proto import openshell_pb2 as pb
@@ -30,6 +26,10 @@ from decepticon.backends.openshell_sandbox import OpenShellAdmission, OpenShellS
 
 @pytest.fixture(scope="module")
 def live():
+    required = ["DECEPTICON_OPENSHELL_TEST_ENDPOINT", "DECEPTICON_OPENSHELL_TEST_HOST_IP"]
+    missing = [key for key in required if not os.environ.get(key)]
+    if missing:
+        pytest.fail("Explicit disposable OpenShell configuration required: " + ", ".join(missing))
     address = os.environ["DECEPTICON_OPENSHELL_TEST_HOST_IP"]
     hits = {"allowed": 0, "denied": 0}
 

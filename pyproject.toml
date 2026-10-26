@@ -143,6 +143,8 @@ testpaths = [
 ]
 markers = [
     "asyncio: mark test as async (pytest-asyncio)",
+    "live: explicitly enabled tests against externally provisioned services",
+    "integration: tests using owned local processes or HTTP fixtures",
     "slow: integration-style tests that hit wall-clock timeouts or otherwise take seconds; deselected from the PR fast lane",
 ]
 addopts = [

@@ -12,46 +12,14 @@ and parsed back out of tmux ``capture-pane`` output. The CWD group must:
 * still match every legitimately-emitted marker, including normal paths,
   paths with spaces, and non-zero exit codes.
 
-These tests pin the regex shape AND its behavior so future edits cannot
-silently re-introduce the non-greedy ``.+?`` collision footgun.
+These tests retain adversarial compatibility-parser cases. Native tmux command
+generations, not rendered PS1 text, own execution completion. Ordinary marker
+matching cases live in test_tmux_helpers.py.
 """
 
 from __future__ import annotations
 
 from decepticon.sandbox_kernel.tmux import PS1_PATTERN, _extract_output
-
-
-class TestPS1PatternShape:
-    def test_cwd_group_forbids_close_bracket_and_newline(self) -> None:
-        # Intent lock-in: the CWD group must be a negated character class
-        # that excludes ']' and newlines, not a non-greedy '.+?'. The
-        # latter relies on backtracking and on '.' not matching newlines
-        # by default — both fragile under capture-pane edge cases.
-        assert PS1_PATTERN.pattern == r"\[DCPTN:(\d+):([^\]\n]+)\]"
-
-
-class TestLegitimateMarkersStillMatch:
-    def test_canonical_workspace_marker(self) -> None:
-        m = PS1_PATTERN.search("[DCPTN:0:/workspace] ")
-        assert m is not None
-        assert m.group(1) == "0"
-        assert m.group(2) == "/workspace"
-
-    def test_nonzero_exit_code(self) -> None:
-        m = PS1_PATTERN.search("[DCPTN:127:/tmp] ")
-        assert m is not None
-        assert m.group(1) == "127"
-        assert m.group(2) == "/tmp"
-
-    def test_path_with_spaces(self) -> None:
-        m = PS1_PATTERN.search("[DCPTN:0:/home/user/dir with space] ")
-        assert m is not None
-        assert m.group(2) == "/home/user/dir with space"
-
-    def test_path_with_dots_and_dashes(self) -> None:
-        m = PS1_PATTERN.search("[DCPTN:2:/var/log/.cache/foo-bar.d] ")
-        assert m is not None
-        assert m.group(2) == "/var/log/.cache/foo-bar.d"
 
 
 class TestBracketInPayloadDoesNotCorruptCount:

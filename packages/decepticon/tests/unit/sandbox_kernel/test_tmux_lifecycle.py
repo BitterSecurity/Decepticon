@@ -6,7 +6,7 @@ so manager methods are exercised with ``_tmux``/``_capture`` monkey-
 patched. Each test asserts a precise observable (parsed cwd, exit code,
 exact string, set membership), not just "no crash".
 
-Complements ``tests/unit/backends/test_docker_sandbox_helpers.py`` (which
+Complements ``tests/unit/sandbox_kernel/test_tmux_helpers.py`` (which
 covers the pure helpers at a coarser level) and the existing pipe-pane
 init tests under ``tests/unit/backends/``.
 """
@@ -20,49 +20,12 @@ import pytest
 
 from decepticon.sandbox_kernel.tmux import (
     MAX_OUTPUT_CHARS,
-    PS1_PATTERN,
     TmuxSessionManager,
     _extract_interactive_output,
     _extract_output,
     _interpret_exit_code,
     _truncate,
 )
-
-# ── PS1 marker counting (drives execute() completion detection) ────────
-
-
-class TestPS1MarkerCounting:
-    def test_zero_markers_in_plain_screen(self) -> None:
-        assert len(PS1_PATTERN.findall("just\noutput\nlines")) == 0
-
-    def test_single_marker(self) -> None:
-        screen = "ls\nfoo\n[DCPTN:0:/workspace] "
-        assert len(PS1_PATTERN.findall(screen)) == 1
-
-    def test_three_markers_in_long_session(self) -> None:
-        screen = (
-            "[DCPTN:0:/workspace] ls\n"
-            "a\nb\n"
-            "[DCPTN:0:/workspace] cd /tmp\n"
-            "[DCPTN:0:/tmp] false\n"
-            "[DCPTN:1:/tmp] "
-        )
-        matches = PS1_PATTERN.findall(screen)
-        assert len(matches) == 4
-        # Each captured tuple is (exit_code, cwd) — last is the latest prompt.
-        assert matches[-1] == ("1", "/tmp")
-        assert matches[0] == ("0", "/workspace")
-
-    def test_marker_with_nested_path(self) -> None:
-        match = PS1_PATTERN.search("[DCPTN:0:/workspace/a/b/c] ")
-        assert match is not None
-        assert match.group(2) == "/workspace/a/b/c"
-
-    def test_marker_with_high_exit_code(self) -> None:
-        match = PS1_PATTERN.search("[DCPTN:255:/var/log] ")
-        assert match is not None
-        assert match.group(1) == "255"
-
 
 # ── _extract_output additional paths ───────────────────────────────────
 
