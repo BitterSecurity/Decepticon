@@ -15,7 +15,7 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed — restrict domain wildcards to one DNS label across RoE and research scope checks. `*.example.com` permits `a.example.com`, while `a.b.example.com` needs an explicit rule. Exclusions use the same depth. Existing separately authorized apex rules remain; no automatic grant is added by matching. Review existing recursive exclusions before adopting this source revision: deeper exclusions must now be explicit. Consolidate full history and references into `CHAGELOG.md`. Source change only; SaaS/Desktop pins and releases are unchanged.
+- Proposed ([#1118](https://github.com/BitterSecurity/Decepticon/pull/1118)) — restrict domain wildcards to one DNS label across RoE and research scope checks. `*.example.com` permits `a.example.com`, while `a.b.example.com` needs an explicit rule. Exclusions use the same depth. Keep explicitly provided apex rules and stop Python/Go creation builders from adding an apex for wildcard-only input. Existing saved RoE entries are not rewritten. Review existing recursive exclusions before adopting this source revision: deeper exclusions must now be explicit. Consolidate full history and references into `CHAGELOG.md`. Source change only; SaaS/Desktop pins and releases are unchanged.
 
 - Released v2.1.1 — 2026-10-26: the sandbox image build fix (PR #1109) completes the v2.1.0 publication that was stopped on the Kali base-image drift (pip uninstall-no-record-file). The intermediate v2.1.0 PyPI wheels are immutable and remain; the v2.1.0 GitHub draft was superseded and never announced.
 

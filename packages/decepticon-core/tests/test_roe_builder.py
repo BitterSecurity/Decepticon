@@ -44,9 +44,13 @@ def test_cidr_normalized_to_network_address() -> None:
     assert roe["machine_enforcement"]["in_scope"] == ["10.0.0.0/24"]
 
 
-def test_wildcard_adds_apex() -> None:
+def test_wildcard_does_not_add_apex() -> None:
     roe = build_engagement_roe("eng", ["*.elice.io"])
-    assert roe["machine_enforcement"]["in_scope"] == ["*.elice.io", "elice.io"]
+    assert roe["machine_enforcement"]["in_scope"] == ["*.elice.io"]
+    rules = MachineEnforcement.from_dict(roe["machine_enforcement"])
+    assert evaluate_target("api.elice.io", rules).allow
+    assert not evaluate_target("elice.io", rules).allow
+    assert not evaluate_target("a.b.elice.io", rules).allow
 
 
 def test_wildcard_apex_deduped_with_explicit_target() -> None:

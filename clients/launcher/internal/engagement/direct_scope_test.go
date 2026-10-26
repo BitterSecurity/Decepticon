@@ -45,7 +45,7 @@ func TestCreateDirectEngagement_MachineScopeFromCreationData(t *testing.T) {
 	if doc.EngagementName != "direct-test" {
 		t.Fatalf("unexpected engagement name: %q", doc.EngagementName)
 	}
-	want := []string{"example.com", "*.corp.example.com", "corp.example.com"}
+	want := []string{"example.com", "*.corp.example.com"}
 	if fmt.Sprint(doc.MachineEnforcement.InScope) != fmt.Sprint(want) {
 		t.Fatalf("unexpected in_scope: %v", doc.MachineEnforcement.InScope)
 	}
@@ -195,7 +195,7 @@ func TestRenderScopePreview_ShowsGeneratedScope(t *testing.T) {
 	}
 	for _, want := range []string{
 		`Creating engagement "acme-2026"`,
-		"In scope (3): example.com, \\*.corp.example.com, corp.example.com",
+		"In scope (2): example.com, \\*.corp.example.com",
 		"Out of scope: secret.corp.example.com",
 		"Red enforces this scope on every tool call.",
 	} {

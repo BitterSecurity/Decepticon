@@ -305,15 +305,8 @@ def build_engagement_roe(
     in_scope = _dedupe_targets(targets)
     if not in_scope:
         raise ValueError("engagement RoE requires at least one in-scope target")
-    # A subdomain glob authorizes the operator's zone, and the apex is part of
-    # that zone — host matching would otherwise never reach the bare domain
-    # (``*.elice.io`` does not match ``elice.io``). Appended after the authored
-    # targets so operator entries keep their order.
-    in_scope += [
-        base
-        for pattern in list(in_scope)
-        if (base := wildcard_base_domain(pattern)) and base not in in_scope
-    ]
+    # A wildcard authorizes its matching labels only. An apex is included
+    # solely when the operator provided that host as a separate scope target.
     return {
         "engagement_name": engagement_name,
         "machine_enforcement": {

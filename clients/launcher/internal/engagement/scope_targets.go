@@ -101,23 +101,6 @@ func looksLikeIPv6(value string) bool {
 	return strings.Count(value, ":") > 1
 }
 
-func wildcardBaseDomain(pattern string) string {
-	value := strings.TrimSpace(pattern)
-	if !strings.HasPrefix(value, "*.") {
-		return ""
-	}
-	base := strings.ToLower(strings.TrimRight(value[2:], "."))
-	if base == "" || strings.ContainsAny(base, "*?:/") {
-		return ""
-	}
-	for _, part := range strings.Split(base, ".") {
-		if part == "" {
-			return ""
-		}
-	}
-	return base
-}
-
 func isDeadPattern(pattern string) bool {
 	if net.ParseIP(pattern) != nil {
 		return false
@@ -182,8 +165,8 @@ type scopeLists struct {
 }
 
 // buildScopeLists compiles creation inputs into the machine scope: operator
-// targets first (order preserved), a subdomain glob's apex appended, denylist
-// passed through. An engagement with no surviving in-scope target is an error
+// targets first (order preserved), without implicitly adding wildcard apexes.
+// The denylist is passed through. An engagement with no surviving in-scope target is an error
 // — the same fail-closed contract as the Python builder.
 func buildScopeLists(targets, outOfScope []string) (scopeLists, error) {
 	inScope, dropped, err := dedupeScopeTargets(splitScopeTargets(targets))
@@ -200,11 +183,6 @@ func buildScopeLists(targets, outOfScope []string) (scopeLists, error) {
 	lists := scopeLists{InScope: inScope, OutOfScope: outScope, Dropped: append(dropped, droppedOut...)}
 	if len(lists.InScope) == 0 {
 		return lists, fmt.Errorf("engagement scope requires at least one in-scope target")
-	}
-	for _, pattern := range append([]string(nil), lists.InScope...) {
-		if base := wildcardBaseDomain(pattern); base != "" && !containsString(lists.InScope, base) {
-			lists.InScope = append(lists.InScope, base)
-		}
 	}
 	return lists, nil
 }
