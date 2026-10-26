@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import posixpath
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import replace
+from types import SimpleNamespace
 from typing import Any
 
 from deepagents.backends.protocol import (
@@ -254,22 +257,31 @@ class EngagementFilesystemBackend(BackendProtocol):
         path = self._virtual(result.path or "") if result.path else None
         return replace(result, path=path) if path else result
 
-    def grep(self, pattern: str, path: str | None = None, glob: str | None = None) -> GrepResult:
+    def grep(
+        self,
+        pattern: str,
+        path: str | None = None,
+        glob: str | None = None,
+        *,
+        max_count: int | None = None,
+    ) -> GrepResult:
         self._ensure_root()
         try:
             real_path = self._real(path)
             safe_glob = self._glob(glob) if self._plan_only and glob is not None else glob
         except ValueError as e:
             return GrepResult(error=str(e))
-        result = self._backend.grep(pattern, path=real_path, glob=safe_glob)
+        count_options = {"max_count": max_count} if max_count is not None else {}
+        result = self._backend.grep(pattern, path=real_path, glob=safe_glob, **count_options)
         if result.error:
             return GrepResult(error=self._mask(result.error, real_path))
-        return GrepResult(
+        return replace(
+            result,
             matches=[
                 {**match, "path": mapped}
                 for match in result.matches or []
                 if (mapped := self._virtual(match.get("path", "")))
-            ]
+            ],
         )
 
     def grep_raw(
@@ -375,13 +387,87 @@ def _rebind_sandbox_per_run(backend: BackendProtocol, runtime: Any = None) -> Ba
     return backend
 
 
+class _RunScopedFilesystemBackend(BackendProtocol):
+    """A stable upstream backend instance with task-local engagement binding.
+
+    Deep Agents 0.7 tools read ``self.backend`` directly. Binding the backend
+    through a ContextVar keeps concurrent runs isolated without mutating the
+    shared middleware. Unbound access fails through the existing no-workspace
+    contract instead of reaching the construction-time sandbox.
+    """
+
+    def __init__(self, unbound: BackendProtocol) -> None:
+        self._unbound = unbound
+        self._active: ContextVar[EngagementFilesystemBackend | None] = ContextVar(
+            "decepticon_engagement_filesystem", default=None
+        )
+
+    @contextmanager
+    def bind(self, backend: EngagementFilesystemBackend):
+        token = self._active.set(backend)
+        try:
+            yield
+        finally:
+            self._active.reset(token)
+
+    def _current(self) -> EngagementFilesystemBackend:
+        backend = self._active.get()
+        return backend if backend is not None else EngagementFilesystemBackend(self._unbound, None)
+
+    def ls_info(self, path: str) -> list[FileInfo]:
+        return self._current().ls_info(path)
+
+    def ls(self, path: str) -> LsResult:
+        return self._current().ls(path)
+
+    def read(self, file_path: str, offset: int = 0, limit: int = 2000) -> ReadResult:
+        return self._current().read(file_path, offset, limit)
+
+    def write(self, file_path: str, content: str) -> WriteResult:
+        return self._current().write(file_path, content)
+
+    def edit(
+        self, file_path: str, old_string: str, new_string: str, replace_all: bool = False
+    ) -> EditResult:
+        return self._current().edit(file_path, old_string, new_string, replace_all)
+
+    def glob_info(self, pattern: str, path: str = "/") -> list[FileInfo]:
+        return self._current().glob_info(pattern, path)
+
+    def glob(self, pattern: str, path: str | None = None) -> GlobResult:
+        return self._current().glob(pattern, path)
+
+    def grep_raw(self, pattern: str, path: str | None = None, glob: str | None = None):
+        return self._current().grep_raw(pattern, path, glob)
+
+    def grep(
+        self,
+        pattern: str,
+        path: str | None = None,
+        glob: str | None = None,
+        *,
+        max_count: int | None = None,
+    ) -> GrepResult:
+        return self._current().grep(pattern, path, glob, max_count=max_count)
+
+    def download_files(self, paths: list[str]) -> list[FileDownloadResponse]:
+        return self._current().download_files(paths)
+
+
 class FilesystemMiddleware(BaseFilesystemMiddleware):
     """FilesystemMiddleware with Decepticon's bash tool as the only executor."""
 
     def __init__(self, *, plan_only: bool = False, **kwargs: object) -> None:
         super().__init__(**kwargs)  # type: ignore[arg-type]
         self._plan_only = plan_only
-        self.tools = filesystem_tools_without_execute(self.tools)
+        self._unscoped_backend = self.backend
+        self._scoped_backend = _RunScopedFilesystemBackend(self._unscoped_backend)
+        self.backend = self._scoped_backend
+
+    def _create_tools(self):
+        # Upstream can rebuild tools when cloning middleware with permissions.
+        # Keep the same restricted surface after that rebuild as at startup.
+        return filesystem_tools_without_execute(super()._create_tools())
 
     def _get_backend(self, runtime) -> BackendProtocol:
         # Resolve the sandbox transport PER-RUN (config.sandbox_url) before
@@ -389,7 +475,38 @@ class FilesystemMiddleware(BaseFilesystemMiddleware):
         # routes each engagement's filesystem ops to ITS OWN sandbox — matching
         # the bash tool. See _rebind_sandbox_per_run.
         return EngagementFilesystemBackend(
-            _rebind_sandbox_per_run(super()._get_backend(runtime), runtime),
+            _rebind_sandbox_per_run(self._unscoped_backend, runtime),
             _workspace_from_runtime(runtime),
             plan_only=self._plan_only,
         )
+
+    def wrap_tool_call(self, request, handler):
+        with self._scoped_backend.bind(self._get_backend(request.runtime)):
+            return super().wrap_tool_call(request, handler)
+
+    async def awrap_tool_call(self, request, handler):
+        with self._scoped_backend.bind(self._get_backend(request.runtime)):
+            return await super().awrap_tool_call(request, handler)
+
+    def wrap_model_call(self, request, handler):
+        with self._scoped_backend.bind(self._get_backend(self._model_runtime(request))):
+            return super().wrap_model_call(request, handler)
+
+    async def awrap_model_call(self, request, handler):
+        with self._scoped_backend.bind(self._get_backend(self._model_runtime(request))):
+            return await super().awrap_model_call(request, handler)
+
+    @staticmethod
+    def _model_runtime(request):
+        # Model Runtime has context/store, while ToolRuntime additionally has
+        # state/config. Keep model-side result/media offloading in the same
+        # engagement scope, including shared graphs and resumed runs.
+        from langgraph.config import get_config
+
+        config = getattr(request.runtime, "config", None)
+        if config is None:
+            try:
+                config = get_config()
+            except RuntimeError:
+                config = {}
+        return SimpleNamespace(state=request.state, config=config)

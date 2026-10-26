@@ -16,6 +16,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
+from deepagents.backends.protocol import BackendProtocol
 from langchain_core.messages import ToolMessage
 
 from decepticon.agents import build as build_module
@@ -195,7 +196,7 @@ def test_build_middleware_unknown_role_raises():
     with pytest.raises(KeyError, match="unknown role"):
         build_module.build_middleware(
             role="not-a-real-role",
-            backend=MagicMock(),
+            backend=MagicMock(spec=BackendProtocol),
             llm=MagicMock(),
         )
 
@@ -209,7 +210,7 @@ def test_build_middleware_accepts_explicit_slots_for_plugin_role():
             result = build_module.build_middleware(
                 role="decepticon-pro",  # not in SLOTS_PER_ROLE
                 slots=frozenset({MiddlewareSlot.PROMPT_CACHING}),
-                backend=MagicMock(),
+                backend=MagicMock(spec=BackendProtocol),
                 llm=MagicMock(),
                 fallback_models=None,
             )
@@ -226,7 +227,7 @@ def test_build_middleware_explicit_slots_overrides_role_default():
             result = build_module.build_middleware(
                 role="soundwave",  # OSS role with several slots by default
                 slots=frozenset({MiddlewareSlot.PROMPT_CACHING}),
-                backend=MagicMock(),
+                backend=MagicMock(spec=BackendProtocol),
                 llm=MagicMock(),
                 fallback_models=None,
             )
@@ -259,7 +260,7 @@ def test_build_middleware_applies_plugin_slot_replacement(monkeypatch):
         with patch.object(plugin_loader, "entry_points", return_value=[]):
             result = build_module.build_middleware(
                 role="soundwave",
-                backend=MagicMock(),
+                backend=MagicMock(spec=BackendProtocol),
                 llm=MagicMock(),
                 fallback_models=None,
                 disabled_slots=_HEAVY_SLOTS,
@@ -276,14 +277,14 @@ def test_build_middleware_disable_skips_slot(monkeypatch):
         with patch.object(plugin_loader, "entry_points", return_value=[]):
             with_caching = build_module.build_middleware(
                 role="soundwave",
-                backend=MagicMock(),
+                backend=MagicMock(spec=BackendProtocol),
                 llm=MagicMock(),
                 fallback_models=None,
                 disabled_slots=_HEAVY_SLOTS,
             )
             without_caching = build_module.build_middleware(
                 role="soundwave",
-                backend=MagicMock(),
+                backend=MagicMock(spec=BackendProtocol),
                 llm=MagicMock(),
                 fallback_models=None,
                 disabled_slots=_HEAVY_SLOTS | {MiddlewareSlot.PROMPT_CACHING},
@@ -414,7 +415,7 @@ def test_build_middleware_threads_skill_sources_to_skills_factory():
             build_module.build_middleware(
                 role="soundwave",
                 skill_sources=custom_paths,
-                backend=MagicMock(),
+                backend=MagicMock(spec=BackendProtocol),
                 llm=MagicMock(),
                 fallback_models=None,
                 overrides={MiddlewareSlot.SKILLS: fake_skills_factory},
@@ -462,7 +463,7 @@ def _build_skills_stack():
         with patch.object(plugin_loader, "entry_points", return_value=[]):
             return build_module.build_middleware(
                 role="soundwave",
-                backend=MagicMock(),
+                backend=MagicMock(spec=BackendProtocol),
                 llm=MagicMock(),
                 fallback_models=None,
                 disabled_slots=_HEAVY_SLOTS,
@@ -522,7 +523,7 @@ def _build_exploit_stack(**kwargs):
         with patch.object(plugin_loader, "entry_points", return_value=[]):
             return build_module.build_middleware(
                 role="exploit",
-                backend=MagicMock(),
+                backend=MagicMock(spec=BackendProtocol),
                 llm=MagicMock(),
                 fallback_models=None,
                 disabled_slots=disabled,

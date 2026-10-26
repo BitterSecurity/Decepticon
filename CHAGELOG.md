@@ -16,6 +16,7 @@ Keep proposed and unmerged changes out of released sections.
 ## [Unreleased]
 
 - Proposed ([#1118](https://github.com/BitterSecurity/Decepticon/pull/1118)) — restrict domain wildcards to one DNS label across RoE and research scope checks. `*.example.com` permits `a.example.com`, while `a.b.example.com` needs an explicit rule. Exclusions use the same depth. Keep explicitly provided apex rules and stop Python/Go creation builders from adding an apex for wildcard-only input. Existing saved RoE entries are not rewritten. Review existing recursive exclusions before adopting this source revision: deeper exclusions must now be explicit. Consolidate full history and references into `CHAGELOG.md`. Source change only; SaaS/Desktop pins and releases are unchanged.
+- Proposed agent-stack refresh ([#1119](https://github.com/BitterSecurity/Decepticon/pull/1119)): move the framework to Deep Agents 0.7.32, LangChain 1.4.7 and LangGraph 1.2.17. Preserve per-engagement filesystem/transport selection using task-local bindings after upstream removed backend factories and `_get_backend`; keep recursive delete unexposed until it has the same scope/RoE contract. Consolidate the complete version history into root `CHAGELOG.md` and update references. [Compatibility and validation](docs/validation/agent-stack-20261026.md). Source change only; no package release or SaaS deployment.
 
 - Released v2.1.1 — 2026-10-26: the sandbox image build fix (PR #1109) completes the v2.1.0 publication that was stopped on the Kali base-image drift (pip uninstall-no-record-file). The intermediate v2.1.0 PyPI wheels are immutable and remain; the v2.1.0 GitHub draft was superseded and never announced.
 
@@ -685,6 +686,7 @@ acceptance are separate from this OSS publication.
   during explicit reinstall.
 
 - Consolidate change tracking in this single `CHAGELOG.md`; remove the former
+- Consolidate change tracking in this single `CHANGELOG.md`; remove the former
   alternate entry point and update contributor/release instructions.
 
 - PR #1013 verification follow-up: format catalog tooling with repository Ruff
@@ -711,6 +713,7 @@ acceptance are separate from this OSS publication.
   [catalog maintenance](model-catalog/README.md).
 
 - Consolidate version history into the single root `CHAGELOG.md`, preserving
+- Consolidate version history into the single root `CHANGELOG.md`, preserving
   existing history and updating contributor guidance, links and tooling.
   Documentation only; no runtime or upgrade changes.
   [PR #1010](https://github.com/BitterSecurity/Decepticon/pull/1010).
@@ -842,6 +845,7 @@ acceptance are separate from this OSS publication.
   Optional legacy VR and benchmark contracts retain their
   separately documented integration boundaries. Add root change-tracking
   instructions while preserving the canonical CHAGELOG.md
+  instructions while preserving the canonical CHANGELOG.md
   history and release automation. Included in v1.5.0.
 - Regenerate the checked-in Skillogy graph from the changed skill corpus so
   retrieval metadata and the deterministic CI build gate match the source (#999).

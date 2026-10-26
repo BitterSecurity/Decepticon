@@ -9,6 +9,7 @@ from collections.abc import Iterator
 from pathlib import Path
 from typing import Annotated, Any, TypedDict
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 from langchain_core.messages import AIMessage, BaseMessage
@@ -112,8 +113,28 @@ def remote(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[dict]:
 
         client.event_hooks["request"].append(select_mount)
         backend = build_sandbox_backend({"configurable": {"sandbox_url": f"http://{host}"}})
-        backend._client = client
-        clients.append(client)
+
+        def forward(request: httpx.Request, client: Any = client) -> httpx.Response:
+            # Starlette may use httpx2 internally. The real sandbox transport
+            # uses httpx, so preserve that client's response/exception contract
+            # while retaining the actual ASGI daemon and file IO below it.
+            response = client.request(
+                request.method,
+                str(request.url),
+                content=request.content,
+                headers=dict(request.headers),
+            )
+            return httpx.Response(
+                response.status_code,
+                headers=response.headers,
+                content=response.content,
+                request=request,
+            )
+
+        backend._client = httpx.Client(
+            base_url=f"http://{host}", transport=httpx.MockTransport(forward)
+        )
+        clients.extend([client, backend._client])
     partitions = []
     graph = KnowledgeGraph()
     graph.upsert_node(Node.make(NodeKind.VULNERABILITY, "Owned fixture", file="fixture.py", line=1))
