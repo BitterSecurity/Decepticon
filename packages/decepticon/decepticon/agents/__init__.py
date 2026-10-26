@@ -14,7 +14,6 @@ if TYPE_CHECKING:
     from decepticon.agents.standard.ad_operator import create_ad_operator_agent
     from decepticon.agents.standard.analyst import create_analyst_agent
     from decepticon.agents.standard.autohunt import create_autohunt_agent
-    from decepticon.agents.standard.blue_cell import create_blue_cell_agent
     from decepticon.agents.standard.cloud_hunter import create_cloud_hunter_agent
     from decepticon.agents.standard.contract_auditor import create_contract_auditor_agent
     from decepticon.agents.standard.decepticon import create_decepticon_agent
@@ -47,7 +46,6 @@ _FACTORY_MODULES: Final[dict[str, str]] = {
     "create_phisher_agent": "decepticon.agents.standard.phisher",
     "create_mobile_operator_agent": "decepticon.agents.standard.mobile_operator",
     "create_wireless_operator_agent": "decepticon.agents.standard.wireless_operator",
-    "create_blue_cell_agent": "decepticon.agents.standard.blue_cell",
     "create_osint_operator_agent": "decepticon.agents.standard.osint_operator",
     "create_iot_operator_agent": "decepticon.agents.standard.iot_operator",
     "create_ics_operator_agent": "decepticon.agents.standard.ics_operator",
@@ -76,7 +74,6 @@ __all__ = [
     "create_phisher_agent",
     "create_mobile_operator_agent",
     "create_wireless_operator_agent",
-    "create_blue_cell_agent",
     # WAVE-3 specialists — lit up over the pre-existing skill trees.
     "create_osint_operator_agent",
     "create_iot_operator_agent",

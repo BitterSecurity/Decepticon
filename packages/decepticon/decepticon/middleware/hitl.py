@@ -313,8 +313,20 @@ class HITLApprovalMiddleware(AgentMiddleware):
         *,
         engagement_name: str = "",
         agent_name: str = "",
+        tool_policy: dict[str, str] | None = None,
     ) -> None:
+        """``tool_policy`` — per-tool policy map from the run's configurable.
+
+        Claude Code pattern (builtinToolPolicy): explicit per-tool policies
+        combine with the technique-tag rules. Resolution per tool call:
+        explicit tool_policy entry wins; otherwise the technique/pattern
+        rules apply; unknown tools follow the default-on (no gate) path.
+        Values: "allow" (pre-approved), "ask" (always gate), "deny"
+        (blocked). SAFETY_CRITICAL tools ignore "allow" — they always ask.
+        """
         super().__init__()
+        self._tool_policy = {k: v for k, v in (tool_policy or {}).items()
+                             if v in ("allow", "ask", "deny")}
         self._policy = policy
         # Static transport (tests / single-process UIs). When None, the
         # transport is resolved per request from the request's workspace
@@ -344,6 +356,28 @@ class HITLApprovalMiddleware(AgentMiddleware):
         )
         self._transport_cache[workspace] = transport
         return transport
+
+    def _tool_policy_decision(self, tool_name: str) -> str | None:
+        from decepticon.agents.build import SAFETY_CRITICAL_TOOLS  # noqa: PLC0415 — lazy to avoid a cycle
+        """Return the per-tool policy for ``tool_name`` or None.
+
+        SAFETY_CRITICAL tools ignore "allow" — their pre-approval bypasses
+        the gate, so they are downgraded to "ask" here.
+        """
+        value = self._tool_policy.get(tool_name)
+        if value == "allow" and tool_name in SAFETY_CRITICAL_TOOLS:
+            return "ask"
+        return value or None
+
+    def _policy_denial(self, tool_name: str) -> ToolMessage:
+        """Structured denial for tool_policy=deny — no transport round-trip."""
+        tool_call_id = ""
+        return ToolMessage(
+            content=f"tool_policy denies {tool_name}; execution blocked by operator configuration",
+            tool_call_id=tool_call_id,
+            name=tool_name,
+            status="error",
+        )
 
     def _match_rule(self, tool_name: str, technique_tag: str | None) -> ApprovalPolicyRule | None:
         for rule in self._policy:
@@ -459,9 +493,23 @@ class HITLApprovalMiddleware(AgentMiddleware):
         tool = getattr(request, "tool", None)
         tool_name = getattr(tool, "name", "") if tool else ""
         tool_args = getattr(request, "tool_call_args", {}) or {}
+        # Per-tool policy gate (Claude Code builtinToolPolicy pattern):
+        # explicit deny returns a structured refusal without touching the
+        # transport; explicit ask forces the gate even without a rule.
+        policy = self._tool_policy_decision(tool_name)
+        if policy == "deny":
+            return self._policy_denial(tool_name)
         rule = self._match_rule(tool_name, self._technique_tag(request))
         if rule is None:
-            return handler(request)
+            if policy == "ask":
+                rule = ApprovalPolicyRule(
+                    tool_pattern=re.escape(tool_name),
+                    timeout_seconds=300.0,
+                    default_on_timeout="deny",
+                    reason=f"tool_policy sets {tool_name} to ask",
+                )
+            else:
+                return handler(request)
         transport = self._resolve_transport(request)
         appr = self._build_request(tool_name, tool_args, rule, request)
         transport.submit(appr)
@@ -473,9 +521,20 @@ class HITLApprovalMiddleware(AgentMiddleware):
         tool = getattr(request, "tool", None)
         tool_name = getattr(tool, "name", "") if tool else ""
         tool_args = getattr(request, "tool_call_args", {}) or {}
+        policy = self._tool_policy_decision(tool_name)
+        if policy == "deny":
+            return self._policy_denial(tool_name)
         rule = self._match_rule(tool_name, self._technique_tag(request))
         if rule is None:
-            return await handler(request)
+            if policy == "ask":
+                rule = ApprovalPolicyRule(
+                    tool_pattern=re.escape(tool_name),
+                    timeout_seconds=300.0,
+                    default_on_timeout="deny",
+                    reason=f"tool_policy sets {tool_name} to ask",
+                )
+            else:
+                return await handler(request)
         import asyncio
 
         transport = self._resolve_transport(request)

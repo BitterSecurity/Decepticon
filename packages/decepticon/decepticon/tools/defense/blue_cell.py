@@ -26,11 +26,11 @@ import time
 from pathlib import Path
 from typing import Any
 
+from autobot.bluecell.rule_match import RuleMatcher, load_rules
+from autobot.bluecell.tap import BlueCellTap
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 
-from decepticon.blue_cell.rule_match import RuleMatcher, load_rules
-from decepticon.blue_cell.tap import BlueCellTap
 from decepticon.tools.research._state import _json, graph_transaction
 from decepticon_core.types.kg import Edge, EdgeKind, KnowledgeGraph, Node, NodeKind
 

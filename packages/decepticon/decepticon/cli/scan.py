@@ -39,14 +39,27 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from decepticon.blue_cell.engagement_config import (
-    build_local_target_config,
-    config_path,
-    materialize_blue_config,
-)
 from decepticon.roe_materialization import materialize_engagement_roe
 
 log = logging.getLogger(__name__)
+
+
+def _bluecell():
+    """Resolve the blue engagement-configuration module (optional dependency).
+
+    The module moved to the AutoBot package (migration stage 2c). Without it
+    installed the blue engagement surfaces fail with a clean install hint
+    instead of breaking the CLI import — Blue observation is optional.
+    """
+    try:
+        from autobot.bluecell import engagement_config
+    except ImportError as exc:  # pragma: no cover - install-shape dependent
+        raise RuntimeError(
+            "Blue engagement configuration requires the AutoBot package. "
+            "Install it with: pip install decepticon[blue]  (or install "
+            "autobot from the BitterSecurity/AutoBot repository)"
+        ) from exc
+    return engagement_config
 
 
 EXIT_OK = 0
@@ -309,11 +322,12 @@ def main(argv: list[str] | None = None) -> int:
     if args.blue_target:
         # Blue observation is optional: the engagement runs fine without it.
         # Fail closed on a broken blue configuration, never on its absence.
-        reviewed = config_path(engagement_name).exists()
+        _bc = _bluecell()
+        reviewed = _bc.config_path(engagement_name).exists()
         try:
-            materialize_blue_config(
+            _bc.materialize_blue_config(
                 engagement_name,
-                build_local_target_config(
+                _bc.build_local_target_config(
                     args.blue_target,
                     logs=[args.blue_logs] if args.blue_logs else None,
                 ),
@@ -327,7 +341,7 @@ def main(argv: list[str] | None = None) -> int:
                 file=sys.stderr,
             )
         else:
-            print(f"blue configuration: {config_path(engagement_name)}", file=sys.stderr)
+            print(f"blue configuration: {_bc.config_path(engagement_name)}", file=sys.stderr)
 
     mode_cfg = _MODE_DEFAULTS[args.scan_mode]
     timeout = args.timeout or mode_cfg["timeout"]

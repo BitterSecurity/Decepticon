@@ -104,6 +104,12 @@ telemetry = [
 # pyjwt[crypto] backs the JWT (OAuth 2.1 resource-server) auth mode on the
 # streamable-http transport; shared-secret + stdio modes never import it.
 mcp = ["mcp>=1.30.0,<2", "pyjwt[crypto]>=2.10"]
+# The ``blue`` extra (the AutoBot package — the defensive sibling) arrives
+# with AutoBot's first PyPI release; declaring it before that would break
+# resolution for every user (the name is not on PyPI yet). Until then,
+# install autobot from BitterSecurity/AutoBot — the blue_cell graph is
+# discovered via the ``decepticon.agents`` entry-point when installed
+# (migration stage 2c, design doc §0.3/§0.5).
 all = ["decepticon[neo4j,telemetry,mcp]"]
 
 [project.scripts]
@@ -172,7 +178,6 @@ postexploit = "decepticon.agents.standard.postexploit:SUBAGENT_SPEC"
 phisher = "decepticon.agents.standard.phisher:SUBAGENT_SPEC"
 mobile_operator = "decepticon.agents.standard.mobile_operator:SUBAGENT_SPEC"
 wireless_operator = "decepticon.agents.standard.wireless_operator:SUBAGENT_SPEC"
-blue_cell = "decepticon.agents.standard.blue_cell:SUBAGENT_SPEC"
 osint_operator = "decepticon.agents.standard.osint_operator:SUBAGENT_SPEC"
 iot_operator = "decepticon.agents.standard.iot_operator:SUBAGENT_SPEC"
 ics_operator = "decepticon.agents.standard.ics_operator:SUBAGENT_SPEC"

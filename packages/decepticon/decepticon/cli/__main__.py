@@ -43,7 +43,14 @@ def main(argv: list[str] | None = None) -> int:
     if sub == "audit":
         return audit_main(rest)
     if sub == "blue-engagement":
-        return blue_engagement_main(rest)
+        try:
+            return blue_engagement_main(rest)
+        except RuntimeError as error:
+            # Blue is an optional capability (the AutoBot package). A missing
+            # or broken blue dependency surfaces as a clean install hint,
+            # never a traceback.
+            print(f"blue-engagement: {error}", file=sys.stderr)
+            return 2
     if sub == "zip":
         return zip_main(rest)
     if sub == "export-transcript":

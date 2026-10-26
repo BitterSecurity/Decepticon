@@ -14,7 +14,6 @@
     "contract_auditor": "./packages/decepticon/decepticon/agents/standard/contract_auditor.py:graph",
     "cloud_hunter": "./packages/decepticon/decepticon/agents/standard/cloud_hunter.py:graph",
     "ad_operator": "./packages/decepticon/decepticon/agents/standard/ad_operator.py:graph",
-    "blue_cell": "./packages/decepticon/decepticon/agents/standard/blue_cell.py:graph",
     "phisher": "./packages/decepticon/decepticon/agents/standard/phisher.py:graph",
     "mobile_operator": "./packages/decepticon/decepticon/agents/standard/mobile_operator.py:graph",
     "wireless_operator": "./packages/decepticon/decepticon/agents/standard/wireless_operator.py:graph",

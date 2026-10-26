@@ -43,7 +43,9 @@ STANDARD_GRAPHS: dict[str, str] = {
     "contract_auditor": "./decepticon/agents/standard/contract_auditor.py:graph",
     "cloud_hunter": "./decepticon/agents/standard/cloud_hunter.py:graph",
     "ad_operator": "./decepticon/agents/standard/ad_operator.py:graph",
-    "blue_cell": "./decepticon/agents/standard/blue_cell.py:graph",
+    # blue_cell is no longer in-tree: the defensive sibling package
+    # (BitterSecurity/AutoBot) exports it via the ``decepticon.graphs``
+    # entry-point and is discovered below when installed (``decepticon[blue]``).
     "phisher": "./decepticon/agents/standard/phisher.py:graph",
     "mobile_operator": "./decepticon/agents/standard/mobile_operator.py:graph",
     "wireless_operator": "./decepticon/agents/standard/wireless_operator.py:graph",
