@@ -21,7 +21,7 @@ Neo4j) see the umbrella [`README.md`](../README.md).
 
 Spec §6.2 defines the SemVer-stable surface plugin authors and
 library consumers can rely on from v1.1.2 onward (the current
-release series — see [CHAGELOG.md](../CHAGELOG.md)):
+release series — see [CHANGELOG.md](../CHANGELOG.md)):
 
 ```python
 from decepticon.agents import (

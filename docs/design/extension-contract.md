@@ -134,7 +134,7 @@ Consumers must pin compatible core/framework/SDK and immutable image/source
 revisions. A downstream adapter on an older Objective schema needs an explicit
 compatibility strategy rather than assuming new fields exist. Existing workflow
 pins retain their source; new runs adopt new versions. Record proposed, merged
-and released changes separately in the single root CHAGELOG.md; a merge is not
+and released changes separately in the single root CHANGELOG.md; a merge is not
 a deployment and SaaS image versions are independent of OSS package versions.
 
 ## Extension recipes and meaningful verification

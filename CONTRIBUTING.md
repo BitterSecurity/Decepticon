@@ -61,7 +61,7 @@ Use the [Feature Request](https://github.com/BitterSecurity/Decepticon/issues/ne
    - `chore:` — maintenance
    - `refactor:` — code restructuring
 5. **Record every PR**, including docs/maintenance, under `[Unreleased]` in
-   single root [CHAGELOG.md](CHAGELOG.md), preserving full history and including
+   single root [CHANGELOG.md](CHANGELOG.md), preserving full history and including
    the PR link. Maintainers use the
    actual publication date when moving released changes to a version section.
 6. **Open a PR** against `main` with a clear description of what and why.

@@ -181,7 +181,7 @@ still waiting in the local queue are not submitted after exit.
    This does not switch back to Red; use `/mode red` explicitly when appropriate.
 
 These commands describe current `main`, including unreleased changes. Compare
-`/version` with [version history](../CHAGELOG.md); merging source does not update
+`/version` with [version history](../CHANGELOG.md); merging source does not update
 an installed launcher or CLI image. See [upgrade behavior](cli-experience.md#upgrade-behavior).
 
 These conveniences follow the official [Claude Code commands](https://code.claude.com/docs/en/commands),

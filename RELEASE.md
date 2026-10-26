@@ -91,7 +91,7 @@ authorization to publish; follow the user's or maintainer's actual release scope
 ## 4. Publication and change history
 
 1. Before every PR (including maintenance/docs), update root
-   single [CHAGELOG.md](CHAGELOG.md), preserving full history, with PR
+   single [CHANGELOG.md](CHANGELOG.md), preserving full history, with PR
    links and compatibility/upgrade notes. Pending work stays under Unreleased;
    linked PR state distinguishes proposed from merged. Preserve historical entries.
 2. Record the selected SHA and version rationale. Tag only after pre-tag gates:
@@ -112,7 +112,7 @@ authorization to publish; follow the user's or maintainer's actual release scope
    push or from a single green build job.
 5. **After actual publication**, move only included merged entries to
    `[X.Y.Z] — YYYY-MM-DD`, using the real `published_at` date (UTC), and update
-   compare links in CHAGELOG.md. Do not invent a release date or
+   compare links in CHANGELOG.md. Do not invent a release date or
    mark a failed draft released. A small post-publication docs PR can record the
    real date; keep that post-tag documentation change under Unreleased and do not
    move the immutable tag to include it. No runtime version bump is needed.

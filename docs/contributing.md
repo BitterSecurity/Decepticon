@@ -5,7 +5,7 @@ For agents, skills, business workflows and client adapters, start with the
 
 For version selection, local product gates, publication, update channels and
 recovery, follow the [OSS release policy](../RELEASE.md). Every PR, including
-docs/maintenance, updates the single root [CHAGELOG.md](../CHAGELOG.md),
+docs/maintenance, updates the single root [CHANGELOG.md](../CHANGELOG.md),
 preserving full history, before opening or updating the PR.
 
 Contributions are welcome — whether you're a security researcher, AI engineer, or someone who cares about making defense better through offense.

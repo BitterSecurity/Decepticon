@@ -482,7 +482,7 @@ rate limit + never-touch deny-list + break-glass kill-switch. **G4는 자율에�
 ### 11.1 Phase 1 상세 작업 (단기 — 모노레포 내, 되돌리기 쉬움)
 
 순서대로. 각 작업은 독립 머지 가능하도록 테스트 동반. 모두 `feat/*` 태스크
-브랜치에서 수행(AGENTS.md: main 확인 후 분기, CHAGELOG Unreleased 기록).
+브랜치에서 수행(AGENTS.md: main 확인 후 분기, CHANGELOG Unreleased 기록).
 
 | # | 작업 | 산출/수용 기준 |
 |---|---|---|

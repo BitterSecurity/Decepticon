@@ -1,7 +1,7 @@
 # Versioned change tracking
 
 Before opening or updating any PR, including documentation or maintenance changes,
-update the single root `CHAGELOG.md` and link it from the PR description. Preserve
+update the single root `CHANGELOG.md` and link it from the PR description. Preserve
 the full existing history and release automation; do not create another changelog.
 Record user-visible changes, fixes and
 compatibility/upgrade notes with PR links under Unreleased; distinguish proposed,

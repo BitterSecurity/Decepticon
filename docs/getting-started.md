@@ -92,7 +92,7 @@ terminal scrollback. It does not create a new engagement. Leaving the chat
 disconnects its stream; waiting local messages are not submitted after exit.
 
 This guide describes current `main`; some controls are unreleased. Check
-[version history](../CHAGELOG.md) and [upgrade behavior](cli-experience.md#upgrade-behavior)
+[version history](../CHANGELOG.md) and [upgrade behavior](cli-experience.md#upgrade-behavior)
 against your installed version. See the [full command reference](cli-reference.md#slash-commands)
 for aliases and Blue sensor commands.
 

@@ -225,7 +225,7 @@ Tier 기반 자격증명-aware 폴백 체인. 사용 가능한 자격증명을 �
 | Neo4j 지식 그래프 | [지식 그래프](docs/knowledge-graph.md) |
 | 엔드투엔드 인게이지먼트 워크플로 | [인게이지먼트 워크플로](docs/engagement-workflow.md) |
 | 공격형 백신 루프 | [공격형 백신](docs/offensive-vaccine.md) |
-| 릴리즈 변경 내역 | [Changelog](CHAGELOG.md) |
+| 릴리즈 변경 내역 | [Changelog](CHANGELOG.md) |
 | Decepticon 기여하기 | [기여 가이드](docs/contributing.md) |
 
 ---

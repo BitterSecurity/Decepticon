@@ -9,7 +9,7 @@ design spec, §13.4).
 Before opening or updating a PR, record its changes and PR link under
 **Unreleased**. An open linked PR means proposed work; a merged linked PR means
 integrated but unreleased work. Only dated release sections describe shipped work.
-Maintain this single root `CHAGELOG.md`, preserving the full version history.
+Maintain this single root `CHANGELOG.md`, preserving the full version history.
 At release, move merged entries into a dated version section and add a comparison link.
 Keep proposed and unmerged changes out of released sections.
 
@@ -682,7 +682,7 @@ acceptance are separate from this OSS publication.
   run-directory mismatches before startup, and apply updated service settings
   during explicit reinstall.
 
-- Consolidate change tracking in this single `CHAGELOG.md`; remove the former
+- Consolidate change tracking in this single `CHANGELOG.md`; remove the former
   alternate entry point and update contributor/release instructions.
 
 - PR #1013 verification follow-up: format catalog tooling with repository Ruff
@@ -708,7 +708,7 @@ acceptance are separate from this OSS publication.
   No runtime network dependency, version bump or release. See
   [catalog maintenance](model-catalog/README.md).
 
-- Consolidate version history into the single root `CHAGELOG.md`, preserving
+- Consolidate version history into the single root `CHANGELOG.md`, preserving
   existing history and updating contributor guidance, links and tooling.
   Documentation only; no runtime or upgrade changes.
   [PR #1010](https://github.com/BitterSecurity/Decepticon/pull/1010).
@@ -839,7 +839,7 @@ acceptance are separate from this OSS publication.
   Workflow updates affect new executions; existing checkpoint pins remain stable.
   Optional legacy VR and benchmark contracts retain their
   separately documented integration boundaries. Add root change-tracking
-  instructions while preserving the canonical CHAGELOG.md
+  instructions while preserving the canonical CHANGELOG.md
   history and release automation. Included in v1.5.0.
 - Regenerate the checked-in Skillogy graph from the changed skill corpus so
   retrieval metadata and the deterministic CI build gate match the source (#999).
