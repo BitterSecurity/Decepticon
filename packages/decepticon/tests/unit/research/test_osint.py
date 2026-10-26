@@ -81,9 +81,10 @@ class TestScope:
     def test_exact_match(self) -> None:
         assert _is_in_scope("example.com", ["example.com"]) is True
 
-    def test_wildcard_matches_subdomain_and_apex(self) -> None:
+    def test_wildcard_matches_only_direct_subdomain(self) -> None:
         assert _is_in_scope("api.example.com", ["*.example.com"]) is True
-        assert _is_in_scope("example.com", ["*.example.com"]) is True
+        assert _is_in_scope("example.com", ["*.example.com"]) is False
+        assert _is_in_scope("a.b.example.com", ["*.example.com"]) is False
 
     def test_out_of_scope(self) -> None:
         assert _is_in_scope("evil.test", ["*.example.com"]) is False

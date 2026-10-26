@@ -127,7 +127,7 @@ Passive CT discovery uses the same normalization before querying.
   block; a provisioned file that already has one is honored (read, not
   regenerated) for one deprecation window. A legacy file with no
   `machine_enforcement` now **fails closed** instead of audit-only — this is a
-  **breaking change**, called out in `CHANGELOG.md`.
+  **breaking change**, called out in `CHAGELOG.md`.
 - A temporary escape hatch (`DECEPTICON_ROE_LEGACY_AUDIT=1`) may be offered for
   one minor version to restore audit-only for legacy files, then removed.
 

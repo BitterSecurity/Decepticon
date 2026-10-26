@@ -63,7 +63,7 @@ newline fallbacks remain available when a terminal cannot distinguish modifiers.
 ## Upgrade behavior
 
 The keyboard and slash command changes are merged into `main` and tracked under
-Unreleased in [version history](../CHANGELOG.md). They require a launcher/CLI image
+Unreleased in [version history](../CHAGELOG.md). They require a launcher/CLI image
 and, where applicable, Compose configuration containing the changes. Existing
 released images do not acquire the features simply because the source branch has
 changed. No release version is assigned here.

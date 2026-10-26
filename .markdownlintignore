@@ -3,6 +3,6 @@ node_modules/
 dist/
 build/
 .next/
-**/CHANGELOG.md
+**/CHAGELOG.md
 clients/web/public/
 packages/decepticon/decepticon/skills/standard/decepticon/engagement-bundle/

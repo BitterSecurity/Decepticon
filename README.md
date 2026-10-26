@@ -120,7 +120,7 @@ arguments. In the web terminal, use the dashboard's mode controls.
 
 The new shortcuts and slash conveniences above describe current `main`, including
 unreleased changes. A source merge does not update installed images. See
-[version history](CHANGELOG.md), the [complete CLI reference](docs/cli-reference.md#slash-commands)
+[version history](CHAGELOG.md), the [complete CLI reference](docs/cli-reference.md#slash-commands)
 and [upgrade behavior](docs/cli-experience.md#upgrade-behavior).
 
 ### Use from Claude Code or Codex
@@ -258,7 +258,7 @@ Configure via `decepticon onboard`. → **[Full model reference & fallback examp
 | Neo4j knowledge graph | [Knowledge Graph](docs/knowledge-graph.md) |
 | End-to-end engagement workflow | [Engagement Workflow](docs/engagement-workflow.md) |
 | Offensive Vaccine loop | [Offensive Vaccine](docs/offensive-vaccine.md) |
-| Release history | [Changelog](CHANGELOG.md) |
+| Release history | [Changelog](CHAGELOG.md) |
 | Contributing to Decepticon | [Contributing](docs/contributing.md) |
 
 ---
