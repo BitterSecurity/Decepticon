@@ -122,6 +122,10 @@ class ExecuteTmuxResponseModel(BaseModel):
     output: str
 
 
+class ExecuteTmuxAsyncResponseModel(ExecuteTmuxResponseModel):
+    background: bool = False
+
+
 class StartBackgroundRequest(BaseModel):
     command: str
     session: str = "main"
@@ -355,6 +359,32 @@ def execute_tmux(
         workspace_path=req.workspace_path,
     )
     return ExecuteTmuxResponseModel(output=output)
+
+
+@app.post("/execute_tmux_async", response_model=ExecuteTmuxAsyncResponseModel)
+async def execute_tmux_async(
+    req: ExecuteTmuxRequest,
+    _: Annotated[None, Depends(auth)],
+) -> ExecuteTmuxAsyncResponseModel:
+    """Use the canonical async waiter so auto-background jobs are registered."""
+    backend = _get_backend()
+    output = await backend.execute_tmux_async(
+        command=req.command,
+        session=req.session,
+        timeout=req.timeout,
+        is_input=req.is_input,
+        workspace_path=req.workspace_path,
+    )
+    effective_workspace = backend._normalize_workspace_path(
+        req.workspace_path or backend._workspace_path
+    )
+    job = backend._jobs.get(req.session, key=backend._manager_key(req.session, effective_workspace))
+    return ExecuteTmuxAsyncResponseModel(
+        output=output,
+        background=output.startswith("[AUTO-BACKGROUND]")
+        and job is not None
+        and job.status == "running",
+    )
 
 
 @app.post("/start_background", response_model=dict)
