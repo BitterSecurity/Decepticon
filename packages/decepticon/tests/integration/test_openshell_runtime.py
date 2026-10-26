@@ -41,7 +41,7 @@ def live():
                 self.end_headers()
                 self.wfile.write(b"controlled-fixture")
 
-            def log_message(self, *args):
+            def log_message(self, format: str, *args: object) -> None:
                 pass
 
         server = ThreadingHTTPServer((address, 0), Handler)
