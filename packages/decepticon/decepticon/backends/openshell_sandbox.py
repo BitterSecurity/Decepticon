@@ -30,7 +30,14 @@ class OpenShellSession(Protocol):
     @property
     def id(self) -> str: ...
 
-    def exec(self, command: Sequence[str], **kwargs: Any) -> Any: ...
+    def exec(
+        self,
+        command: Sequence[str],
+        *,
+        stdin: bytes | None = None,
+        timeout_seconds: int | None = None,
+        no_login_shell: bool = False,
+    ) -> Any: ...
 
 
 @dataclass(frozen=True)
