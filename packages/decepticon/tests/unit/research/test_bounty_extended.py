@@ -161,13 +161,17 @@ class TestBountyScopeCheck:
         assert result["in_scope"] is True
 
     @pytest.mark.parametrize("target", ["example.com", "a.b.example.com"])
-    def test_wildcard_rejects_apex_and_deeper_hosts(self, monkeypatch: pytest.MonkeyPatch, target: str) -> None:
+    def test_wildcard_rejects_apex_and_deeper_hosts(
+        self, monkeypatch: pytest.MonkeyPatch, target: str
+    ) -> None:
         _configure_kg(monkeypatch)
-        raw = bounty_scope_check.invoke({
-            "target": target,
-            "vuln_class": "ssrf",
-            "in_scope_domains": '["*.example.com"]',
-        })
+        raw = bounty_scope_check.invoke(
+            {
+                "target": target,
+                "vuln_class": "ssrf",
+                "in_scope_domains": '["*.example.com"]',
+            }
+        )
         assert json.loads(raw)["in_scope"] is False
 
     def test_exact_domain_match(self, monkeypatch: pytest.MonkeyPatch) -> None:

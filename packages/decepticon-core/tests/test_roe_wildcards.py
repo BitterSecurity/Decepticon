@@ -83,17 +83,20 @@ def test_path_url_exclusion_denies_whole_host() -> None:
     assert evaluate_target("decepticon.red", rules).reason_code == "OUT_OF_SCOPE"
 
 
-@pytest.mark.parametrize(("pattern", "host", "allowed"), [
-    ("*.example.com", "api.example.com", True),
-    ("*.example.com", "API.EXAMPLE.COM", True),
-    ("*.example.com", "example.com", False),
-    ("*.example.com", "a.b.example.com", False),
-    ("*.example.com", ".example.com", False),
-    ("*.example.com", "api.example.com.evil.test", False),
-    ("?.example.com", "a.example.com", True),
-    ("?.example.com", "ab.example.com", False),
-    ("?.example.com", "..example.com", False),
-])
+@pytest.mark.parametrize(
+    ("pattern", "host", "allowed"),
+    [
+        ("*.example.com", "api.example.com", True),
+        ("*.example.com", "API.EXAMPLE.COM", True),
+        ("*.example.com", "example.com", False),
+        ("*.example.com", "a.b.example.com", False),
+        ("*.example.com", ".example.com", False),
+        ("*.example.com", "api.example.com.evil.test", False),
+        ("?.example.com", "a.example.com", True),
+        ("?.example.com", "ab.example.com", False),
+        ("?.example.com", "..example.com", False),
+    ],
+)
 def test_domain_globs_respect_label_boundaries(pattern: str, host: str, allowed: bool) -> None:
     assert matches_domain_glob(pattern, host) is allowed
 
@@ -105,9 +108,11 @@ def test_deeper_host_requires_explicit_scope() -> None:
 
 
 def test_exclusion_wildcard_has_the_same_depth_limit() -> None:
-    rules = MachineEnforcement.from_dict({
-        "in_scope": ["a.example.com", "a.b.example.com"],
-        "out_of_scope": ["*.example.com"],
-    })
+    rules = MachineEnforcement.from_dict(
+        {
+            "in_scope": ["a.example.com", "a.b.example.com"],
+            "out_of_scope": ["*.example.com"],
+        }
+    )
     assert evaluate_target("a.example.com", rules).reason_code == "OUT_OF_SCOPE"
     assert evaluate_target("a.b.example.com", rules).allow
