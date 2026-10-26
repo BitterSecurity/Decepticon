@@ -56,7 +56,7 @@ services:
       interval: 5s
       timeout: 3s
       retries: 12
-      start_period: 300s
+      start_period: ${DECEPTICON_STARTUP_TIMEOUT_SECONDS:-600}s
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
@@ -395,14 +395,15 @@ services:
     # python urllib — same pattern as the litellm healthcheck. Runs entirely
     # inside the container so host OS (Linux / macOS / Windows) is irrelevant;
     # avoids relying on curl/wget being present in the langgraph base image.
-    # start_period covers a cold FastAPI + all-graph import on slower hosts
-    # after litellm flips healthy; retries is post-cushion grace.
+    # Honor the launcher's startup budget for cold FastAPI + all-graph imports.
+    # Readiness success still marks healthy immediately; failures after startup
+    # retain the normal retry budget. The launcher bounds the overall wait.
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:2024/ok')"]
       interval: 5s
       timeout: 3s
       retries: 12
-      start_period: 180s
+      start_period: ${DECEPTICON_STARTUP_TIMEOUT_SECONDS:-600}s
     networks:
       # decepticon-net: reach litellm, postgres, neo4j (infra plane).
       # sandbox-net: reach the sandbox container's HTTP daemon

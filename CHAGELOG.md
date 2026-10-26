@@ -15,6 +15,15 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed [PR #1090](https://github.com/BitterSecurity/Decepticon/pull/1090):
+  make LiteLLM and LangGraph healthcheck startup grace honor the launcher’s
+  validated `DECEPTICON_STARTUP_TIMEOUT_SECONDS` budget (default 600 seconds).
+  Preserve readiness probes, overall wait failures, post-start retries, data
+  and credentials. Share launcher/opscontrol budget normalization; integrate
+  with current main without selecting a release or changing downstream pins.
+  [Integration verification](docs/verification/startup-budget-integration-20261026.md).
+
+
 - Proposed [PR #1099](https://github.com/BitterSecurity/Decepticon/pull/1099): stop the search-closure middleware from turning greetings, operator questions and read-only status answers into unsolicited assessment runs. Track actual assessment work per interactive turn; preserve pending objectives and completed receipts across conversation, while retaining receipt/review/budget gates for assessment tools, checkpoint resume and explicit autonomous search requests. New checkpoint state is runtime-owned and optional; no data migration or workflow-pin reset is required.
 
 - Proposed [PR #1098](https://github.com/BitterSecurity/Decepticon/pull/1098): isolate two no-credential resolver tests from ambient OAuth intent and provider settings using the existing credential scrub helper. This fixes local release verification on configured developer machines; shipped authentication behavior and credentials are unchanged.

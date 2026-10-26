@@ -213,6 +213,14 @@ requests and retry delays; `DECEPTICON_STARTUP_TIMEOUT_SECONDS` remains availabl
 for genuinely slow graph initialization. Increasing it does not repair an
 unreachable published port.
 
+The same startup budget now controls LiteLLM and LangGraph's Compose healthcheck
+grace, so a fixed shorter health window cannot end startup first. Export a positive
+integer in the launcher's environment, for example
+`DECEPTICON_STARTUP_TIMEOUT_SECONDS=1200 decepticon start`. The default is 600
+seconds; invalid launcher values fall back to 600. A successful readiness probe
+marks the service healthy immediately, and the launcher still fails when its
+overall wait expires. Running Compose directly requires a valid duration value.
+
 For a host connectivity failure, check `LANGGRAPH_PORT` in the installation's
 `.env` and compare `docker port decepticon-langgraph 2024/tcp` with that value
 (use the corresponding container name for a named stack). Then test the host

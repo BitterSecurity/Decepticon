@@ -202,5 +202,8 @@ func ComposeCommandEnv() []string {
 	// Last-set-wins in child env so this OVERRIDES whatever the
 	// parent process inherited from .env or the operator's shell.
 	env = append(env, "COMPOSE_PROFILES=")
+	// Match --wait-timeout and normalize for the daemon too: different values
+	// change the Compose config hash and can recreate live services unexpectedly.
+	env = append(env, "DECEPTICON_STARTUP_TIMEOUT_SECONDS="+config.StartupTimeoutSeconds())
 	return env
 }
