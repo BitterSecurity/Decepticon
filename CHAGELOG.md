@@ -15,7 +15,7 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed test-lane cleanup: separate externally provisioned OpenShell/Neo4j tests behind explicit `--live`, require selected live services to be configured and healthy, consolidate duplicate tmux parser assertions and move framework boot checks out of SDK-only tests. Isolate benchmark unit tests from real stack health/cost calls; restore collected RoE network tests after removing unused legacy fixture methods. [Test structure](docs/testing.md). No production runtime change.
+- Proposed test-lane cleanup ([#1121](https://github.com/BitterSecurity/Decepticon/pull/1121)): separate externally provisioned OpenShell/Neo4j tests behind explicit `--live`, require selected live services to be configured and healthy, consolidate duplicate tmux parser assertions and move framework boot checks out of SDK-only tests. Isolate benchmark unit tests from real stack health/cost calls; restore collected RoE network tests after removing unused legacy fixture methods. [Test structure](docs/testing.md). No production runtime change.
 
 - Proposed opt-in OpenShell session transport ([#1120](https://github.com/BitterSecurity/Decepticon/pull/1120)): route the retained tmux/daemon contract through an admitted OpenShell SDK session, with per-request admission checks and no direct daemon HTTP fallback. Preserve existing defaults; keep the live listener override compatible with the HTTP server protocol; add stock-runtime tests for controlled network policy, sessions, interactive input, jobs and files. [Validation and remaining production gates](docs/validation/openshell-session-adapter-20261026.md). Depends on the agent-stack refresh; no E2B driver or production rollout.
 
