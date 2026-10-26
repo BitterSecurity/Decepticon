@@ -61,13 +61,14 @@ def test_passive_discovery_enriches_in_scope(workspace: Path) -> None:
     assert roe["machine_enforcement"]["in_scope"] == ["elice.io", "app.elice.io"]
 
 
-def test_wildcard_target_adds_apex_and_discovery(workspace: Path) -> None:
-    materialize_engagement_roe("eng5", ["*.elice.io"], fetch=_static_ct(["app.elice.io"]))
+def test_wildcard_target_keeps_only_one_label_discovery(workspace: Path) -> None:
+    materialize_engagement_roe(
+        "eng5", ["*.elice.io"], fetch=_static_ct(["app.elice.io", "deep.app.elice.io", "elice.io"])
+    )
     roe = json.loads(_roe_path(workspace).read_text())
     assert roe["machine_enforcement"]["in_scope"] == [
         "*.elice.io",
         "app.elice.io",
-        "elice.io",
     ]
 
 

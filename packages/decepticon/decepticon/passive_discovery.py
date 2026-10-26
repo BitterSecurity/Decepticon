@@ -21,6 +21,7 @@ from collections.abc import Callable
 from urllib.parse import quote
 
 from decepticon_core.types.roe import (
+    matches_domain_glob,
     normalize_scope_target,
     split_scope_targets,
     wildcard_base_domain,
@@ -110,5 +111,7 @@ def expand_targets(
         root = candidate if _is_plain_hostname(candidate) else wildcard_base_domain(candidate)
         if root:
             for host in discover_subdomains(root, fetch=fetch, timeout=timeout):
+                if wildcard_base_domain(candidate) and not matches_domain_glob(candidate, host):
+                    continue
                 out.setdefault(host, None)
     return list(out)
