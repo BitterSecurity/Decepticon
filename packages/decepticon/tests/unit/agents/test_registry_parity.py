@@ -191,7 +191,7 @@ def test_soundwave_factory_accepts_global_model_override() -> None:
 
     graph = create_soundwave_agent(
         llm=ChatOpenAI(model="auth/gpt-6-luna", api_key=SecretStr("schema-test")),
-        backend=StateBackend,
+        backend=StateBackend(),
         fallback_models=[],
     )
     assert "model_override" in graph.get_input_jsonschema()["properties"]

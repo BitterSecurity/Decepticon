@@ -46,12 +46,12 @@ dependencies = [
     "langchain-core>=0.3.0",
     "langchain-openai>=0.3.0",
     "langchain-anthropic>=0.3.0",
-    "langgraph>=1.0.0",
+    "langgraph>=1.2.17,<2",
     "langgraph-cli[inmem]>=0.2.0",
     "langgraph-sdk>=0.1.0",
     # HTTP
     "httpx>=0.27.0",
-    "deepagents>=0.5.0",
+    "deepagents>=0.7.32,<0.8",
     # Open-web engine (decepticon/sandbox_web) — runs inside the sandbox, which
     # mounts decepticon as /deps/decepticon, so its pure-Python parse deps ride
     # the main install set (same rationale as the FastAPI/uvicorn note below).
@@ -83,7 +83,7 @@ dependencies = [
     "certifi>=2026.10.19",
     "cryptography>=50.0.0",
     "starlette>=1.3.1",
-    "langchain>=1.3.9",
+    "langchain>=1.4.7,<2",
 ]
 
 [project.optional-dependencies]

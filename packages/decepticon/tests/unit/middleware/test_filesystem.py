@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import asyncio
 from types import SimpleNamespace
+from typing import Any
 
+import pytest
 from deepagents.backends import CompositeBackend
 from deepagents.backends.protocol import (
     EditResult,
@@ -14,6 +17,9 @@ from deepagents.backends.protocol import (
     WriteResult,
 )
 from deepagents.middleware.filesystem import FilesystemMiddleware as BaseFilesystemMiddleware
+from langchain.agents.middleware.types import ModelRequest, ModelResponse, ToolCallRequest
+from langchain_core.language_models.fake_chat_models import FakeListChatModel
+from langchain_core.messages import AIMessage, ToolMessage
 
 from decepticon.agents.middleware_slots import _make_filesystem
 from decepticon.backends.http_sandbox import HTTPSandbox
@@ -268,16 +274,168 @@ def test_scopes_glob_and_grep_without_exposing_real_engagement_path() -> None:
     assert backend.calls[-1] == ("grep_raw", ("target", "/workspace/test", None))
 
 
-def test_filesystem_middleware_removes_execute_without_rewriting_descriptions() -> None:
+def test_filesystem_middleware_omits_unscoped_execute_and_recursive_delete() -> None:
     base = BaseFilesystemMiddleware(backend=RecordingBackend())
     middleware = FilesystemMiddleware(backend=RecordingBackend())
     base_descriptions = {tool.name: tool.description for tool in base.tools}
     descriptions = {tool.name: tool.description for tool in middleware.tools}
 
     assert "execute" not in descriptions
+    assert "delete" in base_descriptions
+    assert "delete" not in descriptions
     assert descriptions == {
-        name: description for name, description in base_descriptions.items() if name != "execute"
+        name: description
+        for name, description in base_descriptions.items()
+        if name not in {"execute", "delete"}
     }
+
+
+def _read_request(middleware, workspace: str) -> Any:
+    tool = next(tool for tool in middleware.tools if tool.name == "read_file")
+    runtime = SimpleNamespace(
+        state={"workspace_path": workspace}, config={}, tool_call_id="read-" + workspace
+    )
+    return ToolCallRequest(
+        tool_call={
+            "name": "read_file",
+            "args": {"file_path": "/workspace/note.txt", "limit": 20},
+            "id": runtime.tool_call_id,
+            "type": "tool_call",
+        },
+        tool=tool,
+        state=runtime.state,
+        runtime=runtime,
+    )
+
+
+def test_upstream_file_tool_uses_bound_engagement_and_then_fails_closed() -> None:
+    backend = RecordingBackend()
+    middleware = FilesystemMiddleware(backend=backend)
+    for workspace in ("/workspace/first", "/workspace/second"):
+        request = _read_request(middleware, workspace)
+        result = middleware.wrap_tool_call(
+            request,
+            lambda req: getattr(req.tool, "func")(**req.tool_call["args"], runtime=req.runtime),
+        )
+        assert result.status == "success"
+        assert ("read", (workspace + "/note.txt", 0, 20)) in backend.calls
+    count = len(backend.calls)
+    assert "No engagement workspace" in middleware.backend.read("/workspace/note.txt").error
+    assert len(backend.calls) == count
+
+
+@pytest.mark.asyncio
+async def test_concurrent_upstream_tools_keep_independent_engagement_bindings() -> None:
+    backend = RecordingBackend()
+    middleware = FilesystemMiddleware(backend=backend)
+    both_ready = asyncio.Event()
+    entered = 0
+
+    async def handler(request):
+        nonlocal entered
+        entered += 1
+        if entered == 2:
+            both_ready.set()
+        await both_ready.wait()
+        return await request.tool.coroutine(**request.tool_call["args"], runtime=request.runtime)
+
+    results = await asyncio.gather(
+        *(
+            middleware.awrap_tool_call(_read_request(middleware, workspace), handler)
+            for workspace in ("/workspace/first", "/workspace/second")
+        )
+    )
+    assert all(result.status == "success" for result in results)
+    reads = [
+        args[0]
+        for operation, args in backend.calls
+        if operation == "read" and isinstance(args, tuple)
+    ]
+    assert sorted(reads) == ["/workspace/first/note.txt", "/workspace/second/note.txt"]
+    assert "No engagement workspace" in middleware.backend.read("/workspace/note.txt").error
+
+
+@pytest.mark.asyncio
+async def test_cancellation_clears_the_engagement_binding() -> None:
+    middleware = FilesystemMiddleware(backend=RecordingBackend())
+
+    async def cancelled(request):
+        raise asyncio.CancelledError
+
+    with pytest.raises(asyncio.CancelledError):
+        await middleware.awrap_tool_call(_read_request(middleware, "/workspace/first"), cancelled)
+    assert "No engagement workspace" in middleware.backend.read("/workspace/note.txt").error
+
+
+def test_model_side_file_access_uses_request_state_with_runtime_without_state() -> None:
+    backend = RecordingBackend()
+    middleware = FilesystemMiddleware(backend=backend)
+    request = ModelRequest(
+        model=FakeListChatModel(responses=["done"]),
+        messages=[],
+        tools=[],
+        state={"messages": [], "workspace_path": "/workspace/model-run"},
+        runtime=SimpleNamespace(config={}),
+    )
+
+    def handler(request):
+        assert middleware.backend.read("/workspace/note.txt").error is None
+        return ModelResponse(result=[AIMessage(content="done")])
+
+    middleware.wrap_model_call(request, handler)
+    assert ("read", ("/workspace/model-run/note.txt", 0, 2000)) in backend.calls
+    assert "No engagement workspace" in middleware.backend.read("/workspace/note.txt").error
+
+
+def test_upstream_grep_limit_reaches_the_current_engagement_backend() -> None:
+    limits = []
+
+    class LimitedBackend(RecordingBackend):
+        def grep(self, pattern, path=None, glob=None, *, max_count=None):
+            limits.append(max_count)
+            return super().grep(pattern, path, glob)
+
+    backend = LimitedBackend()
+    middleware = FilesystemMiddleware(backend=backend)
+    template = _read_request(middleware, "/workspace/grep-run")
+    tool = next(tool for tool in middleware.tools if tool.name == "grep")
+    request = template.override(
+        tool=tool,
+        tool_call={
+            "name": "grep",
+            "args": {"pattern": "target", "path": "/workspace", "max_count": 1},
+            "id": "grep-run",
+            "type": "tool_call",
+        },
+    )
+    middleware.wrap_tool_call(
+        request, lambda req: getattr(req.tool, "func")(**req.tool_call["args"], runtime=req.runtime)
+    )
+    assert limits == [1]
+    assert ("grep_raw", ("target", "/workspace/grep-run", None)) in backend.calls
+
+
+def test_large_tool_result_is_offloaded_inside_the_bound_engagement() -> None:
+    backend = RecordingBackend()
+    middleware = FilesystemMiddleware(backend=backend, tool_token_limit_before_evict=1)
+    request = _read_request(middleware, "/workspace/offload-run").override(
+        tool=None,
+        tool_call={"name": "bash", "args": {}, "id": "large-output", "type": "tool_call"},
+    )
+    result = middleware.wrap_tool_call(
+        request,
+        lambda req: ToolMessage(
+            content="diagnostic output " * 100, tool_call_id="large-output", name="bash"
+        ),
+    )
+    writes = [
+        args[0]
+        for operation, args in backend.calls
+        if operation == "write" and isinstance(args, tuple)
+    ]
+    assert "/workspace/offload-run/large_tool_results/large-output" in writes
+    assert "large_tool_results/large-output" in str(result)
+    assert "No engagement workspace" in middleware.backend.read("/workspace/note.txt").error
 
 
 def test_missing_engagement_workspace_fails_closed() -> None:

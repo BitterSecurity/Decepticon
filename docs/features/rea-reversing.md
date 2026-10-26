@@ -8,4 +8,4 @@ REA pins the binary bytes for its session. The OSS gateway saves the original Ev
 
 The shipped workload provides the Ghidra provider. Other REA providers require their own installed engines and are not implied by this OSS setup. REA performs static analysis; its result does not prove a runtime path executed. The OSS path does not mirror an agent-driven Ghidra GUI or preserve a user-edited Ghidra project. If the REA workload is unavailable, the Reverser can continue with its local radare2 and binary triage tools.
 
-See the [agent roster](../agents.md), [architecture](../architecture.md), and [changelog](../../CHANGELOG.md) for the surrounding OSS workflow.
+See the [agent roster](../agents.md), [architecture](../architecture.md), and [changelog](../../CHAGELOG.md) for the surrounding OSS workflow.
