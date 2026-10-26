@@ -72,12 +72,13 @@ with one expected skip for the unconfigured live module. Ruff lint/format passed
 the affected-file type check reported zero errors. These checks use the upgraded
 Deep Agents 0.7.32 environment.
 
-Reproduction: build `packages/decepticon/tests/integration/openshell.Dockerfile`
+Reproduction: build `packages/decepticon/tests/live/openshell/Dockerfile`
 through the shared build coordinator, run an explicit disposable stock Gateway,
 then set `DECEPTICON_OPENSHELL_TEST_ENDPOINT` and
-`DECEPTICON_OPENSHELL_TEST_HOST_IP` when running `test_openshell_runtime.py`.
+`DECEPTICON_OPENSHELL_TEST_HOST_IP` when running `pytest --live packages/decepticon/tests/live/openshell`.
 Install OpenShell SDK 0.1.5 and `langchain-nvidia-openshell` 0.1.1 in the test
-environment. Without the explicit endpoint the live module skips.
+environment. Ordinary collection excludes the live directory. Explicit live selection requires
+`--live`; missing configuration or a failed service fails that selected lane.
 
 ## Remaining production gates
 

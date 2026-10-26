@@ -821,13 +821,6 @@ class TestNetworkToolGating:
         assert not handler.called
         assert "FORBIDDEN_DESTINATION" in result.content
 
-    def __init__(self) -> None:
-        self.pushed: list = []
-
-    def provision_egress(self, policy) -> dict:
-        self.pushed.append(policy)
-        return {"applied": True, "detail": "ok"}
-
 
 class TestSlotRegistration:
     def test_slot_is_in_enum_and_safety_critical(self) -> None:

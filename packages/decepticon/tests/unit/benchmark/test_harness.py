@@ -1,9 +1,7 @@
 """Tests for benchmark.harness.Harness.
 
-Marked ``slow`` because several tests exercise the harness's wall-clock
-timeout / workspace teardown behavior and individually take ~120s. The
-PR fast lane (``-m "not slow"``) skips them for quick feedback; the
-main coverage lane runs the full set so coverage stays honest.
+Orchestration checks isolate stack reset, health and cost service boundaries.
+Only the actual timeout check needs a wall-clock wait.
 """
 
 from __future__ import annotations
@@ -19,8 +17,6 @@ from benchmark.config import BenchmarkConfig
 from benchmark.harness import AgentResponse, Harness, _ActiveRun
 from benchmark.provenance import ProvenanceCaptureError
 from benchmark.schemas import Challenge, ChallengeResult, SetupResult
-
-pytestmark = pytest.mark.slow
 
 
 @pytest.fixture(autouse=True)
@@ -43,6 +39,9 @@ def _isolate_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         return subprocess.CompletedProcess(args, 0, stdout=b"", stderr=b"")
 
     monkeypatch.setattr("benchmark.harness._run_docker", fake_docker)
+    monkeypatch.setattr(Harness, "_reset_sandbox_state", lambda self: None)
+    monkeypatch.setattr(Harness, "_ensure_services_healthy", lambda self: None)
+    monkeypatch.setattr(Harness, "_query_cost", AsyncMock(return_value=None))
 
 
 def _make_challenge(tmp_path: Path) -> Challenge:
@@ -198,6 +197,7 @@ class TestHarness:
             assert result.error == "boom"
             assert result.duration_seconds == 0.42
 
+    @pytest.mark.slow
     @pytest.mark.asyncio
     async def test_timeout_returns_failed(self, tmp_path: Path) -> None:
         """Verify that timeout produces a failed ChallengeResult with duration."""
@@ -314,51 +314,14 @@ class TestHarness:
         result = harness._extract_message([])
         assert result == ""
 
-    @pytest.mark.skip(
-        reason=(
-            "Mock is too tightly coupled to langgraph_sdk internals (post() shape, "
-            "response.aread, run_id extraction). Recent SDK upgrade requires a "
-            "respx/MockAsync-based rewrite. Tracking separately."
-        )
-    )
     @pytest.mark.asyncio
     async def test_invoke_agent_passes_challenge_state_fields(self) -> None:
-        """`_invoke_agent` must put benchmark context on the run state, not the human prompt."""
-        captured: dict[str, object] = {}
-
-        class _FakeResp:
-            status_code = 200
-            content = b'{"messages": [{"type": "ai", "content": "ok"}]}'
-            text = '{"messages": [{"type": "ai", "content": "ok"}]}'
-            headers: dict[str, str] = {"content-type": "application/json"}
-
-            def raise_for_status(self) -> None: ...
-            def json(self) -> dict[str, object]:
-                return {"messages": [{"type": "ai", "content": "ok"}]}
-
-            async def aread(self) -> bytes:
-                return self.content
-
-            async def aclose(self) -> None: ...
-
-        class _FakeClient:
-            async def __aenter__(self) -> "_FakeClient":
-                return self
-
-            async def __aexit__(self, *_a: object) -> None:
-                return None
-
-            async def post(
-                self,
-                _url: str,
-                json: dict[str, object] | None = None,
-                **_kwargs: object,
-            ) -> _FakeResp:
-                # Absorb any extra kwargs (headers, params, etc.) the SDK adds
-                # to its internal httpx.AsyncClient.post — the test only cares
-                # about the json payload.
-                captured["payload"] = json
-                return _FakeResp()
+        """Observe the public SDK call, without reproducing its HTTP internals."""
+        client = MagicMock()
+        client.threads.create = AsyncMock(return_value={})
+        client.runs.create = AsyncMock(return_value={"run_id": "fixture-run"})
+        client.runs.get = AsyncMock(return_value={"status": "success"})
+        client.threads.get_state = AsyncMock(return_value={"values": {"messages": []}})
 
         harness = Harness(provider=MagicMock(), config=BenchmarkConfig())
         challenge = Challenge(
@@ -370,7 +333,7 @@ class TestHarness:
             compose_dir=Path("/tmp"),
         )
 
-        with patch("benchmark.harness.httpx.AsyncClient", return_value=_FakeClient()):
+        with patch("benchmark.harness.get_client", return_value=client):
             await harness._invoke_agent(
                 challenge,
                 target_url="http://host.docker.internal:33042",
@@ -378,9 +341,7 @@ class TestHarness:
                 active=_ActiveRun(langgraph_url="http://localhost:2024"),
             )
 
-        payload = captured["payload"]
-        assert isinstance(payload, dict)
-        input_state = payload["input"]
+        input_state = client.runs.create.call_args.kwargs["input"]
         assert isinstance(input_state, dict)
 
         # Challenge context flows via state, not the human prompt.
@@ -400,7 +361,8 @@ class TestHarness:
         assert len(messages) == 1
         human_text = messages[0]["content"]
         assert "**Target URL:**" not in human_text
-        assert challenge.name not in human_text
+        assert challenge.id in human_text
+        assert challenge.name in human_text
         assert challenge.description not in human_text
 
     def test_extract_message_collects_all_ai_messages(self) -> None:

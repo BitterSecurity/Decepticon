@@ -1,18 +1,24 @@
-"""Framework import smoke — proves Phase 2.x.3 import rewrite landed
-cleanly across all 16 agent factories without needing the sandbox
-container or LiteLLM proxy.
-
-Closes the most-valuable subset of spec §14 acceptance #3 — full
-``pytest packages/decepticon/tests`` requires the live sandbox HTTP
-daemon for many integration tests, but the smoke here proves the
-mechanical import rewrite produced a working framework surface.
-
-Lives under decepticon-sdk/tests so it shares the existing pytest
-testpaths (the decepticon-sdk testing fakes already pull the
-framework in via the ``fixtures`` extra path).
-"""
+"""Framework import and isolated boot contracts; SDK-only tests stay independent."""
 
 from __future__ import annotations
+
+import os
+import subprocess
+import sys
+import textwrap
+
+
+def _fresh_boot(script: str) -> None:
+    env = dict(os.environ, PYTHONPATH=os.pathsep.join(sys.path))
+    env.pop("DECEPTICON_SKIP_BOOT", None)
+    result = subprocess.run(
+        [sys.executable, "-c", textwrap.dedent(script)],
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert result.returncode == 0, result.stderr
 
 
 def test_all_16_agent_factories_importable() -> None:
@@ -103,38 +109,26 @@ def test_framework_llm_importable() -> None:
 
 
 def test_compat_register_legacy_imports_idempotent() -> None:
-    """Re-calling register_legacy_imports() is a no-op (boot called it
-    once at framework import; explicit re-call must not re-warn)."""
-    import warnings
-
-    from decepticon.compat import register_legacy_imports
-
-    with warnings.catch_warnings(record=True) as ws:
-        warnings.simplefilter("always")
-        register_legacy_imports()  # second call after boot's
-        register_legacy_imports()  # third call
-    # No new DeprecationWarning emitted from the boot list (boot
-    # already fired its single one). The per-import warnings on the
-    # shim modules fire only on attribute access; nothing accessed
-    # here.
-    boot_warnings = [w for w in ws if "Phase 1 compat shims" in str(w.message)]
-    assert boot_warnings == [], (
-        f"register_legacy_imports() should be idempotent; got {len(boot_warnings)} repeat warnings"
-    )
+    _fresh_boot("""
+        import decepticon
+        import warnings
+        from decepticon.compat import register_legacy_imports
+        with warnings.catch_warnings(record=True) as captured:
+            warnings.simplefilter("always")
+            register_legacy_imports()
+            register_legacy_imports()
+        assert not [w for w in captured if "Phase 1 compat shims" in str(w.message)]
+    """)
 
 
-def test_role_registry_seeded_with_16_oss_roles() -> None:
-    """Framework boot pre-registers every OSS role per spec §8 gap #5."""
-    import decepticon  # boot fires
-
-    del decepticon  # silence unused-import lint
-
-    from decepticon_core.contracts.slots import SLOTS_PER_ROLE
-    from decepticon_core.registry import RoleRegistry
-
-    for role in SLOTS_PER_ROLE:
-        spec = RoleRegistry.get(role)
-        assert spec is not None, f"OSS role {role!r} missing from RoleRegistry"
+def test_role_registry_seeded_with_oss_roles() -> None:
+    _fresh_boot("""
+        import decepticon
+        from decepticon_core.contracts.slots import SLOTS_PER_ROLE
+        from decepticon_core.registry import RoleRegistry
+        for role in SLOTS_PER_ROLE:
+            assert RoleRegistry.get(role) is not None, role
+    """)
 
 
 def test_plugin_registry_finds_oss_subagents() -> None:
