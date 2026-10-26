@@ -34,6 +34,25 @@ _DEFAULT_SANDBOX_URL = "http://localhost:9999"
 _openshell_resolver: Callable[[Any], HTTPSandbox] | None = None
 
 
+class _UnboundOpenShellSandbox(HTTPSandbox):
+    """A graph-construction placeholder; it can never perform an operation."""
+
+    egress_authority = "openshell"
+
+    def __init__(self) -> None:
+        super().__init__("http://127.0.0.1:9999")
+
+    @property
+    def id(self) -> str:
+        return "openshell:unbound"
+
+    def _http(self):
+        raise RuntimeError("OpenShell run binding is required; direct HTTP is disabled")
+
+    def _request(self, method: str, path: str, **kwargs: Any):
+        raise RuntimeError("OpenShell run binding is required before execution")
+
+
 def configure_openshell_resolver(resolver: Callable[[Any], HTTPSandbox] | None) -> None:
     """Install a TRUSTED host resolver, never one supplied by agent config.
 
@@ -164,9 +183,17 @@ def build_sandbox_backend(config: Any = None) -> HTTPSandbox:
     """
     run_config = _run_config(config)
     configurable = run_config.get("configurable", {})
-    if isinstance(configurable, dict) and configurable.get("sandbox_provider") == "openshell":
+    host_provider = os.environ.get("DECEPTICON_SANDBOX_PROVIDER", "").strip()
+    if host_provider not in ("", "http", "openshell"):
+        raise RuntimeError("Unsupported host sandbox provider")
+    requested = configurable.get("sandbox_provider") if isinstance(configurable, dict) else None
+    if host_provider == "openshell" and requested not in (None, "openshell"):
+        raise RuntimeError("Host requires OpenShell; provider downgrade is disabled")
+    if host_provider == "openshell" or requested == "openshell":
         if _openshell_resolver is None:
             raise RuntimeError("OpenShell provider requires a trusted host admission resolver")
+        if not run_config:
+            return _UnboundOpenShellSandbox()
         from decepticon.backends.openshell_sandbox import OpenShellSandbox
 
         backend = _openshell_resolver(run_config)

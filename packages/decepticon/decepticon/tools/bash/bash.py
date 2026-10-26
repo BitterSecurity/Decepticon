@@ -272,6 +272,10 @@ def _sandbox_from_config(config: RunnableConfig | None) -> BashSandboxProtocol |
     Returns ``None`` when the config carries no sandbox endpoint (single-tenant
     / dev / OSS self-host), so the caller falls back to the process default.
     """
+    if os.environ.get("DECEPTICON_SANDBOX_PROVIDER", "").strip() == "openshell":
+        from decepticon.backends.factory import build_sandbox_backend
+
+        return build_sandbox_backend(config)
     configurable = (config or {}).get("configurable", {})
     if not isinstance(configurable, dict):
         return None

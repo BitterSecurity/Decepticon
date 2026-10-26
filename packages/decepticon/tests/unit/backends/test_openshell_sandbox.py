@@ -171,3 +171,41 @@ def test_bash_and_files_resolve_same_host_binding(admitted, monkeypatch):
     assert factory.build_sandbox_backend(config) is backend
     assert get_sandbox(config) is backend
     assert resolver.call_args.args[0] is config
+
+
+def test_host_provider_cannot_be_downgraded_by_run_config(admitted, monkeypatch):
+    backend, _, _ = admitted
+    resolver = Mock(return_value=backend)
+    monkeypatch.setattr(factory, "_openshell_resolver", resolver)
+    monkeypatch.setenv("DECEPTICON_SANDBOX_PROVIDER", "openshell")
+    with pytest.raises(RuntimeError, match="downgrade"):
+        factory.build_sandbox_backend(
+            {"configurable": {"sandbox_provider": "http", "sandbox_url": "http://wrong"}}
+        )
+    resolver.assert_not_called()
+
+
+def test_host_provider_intercepts_the_legacy_bash_url_shortcut(admitted, monkeypatch):
+    from decepticon.tools.bash.bash import get_sandbox
+
+    backend, session, _ = admitted
+    monkeypatch.setattr(factory, "_openshell_resolver", lambda _config: backend)
+    monkeypatch.setenv("DECEPTICON_SANDBOX_PROVIDER", "openshell")
+    config = {
+        "configurable": {"sandbox_url": "http://wrong", "openshell_binding_id": "host-binding"}
+    }
+    assert get_sandbox(config) is backend
+    session.exec.assert_not_called()
+
+
+def test_static_graph_placeholder_never_executes_or_opens_http(admitted, monkeypatch):
+    backend, session, _ = admitted
+    monkeypatch.setattr(factory, "_openshell_resolver", lambda _config: backend)
+    monkeypatch.setenv("DECEPTICON_SANDBOX_PROVIDER", "openshell")
+    placeholder = factory.build_sandbox_backend()
+    assert placeholder.id == "openshell:unbound"
+    with pytest.raises(RuntimeError, match="binding"):
+        placeholder.execute("must not run")
+    with pytest.raises(RuntimeError, match="direct HTTP"):
+        placeholder._http()
+    session.exec.assert_not_called()

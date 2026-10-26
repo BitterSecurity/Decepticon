@@ -251,3 +251,79 @@ def test_notified_set_evicts_oldest_when_capped() -> None:
     # Keys past the eviction window are retained.
     for kept in keys[5:]:
         assert kept in mw._notified
+
+
+def test_native_run_notifications_use_each_binding_and_never_the_construction_backend(monkeypatch):
+    from types import SimpleNamespace
+
+    from decepticon.backends import factory
+
+    initial = _sandbox_with_tracker("WRONG")
+    a, b = _sandbox_with_tracker("A-completed"), _sandbox_with_tracker("B-completed")
+    a.id, b.id = "openshell:a:generation", "openshell:b:generation"
+    for sandbox in (a, b):
+        sandbox._jobs.register("same-session", command="owned-job", initial_markers=0)
+        sandbox._jobs.mark_complete("same-session", exit_code=0)
+    backends = {"a": a, "b": b}
+    monkeypatch.setattr(
+        factory,
+        "build_sandbox_backend",
+        lambda config: backends[config["configurable"]["openshell_binding_id"]],
+    )
+    middleware = SandboxNotificationMiddleware(initial)
+
+    def runtime(binding):
+        return SimpleNamespace(
+            config={
+                "configurable": {"sandbox_provider": "openshell", "openshell_binding_id": binding}
+            }
+        )
+
+    first = middleware.before_model(_state(), runtime("a"))
+    second = middleware.before_model(_state(), runtime("b"))
+    assert "A-completed" in first["messages"][0].content
+    assert "B-completed" not in first["messages"][0].content
+    assert "B-completed" in second["messages"][0].content
+    assert middleware.before_model(_state(), runtime("a")) is None
+    initial.read_session_log_diff.assert_not_called()
+
+
+def test_parallel_native_notification_hooks_keep_same_named_jobs_separate(monkeypatch):
+    from types import SimpleNamespace
+
+    from decepticon.backends import factory
+
+    a, b = _sandbox_with_tracker("alpha-output"), _sandbox_with_tracker("beta-output")
+    a.id, b.id = "openshell:a:generation", "openshell:b:generation"
+    for sandbox in (a, b):
+        sandbox._jobs.register("main", command="done", initial_markers=0)
+        sandbox._jobs.mark_complete("main", exit_code=0)
+    monkeypatch.setattr(
+        factory,
+        "build_sandbox_backend",
+        lambda config: a if config["configurable"]["openshell_binding_id"] == "a" else b,
+    )
+    middleware = SandboxNotificationMiddleware(_sandbox_with_tracker("WRONG"))
+
+    async def run():
+        return await asyncio.gather(
+            *(
+                middleware.abefore_model(
+                    _state(),
+                    SimpleNamespace(
+                        config={
+                            "configurable": {
+                                "sandbox_provider": "openshell",
+                                "openshell_binding_id": binding,
+                            }
+                        }
+                    ),
+                )
+                for binding in ("a", "b")
+            )
+        )
+
+    first, second = asyncio.run(run())
+    assert "alpha-output" in first["messages"][0].content
+    assert "beta-output" not in first["messages"][0].content
+    assert "beta-output" in second["messages"][0].content
