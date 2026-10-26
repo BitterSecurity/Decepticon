@@ -74,9 +74,7 @@ _CORE_ORIGIN: dict[str, str] = {
 
 def _reexport_names() -> list[str]:
     """Public SDK names that must be identical to a core object."""
-    return sorted(
-        name for name in decepticon_sdk.__all__ if name not in _SDK_OWNED_ALLOWLIST
-    )
+    return sorted(name for name in decepticon_sdk.__all__ if name not in _SDK_OWNED_ALLOWLIST)
 
 
 def test_allowlist_subset_of_all() -> None:
