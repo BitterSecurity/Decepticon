@@ -104,7 +104,11 @@ telemetry = [
 # pyjwt[crypto] backs the JWT (OAuth 2.1 resource-server) auth mode on the
 # streamable-http transport; shared-secret + stdio modes never import it.
 mcp = ["mcp>=1.30.0,<2", "pyjwt[crypto]>=2.10"]
-all = ["decepticon[neo4j,telemetry,mcp]"]
+# Blue observation (the AutoBot package — the defensive sibling). Installing
+# this extra serves the autobot graph on the Decepticon server via the
+# ``decepticon.agents`` entry-point (migration stage 2c, design doc §0.3/§0.5).
+blue = ["bs-autobot>=0.1.1"]
+all = ["decepticon[neo4j,telemetry,mcp,blue]"]
 
 [project.scripts]
 decepticon-cli = "decepticon.cli.__main__:main"
