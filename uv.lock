@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.13"
 resolution-markers = [
     "python_full_version >= '3.15'",
@@ -347,6 +347,27 @@ wheels = [
 ]
 
 [[package]]
+name = "bs-autobot"
+version = "0.1.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "decepticon-core" },
+    { name = "deepagents" },
+    { name = "httpx" },
+    { name = "langchain" },
+    { name = "langchain-anthropic" },
+    { name = "langchain-core" },
+    { name = "langchain-openai" },
+    { name = "langgraph" },
+    { name = "pydantic" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/12/24/b325c4da47ffe45815c1430953c20a477c1a2501fe91a6190ebbf48998ec/bs_autobot-0.1.1.tar.gz", hash = "sha256:834bd6cf879528c8f598cb1c7d25ffee1bb058eaffb382ee8b231c084b017a81", size = 73458, upload-time = "2026-10-27T01:28:13.434Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/17/a3/50c1faea3e45e97586df1f48f847ae55094d3442cadfcc38b4f90378064f/bs_autobot-0.1.1-py3-none-any.whl", hash = "sha256:2b211bd560af223f6b81aba9738d9b15144a7bfb75ef4bd1b2e2a80a3c9ba48e", size = 61462, upload-time = "2026-10-27T01:28:12.087Z" },
+]
+
+[[package]]
 name = "certifi"
 version = "2026.10.19"
 source = { registry = "https://pypi.org/simple" }
@@ -651,12 +672,16 @@ dependencies = [
 
 [package.optional-dependencies]
 all = [
+    { name = "bs-autobot" },
     { name = "mcp" },
     { name = "neo4j" },
     { name = "opentelemetry-api" },
     { name = "opentelemetry-exporter-otlp" },
     { name = "opentelemetry-sdk" },
     { name = "pyjwt", extra = ["crypto"] },
+]
+blue = [
+    { name = "bs-autobot" },
 ]
 mcp = [
     { name = "mcp" },
@@ -674,10 +699,11 @@ telemetry = [
 [package.metadata]
 requires-dist = [
     { name = "beautifulsoup4", specifier = ">=4.12.0" },
+    { name = "bs-autobot", marker = "extra == 'blue'", specifier = ">=0.1.1" },
     { name = "certifi", specifier = ">=2026.10.19" },
     { name = "click", specifier = ">=8.3.3" },
     { name = "cryptography", specifier = ">=50.0.0" },
-    { name = "decepticon", extras = ["neo4j", "telemetry", "mcp"], marker = "extra == 'all'", editable = "packages/decepticon" },
+    { name = "decepticon", extras = ["neo4j", "telemetry", "mcp", "blue"], marker = "extra == 'all'", editable = "packages/decepticon" },
     { name = "decepticon-core", editable = "packages/decepticon-core" },
     { name = "deepagents", specifier = ">=0.5.0" },
     { name = "defusedxml", specifier = ">=0.7.0" },
@@ -705,7 +731,7 @@ requires-dist = [
     { name = "uvicorn", specifier = ">=0.30.0" },
     { name = "xxhash", specifier = ">=3.0.0" },
 ]
-provides-extras = ["neo4j", "telemetry", "mcp", "all"]
+provides-extras = ["neo4j", "telemetry", "mcp", "blue", "all"]
 
 [[package]]
 name = "decepticon-core"
