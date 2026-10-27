@@ -26,8 +26,26 @@ import time
 from pathlib import Path
 from typing import Any
 
-from autobot.bluecell.rule_match import RuleMatcher, load_rules
-from autobot.bluecell.tap import BlueCellTap
+
+def _bluecell_sensor():
+    """Resolve the AutoBot detection modules (optional dependency).
+
+    The rule engine and tap moved to the AutoBot package (migration stage
+    2c). Without it installed the KG scan tool fails with a clean install
+    hint at call time instead of breaking the tools import — Blue is
+    optional.
+    """
+    try:
+        from autobot.bluecell import rule_match, tap
+    except ImportError as exc:  # pragma: no cover - install-shape dependent
+        raise RuntimeError(
+            "The blue_cell scan tool requires the AutoBot package. "
+            "Install it with: pip install decepticon[blue]  (or install "
+            "autobot from the BitterSecurity/AutoBot repository)"
+        ) from exc
+    return rule_match, tap
+
+
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 
@@ -143,9 +161,10 @@ def _scan_and_record(
 ) -> dict[str, Any]:
     """Replay the tap, evaluate rules, record detections, return coverage."""
     rules_path = rules_path or str(_BUNDLED_RULES)
-    rules = load_rules(rules_path)
-    matcher = RuleMatcher(rules)
-    events = BlueCellTap(workspace_path).read_batch()
+    rule_match, tap = _bluecell_sensor()
+    rules = rule_match.load_rules(rules_path)
+    matcher = rule_match.RuleMatcher(rules)
+    events = tap.BlueCellTap(workspace_path).read_batch()
 
     detections = 0
     techniques: set[str] = set()
