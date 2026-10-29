@@ -15,7 +15,7 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Add GPT-6.1 Terra to the shared public model catalog and generated local/optional proxy and CLI catalogs with Responses API routing, supported reasoning choices and published API pricing. Gemini 4 Argon and Gemini 3.8 Flash remain present. SaaS synchronization, provider-account availability and product deployment require their own qualification.
+- Add GPT-6.1 Terra to the shared public model catalog and generated local/optional proxy and CLI catalogs with Responses API routing, supported reasoning choices and published API pricing. Gemini 4 Argon and Gemini 3.8 Flash remain present. SaaS synchronization, provider-account availability and product deployment require their own qualification. [PR #1139](https://github.com/BitterSecurity/Decepticon/pull/1139).
 
 ## [2.2.2] — 2026-10-28
 
