@@ -357,6 +357,9 @@ export const CONFIGURED_MODEL_ROUTES: Record<string, readonly string[]> = {
   "openai/gpt-6.1-sol": [
     "OPENAI_API_KEY"
   ],
+  "openai/gpt-6.1-terra": [
+    "OPENAI_API_KEY"
+  ],
   "openai/mimo-7b": [
     "XIAOMI_MIMO_API_KEY"
   ],
