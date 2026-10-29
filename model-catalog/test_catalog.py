@@ -25,6 +25,20 @@ from pydantic import ValidationError
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def test_terra_is_a_responses_model_with_public_prices_and_reasoning() -> None:
+    catalog = json.loads((ROOT / "model-catalog/catalog.json").read_text())
+    terra = next(m for m in catalog["models"] if m["id"] == "openai/gpt-6.1-terra")
+    assert terra["info"]["mode"] == "responses"
+    assert terra["info"]["input_cost_per_token"] == 0.000001
+    assert terra["info"]["output_cost_per_token"] == 0.000005
+    assert terra["info"]["cache_read_input_token_cost"] == 0.00000005
+    assert terra["ui"]["reasoningEfforts"] == ["none", "low", "medium", "high", "xhigh", "max"]
+    routes = yaml.safe_load((ROOT / "config/litellm.yaml").read_text())["model_list"]
+    route = next(r for r in routes if r["model_name"] == terra["id"])
+    assert route["model_info"]["mode"] == "responses"
+    assert "temperature" in route["litellm_params"]["additional_drop_params"]
+
+
 def test_embedding_routes_remain_available_but_not_in_agent_picker(tmp_path: Path) -> None:
     shutil.copytree(ROOT / "model-catalog", tmp_path / "model-catalog")
     subprocess.run(
