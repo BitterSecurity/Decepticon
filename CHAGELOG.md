@@ -15,7 +15,7 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Add GPT-6.1 Terra to the shared public model catalog and generated local/optional proxy and CLI catalogs with Responses API routing, supported reasoning choices and published API pricing. Gemini 4 Argon and Gemini 3.8 Flash remain present. SaaS synchronization, provider-account availability and product deployment require their own qualification. Local catalog checks pass; the inherited dependency audit currently blocks merge. [PR #1139](https://github.com/BitterSecurity/Decepticon/pull/1139).
+- Add GPT-6.1 Terra to the shared public model catalog and generated local/optional proxy and CLI catalogs with Responses API routing, all six reasoning choices and published API pricing. A source-checked build-time compatibility fix preserves `max` effort through LiteLLM's Responses mapper and retains its summary policy. Gemini 4 Argon and Gemini 3.8 Flash remain present. SaaS synchronization, provider-account availability and product deployment require their own qualification. Local catalog checks pass; the inherited dependency audit currently blocks merge. [PR #1139](https://github.com/BitterSecurity/Decepticon/pull/1139).
 
 ## [2.2.2] — 2026-10-28
 
