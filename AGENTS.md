@@ -1,8 +1,9 @@
 # Versioned change tracking
 
-GitHub Actions is currently blocked by account billing/spending limits. Run
-applicable checks locally, record actual results and limitations, and open
-qualified PRs ready for review without claiming hosted CI passed or bypassing
+The user reported GitHub Actions account billing/spending limits and requires
+local verification. Run applicable checks locally and record actual results and
+limitations. Inspect exact-head hosted checks when available; claim CI success
+only when it actually ran. Open qualified PRs ready for review and preserve
 repository protections.
 
 Before opening or updating any PR, including documentation or maintenance changes,

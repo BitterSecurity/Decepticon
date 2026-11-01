@@ -1,0 +1,105 @@
+Waiting for the shared full-build slot.
+Build slot acquired.
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from litellm.Dockerfile
+#1 transferring dockerfile:
+#1 transferring dockerfile: 1.92kB 0.0s done
+#1 DONE 0.3s
+
+#2 [internal] load metadata for ghcr.io/berriai/litellm:v1.88.1
+#2 ...
+
+#3 [auth] berriai/litellm:pull token for ghcr.io
+#3 DONE 0.0s
+
+#2 [internal] load metadata for ghcr.io/berriai/litellm:v1.88.1
+#2 DONE 2.5s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 1.80kB done
+#4 DONE 0.1s
+
+#5 [internal] load build context
+#5 transferring context: 326.01kB 0.1s done
+#5 DONE 0.2s
+
+#6 [ 1/18] FROM ghcr.io/berriai/litellm:v1.88.1@sha256:c98c9395c56a35b7abacff8269d43ff99aabacb62bbf42a04cc1514fcb9bde4a
+#6 resolve ghcr.io/berriai/litellm:v1.88.1@sha256:c98c9395c56a35b7abacff8269d43ff99aabacb62bbf42a04cc1514fcb9bde4a 0.1s done
+#6 DONE 1.5s
+
+#7 [ 2/18] RUN python -m ensurepip --upgrade && python -m pip install --no-cache-dir xxhash
+#7 3.676 Looking in links: /tmp/tmpj5anqm1u
+#7 3.692 Processing /tmp/tmpj5anqm1u/pip-26.1.2-py3-none-any.whl
+#7 4.170 Installing collected packages: pip
+#7 5.675 Successfully installed pip-26.1.2
+#7 6.978 Collecting xxhash
+#7 7.039   Downloading xxhash-4.0.2-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (17 kB)
+#7 7.057 Downloading xxhash-4.0.2-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (268 kB)
+#7 7.359 Installing collected packages: xxhash
+#7 7.410 Successfully installed xxhash-4.0.2
+#7 7.412 
+#7 7.412 [notice] A new release of pip is available: 26.1.2 -> 26.2.2
+#7 7.412 [notice] To update, run: pip3 install --upgrade pip
+#7 DONE 7.6s
+
+#8 [ 3/18] COPY config/patch_responses_max_effort.py /app/patch_responses_max_effort.py
+#8 DONE 0.2s
+
+#9 [ 4/18] RUN python /app/patch_responses_max_effort.py
+#9 DONE 0.5s
+
+#10 [ 5/18] RUN prisma_cli="$(find /root/.cache/prisma-python/binaries -path '*/node_modules/.bin/prisma' -print -quit)" &&     test -n "$prisma_cli" && test -x "$prisma_cli" &&     ln -s "$prisma_cli" /usr/local/bin/decepticon-prisma
+#10 DONE 0.5s
+
+#11 [ 6/18] COPY config/http_client.py /app/http_client.py
+#11 DONE 0.1s
+
+#12 [ 7/18] COPY config/oauth_token_store.py /app/oauth_token_store.py
+#12 DONE 0.2s
+
+#13 [ 8/18] COPY config/claude_code_handler.py /app/claude_code_handler.py
+#13 DONE 0.1s
+
+#14 [ 9/18] COPY config/codex_chatgpt_handler.py /app/codex_chatgpt_handler.py
+#14 DONE 0.1s
+
+#15 [10/18] COPY config/auth_handler.py /app/auth_handler.py
+#15 DONE 0.2s
+
+#16 [11/18] COPY config/gemini_handler.py /app/gemini_handler.py
+#16 DONE 0.1s
+
+#17 [12/18] COPY config/copilot_handler.py /app/copilot_handler.py
+#17 DONE 0.1s
+
+#18 [13/18] COPY config/grok_handler.py /app/grok_handler.py
+#18 DONE 0.1s
+
+#19 [14/18] COPY config/perplexity_handler.py /app/perplexity_handler.py
+#19 DONE 0.1s
+
+#20 [15/18] COPY config/litellm_dynamic_config.py /app/litellm_dynamic_config.py
+#20 DONE 0.1s
+
+#21 [16/18] COPY config/litellm_prod_catalog.json /app/litellm_prod_catalog.json
+#21 DONE 0.1s
+
+#22 [17/18] COPY config/ollama_probe.py /app/ollama_probe.py
+#22 DONE 0.1s
+
+#23 [18/18] COPY config/litellm_startup.py /app/litellm_startup.py
+#23 DONE 0.1s
+
+#24 exporting to image
+#24 exporting layers
+#24 exporting layers 2.4s done
+#24 exporting manifest sha256:f13484ffaf1c952194da58a8df6ea254e338378104e296bc17a09d36d6d3cbf1 0.0s done
+#24 exporting config sha256:85e10eacdf53e7dc5ee7aa3b656188d5ee950ed9169f2a828fe06f54cc6fecab 0.0s done
+#24 exporting attestation manifest sha256:df98604865cd73b4c1777ac113daf4c593415d619a86cb7e344716961a200f08 0.1s done
+#24 exporting manifest list sha256:d5d2953a8549322dc7565f34fcbdfecb3b8466c61601f5aea17da0450244d9f4
+#24 exporting manifest list sha256:d5d2953a8549322dc7565f34fcbdfecb3b8466c61601f5aea17da0450244d9f4 0.0s done
+#24 naming to docker.io/library/codex-oss-litellm-catalog-review:20261102 done
+#24 unpacking to docker.io/library/codex-oss-litellm-catalog-review:20261102
+#24 unpacking to docker.io/library/codex-oss-litellm-catalog-review:20261102 1.4s done
+#24 DONE 4.3s

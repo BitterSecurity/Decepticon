@@ -47,7 +47,11 @@ dependencies = [
     "langchain-openai>=0.3.0",
     "langchain-anthropic>=0.3.0",
     "langgraph>=1.2.17,<2",
-    "langgraph-cli[inmem]>=0.2.0",
+    "langgraph-cli[inmem]>=0.4.37",
+    # Keep fresh installs above the Store authorization security floor.
+    "langgraph-api>=0.15.0,<1",
+    # Certificate parser floor: includes constructed/indefinite decoder fixes.
+    "pyasn1>=0.6.5",
     "langgraph-sdk>=0.1.0",
     # HTTP
     "httpx>=0.27.0",

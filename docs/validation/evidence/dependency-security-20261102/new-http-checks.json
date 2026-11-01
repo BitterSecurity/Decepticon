@@ -1,0 +1,32 @@
+[
+  {
+    "method": "GET",
+    "path": "/threads/00000000-0000-0000-0000-000000000001",
+    "status": 401,
+    "actor": null
+  },
+  {
+    "method": "GET",
+    "path": "/threads/01a197e2-2619-7200-84dc-20e0febc11b2/state",
+    "status": 200,
+    "actor": "a"
+  },
+  {
+    "method": "GET",
+    "path": "/store/items?namespace=shared&key=fixture",
+    "status": 200,
+    "actor": "a"
+  },
+  {
+    "method": "GET",
+    "path": "/store/items?namespace=shared&key=fixture",
+    "status": 200,
+    "actor": "b"
+  },
+  {
+    "method": "GET",
+    "path": "/threads/01a197e2-2619-7200-84dc-20e0febc11b2/state",
+    "status": 404,
+    "actor": "b"
+  }
+]
