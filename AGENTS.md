@@ -1,5 +1,10 @@
 # Versioned change tracking
 
+GitHub Actions is currently blocked by account billing/spending limits. Run
+applicable checks locally, record actual results and limitations, and open
+qualified PRs ready for review without claiming hosted CI passed or bypassing
+repository protections.
+
 Before opening or updating any PR, including documentation or maintenance changes,
 update the single root `CHAGELOG.md` and link it from the PR description. Preserve
 the full existing history and release automation; do not create another changelog.
