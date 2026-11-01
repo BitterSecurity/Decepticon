@@ -425,13 +425,20 @@ def test_kill_all_sessions_is_noop_when_no_managers():
 def test_read_screen_handles_capture_timeout_gracefully():
     """read_screen() must NOT crash on subprocess.TimeoutExpired from capture-pane."""
     mgr = TmuxSessionManager("hung", "decepticon-sandbox")
-    TmuxSessionManager._initialized.add("hung")  # skip initialize path
-
-    with patch.object(
-        mgr, "_capture", side_effect=_sp.TimeoutExpired(cmd="docker exec", timeout=10)
+    # Initialization owns real host I/O; this unit case only exercises a failed
+    # capture. A bare session name no longer matches its transport-scoped cache.
+    with (
+        patch.object(mgr, "initialize") as initialize,
+        patch.object(mgr, "_tmux") as tmux,
+        patch.object(
+            mgr, "_capture", side_effect=_sp.TimeoutExpired(cmd="docker exec", timeout=10)
+        ) as capture,
     ):
         result = mgr.read_screen()
 
+    initialize.assert_called_once_with()
+    capture.assert_called_once_with()
+    tmux.assert_not_called()
     # Must return a string, not raise. Should signal trouble to the agent.
     assert isinstance(result, str)
     assert "[ERROR]" in result or "[TIMEOUT]" in result

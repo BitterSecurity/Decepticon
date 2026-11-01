@@ -15,6 +15,8 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed test isolation correction (follow-up to [#1141](https://github.com/BitterSecurity/Decepticon/pull/1141)): stub tmux initialization in the screen-capture timeout unit case and assert that no live tmux command occurs. The legacy bare-name cache insertion no longer bypassed transport-scoped initialization and left an owned local shell behind. Runtime behavior is unchanged.
+
 - Qualified source dependency security correction ([#1141](https://github.com/BitterSecurity/Decepticon/pull/1141)) for the source catalog integration ([#1139](https://github.com/BitterSecurity/Decepticon/pull/1139)): raise LangGraph CLI to >=0.4.37, API to >=0.15.0,<1 and pyasn1 to >=0.6.5. The lock selects CLI 0.4.37/API 0.16.6/in-memory runtime 0.36.9/pyasn1 0.6.5, clearing six reported advisories without ignores. Preserve Deep Agents 0.7.32 and LangGraph 1.2.17. Actual isolated old-to-new Python API restart retains the fixture thread/checkpoint/store and tenant authorization. Python 6,133 tests (3 Windows-only skips), full CLI/telemetry/Web quality gates and the security audit pass locally. Existing unrelated npm low/moderate findings remain. The qualified source also completed actual OSS CI/Security checks; the initial normal merge was waiting on its required status. Source-only; no package version, tag, publication or SaaS deployment. [Evidence and limits](docs/validation/dependency-security-20261102.md).
 
 ## [2.2.2] — 2026-10-28
