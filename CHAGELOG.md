@@ -15,7 +15,7 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed safety fix: agent admission refuses unconfirmed or failed sandbox network-policy application, retries failed attempts, and waits for concurrent provisioning before trusting a workspace. Existing explicit operator opt-out remains; backends must return boolean `applied: true`. No version publication or SaaS deployment. Follow-up to [SaaS review #1523](https://github.com/BitterSecurity/decepticon-saas/pull/1523).
+- Proposed safety fix ([#1140](https://github.com/BitterSecurity/Decepticon/pull/1140)): agent admission refuses unconfirmed or failed sandbox network-policy application, retries failed attempts, and waits for concurrent provisioning before trusting a workspace. Existing explicit operator opt-out remains; backends must return boolean `applied: true`. No version publication or SaaS deployment. Follow-up to [SaaS review #1523](https://github.com/BitterSecurity/decepticon-saas/pull/1523).
 
 ## [2.2.2] — 2026-10-28
 
