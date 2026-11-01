@@ -15,7 +15,7 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed dependency security correction for the source catalog integration ([#1139](https://github.com/BitterSecurity/Decepticon/pull/1139)): raise LangGraph CLI to >=0.4.37, API to >=0.15.0,<1 and pyasn1 to >=0.6.5. The lock selects CLI 0.4.37/API 0.16.6/in-memory runtime 0.36.9/pyasn1 0.6.5, clearing six reported advisories without ignores. Preserve Deep Agents 0.7.32 and LangGraph 1.2.17. Actual isolated old-to-new Python API restart retains the fixture thread/checkpoint/store and tenant authorization. Source-only; no package version, tag, publication or SaaS deployment. [Evidence and limits](docs/validation/dependency-security-20261102.md).
+- Qualified source dependency security correction ([#1141](https://github.com/BitterSecurity/Decepticon/pull/1141)) for the source catalog integration ([#1139](https://github.com/BitterSecurity/Decepticon/pull/1139)): raise LangGraph CLI to >=0.4.37, API to >=0.15.0,<1 and pyasn1 to >=0.6.5. The lock selects CLI 0.4.37/API 0.16.6/in-memory runtime 0.36.9/pyasn1 0.6.5, clearing six reported advisories without ignores. Preserve Deep Agents 0.7.32 and LangGraph 1.2.17. Actual isolated old-to-new Python API restart retains the fixture thread/checkpoint/store and tenant authorization. Python 6,133 tests (3 Windows-only skips), full CLI/telemetry/Web quality gates and the security audit pass locally. Existing unrelated npm low/moderate findings remain. Source-only; no package version, tag, publication or SaaS deployment. [Evidence and limits](docs/validation/dependency-security-20261102.md).
 
 ## [2.2.2] — 2026-10-28
 

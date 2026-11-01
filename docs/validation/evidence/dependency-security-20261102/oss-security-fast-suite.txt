@@ -1,0 +1,142 @@
+Waiting for the shared full-build slot.
+Build slot acquired.
+bringing up nodes...
+bringing up nodes...
+
+........................................................................ [  1%]
+........................................................................ [  2%]
+........................................................................ [  3%]
+........................................................................ [  4%]
+........................................................................ [  5%]
+........................................................................ [  7%]
+........................................................................ [  8%]
+........................................................................ [  9%]
+........................................................................ [ 10%]
+........................................................................ [ 11%]
+........................................................................ [ 12%]
+........................................................................ [ 14%]
+........................................................................ [ 15%]
+........................................................................ [ 16%]
+........................................................................ [ 17%]
+........................................................................ [ 18%]
+........................................................................ [ 19%]
+........................................................................ [ 21%]
+........................................................................ [ 22%]
+........................................................................ [ 23%]
+........................................................................ [ 24%]
+........................................................................ [ 25%]
+........................................................................ [ 26%]
+........................................................................ [ 28%]
+........................................................................ [ 29%]
+........................................................................ [ 30%]
+........................................................................ [ 31%]
+........................................................................ [ 32%]
+........................................................................ [ 34%]
+........................................................................ [ 35%]
+........................................................................ [ 36%]
+........................................................................ [ 37%]
+........................................................................ [ 38%]
+........................................................................ [ 39%]
+........................................................................ [ 41%]
+........................................................................ [ 42%]
+........................................................................ [ 43%]
+........................................................................ [ 44%]
+........................................................................ [ 45%]
+........................................................................ [ 46%]
+........................................................................ [ 48%]
+........................................................................ [ 49%]
+........................................................................ [ 50%]
+........................................................................ [ 51%]
+........................................................................ [ 52%]
+........................................................................ [ 53%]
+........................................................................ [ 55%]
+........................................................................ [ 56%]
+........................................................................ [ 57%]
+........................................................................ [ 58%]
+........................................................................ [ 59%]
+........................................................................ [ 61%]
+........................................................................ [ 62%]
+.............sss........................................................ [ 63%]
+........................................................................ [ 64%]
+........................................................................ [ 65%]
+........................................................................ [ 66%]
+........................................................................ [ 68%]
+........................................................................ [ 69%]
+........................................................................ [ 70%]
+........................................................................ [ 71%]
+........................................................................ [ 72%]
+........................................................................ [ 73%]
+........................................................................ [ 75%]
+........................................................................ [ 76%]
+........................................................................ [ 77%]
+........................................................................ [ 78%]
+........................................................................ [ 79%]
+........................................................................ [ 80%]
+........................................................................ [ 82%]
+........................................................................ [ 83%]
+........................................................................ [ 84%]
+........................................................................ [ 85%]
+........................................................................ [ 86%]
+........................................................................ [ 88%]
+........................................................................ [ 89%]
+........................................................................ [ 90%]
+........................................................................ [ 91%]
+........................................................................ [ 92%]
+........................................................................ [ 93%]
+........................................................................ [ 95%]
+........................................................................ [ 96%]
+........................................................................ [ 97%]
+........................................................................ [ 98%]
+........................................................................ [ 99%]
+................                                                         [100%]
+=============================== warnings summary ===============================
+packages/decepticon/decepticon/tools/ad/delegation.py:15
+packages/decepticon/decepticon/tools/ad/delegation.py:15
+  /home/catow/GIT/decepticon-oss-review-langgraph-security-20261102/packages/decepticon/decepticon/tools/ad/delegation.py:15: DeprecationWarning: decepticon.tools.research.graph.KnowledgeGraph is deprecated; import from decepticon_core.types.kg.KnowledgeGraph instead (legacy path removed at 2.0.0)
+    from decepticon.tools.research.graph import KnowledgeGraph
+
+packages/decepticon/decepticon/tools/ad/gpo.py:14
+packages/decepticon/decepticon/tools/ad/gpo.py:14
+  /home/catow/GIT/decepticon-oss-review-langgraph-security-20261102/packages/decepticon/decepticon/tools/ad/gpo.py:14: DeprecationWarning: decepticon.tools.research.graph.EdgeKind is deprecated; import from decepticon_core.types.kg.EdgeKind instead (legacy path removed at 2.0.0)
+    from decepticon.tools.research.graph import EdgeKind, KnowledgeGraph
+
+packages/decepticon/decepticon/__init__.py:29
+packages/decepticon/decepticon/__init__.py:29
+  /home/catow/GIT/decepticon-oss-review-langgraph-security-20261102/packages/decepticon/decepticon/__init__.py:29: DeprecationWarning: Decepticon Phase 1 compat shims active. Prefer the following canonical paths:
+    - decepticon.core.schemas  ->  decepticon_core.types.engagement
+    - decepticon.llm.models  ->  decepticon_core.types.llm
+    - decepticon.tools.research.graph  ->  decepticon_core.types.kg
+    - decepticon.plugin_loader  ->  decepticon_core.plugin_loader
+    - decepticon.core.config  ->  decepticon_core.utils.config
+    - decepticon.core.logging  ->  decepticon_core.utils.logging
+    - decepticon.agents.middleware_slots  ->  decepticon_core.contracts.slots (enum/SLOTS_PER_ROLE only)
+    compat.register_legacy_imports()
+
+packages/decepticon/tests/unit/mcp_server/test_auth.py::test_shared_secret_accepts_exact_token
+packages/decepticon/tests/unit/mcp_server/test_auth.py::test_shared_secret_rejects_wrong_and_empty_token
+packages/decepticon/tests/unit/mcp_server/test_auth.py::test_build_server_installs_auth_middleware_when_secret_set
+  /home/catow/GIT/decepticon-oss-review-langgraph-security-20261102/packages/decepticon/decepticon/mcp_server/auth.py:175: DeprecationWarning: `AuthSettings.validate_token_resource` is not set, so bearer tokens are not checked against `resource_server_url`; it will default to True in 3.0 when `resource_server_url` is set. Set it to True to have the server refuse tokens issued for another resource, or to False if your TokenVerifier validates the token's audience itself.
+    return verifier, AuthSettings(
+
+packages/decepticon/tests/unit/mcp_server/test_auth.py::test_jwt_accepts_valid_token_and_reads_scopes
+packages/decepticon/tests/unit/mcp_server/test_auth.py::test_jwt_rejects_wrong_audience
+packages/decepticon/tests/unit/mcp_server/test_auth.py::test_jwt_rejects_wrong_issuer
+packages/decepticon/tests/unit/mcp_server/test_auth.py::test_jwt_rejects_garbage_token
+  /home/catow/GIT/decepticon-oss-review-langgraph-security-20261102/packages/decepticon/decepticon/mcp_server/auth.py:193: DeprecationWarning: `AuthSettings.validate_token_resource` is not set, so bearer tokens are not checked against `resource_server_url`; it will default to True in 3.0 when `resource_server_url` is set. Set it to True to have the server refuse tokens issued for another resource, or to False if your TokenVerifier validates the token's audience itself.
+    return verifier, AuthSettings(
+
+packages/decepticon/tests/unit/mcp_server/test_auth.py::test_build_server_installs_auth_middleware_when_secret_set
+  /home/catow/GIT/decepticon-oss-review-langgraph-security-20261102/.venv/lib/python3.13/site-packages/pydantic_settings/main.py:247: DeprecationWarning: `AuthSettings.validate_token_resource` is not set, so bearer tokens are not checked against `resource_server_url`; it will default to True in 3.0 when `resource_server_url` is set. Set it to True to have the server refuse tokens issued for another resource, or to False if your TokenVerifier validates the token's audience itself.
+    super().__init__(**__pydantic_self__.__class__._settings_build_values(sources, init_kwargs))
+
+packages/decepticon/tests/unit/reporting/test_finding_quality.py::test_runtime_injected_through_public_invoke_path
+  /home/catow/GIT/decepticon-oss-review-langgraph-security-20261102/.venv/lib/python3.13/site-packages/pydantic/main.py:475: UserWarning: Pydantic serializer warnings:
+    PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='context', input_value={}, input_type=dict])
+    return self.__pydantic_serializer__.to_python(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] packages/decepticon/tests/unit/runtime/test_event_log_winlock.py:14: Windows-only locking path
+SKIPPED [1] packages/decepticon/tests/unit/runtime/test_event_log_winlock.py:42: Windows-only locking path
+SKIPPED [1] packages/decepticon/tests/unit/runtime/test_event_log_winlock.py:62: Windows-only locking path
+6133 passed, 3 skipped, 15 warnings in 93.75s (0:01:33)
