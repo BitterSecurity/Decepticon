@@ -1,0 +1,15 @@
+{
+  "tests": {
+    "affected": 26,
+    "fullFastPython": 6133,
+    "windowsOnlySkips": 3,
+    "seconds": 197.72,
+    "exitCode": 0
+  },
+  "lint": 0,
+  "format": 0,
+  "errorsOnlyTypecheck": 0,
+  "postSuiteHungSocketPresent": false,
+  "productionChanged": false,
+  "runtimeImplementationChanged": false
+}
