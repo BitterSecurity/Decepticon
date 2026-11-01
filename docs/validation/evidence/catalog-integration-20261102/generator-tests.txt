@@ -1,0 +1,19 @@
+Installed 17 packages in 257ms
+============================= test session starts ==============================
+platform linux -- Python 3.13.7, pytest-8.4.2, pluggy-1.7.0 -- /home/catow/.cache/uv/environments-v2/test-catalog-381b9cf7654bb444/bin/python
+rootdir: /dev
+configfile: null
+collecting ... collected 10 items
+
+../../../../dev::test_terra_is_a_responses_model_with_public_prices_and_reasoning PASSED [ 10%]
+../../../../dev::test_embedding_routes_remain_available_but_not_in_agent_picker PASSED [ 20%]
+../../../../dev::test_mimo_routes_use_inference_host_and_preserve_model_ids PASSED [ 30%]
+../../../../dev::test_new_model_propagates_without_editing_product_inventory PASSED [ 40%]
+../../../../dev::test_check_detects_generated_drift PASSED               [ 50%]
+../../../../dev::test_private_catalog_identity_rejected[auth/private] PASSED [ 60%]
+../../../../dev::test_private_catalog_identity_rejected[subscription/private] PASSED [ 70%]
+../../../../dev::test_private_catalog_identity_rejected[runyour/private] PASSED [ 80%]
+../../../../dev::test_duplicate_identity_rejected PASSED                 [ 90%]
+../../../../dev::test_tampered_pinned_snapshot_fails_before_generation PASSED [100%]
+
+============================= 10 passed in 12.22s ==============================

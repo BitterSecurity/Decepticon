@@ -1,0 +1,51 @@
+{
+  "qualifiedBase": "ce4a94368c17b0c20e34621f4c3a918bfbe660a2",
+  "verifiedTrees": [
+    {
+      "path": "packages",
+      "objectId": "ff0cee2f57c1b3c975a304694e7c1b14b9f63a73",
+      "identical": true
+    },
+    {
+      "path": "benchmark",
+      "objectId": "eac1cefc79b7446ca96b259387a99bc681ba8f7c",
+      "identical": true
+    },
+    {
+      "path": "pyproject.toml",
+      "objectId": "faac0d7fe77a02e565ee61edb532935b48e52ec4",
+      "identical": true
+    },
+    {
+      "path": "uv.lock",
+      "objectId": "16a316fcd53e78c1d34760e61ad31d9e027bf4ae",
+      "identical": true
+    },
+    {
+      "path": "clients/web",
+      "objectId": "98c5e8f8533099f78a0f12f01dac76060624f770",
+      "identical": true
+    },
+    {
+      "path": "clients/shared",
+      "objectId": "1ee739d35174acdbdddaaa5ffb18cfdefefbffb7",
+      "identical": true
+    },
+    {
+      "path": "telemetry-gateway",
+      "objectId": "35d6ac76461e51bd0e802ac29001ec3f5c5857f0",
+      "identical": true
+    },
+    {
+      "path": "package.json",
+      "objectId": "da8c33ab8734fe1d8b4c1e45cebeea7897271c71",
+      "identical": true
+    },
+    {
+      "path": "package-lock.json",
+      "objectId": "be2e0c8886c728f18f54977730e2de165b8d71d7",
+      "identical": true
+    }
+  ],
+  "reusedLocalEvidence": "1142 full Python6133pass3Windows skips197.72s/errors-only typecheck0;1141 unchangedWeb+telemetry quality; CLI300/generator10/actualgateway10 rerun separately"
+}

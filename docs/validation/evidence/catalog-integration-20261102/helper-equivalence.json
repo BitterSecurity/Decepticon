@@ -1,0 +1,6 @@
+{
+  "astIdentical": true,
+  "onlyChange": "triple-quoted string delimiter; constant content unchanged",
+  "beforeSha256": "2c7c3f84e3d1b1cfeb3f098908df7af2d2ec1b486d1478261d1b59311fb366b4",
+  "afterSha256": "d1d13eed2f9e530477ecbc89a224e4d42c6c8e0feb827df469f49aee6c0fef86"
+}

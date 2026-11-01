@@ -10,9 +10,9 @@ import sysconfig
 from pathlib import Path
 
 RELATIVE = Path("completion_extras/litellm_responses_transformation/transformation.py")
-BRANCH = '''        elif reasoning_effort == "xhigh":
+BRANCH = """        elif reasoning_effort == "xhigh":
             return Reasoning(effort="xhigh", summary="detailed") if auto_summary_enabled else Reasoning(effort="xhigh")  # type: ignore[typeddict-item]
-'''
+"""
 MAX_BRANCH = BRANCH.replace('"xhigh"', '"max"')
 
 
