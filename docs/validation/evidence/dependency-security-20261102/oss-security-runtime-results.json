@@ -1,0 +1,18 @@
+{
+  "measuredAt": "2026-11-01T16:12:34.638663+00:00",
+  "image": "sha256:c24bdc223eff4dc6cc4f9532f05c9ab53dd1de53f7b909eea32ad9f860cf6e37",
+  "results": [
+    {
+      "phase": "old",
+      "exitCode": 0,
+      "seconds": 6.903,
+      "venv": "/home/catow/GIT/decepticon-oss-review-egress-20261101/.venv"
+    },
+    {
+      "phase": "new",
+      "exitCode": 0,
+      "seconds": 7.562,
+      "venv": "/home/catow/GIT/decepticon-oss-review-langgraph-security-20261102/.venv"
+    }
+  ]
+}

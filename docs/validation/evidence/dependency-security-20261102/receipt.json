@@ -1,0 +1,43 @@
+{
+  "qualifiedSource": "15921827",
+  "pythonFrozenSync": 0,
+  "pythonSecurityAudit": {
+    "beforeFindings": 6,
+    "afterFindings": 0,
+    "afterExitCode": 0,
+    "ignoreFileUnchanged": true
+  },
+  "fastPython": {
+    "passed": 6133,
+    "skipped": 3,
+    "skipReason": "Windows locking paths",
+    "seconds": 93.75,
+    "workers": 2,
+    "exitCode": 0
+  },
+  "ruffCheck": 0,
+  "ruffFormat": 0,
+  "basedpyright": {
+    "errors": 0,
+    "warnings": 904,
+    "errorsGateExitCode": 0
+  },
+  "remainingQuality": {
+    "command": "bash /home/catow/.local/bin/with-build-slot make quality-cli quality-telemetry web-lint web-test web-build",
+    "exitCode": 0,
+    "cliTests": 300,
+    "telemetryTests": 51,
+    "webTests": 75,
+    "npmRootAuditHighGate": 0,
+    "npmRootAuditRemaining": {
+      "low": 3,
+      "moderate": 19
+    },
+    "telemetryAuditFindings": 0,
+    "webProductionBuild": 0
+  },
+  "javascriptLockUnchanged": true,
+  "runtimeCompatibility": "13 actual HTTP assertions over old-to-new local CLI/API restart; network none; same owned data retained; tenant isolation passes",
+  "publicationOrProductionChange": false,
+  "measuredAt": "2026-11-01T16:23:00.647316+00:00"
+}

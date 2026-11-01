@@ -1,0 +1,622 @@
+Waiting for the shared full-build slot.
+Build slot acquired.
+npm audit --audit-level=high
+# npm audit report
+
+deepmerge  >=4.2.0
+deepmerge mergeObject() allows prototype poisoning of returned objects - https://github.com/advisories/GHSA-gcqx-w48m-w2h4
+fix available via `npm audit fix --force`
+Will install shadcn@1.0.0, which is a breaking change
+node_modules/deepmerge
+  @inkjs/ui  *
+  Depends on vulnerable versions of deepmerge
+  node_modules/@inkjs/ui
+  @shadcn/registry  <=0.0.0-rc-20261007105214 || >=0.1.0
+  Depends on vulnerable versions of deepmerge
+  node_modules/@shadcn/registry
+    shadcn  <=0.0.0-rc-20261007105214 || >=2.0.0
+    Depends on vulnerable versions of @shadcn/registry
+    Depends on vulnerable versions of deepmerge
+    Depends on vulnerable versions of ts-morph
+    node_modules/shadcn
+
+minimatch  <11.0.1
+Severity: moderate
+minimatch has potential denial of service via globparts amplification - https://github.com/advisories/GHSA-g3hv-75wg-m249
+fix available via `npm audit fix --force`
+Will install eslint@4.0.0, which is a breaking change
+node_modules/@ts-morph/common/node_modules/minimatch
+node_modules/@typescript-eslint/typescript-estree/node_modules/minimatch
+node_modules/minimatch
+  @eslint/config-array  *
+  Depends on vulnerable versions of minimatch
+  node_modules/@eslint/config-array
+    eslint  0.7.1 - 2.0.0-rc.1 || >=4.1.0
+    Depends on vulnerable versions of @eslint-community/eslint-utils
+    Depends on vulnerable versions of @eslint/config-array
+    Depends on vulnerable versions of @eslint/eslintrc
+    Depends on vulnerable versions of minimatch
+    node_modules/eslint
+      @eslint-community/eslint-utils  *
+      Depends on vulnerable versions of eslint
+      node_modules/@eslint-community/eslint-utils
+        @next/eslint-plugin-next  >=16.3.0-canary.0
+        Depends on vulnerable versions of @eslint-community/eslint-utils
+        node_modules/@next/eslint-plugin-next
+          eslint-config-next  >=10.2.1-canary.2
+          Depends on vulnerable versions of @next/eslint-plugin-next
+          Depends on vulnerable versions of eslint
+          Depends on vulnerable versions of eslint-plugin-import
+          Depends on vulnerable versions of eslint-plugin-jsx-a11y
+          Depends on vulnerable versions of eslint-plugin-react
+          Depends on vulnerable versions of typescript-eslint
+          node_modules/eslint-config-next
+        @typescript-eslint/utils  *
+        Depends on vulnerable versions of @eslint-community/eslint-utils
+        Depends on vulnerable versions of @typescript-eslint/typescript-estree
+        Depends on vulnerable versions of eslint
+        node_modules/@typescript-eslint/utils
+          @typescript-eslint/eslint-plugin  *
+          Depends on vulnerable versions of @typescript-eslint/parser
+          Depends on vulnerable versions of @typescript-eslint/type-utils
+          Depends on vulnerable versions of @typescript-eslint/utils
+          Depends on vulnerable versions of eslint
+          node_modules/@typescript-eslint/eslint-plugin
+          @typescript-eslint/type-utils  >=5.9.2-alpha.0
+          Depends on vulnerable versions of @typescript-eslint/typescript-estree
+          Depends on vulnerable versions of @typescript-eslint/utils
+          Depends on vulnerable versions of eslint
+          node_modules/@typescript-eslint/type-utils
+          typescript-eslint  *
+          Depends on vulnerable versions of @typescript-eslint/eslint-plugin
+          Depends on vulnerable versions of @typescript-eslint/parser
+          Depends on vulnerable versions of @typescript-eslint/typescript-estree
+          Depends on vulnerable versions of @typescript-eslint/utils
+          Depends on vulnerable versions of eslint
+          node_modules/typescript-eslint
+      @typescript-eslint/parser  *
+      Depends on vulnerable versions of @typescript-eslint/typescript-estree
+      Depends on vulnerable versions of eslint
+      node_modules/@typescript-eslint/parser
+  @eslint/eslintrc  0.0.1 || >=0.1.1
+  Depends on vulnerable versions of minimatch
+  node_modules/@eslint/eslintrc
+  @ts-morph/common  >=0.9.0
+  Depends on vulnerable versions of minimatch
+  node_modules/@ts-morph/common
+    ts-morph  >=10.0.2
+    Depends on vulnerable versions of @ts-morph/common
+    node_modules/ts-morph
+  @typescript-eslint/typescript-estree  >=6.16.0
+  Depends on vulnerable versions of minimatch
+  node_modules/@typescript-eslint/typescript-estree
+  eslint-plugin-import  >=1.15.0
+  Depends on vulnerable versions of minimatch
+  node_modules/eslint-plugin-import
+  eslint-plugin-jsx-a11y  >=6.5.0
+  Depends on vulnerable versions of minimatch
+  node_modules/eslint-plugin-jsx-a11y
+  eslint-plugin-react  >=7.23.0
+  Depends on vulnerable versions of minimatch
+  node_modules/eslint-plugin-react
+
+22 vulnerabilities (3 low, 19 moderate)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues possible (including breaking changes), run:
+  npm audit fix --force
+
+Some issues need review, and may require choosing
+a different dependency.
+# streaming workspace must be built first — its package.json main
+# resolves to dist/, which cli's typecheck + build consume.
+npm run build --workspace=@decepticon/streaming
+
+> @decepticon/streaming@0.1.0 build
+> tsc -p tsconfig.build.json
+
+npm run typecheck --workspace=@decepticon/cli
+
+> @decepticon/cli@0.0.0 typecheck
+> tsc --noEmit
+
+npm run build --workspace=@decepticon/cli
+
+> @decepticon/cli@0.0.0 build
+> tsc
+
+npm run test --workspace=@decepticon/cli -- 
+
+> @decepticon/cli@0.0.0 test
+> vitest run
+
+
+ RUN  v5.0.5 /home/catow/GIT/decepticon-oss-review-langgraph-security-20261102/clients/cli
+
+[?2004h[?2004l[?2004h[?2004l[?2004h[?2004l[?2004h[?2004l[?2004h[?2004l[?2004h[?2004l[?2004h[?2004l[?2004h[?2004l[?2004h[?2004l[?2004h[?2004l[?2004h[?2004l[?2004h[?2004l[?2004h[?2004l[?2004h[?2004l[?2004h[?2004l[?2004h[?2004l[?2004h[?2004l[?2004h[?2004l[?2004h[?2004l
+ Test Files  41 passed (41)
+      Tests  300 passed (300)
+   Start at  01:19:48
+   Duration  21.06s (transform 36%, tests 26%, import 23%, environment 14%, worker 1%)
+
+    Isolate  41 workers spawned · ~1.07s startup each (spawn + environment, per file)
+             at least ~1.51s faster with isolate: false — reuses workers across files instead of one per file
+
+npm ci --prefix telemetry-gateway --no-audit --no-fund
+
+added 77 packages in 5s
+npm audit --prefix telemetry-gateway --audit-level=high
+found 0 vulnerabilities
+npm run typecheck --prefix telemetry-gateway
+
+> decepticon-telemetry-gateway@0.0.0 typecheck
+> tsc --noEmit
+
+npm run test --prefix telemetry-gateway -- --maxWorkers=2
+
+> decepticon-telemetry-gateway@0.0.0 test
+> vitest run --maxWorkers=2
+
+
+ RUN  v5.0.5 /home/catow/GIT/decepticon-oss-review-langgraph-security-20261102/telemetry-gateway
+
+
+ Test Files  3 passed (3)
+      Tests  51 passed (51)
+   Start at  01:20:16
+   Duration  545ms (import 41%, transform 33%, tests 23%, worker 4%)
+
+cd telemetry-gateway && WRANGLER_SEND_METRICS=false npm exec -- wrangler deploy --dry-run --outdir .wrangler/deploy
+
+ ⛅️ wrangler 4.152.0
+────────────────────
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mProcessing wrangler.toml configuration:[0m
+
+    - "unsafe" fields are experimental and may change or break at any time.
+
+
+Total Upload: 778.49 KiB / gzip: 123.82 KiB
+Your Worker has access to the following bindings:
+Binding                                              Resource                  
+env.RATE_LIMITER (ratelimit)                         Unsafe Metadata           
+env.POSTHOG_HOST ("https://us.i.posthog.com")        Environment Variable      
+env.TELEMETRY_PATH ("/v1/telemetry")                 Environment Variable      
+env.MAX_BODY_BYTES ("262144")                        Environment Variable      
+
+--dry-run: exiting now.
+cd clients/web && npx eslint src/ --max-warnings 0
+npm run test --workspace=web
+
+> web@0.0.0 test
+> node --import tsx --test "src/**/*.test.ts" "src/**/*.test.tsx"
+
+✔ JSON engagement export includes all nine existing plan documents (86.62753ms)
+✔ JSON engagement export omits plan documents that do not exist (12.078732ms)
+✔ findings projection preserves canonical title, summary and lifecycle metadata for an unverified observation (135.760036ms)
+✔ findings projection decodes a literal block scalar verification_rationale (12.122505ms)
+✔ findings projection decodes a folded block scalar verification_rationale (9.977976ms)
+✔ findings projection decodes escaped quotes in a double-quoted verification_rationale (10.364353ms)
+✔ findings projection decodes doubled single-quote escapes in verification_rationale (8.349707ms)
+✔ findings projection ignores malformed frontmatter instead of throwing (9.687734ms)
+✔ findings projection keeps legacy heading-based records working without frontmatter (7.855232ms)
+✔ planning document renders nested fields, arrays, zero and false (18.647003ms)
+✔ planning document escapes operator-controlled text (0.982ms)
+✔ public config reads current runtime values and excludes private variables (2.961531ms)
+✔ unset public config retains direct localhost defaults (0.273012ms)
+✔ relative API and terminal paths follow the HTTPS dashboard origin (0.468988ms)
+✔ terminal query parameters survive engagement metadata and protocol conversion (0.416168ms)
+✔ direct endpoints preserve their configured protocol and API path (0.418279ms)
+✔ non-network endpoint protocols are rejected before connection (1.307452ms)
+✔ runtime config is available to client consumers during server rendering (184.865146ms)
+✔ direct Red scope generates the machine-enforceable RoE alone (2.998793ms)
+✔ direct Red scope rejects unsupported target shapes (7.887545ms)
+✔ client readiness follows unconditional machine enforcement (45.451589ms)
+✔ isValidEngagementSlug rejects path-traversal and malformed names (2.088127ms)
+✔ isValidEngagementSlug accepts well-formed workspace slugs (0.339639ms)
+✔ isValidEngagementSlug rejects non-string input (0.219163ms)
+✔ ENGAGEMENT_SLUG_RE is anchored and matches the create-route policy (0.215927ms)
+✔ LiteLLM model count reads the complete response payload (1.441687ms)
+✔ LiteLLM model count safely handles malformed responses (0.355615ms)
+✔ health details normalize LangGraph and Neo4j JSON for Settings cards (0.690255ms)
+✔ health details never expose raw or malformed JSON in Settings cards (0.242061ms)
+✔ settings collections accept validated array payloads (2.128277ms)
+✔ settings collections reject API error objects before render (1.078535ms)
+✔ settings collections reject successful non-array and malformed payloads (0.355745ms)
+✔ settings collections reject invalid JSON (0.30828ms)
+✔ Live activation is lazy, survives tab history, and retains only visited modes (515.659763ms)
+✔ web terminal boots the real CLI and persists PTY input without starting a run (3434.417504ms)
+✔ socket state 2 after scope read prevents startup (205.938449ms)
+✔ socket state 3 after scope read prevents startup (61.411245ms)
+✔ disconnect during thread creation prevents persistence and PTY spawn (54.772864ms)
+✔ closed older startup cannot overwrite a reconnect session (42.824212ms)
+✔ disconnect after startup retains the PTY until orphan expiry (41.104194ms)
+✔ closed scope read cannot displace an already attached socket (37.649421ms)
+✔ HTTP 200 keeps an existing thread without creating a replacement (198.087631ms)
+✔ HTTP 404 creates and persists the replacement before starting the terminal (60.511138ms)
+✔ validation HTTP 401 closes without replacing, persisting, or spawning (52.53514ms)
+✔ validation HTTP 403 closes without replacing, persisting, or spawning (36.373444ms)
+✔ validation HTTP 500 closes without replacing, persisting, or spawning (42.67237ms)
+✔ validation HTTP 503 closes without replacing, persisting, or spawning (45.56674ms)
+✔ creation HTTP 503 stops startup after a missing stored thread (38.551552ms)
+✔ creation HTTP 503 stops startup without a stored thread (24.349862ms)
+✔ validation network failure closes without persisting a thread (34.473807ms)
+✔ creation with unusable thread ID "" fails before persistence (25.205657ms)
+✔ creation with unusable thread ID "   " fails before persistence (32.974795ms)
+✔ creation with unusable thread ID undefined fails before persistence (19.005433ms)
+✔ creation with unusable thread ID 42 fails before persistence (23.244278ms)
+✔ creation with invalid JSON stops before persistence and PTY spawn (17.284022ms)
+✔ GET timeout aborts at ten seconds without persisting or spawning (33.488794ms)
+✔ POST timeout aborts at ten seconds without persisting or spawning (21.172461ms)
+✔ socket state 2 during pending validation HTTP 200 abandons startup (15.891223ms)
+✔ socket state 3 during pending validation HTTP 200 abandons startup (17.540695ms)
+✔ socket state 2 during pending validation HTTP 404 abandons startup (16.535957ms)
+✔ socket state 3 during pending validation HTTP 404 abandons startup (22.00311ms)
+✔ a reconnect reuses its live session without validating the stale supplied ID (21.380824ms)
+✔ late validation from a disconnected socket cannot replace a successful reconnect (20.960181ms)
+✔ new web session separates local file access from runtime mount (shared root) (21.41451ms)
+✔ new web session separates local file access from runtime mount (owned-case) (16.953752ms)
+✔ a launcher bound to a sibling refuses before creating a thread or terminal (19.187685ms)
+✔ existing web checkpoints retain their pre-upgrade workspace without replacement (19.600979ms)
+✔ foreign binding refuses without replacement: {"engagement_name":"sibling","workspace_path":"/workspace"} (21.339206ms)
+✔ foreign binding refuses without replacement: {"engagement_name":"owned-case","workspace_path":"/workspace/sibling"} (21.251215ms)
+✔ container web state is private to its engagement and mode (19.754668ms)
+✔ an explicit CLI state override remains unchanged (16.081676ms)
+✔ existing operator installation drafts and cursors keep their original location (21.016028ms)
+✔ an unmapped host installation path does not defeat the writable container state (26.390388ms)
+✔ xterm loading respects initialization lifetime: unmount (467.352864ms)
+✔ xterm loading respects initialization lifetime: strict-remount (89.449779ms)
+ℹ tests 75
+ℹ suites 0
+ℹ pass 75
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6014.077563
+# streaming workspace first — the web resolves @decepticon/streaming to its
+# dist/ via package exports (no src path alias), so next build needs it.
+npm run build --workspace=@decepticon/streaming
+
+> @decepticon/streaming@0.1.0 build
+> tsc -p tsconfig.build.json
+
+cd clients/web && npx prisma generate && npm run build
+Loaded Prisma config from prisma.config.ts.
+
+Prisma schema loaded from prisma/schema.prisma.
+
+✔ Generated Prisma Client (7.10.1) to ./src/generated/prisma in 58ms
+
+
+> web@0.0.0 build
+> next build
+
+▲ Next.js 16.4.3 (Turbopack)
+✓ Running next.config.ts took 151ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 19.7s
+  Running TypeScript ...
+  Finished TypeScript in 9.4s ...
+  Collecting page data using 17 workers ...
+  Generating static pages using 17 workers (0/13) ...
+  Generating static pages using 17 workers (3/13) 
+  Generating static pages using 17 workers (6/13) 
+  Generating static pages using 17 workers (9/13) 
+✓ Generating static pages using 17 workers (13/13) in 559ms
+Turbopack build encountered 11 warnings:
+./clients/web/src/app/api/engagements/[id]/timeline/route.ts:101:27
+Warning: Dynamic filesystem access causes tracing of the whole project
+  [90m 99 |[0m   [36mfor[0m ([36mconst[0m dir [36mof[0m scanDirs) {
+  [90m100 |[0m     [36mtry[0m {
+[33m[1m>[0m [90m101 |[0m       [36mconst[0m files = [36mawait[0m fs.readdir(path.join(wsPath, dir));
+  [90m    |[0m                           [33m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m102 |[0m       [36mfor[0m ([36mconst[0m file [36mof[0m files.slice([35m0[0m, [35m20[0m)) {
+  [90m103 |[0m         [36mif[0m (file.startsWith([32m"."[0m)) [36mcontinue[0m;
+  [90m104 |[0m         [36mtry[0m {
+
+Static analysis determined that this filesystem access causes the whole project to be traced and included in the output.
+This is usually unintentional and leads to all source files (including the public folder) to be deployed as part of the server code.
+This can slow down deployments or lead to failures when size limits are exceeded.
+To resolve this, you can
+- make sure the path is statically scoped to some subfolder, for example path.join(process.cwd(), 'data', bar), or
+- only use them in development, or
+- opt out by adding an ignore comment to the highlighted call: fs.readdir(/*turbopackIgnore: true*/ ...), or
+- remove them.
+
+Import trace:
+  App Route:
+    ./clients/web/src/app/api/engagements/[id]/timeline/route.ts
+    ./clients/web/src/app/api/workspace/[name]/files/route.ts
+
+
+./clients/web/src/app/api/engagements/[id]/timeline/route.ts:105:30
+Warning: Dynamic filesystem access causes tracing of the whole project
+  [90m103 |[0m         [36mif[0m (file.startsWith([32m"."[0m)) [36mcontinue[0m;
+  [90m104 |[0m         [36mtry[0m {
+[33m[1m>[0m [90m105 |[0m           [36mconst[0m stat = [36mawait[0m fs.stat(path.join(wsPath, dir, file));
+  [90m    |[0m                              [33m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m106 |[0m           events.push({
+  [90m107 |[0m             timestamp: stat.mtime.toISOString(),
+  [90m108 |[0m             [36mtype[0m: [32m"file_created"[0m,
+
+Static analysis determined that this filesystem access causes the whole project to be traced and included in the output.
+This is usually unintentional and leads to all source files (including the public folder) to be deployed as part of the server code.
+This can slow down deployments or lead to failures when size limits are exceeded.
+To resolve this, you can
+- make sure the path is statically scoped to some subfolder, for example path.join(process.cwd(), 'data', bar), or
+- only use them in development, or
+- opt out by adding an ignore comment to the highlighted call: fs.stat(/*turbopackIgnore: true*/ ...), or
+- remove them.
+
+Import trace:
+  App Route:
+    ./clients/web/src/app/api/engagements/[id]/timeline/route.ts
+    ./clients/web/src/app/api/workspace/[name]/files/route.ts
+
+
+./clients/web/src/app/api/engagements/[id]/timeline/route.ts:101:38
+Warning: Dynamic filesystem access causes tracing of the whole project
+  [90m 99 |[0m   [36mfor[0m ([36mconst[0m dir [36mof[0m scanDirs) {
+  [90m100 |[0m     [36mtry[0m {
+[33m[1m>[0m [90m101 |[0m       [36mconst[0m files = [36mawait[0m fs.readdir(path.join(wsPath, dir));
+  [90m    |[0m                                      [33m[1m^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m102 |[0m       [36mfor[0m ([36mconst[0m file [36mof[0m files.slice([35m0[0m, [35m20[0m)) {
+  [90m103 |[0m         [36mif[0m (file.startsWith([32m"."[0m)) [36mcontinue[0m;
+  [90m104 |[0m         [36mtry[0m {
+
+Static analysis determined that this filesystem access causes the whole project to be traced and included in the output.
+This is usually unintentional and leads to all source files (including the public folder) to be deployed as part of the server code.
+This can slow down deployments or lead to failures when size limits are exceeded.
+To resolve this, you can
+- make sure the path is statically scoped to some subfolder, for example path.join(process.cwd(), 'data', bar), or
+- only use them in development, or
+- opt out by adding an ignore comment to the highlighted call: path.join(/*turbopackIgnore: true*/ ...), or
+- remove them.
+
+Import trace:
+  App Route:
+    ./clients/web/src/app/api/engagements/[id]/timeline/route.ts
+    ./clients/web/src/app/api/workspace/[name]/files/route.ts
+
+
+./clients/web/src/app/api/engagements/[id]/timeline/route.ts:105:38
+Warning: Dynamic filesystem access causes tracing of the whole project
+  [90m103 |[0m         [36mif[0m (file.startsWith([32m"."[0m)) [36mcontinue[0m;
+  [90m104 |[0m         [36mtry[0m {
+[33m[1m>[0m [90m105 |[0m           [36mconst[0m stat = [36mawait[0m fs.stat(path.join(wsPath, dir, file));
+  [90m    |[0m                                      [33m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m106 |[0m           events.push({
+  [90m107 |[0m             timestamp: stat.mtime.toISOString(),
+  [90m108 |[0m             [36mtype[0m: [32m"file_created"[0m,
+
+Static analysis determined that this filesystem access causes the whole project to be traced and included in the output.
+This is usually unintentional and leads to all source files (including the public folder) to be deployed as part of the server code.
+This can slow down deployments or lead to failures when size limits are exceeded.
+To resolve this, you can
+- make sure the path is statically scoped to some subfolder, for example path.join(process.cwd(), 'data', bar), or
+- only use them in development, or
+- opt out by adding an ignore comment to the highlighted call: path.join(/*turbopackIgnore: true*/ ...), or
+- remove them.
+
+Import trace:
+  App Route:
+    ./clients/web/src/app/api/engagements/[id]/timeline/route.ts
+    ./clients/web/src/app/api/workspace/[name]/files/route.ts
+
+
+./clients/web/src/app/api/engagements/route.ts:29:29
+Warning: Dynamic filesystem access causes tracing of the whole project
+  [90m27 |[0m     [90m// Auto-import workspace dirs created by CLI that are not yet in DB[0m
+  [90m28 |[0m     [36mtry[0m {
+[33m[1m>[0m [90m29 |[0m       [36mconst[0m entries = [36mawait[0m fs.readdir([33mWORKSPACE[0m, { withFileTypes: [36mtrue[0m });
+  [90m   |[0m                             [33m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m30 |[0m       [36mconst[0m wsDirs = entries
+  [90m31 |[0m         .filter((e) => e.isDirectory() && isEngagementWorkspaceDir(e.name))
+  [90m32 |[0m         .map((e) => e.name);
+
+Static analysis determined that this filesystem access causes the whole project to be traced and included in the output.
+This is usually unintentional and leads to all source files (including the public folder) to be deployed as part of the server code.
+This can slow down deployments or lead to failures when size limits are exceeded.
+To resolve this, you can
+- make sure the path is statically scoped to some subfolder, for example path.join(process.cwd(), 'data', bar), or
+- only use them in development, or
+- opt out by adding an ignore comment to the highlighted call: fs.readdir(/*turbopackIgnore: true*/ ...), or
+- remove them.
+
+Import trace:
+  App Route:
+    ./clients/web/src/app/api/engagements/route.ts
+    ./clients/web/src/app/api/workspace/[name]/files/route.ts
+
+
+./clients/web/src/app/api/engagements/route.ts:141:65
+Warning: Dynamic filesystem access causes tracing of the whole project
+  [90m139 |[0m ...
+  [90m140 |[0m ...
+[33m[1m>[0m [90m141 |[0m ...[33mE_SUBDIRS[0m.map((sub) => fs.mkdir(path.join(wsPath, sub), { mode: [35m0o700[0m })));
+  [90m    |[0m                                    [33m[1m^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m142 |[0m ...in(wsPath, [32m"plan"[0m, [32m"roe.json"[0m), roeBytes, { flag: [32m"wx"[0m, mode: [35m0o600[0m });
+  [90m143 |[0m ...risma.engagement.create({
+  [90m144 |[0m ...
+
+Static analysis determined that this filesystem access causes the whole project to be traced and included in the output.
+This is usually unintentional and leads to all source files (including the public folder) to be deployed as part of the server code.
+This can slow down deployments or lead to failures when size limits are exceeded.
+To resolve this, you can
+- make sure the path is statically scoped to some subfolder, for example path.join(process.cwd(), 'data', bar), or
+- only use them in development, or
+- opt out by adding an ignore comment to the highlighted call: path.join(/*turbopackIgnore: true*/ ...), or
+- remove them.
+
+Import trace:
+  App Route:
+    ./clients/web/src/app/api/engagements/route.ts
+    ./clients/web/src/app/api/workspace/[name]/files/route.ts
+
+
+./clients/web/src/app/api/engagements/route.ts:124:27
+Warning: Dynamic filesystem access causes tracing of the whole project
+  [90m122 |[0m       );
+  [90m123 |[0m     }
+[33m[1m>[0m [90m124 |[0m     [36mconst[0m workspaceRoot = path.resolve([33mWORKSPACE[0m);
+  [90m    |[0m                           [33m[1m^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m125 |[0m     [36mconst[0m wsPath = path.resolve(workspaceRoot, name);
+  [90m126 |[0m     [36mconst[0m workspacePrefix = workspaceRoot.endsWith(path.sep) ? workspaceRoot : workspaceR...
+  [90m127 |[0m     [36mif[0m (!wsPath.startsWith(workspacePrefix) || path.dirname(wsPath) !== workspaceRoot) {
+
+Static analysis determined that this filesystem access causes the whole project to be traced and included in the output.
+This is usually unintentional and leads to all source files (including the public folder) to be deployed as part of the server code.
+This can slow down deployments or lead to failures when size limits are exceeded.
+To resolve this, you can
+- make sure the path is statically scoped to some subfolder, for example path.join(process.cwd(), 'data', bar), or
+- only use them in development, or
+- opt out by adding an ignore comment to the highlighted call: path.resolve(/*turbopackIgnore: true*/ ...), or
+- remove them.
+
+Import trace:
+  App Route:
+    ./clients/web/src/app/api/engagements/route.ts
+    ./clients/web/src/app/api/workspace/[name]/files/route.ts
+
+
+./clients/web/src/app/api/workspace/[name]/files/route.ts:58:23
+Warning: Dynamic filesystem access causes tracing of the whole project
+  [90m56 |[0m     [36mlet[0m entries;
+  [90m57 |[0m     [36mtry[0m {
+[33m[1m>[0m [90m58 |[0m       entries = [36mawait[0m fs.readdir(folderDir, { withFileTypes: [36mtrue[0m });
+  [90m   |[0m                       [33m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m59 |[0m     } [36mcatch[0m {
+  [90m60 |[0m       [36mcontinue[0m;
+  [90m61 |[0m     }
+
+Static analysis determined that this filesystem access causes the whole project to be traced and included in the output.
+This is usually unintentional and leads to all source files (including the public folder) to be deployed as part of the server code.
+This can slow down deployments or lead to failures when size limits are exceeded.
+To resolve this, you can
+- make sure the path is statically scoped to some subfolder, for example path.join(process.cwd(), 'data', bar), or
+- only use them in development, or
+- opt out by adding an ignore comment to the highlighted call: fs.readdir(/*turbopackIgnore: true*/ ...), or
+- remove them.
+
+Import trace:
+  App Route:
+    ./clients/web/src/app/api/workspace/[name]/files/route.ts
+    ./clients/web/src/app/api/workspace/[name]/files/route.ts
+
+
+./clients/web/src/app/api/workspace/[name]/files/route.ts:68:28
+Warning: Dynamic filesystem access causes tracing of the whole project
+  [90m66 |[0m       [36mlet[0m size = [35m0[0m;
+  [90m67 |[0m       [36mtry[0m {
+[33m[1m>[0m [90m68 |[0m         [36mconst[0m stat = [36mawait[0m fs.stat(path.join(folderDir, entry.name));
+  [90m   |[0m                            [33m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m69 |[0m         size = stat.size;
+  [90m70 |[0m       } [36mcatch[0m {
+  [90m71 |[0m         [36mcontinue[0m;
+
+Static analysis determined that this filesystem access causes the whole project to be traced and included in the output.
+This is usually unintentional and leads to all source files (including the public folder) to be deployed as part of the server code.
+This can slow down deployments or lead to failures when size limits are exceeded.
+To resolve this, you can
+- make sure the path is statically scoped to some subfolder, for example path.join(process.cwd(), 'data', bar), or
+- only use them in development, or
+- opt out by adding an ignore comment to the highlighted call: fs.stat(/*turbopackIgnore: true*/ ...), or
+- remove them.
+
+Import trace:
+  App Route:
+    ./clients/web/src/app/api/workspace/[name]/files/route.ts
+    ./clients/web/src/app/api/workspace/[name]/files/route.ts
+
+
+./clients/web/src/app/api/workspace/[name]/files/route.ts:55:23
+Warning: Dynamic filesystem access causes tracing of the whole project
+  [90m53 |[0m
+  [90m54 |[0m   [36mfor[0m ([36mconst[0m folder [36mof[0m [33mFOLDERS[0m) {
+[33m[1m>[0m [90m55 |[0m     [36mconst[0m folderDir = path.join(engagementDir, folder);
+  [90m   |[0m                       [33m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m56 |[0m     [36mlet[0m entries;
+  [90m57 |[0m     [36mtry[0m {
+  [90m58 |[0m       entries = [36mawait[0m fs.readdir(folderDir, { withFileTypes: [36mtrue[0m });
+
+Static analysis determined that this filesystem access causes the whole project to be traced and included in the output.
+This is usually unintentional and leads to all source files (including the public folder) to be deployed as part of the server code.
+This can slow down deployments or lead to failures when size limits are exceeded.
+To resolve this, you can
+- make sure the path is statically scoped to some subfolder, for example path.join(process.cwd(), 'data', bar), or
+- only use them in development, or
+- opt out by adding an ignore comment to the highlighted call: path.join(/*turbopackIgnore: true*/ ...), or
+- remove them.
+
+Import trace:
+  App Route:
+    ./clients/web/src/app/api/workspace/[name]/files/route.ts
+    ./clients/web/src/app/api/workspace/[name]/files/route.ts
+
+
+./clients/web/src/app/api/workspace/[name]/files/route.ts:68:36
+Warning: Dynamic filesystem access causes tracing of the whole project
+  [90m66 |[0m       [36mlet[0m size = [35m0[0m;
+  [90m67 |[0m       [36mtry[0m {
+[33m[1m>[0m [90m68 |[0m         [36mconst[0m stat = [36mawait[0m fs.stat(path.join(folderDir, entry.name));
+  [90m   |[0m                                    [33m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m69 |[0m         size = stat.size;
+  [90m70 |[0m       } [36mcatch[0m {
+  [90m71 |[0m         [36mcontinue[0m;
+
+Static analysis determined that this filesystem access causes the whole project to be traced and included in the output.
+This is usually unintentional and leads to all source files (including the public folder) to be deployed as part of the server code.
+This can slow down deployments or lead to failures when size limits are exceeded.
+To resolve this, you can
+- make sure the path is statically scoped to some subfolder, for example path.join(process.cwd(), 'data', bar), or
+- only use them in development, or
+- opt out by adding an ignore comment to the highlighted call: path.join(/*turbopackIgnore: true*/ ...), or
+- remove them.
+
+Import trace:
+  App Route:
+    ./clients/web/src/app/api/workspace/[name]/files/route.ts
+    ./clients/web/src/app/api/workspace/[name]/files/route.ts
+
+
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+├ ƒ /_not-found
+├ ƒ /api/agents
+├ ƒ /api/blue/status
+├ ƒ /api/engagements
+├ ƒ /api/engagements/[id]
+├ ƒ /api/engagements/[id]/approvals
+├ ƒ /api/engagements/[id]/export
+├ ƒ /api/engagements/[id]/findings
+├ ƒ /api/engagements/[id]/graph
+├ ƒ /api/engagements/[id]/opplan
+├ ƒ /api/engagements/[id]/plan-docs
+├ ƒ /api/engagements/[id]/threads
+├ ƒ /api/engagements/[id]/timeline
+├ ƒ /api/health
+├ ƒ /api/workspace/[name]/files
+├ ƒ /api/workspace/[name]/files/[...path]
+├ ƒ /engagements
+├ ƒ /engagements/[id]
+├ ƒ /engagements/[id]/documents
+├ ƒ /engagements/[id]/findings
+├ ƒ /engagements/[id]/graph
+├ ƒ /engagements/[id]/live
+├ ƒ /engagements/[id]/plan
+├ ƒ /engagements/[id]/timeline
+├ ƒ /engagements/new
+├ ƒ /findings
+├ ƒ /graph
+├ ○ /icon.png
+└ ƒ /settings
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

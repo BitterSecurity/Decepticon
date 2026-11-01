@@ -1,0 +1,137 @@
+{
+  "source": "3c1f258bf468f2ad77fb9ecea5b83c3a87457ef0",
+  "checks": [
+    {
+      "name": "CI OK (required status)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "CodeQL",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Semgrep OSS",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Trivy",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Telemetry gateway (audit + typecheck + test + bundle)",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Compose YAML validate",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Launcher (macos-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Docker arm64 smoke (langgraph)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "CLI (ubuntu-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Launcher (ubuntu-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Python (lint + typecheck + test)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Docker arm64 smoke (cli)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Launcher (windows-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Coverage report (PRs \u2014 informational, non-blocking)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Web (lint + build)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "CLI (macos-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Docker build (langgraph)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "CodeQL (python)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Trivy (deps + IaC config)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "CodeQL (javascript-typescript)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Dependency review",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Secret scan (TruffleHog)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Semgrep (repo rules \u2014 hard gate)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Security (pip-audit)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "actionlint (workflows)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Detect changes",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "ciRun": 41326061469,
+  "securityRun": 41326061494
+}
