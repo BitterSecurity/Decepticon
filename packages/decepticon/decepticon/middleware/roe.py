@@ -6,8 +6,8 @@ warning-only execution. Abort, time windows, command/target rules, concurrency
 and cadence are checked around gated calls.
 
 Target extraction is best-effort. Separate sandbox egress provisioning is
-attempted unless disabled, but provisioning errors are logged and retried rather
-than terminating a run. Parser refusal is not proof of network confinement.
+required unless explicitly disabled. Unconfirmed or failed provisioning stops
+agent admission; a later attempt can retry. Parser refusal is not proof of network confinement.
 """
 
 from __future__ import annotations
@@ -43,6 +43,10 @@ from decepticon_core.types.roe import (
 )
 
 log = logging.getLogger(__name__)
+
+
+class EgressProvisioningError(RuntimeError):
+    """Required sandbox network confinement was not confirmed."""
 
 
 GATED_TOOL_NAMES: frozenset[str] = frozenset(
@@ -430,11 +434,12 @@ class RoEGuardrailMiddleware(AgentMiddleware):
             log.error("roe: audit sink write failed: %s", exc)
 
     def _maybe_provision_egress(self, state) -> None:
-        """Attempt network-policy provisioning once per workspace.
+        """Admit only after confirmed network-policy provisioning.
 
-        The operator can disable provisioning. Failures are logged and the
-        workspace is unmarked so a later turn can retry; errors do not stop the
-        run. Legacy machine mode keys do not select provisioning behavior.
+        Serialize admission with provisioning so another invocation cannot see
+        an in-progress workspace as already protected. Cache successes only;
+        refusals and transport failures remain retryable on a later attempt.
+        The existing trusted operator opt-out is unchanged.
         """
         if _egress_disabled():
             return
@@ -443,30 +448,25 @@ class RoEGuardrailMiddleware(AgentMiddleware):
         if not workspace:
             return
         rules = _load_rules_for_workspace(workspace)
-        # Every materialized RoE is enforced; there is no audit/warn bypass.
 
         with self._egress_lock:
             if workspace in self._egress_provisioned:
                 return
-            self._egress_provisioned.add(workspace)
-        try:
-            from decepticon.backends.factory import build_sandbox_backend
-            from decepticon.middleware.egress import compile_egress_policy
+            try:
+                from decepticon.backends.factory import build_sandbox_backend
+                from decepticon.middleware.egress import compile_egress_policy
 
-            policy = compile_egress_policy(rules)
-            result = build_sandbox_backend().provision_egress(policy)
-            log.info(
-                "roe: egress provisioned for %s: applied=%s detail=%s",
-                workspace,
-                result.get("applied"),
-                result.get("detail"),
-            )
-        except Exception as exc:  # noqa: BLE001 - provisioning must never break the run
-            log.error("roe: egress provisioning failed for %s: %s", workspace, exc)
-            # Un-mark so a later agent turn can retry rather than silently
-            # leaving the engagement with no network boundary.
-            with self._egress_lock:
-                self._egress_provisioned.discard(workspace)
+                policy = compile_egress_policy(rules)
+                result = build_sandbox_backend().provision_egress(policy)
+                if not isinstance(result, dict) or result.get("applied") is not True:
+                    raise RuntimeError("Network policy application was not confirmed.")
+            except Exception as exc:  # noqa: BLE001 - every provisioning failure must refuse admission
+                log.error("roe: egress admission refused (%s)", type(exc).__name__)
+                raise EgressProvisioningError(
+                    "Sandbox network policy could not be applied. Agent execution was refused."
+                ) from None
+            self._egress_provisioned.add(workspace)
+            log.info("roe: egress policy application confirmed")
 
     def _evaluate(self, request) -> tuple[Decision, MachineEnforcement, str]:
         tool = getattr(request, "tool", None)
