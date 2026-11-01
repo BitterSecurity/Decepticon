@@ -55,6 +55,7 @@ def test_transport_failure_refuses_admission_without_exposing_backend_details(ba
 def test_inflight_policy_is_not_treated_as_confirmed(backend):
     entered, release = threading.Event(), threading.Event()
     second_started = threading.Event()
+    second_returned = threading.Event()
 
     def provision(_policy):
         entered.set()
@@ -68,6 +69,7 @@ def test_inflight_policy_is_not_treated_as_confirmed(backend):
     def second():
         second_started.set()
         guard.before_agent(state, None)
+        second_returned.set()
 
     with ThreadPoolExecutor(max_workers=2) as pool:
         first = pool.submit(guard.before_agent, state, None)
@@ -75,7 +77,7 @@ def test_inflight_policy_is_not_treated_as_confirmed(backend):
         waiting = pool.submit(second)
         assert second_started.wait(5)
         try:
-            assert not waiting.done()
+            assert not second_returned.wait(0.1)
         finally:
             release.set()
         first.result(timeout=5)
