@@ -1,0 +1,22 @@
+{
+  "base": "ce4a94368c17b0c20e34621f4c3a918bfbe660a2",
+  "catalogOriginal": "3b0c45a977385a05c758d85ea284b28fc698d5ab",
+  "generatorTests": 10,
+  "publicModels": 205,
+  "generatedOutputs": 4,
+  "cliTests": 300,
+  "cliFiles": 41,
+  "cliSeconds": 32.87,
+  "gatewayTests": 10,
+  "gatewayDeselected": 8,
+  "gatewaySeconds": 20.8,
+  "imageId": "sha256:d5d2953a8549322dc7565f34fcbdfecb3b8466c61601f5aea17da0450244d9f4",
+  "litellm": "1.88.1",
+  "helperSha256": "d1d13eed2f9e530477ecbc89a224e4d42c6c8e0feb827df469f49aee6c0fef86",
+  "fullRuff": "pass",
+  "fullFormatFiles": 884,
+  "allCommandsExitCode": 0,
+  "providerInference": false,
+  "productionChanged": false,
+  "published": false
+}

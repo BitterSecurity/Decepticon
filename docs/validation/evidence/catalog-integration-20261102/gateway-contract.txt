@@ -1,0 +1,9 @@
+..........                                                               [100%]
+=============================== warnings summary ===============================
+.venv/lib/python3.13/site-packages/ddtrace/contrib/pytest/_utils.py:216
+  /app/.venv/lib/python3.13/site-packages/ddtrace/contrib/pytest/_utils.py:216: PytestRemovedIn10Warning: config.inicfg is deprecated, use config.getini() to access configuration values instead.
+  See https://docs.pytest.org/en/stable/deprecations.html#config-inicfg
+    or "ddtrace" in early_config.inicfg
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+10 passed, 8 deselected, 1 warning in 20.80s

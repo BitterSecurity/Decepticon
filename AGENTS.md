@@ -1,5 +1,11 @@
 # Versioned change tracking
 
+The user reported GitHub Actions account billing/spending limits and requires
+local verification. Run applicable checks locally and record actual results and
+limitations. Inspect exact-head hosted checks when available; claim CI success
+only when it actually ran. Open qualified PRs ready for review and preserve
+repository protections.
+
 Before opening or updating any PR, including documentation or maintenance changes,
 update the single root `CHAGELOG.md` and link it from the PR description. Preserve
 the full existing history and release automation; do not create another changelog.

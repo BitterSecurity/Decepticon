@@ -7,6 +7,10 @@ FROM ghcr.io/berriai/litellm:v1.88.1
 # python so xxhash lands where the litellm process imports from.
 RUN python -m ensurepip --upgrade && python -m pip install --no-cache-dir xxhash
 
+# Keep advertised max reasoning through Chat -> Responses translation.
+COPY config/patch_responses_max_effort.py /app/patch_responses_max_effort.py
+RUN python /app/patch_responses_max_effort.py
+
 # Use LiteLLM's cached native migration CLI. Re-importing the generated
 # Python Prisma client on each retry can consume its 60-second deadline.
 RUN prisma_cli="$(find /root/.cache/prisma-python/binaries -path '*/node_modules/.bin/prisma' -print -quit)" && \

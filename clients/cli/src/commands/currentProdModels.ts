@@ -260,6 +260,7 @@ export const CURRENT_PROD_MODELS: Record<string, string[]> = {
     "bedrock/anthropic.claude-haiku-4-5-20251001-v1:0"
   ],
   "Shared catalog / openai": [
+    "openai/gpt-6.1-terra",
     "openai/gpt-5.5",
     "openai/gpt-5-nano",
     "openai/gpt-5.3-codex",

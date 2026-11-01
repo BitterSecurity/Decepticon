@@ -1,0 +1,139 @@
+Waiting for the shared full-build slot.
+Build slot acquired.
+# npm audit report
+
+deepmerge  >=4.2.0
+deepmerge mergeObject() allows prototype poisoning of returned objects - https://github.com/advisories/GHSA-gcqx-w48m-w2h4
+fix available via `npm audit fix --force`
+Will install shadcn@1.0.0, which is a breaking change
+node_modules/deepmerge
+  @inkjs/ui  *
+  Depends on vulnerable versions of deepmerge
+  node_modules/@inkjs/ui
+  @shadcn/registry  <=0.0.0-rc-20261007105214 || >=0.1.0
+  Depends on vulnerable versions of deepmerge
+  node_modules/@shadcn/registry
+    shadcn  <=0.0.0-rc-20261007105214 || >=2.0.0
+    Depends on vulnerable versions of @shadcn/registry
+    Depends on vulnerable versions of deepmerge
+    Depends on vulnerable versions of ts-morph
+    node_modules/shadcn
+
+minimatch  <11.0.1
+Severity: moderate
+minimatch has potential denial of service via globparts amplification - https://github.com/advisories/GHSA-g3hv-75wg-m249
+fix available via `npm audit fix --force`
+Will install eslint@4.0.0, which is a breaking change
+node_modules/@ts-morph/common/node_modules/minimatch
+node_modules/@typescript-eslint/typescript-estree/node_modules/minimatch
+node_modules/minimatch
+  @eslint/config-array  *
+  Depends on vulnerable versions of minimatch
+  node_modules/@eslint/config-array
+    eslint  0.7.1 - 2.0.0-rc.1 || >=4.1.0
+    Depends on vulnerable versions of @eslint-community/eslint-utils
+    Depends on vulnerable versions of @eslint/config-array
+    Depends on vulnerable versions of @eslint/eslintrc
+    Depends on vulnerable versions of minimatch
+    node_modules/eslint
+      @eslint-community/eslint-utils  *
+      Depends on vulnerable versions of eslint
+      node_modules/@eslint-community/eslint-utils
+        @next/eslint-plugin-next  >=16.3.0-canary.0
+        Depends on vulnerable versions of @eslint-community/eslint-utils
+        node_modules/@next/eslint-plugin-next
+          eslint-config-next  >=10.2.1-canary.2
+          Depends on vulnerable versions of @next/eslint-plugin-next
+          Depends on vulnerable versions of eslint
+          Depends on vulnerable versions of eslint-plugin-import
+          Depends on vulnerable versions of eslint-plugin-jsx-a11y
+          Depends on vulnerable versions of eslint-plugin-react
+          Depends on vulnerable versions of typescript-eslint
+          node_modules/eslint-config-next
+        @typescript-eslint/utils  *
+        Depends on vulnerable versions of @eslint-community/eslint-utils
+        Depends on vulnerable versions of @typescript-eslint/typescript-estree
+        Depends on vulnerable versions of eslint
+        node_modules/@typescript-eslint/utils
+          @typescript-eslint/eslint-plugin  *
+          Depends on vulnerable versions of @typescript-eslint/parser
+          Depends on vulnerable versions of @typescript-eslint/type-utils
+          Depends on vulnerable versions of @typescript-eslint/utils
+          Depends on vulnerable versions of eslint
+          node_modules/@typescript-eslint/eslint-plugin
+            typescript-eslint  *
+            Depends on vulnerable versions of @typescript-eslint/eslint-plugin
+            Depends on vulnerable versions of @typescript-eslint/parser
+            Depends on vulnerable versions of @typescript-eslint/typescript-estree
+            Depends on vulnerable versions of @typescript-eslint/utils
+            Depends on vulnerable versions of eslint
+            node_modules/typescript-eslint
+          @typescript-eslint/type-utils  >=5.9.2-alpha.0
+          Depends on vulnerable versions of @typescript-eslint/typescript-estree
+          Depends on vulnerable versions of @typescript-eslint/utils
+          Depends on vulnerable versions of eslint
+          node_modules/@typescript-eslint/type-utils
+      @typescript-eslint/parser  *
+      Depends on vulnerable versions of @typescript-eslint/typescript-estree
+      Depends on vulnerable versions of eslint
+      node_modules/@typescript-eslint/parser
+  @eslint/eslintrc  0.0.1 || >=0.1.1
+  Depends on vulnerable versions of minimatch
+  node_modules/@eslint/eslintrc
+  @ts-morph/common  >=0.9.0
+  Depends on vulnerable versions of minimatch
+  node_modules/@ts-morph/common
+    ts-morph  >=10.0.2
+    Depends on vulnerable versions of @ts-morph/common
+    node_modules/ts-morph
+  @typescript-eslint/typescript-estree  >=6.16.0
+  Depends on vulnerable versions of minimatch
+  node_modules/@typescript-eslint/typescript-estree
+  eslint-plugin-import  >=1.15.0
+  Depends on vulnerable versions of minimatch
+  node_modules/eslint-plugin-import
+  eslint-plugin-jsx-a11y  >=6.5.0
+  Depends on vulnerable versions of minimatch
+  node_modules/eslint-plugin-jsx-a11y
+  eslint-plugin-react  >=7.23.0
+  Depends on vulnerable versions of minimatch
+  node_modules/eslint-plugin-react
+
+22 vulnerabilities (3 low, 19 moderate)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues possible (including breaking changes), run:
+  npm audit fix --force
+
+Some issues need review, and may require choosing
+a different dependency.
+
+> @decepticon/streaming@0.1.0 build
+> tsc -p tsconfig.build.json
+
+
+> @decepticon/cli@0.0.0 typecheck
+> tsc --noEmit
+
+
+> @decepticon/cli@0.0.0 build
+> tsc
+
+
+> @decepticon/cli@0.0.0 test
+> vitest run --maxWorkers=2
+
+
+ RUN  v5.0.5 /home/catow/GIT/decepticon-oss-review-catalog-integration-20261102/clients/cli
+
+[?2004h[?2004l[?2004h[?2004l[?2004h[?2004l[?2004h[?2004l[?2004h[?2004l[?2004h[?2004l[?2004h[?2004l[?2004h[?2004l[?2004h[?2004l[?2004h[?2004l[?2004h[?2004l[?2004h[?2004l[?2004h[?2004l[?2004h[?2004l[?2004h[?2004l[?2004h[?2004l[?2004h[?2004l[?2004h[?2004l[?2004h[?2004l
+ Test Files  41 passed (41)
+      Tests  300 passed (300)
+   Start at  02:24:27
+   Duration  32.87s (tests 50%, environment 24%, import 19%, transform 5%, worker 1%)
+
+    Isolate  41 workers spawned · ~568ms startup each (spawn + environment, per file)
+             at least ~11.07s faster with isolate: false — reuses workers across files instead of one per file
+
