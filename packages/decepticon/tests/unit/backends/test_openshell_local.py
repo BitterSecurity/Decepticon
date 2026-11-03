@@ -327,6 +327,7 @@ def test_existing_policy_must_be_observed_loaded_before_daemon_exec(tmp_path, mo
     if failure == "unready":
         client.ref.status.phase = openshell_pb2.SANDBOX_PHASE_UNSPECIFIED
     elif failure == "changed_policy":
+        assert client.created_spec is not None
         client.created_spec.policy.network_policies.clear()
     else:
 
@@ -359,6 +360,7 @@ def test_cached_same_generation_still_reads_effective_policy(tmp_path, monkeypat
     _patch_client(monkeypatch, client)
     backend = resolve_local_binding({"configurable": {"workspace_path": str(workspace)}})
     executed = len(backend._session.calls)
+    assert client.created_spec is not None
     client.created_spec.policy.network_policies.clear()
     with pytest.raises(SandboxError):
         backend.execute_tmux("must-not-execute")

@@ -48,11 +48,12 @@ class TestCompilation:
         assert "host" not in endpoint
         assert "protocol" not in endpoint
 
-    def test_osint_allowance_section_present(self) -> None:
+    def test_osint_allowance_section_present(self, monkeypatch) -> None:
+        monkeypatch.delenv("DECEPTICON_OSINT_EGRESS_HOSTS", raising=False)
         compiled = _compile({"in_scope": ["example.com"]})
         osint = compiled.policy["network_policies"]["osint_allowance"]
         hosts = {ep["host"] for ep in osint["endpoints"]}
-        assert "duckduckgo.com" in hosts
+        assert hosts == {"duckduckgo.com", "html.duckduckgo.com"}
 
     def test_deterministic_across_rule_order(self) -> None:
         one = _compile({"in_scope": ["a.example.com", "b.example.com", "c.example.com"]})
