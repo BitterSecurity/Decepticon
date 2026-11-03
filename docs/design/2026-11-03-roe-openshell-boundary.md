@@ -279,3 +279,40 @@ mixed scopes into one policy; a stock gateway still rejects it with its
 own validator error naming the overlapping endpoints (visible, not
 silent). Live proof of the mixed policy on a patched runtime: see the
 live artifacts.
+
+## 11. Deployment requirements (OpenShell-only policy boundary)
+
+What a deployment needs to run the converted boundary end to end:
+
+1. **OpenShell gateway 0.1.6+** — mandatory gateway authentication
+   (JWT) is a 0.1.6 requirement; the gateway must be reachable from
+   both the decepticon process and the sandbox runtime.
+2. **Patched gateway + supervisor binaries** — until the upstream class
+   fix lands (tracked as NVIDIA/OpenShell#5193), mixed host+CIDR scopes
+   need binaries built from `fix/hostless-endpoint-ambiguity/mschoi`
+   (local branch, 3 commits). Stock 0.1.6 still accepts single-class
+   scopes (hosts-only or CIDR-only) with the stock validator; mixed
+   scopes fail visibly at validation, never silently.
+3. **`openshell` CLI 0.1.6+** on the runtime host — policy hot-push
+   (`policy set --wait`) goes through the CLI/RAW path; neither SDK
+   0.1.6 nor main exposes a policy-push wrapper.
+4. **`decepticon[openshell]` extra** (SDK `>=0.1.5,<0.2`) installed for
+   the decepticon process; the local trust resolver
+   (`openshell_local`) additionally requires explicit operator opt-in.
+5. **Runtime host** — clean Linux with Docker (verified on Ubuntu 24.04
+   + Docker 29.1.3, C-4 ECI VM). WSL2 with `networkingMode=mirrored`
+   kernels pre-install a seccomp listener filter per process and fail
+   sandbox birth with EBUSY (see §10 root-cause correction) — use NAT
+   mode or a non-WSL node.
+6. **Born-confined provisioning only** — sandboxes are created with the
+   compiled `SandboxSpec.policy` attached; admission binds the compile
+   hash (fail-closed). There is no egress escape hatch: the legacy
+   nftables path, `/provision_egress`, and `DECEPTICON_EGRESS_DISABLE`
+   are removed (§10).
+7. **HTTP-only deployments: breaking** — hosts without an OpenShell
+   backend get the loud provisioning failure from §10; they must attach
+   a gateway before upgrading to this branch.
+
+Verification evidence for items 1–2 on a live kernel: mixed policy
+matrix M1–M6 all-pass on a patched runtime, recorded under
+`~/artifacts/decepticon-roe-openshell-20261103/live/`.
