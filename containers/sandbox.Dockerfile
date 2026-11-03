@@ -227,7 +227,8 @@ RUN echo "set-option -g history-limit 20000" > /root/.tmux.conf
 # heavier decepticon agent / LLM / langgraph SDKs are deliberately
 # left out so the sandbox image doesn't bloat for the >95% of users
 # who never enable the daemon.
-RUN pip3 install --break-system-packages --no-cache-dir \
+# Preserve apt-owned packages without RECORD metadata, as in the web-engine layer below.
+RUN pip3 install --break-system-packages --no-cache-dir --ignore-installed \
     "fastapi>=0.115.0" \
     "uvicorn>=0.30.0" \
     "deepagents>=0.5.0"
