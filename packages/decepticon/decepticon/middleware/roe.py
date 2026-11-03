@@ -441,14 +441,14 @@ class RoEGuardrailMiddleware(AgentMiddleware):
             log.error("roe: audit sink write failed: %s", exc)
 
     def _maybe_provision_egress(self, state, config=None) -> None:
-        """Verify the OpenShell kernel boundary once per workspace.
+        """Verify the OpenShell kernel boundary on every agent admission.
 
         OpenShell is the only network-boundary authority: the trusted
         resolver attaches the compiled RoE policy at sandbox creation, so
         provisioning here verifies that the admitted policy hash still
         matches the workspace's RoE. A backend without OpenShell authority
         cannot provide a kernel network boundary at all — provisioning
-        fails loudly and the workspace is unmarked so a later turn retries
+        raises before model/tool execution and leaves a later turn free to retry
         (there is no nftables fallback to quietly run on).
         """
         get = state.get if hasattr(state, "get") else (lambda _k, _d=None: None)
