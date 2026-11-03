@@ -183,17 +183,24 @@ class TestSandboxName:
 
 
 class TestMixedScopeGrammar:
-    def test_mixed_host_and_cidr_refuses(self) -> None:
+    def test_mixed_host_and_cidr_compiles_one_policy(self) -> None:
+        # Named endpoints and hostless CIDR endpoints authorize disjoint
+        # destination classes; gateways carrying the class-separation fix
+        # (upstream NVIDIA/OpenShell#5193) accept the combined policy.
         compiled = _compile({"in_scope": ["example.com", "10.10.0.0/24"]})
-        assert any("destination classes" in error for error in compiled.errors)
-        assert compiled.policy == {}
+        assert compiled.errors == ()
+        endpoints = compiled.policy["network_policies"]["roe_in_scope"]["endpoints"]
+        hosts = {ep.get("host") for ep in endpoints}
+        assert hosts == {"example.com", None}
+        cidr = next(ep for ep in endpoints if "allowed_ips" in ep)
+        assert cidr["allowed_ips"] == ["10.10.0.0/24"]
+        assert cidr["enforcement"] == "enforce"
 
-    def test_cidr_only_compiles_hostless_without_osint(self) -> None:
+    def test_cidr_only_compiles_with_osint_allowance(self) -> None:
         compiled = _compile({"in_scope": ["10.10.0.0/24"]})
         assert compiled.errors == ()
         sections = compiled.policy["network_policies"]
-        assert "osint_allowance" not in sections
+        assert "osint_allowance" in sections
         endpoint = sections["roe_in_scope"]["endpoints"][0]
         assert endpoint["allowed_ips"] == ["10.10.0.0/24"]
         assert endpoint["enforcement"] == "enforce"
-        assert any("web_search" in warning for warning in compiled.warnings)

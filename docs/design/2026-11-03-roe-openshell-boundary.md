@@ -260,3 +260,22 @@ kernel's seccomp user-notify is healthy: Landlock ABI 7, `user_notif` in
 `actions_avail`, plain filters install cleanly. Workarounds: run WSL with
 `networkingMode=nat`, or move sandboxes to a non-WSL node. The §8 retest
 plan applies unchanged on such a host.
+
+### Phase 3 — mixed host+CIDR scopes (2026-11-03, same PR)
+
+The compile-time refusal for mixed host+CIDR scopes was removed. Root
+cause: the OpenShell ambiguity validator (`openshell-policy/src/ambiguity.rs`)
+compares `allowed_ips` as shared connection config, but for a hostless
+endpoint the list IS its destination selector — named and hostless
+endpoints authorize disjoint destination classes (named requests vs
+raw-IP connections) and never compete for the same request's config,
+mirroring the existing plain-L4 guarantee. Filed upstream with variant
+evidence and live kernel behavior as NVIDIA/OpenShell#5193.
+
+Our deployment runs gateway + supervisor binaries carrying the
+class-separation fix (local branch `fix/hostless-endpoint-ambiguity/mschoi`,
+295 policy tests pass + 3 new class tests), so the compiler now emits
+mixed scopes into one policy; a stock gateway still rejects it with its
+own validator error naming the overlapping endpoints (visible, not
+silent). Live proof of the mixed policy on a patched runtime: see the
+live artifacts.
