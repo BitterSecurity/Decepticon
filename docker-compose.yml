@@ -224,10 +224,12 @@ services:
     # that boundary tight:
     #
     #   - cap_drop ALL, then re-add the minimum set the offensive
-    #     toolset actually needs (NET_RAW for SYN scans, NET_ADMIN for
-    #     raw routing, NET_BIND_SERVICE for low ports, SYS_PTRACE for
+    #     toolset actually needs (NET_RAW for SYN scans,
+    #     NET_BIND_SERVICE for low ports, SYS_PTRACE for
     #     frida/gdb in the Reverser path, SETUID/SETGID for tools like
-    #     msfconsole that drop privileges internally).
+    #     msfconsole that drop privileges internally). NET_ADMIN was
+    #     retired with the nftables egress path — OpenShell is the only
+    #     network-boundary authority now.
     #   - no-new-privileges blocks setuid escalation within the
     #     container even if a tool ships with a setuid binary.
     #   - mem_limit caps a runaway scan / fuzzer at 4G so it can't
