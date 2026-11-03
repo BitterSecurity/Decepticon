@@ -185,7 +185,7 @@ class TestSandboxName:
 class TestMixedScopeGrammar:
     def test_mixed_host_and_cidr_refuses(self) -> None:
         compiled = _compile({"in_scope": ["example.com", "10.10.0.0/24"]})
-        assert any("cannot express both" in error for error in compiled.errors)
+        assert any("destination classes" in error for error in compiled.errors)
         assert compiled.policy == {}
 
     def test_cidr_only_compiles_hostless_without_osint(self) -> None:

@@ -193,10 +193,13 @@ def _in_scope_sections(
         # narrowing either side.
         errors.append(
             "in_scope mixes host/domain-glob rules with CIDR/IP rules: the "
-            "OpenShell kernel policy grammar cannot express both in one "
-            "policy (hostless allowed_ips endpoints conflict with rest "
-            "endpoints on shared ports). Split the engagement scopes or "
-            "drop the CIDR entries"
+            "OpenShell ambiguity validator treats hostless allowed_ips "
+            "endpoints and named endpoints as competing on shared ports, "
+            "though they authorize disjoint destination classes (named "
+            "requests vs raw-IP connections). Root cause tracked upstream — "
+            "https://github.com/NVIDIA/OpenShell/issues/5193; a local "
+            "gateway carrying the class-separation fix accepts this scope. "
+            "Until then, split the engagement scopes or drop the CIDR entries"
         )
         return [], []
 
