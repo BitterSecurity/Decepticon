@@ -5,9 +5,13 @@ machine configuration is refused; legacy mode keys do not enable audit-only or
 warning-only execution. Abort, time windows, command/target rules, concurrency
 and cadence are checked around gated calls.
 
-Target extraction is best-effort. Separate sandbox egress provisioning is
-attempted unless disabled, but provisioning errors are logged and retried rather
-than terminating a run. Parser refusal is not proof of network confinement.
+Target extraction is best-effort. The network boundary is exclusively the
+OpenShell kernel policy: it is attached at sandbox creation by the trusted
+resolver and provisioning here verifies the admitted policy hash against
+the RoE compiled from the same machine block
+(``decepticon.middleware.policy_compiler``). An unverifiable boundary, or
+a backend without OpenShell authority, fails loudly instead of running
+unprotected — the legacy in-container nftables path has been retired.
 """
 
 from __future__ import annotations
@@ -249,20 +253,25 @@ def _command_from_tool_call(request) -> str:
 
 
 def _egress_disabled() -> bool:
-    """Whether the Layer-2 egress guardrail is turned OFF (opt-out).
+    """Deprecated opt-out flag, retained only to warn the operator.
 
-    Default ON: an ``enforce``-mode engagement automatically gets the
-    authoritative network boundary compiled + pushed to the sandbox — no
-    extra env needed. ``DECEPTICON_EGRESS_DISABLE=1`` is the escape hatch
-    for an operator whose environment the in-sandbox firewall doesn't fit
-    (it falls back to the parser layer alone). audit / warn modes never
-    touch the network regardless.
+    The nftables in-sandbox firewall this flag used to bypass has been
+    removed: OpenShell is the only network-boundary authority, and the
+    kernel policy is attached at sandbox creation by the trusted resolver
+    — there is no provisioning step left to disable. Setting the flag
+    changes nothing; the run keeps its OpenShell boundary.
     """
-    return os.environ.get("DECEPTICON_EGRESS_DISABLE", "").strip().lower() in {
+    disabled = os.environ.get("DECEPTICON_EGRESS_DISABLE", "").strip().lower() in {
         "1",
         "true",
         "yes",
     }
+    if disabled:
+        log.warning(
+            "roe: DECEPTICON_EGRESS_DISABLE is retired; OpenShell kernel "
+            "policies are structural and cannot be disabled per-run"
+        )
+    return disabled
 
 
 class RoEGuardrailMiddleware(AgentMiddleware):
@@ -300,18 +309,20 @@ class RoEGuardrailMiddleware(AgentMiddleware):
         self._pace_lock = threading.Lock()
         self._last_gated_monotonic = 0.0
         self._egress_lock = threading.Lock()
-        self._egress_provisioned: set[str] = set()
+        self._egress_provisioned: set[tuple[str, str, str]] = set()
 
     @override
     def before_agent(self, state, runtime) -> None:
-        self._maybe_provision_egress(state)
+        self._maybe_provision_egress(state, getattr(runtime, "config", None))
         return None
 
     @override
     async def abefore_agent(self, state, runtime) -> None:
         # Provisioning does a one-time synchronous HTTP round-trip to the
         # sandbox daemon; offload it so the event loop isn't blocked.
-        await asyncio.to_thread(self._maybe_provision_egress, state)
+        await asyncio.to_thread(
+            self._maybe_provision_egress, state, getattr(runtime, "config", None)
+        )
         return None
 
     @override
@@ -429,44 +440,92 @@ class RoEGuardrailMiddleware(AgentMiddleware):
         except Exception as exc:  # noqa: BLE001 - audit must never break tool execution
             log.error("roe: audit sink write failed: %s", exc)
 
-    def _maybe_provision_egress(self, state) -> None:
-        """Attempt network-policy provisioning once per workspace.
+    def _maybe_provision_egress(self, state, config=None) -> None:
+        """Verify the OpenShell kernel boundary on every agent admission.
 
-        The operator can disable provisioning. Failures are logged and the
-        workspace is unmarked so a later turn can retry; errors do not stop the
-        run. Legacy machine mode keys do not select provisioning behavior.
+        OpenShell is the only network-boundary authority: the trusted
+        resolver attaches the compiled RoE policy at sandbox creation, so
+        provisioning here verifies that the admitted policy hash still
+        matches the workspace's RoE. A backend without OpenShell authority
+        cannot provide a kernel network boundary at all — provisioning
+        raises before model/tool execution and leaves a later turn free to retry
+        (there is no nftables fallback to quietly run on).
         """
-        if _egress_disabled():
-            return
         get = state.get if hasattr(state, "get") else (lambda _k, _d=None: None)
         workspace = get("workspace_path") or None
         if not workspace:
             return
+        _egress_disabled()  # deprecated: warn only, never bypasses the boundary
         rules = _load_rules_for_workspace(workspace)
         # Every materialized RoE is enforced; there is no audit/warn bypass.
 
+        # Hold admission until verification completes. A concurrent caller may
+        # never treat an in-progress check as a successful cached admission.
         with self._egress_lock:
-            if workspace in self._egress_provisioned:
-                return
-            self._egress_provisioned.add(workspace)
-        try:
             from decepticon.backends.factory import build_sandbox_backend
-            from decepticon.middleware.egress import compile_egress_policy
 
-            policy = compile_egress_policy(rules)
-            result = build_sandbox_backend().provision_egress(policy)
-            log.info(
-                "roe: egress provisioned for %s: applied=%s detail=%s",
-                workspace,
-                result.get("applied"),
-                result.get("detail"),
+            backend = build_sandbox_backend(config)
+            if getattr(backend, "egress_authority", "") != "openshell":
+                raise RuntimeError(
+                    "RoE requires an admitted OpenShell kernel boundary; "
+                    "configure DECEPTICON_SANDBOX_PROVIDER=openshell"
+                )
+            compiled = self._verify_openshell_boundary(state, workspace, rules, backend)
+            key = (workspace, compiled.canonical_hash, backend.id)
+            if key not in self._egress_provisioned:
+                self._record_provision(state, compiled)
+                self._egress_provisioned.add(key)
+
+    def _verify_openshell_boundary(self, state, workspace, rules, backend):
+        """Confirm the admitted OpenShell policy is compiled from this RoE.
+
+        The kernel policy is the authoritative boundary, so it must be
+        provably derived from ``plan/roe.json``: the admission's
+        ``effective_policy_hash`` must equal the hash of the policy this
+        module compiles from the same machine block. Anything else means
+        the sandbox's network contract cannot be tied to the operator's
+        scope and provisioning fails loudly for a later retry.
+        """
+        from decepticon.middleware.policy_compiler import compile_openshell_policy
+
+        compiled = compile_openshell_policy(rules)
+        if compiled.errors:
+            raise RuntimeError(
+                "RoE cannot be compiled into an OpenShell policy: " + "; ".join(compiled.errors)
             )
-        except Exception as exc:  # noqa: BLE001 - provisioning must never break the run
-            log.error("roe: egress provisioning failed for %s: %s", workspace, exc)
-            # Un-mark so a later agent turn can retry rather than silently
-            # leaving the engagement with no network boundary.
-            with self._egress_lock:
-                self._egress_provisioned.discard(workspace)
+        backend.check_admission()
+        admission = backend.current_admission()
+        if admission.effective_policy_hash != compiled.canonical_hash:
+            raise RuntimeError(
+                "OpenShell admission policy hash does not match the compiled "
+                f"RoE policy ({admission.effective_policy_hash[:12]} != "
+                f"{compiled.canonical_hash[:12]}); refusing to admit agents "
+                "on an unverifiable boundary"
+            )
+        log.info(
+            "roe: openshell kernel boundary verified for %s: policy=%s",
+            workspace,
+            compiled.canonical_hash[:12],
+        )
+
+        return compiled
+
+    def _record_provision(self, state, compiled) -> None:
+        if self._sink is None:
+            return
+        get = state.get if hasattr(state, "get") else (lambda _k, _d=None: None)
+        record = {
+            "ts": time.time(),
+            "engagement": get("engagement_name") or "unknown-engagement",
+            "objective_id": get("active_objective_id") or get("current_objective") or "",
+            "event": "egress_provisioned",
+            "authority": "openshell",
+            "policy_hash": compiled.canonical_hash,
+        }
+        try:
+            self._sink.append(record)
+        except Exception as exc:  # noqa: BLE001 - audit must never break tool execution
+            log.error("roe: provisioning audit write failed: %s", exc)
 
     def _evaluate(self, request) -> tuple[Decision, MachineEnforcement, str]:
         tool = getattr(request, "tool", None)

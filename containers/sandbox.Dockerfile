@@ -37,9 +37,18 @@ ARG NAABU_VERSION
 ARG GOBUSTER_VERSION
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked,id=sandbox-apt-cache \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked,id=sandbox-apt-lists \
+    find /etc/apt -maxdepth 2 -type f \( -name '*.list' -o -name '*.sources' \) \
+        -exec sed -i -e 's|http.kali.org/kali|kali.download/kali|g' \
+        -e 's|https://|http://|g' {} + && \
+    rm -f /etc/apt/apt.conf.d/docker-clean && \
+    echo 'APT::Sandbox::User "root";' > /etc/apt/apt.conf.d/10sandbox && \
     apt-get update && \
-    apt-get install -y --no-install-recommends --no-install-suggests \
-        ca-certificates curl unzip
+    apt-get install -y --no-install-recommends --no-install-suggests ca-certificates && \
+    update-ca-certificates && \
+    find /etc/apt -maxdepth 2 -type f \( -name '*.list' -o -name '*.sources' \) \
+        -exec sed -i 's|http://|https://|g' {} + && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends --no-install-suggests curl unzip
 RUN set -eu; \
     case "$TARGETARCH" in \
         amd64) PD_ARCH=amd64; GOB_ARCH=x86_64 ;; \
@@ -227,14 +236,15 @@ RUN echo "set-option -g history-limit 20000" > /root/.tmux.conf
 # heavier decepticon agent / LLM / langgraph SDKs are deliberately
 # left out so the sandbox image doesn't bloat for the >95% of users
 # who never enable the daemon.
-RUN pip3 install --break-system-packages --no-cache-dir \
+# Preserve apt-owned packages without RECORD metadata, as in the web-engine layer below.
+RUN pip3 install --break-system-packages --no-cache-dir --ignore-installed \
     "fastapi>=0.115.0" \
     "uvicorn>=0.30.0" \
     "deepagents>=0.5.0"
 
 # ── Open-web acquisition engine (insane-search port, ADR-0010) ───────
-# decepticon/sandbox_web runs HERE, inside the sandbox, so all open-web
-# egress stays in sandbox-net behind the nftables allowlist. Python deps:
+# decepticon/sandbox_web runs HERE, inside the sandbox; its open-web
+# egress is scope-checked by the per-hop RoE gate. Python deps:
 #   * curl_cffi>=0.15 — TLS-impersonation fetch tier. 0.15 is REQUIRED by the
 #                    engine: it ships the current Chrome (146+) JA3/JA4
 #                    fingerprint, HTTP/3, and SSRF-safe redirect defaults; older

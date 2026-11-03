@@ -112,7 +112,14 @@ mcp = ["mcp>=1.30.0,<2", "pyjwt[crypto]>=2.10"]
 # this extra serves the autobot graph on the Decepticon server via the
 # ``decepticon.agents`` entry-point (migration stage 2c, design doc §0.3/§0.5).
 blue = ["bs-autobot>=0.1.1"]
-all = ["decepticon[neo4j,telemetry,mcp,blue]"]
+# OpenShell kernel-boundary transport: the local admission resolver converts
+# the compiled RoE policy into the SDK's SandboxSpec proto and manages the
+# sandbox lifecycle. Without it the openshell provider stays unavailable.
+# Keep the SDK at or below the target gateway's minor version: a newer SDK
+# against an older gateway is unqualified skew (0.1.6 SDK → 0.1.5 gateway
+# shares protocol v1, but is not a tested pairing).
+openshell = ["openshell>=0.1.6,<0.2"]
+all = ["decepticon[neo4j,telemetry,mcp,blue,openshell]"]
 
 [project.scripts]
 decepticon-cli = "decepticon.cli.__main__:main"

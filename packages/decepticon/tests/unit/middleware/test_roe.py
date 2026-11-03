@@ -8,6 +8,7 @@ import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
@@ -1278,3 +1279,228 @@ class TestRoEThrottle:
         mw.wrap_tool_call(req, handler)
         mw.wrap_tool_call(req, handler)
         assert slept == []
+
+
+class TestOpenShellProvisioning:
+    """Kernel-boundary verification on OpenShell backends (policy compiler route)."""
+
+    @staticmethod
+    def _openshell_backend(compiled_hash: str):
+        from types import SimpleNamespace
+
+        checks: list[int] = []
+
+        def current_admission():
+            checks.append(1)
+            return SimpleNamespace(effective_policy_hash=compiled_hash)
+
+        return SimpleNamespace(
+            egress_authority="openshell",
+            id="openshell:verified",
+            check_admission=lambda: None,
+            current_admission=current_admission,
+        ), checks
+
+    def test_matching_policy_hash_provisions_and_audits(self, tmp_path: Path, monkeypatch) -> None:
+        from decepticon.backends import factory
+        from decepticon.middleware.policy_compiler import compile_openshell_policy
+
+        _write_roe(tmp_path, {"in_scope": ["example.com", "*.staging.example.com"]})
+        compiled = compile_openshell_policy(_load_rules_for_workspace(str(tmp_path)))
+        backend, checks = self._openshell_backend(compiled.canonical_hash)
+        monkeypatch.setattr(factory, "build_sandbox_backend", lambda config=None: backend)
+        sink = RoEAuditSink(path=tmp_path / "audit" / "roe.jsonl")
+        mw = RoEGuardrailMiddleware(sink=sink)
+
+        mw.before_agent({"workspace_path": str(tmp_path)}, None)
+        mw.before_agent({"workspace_path": str(tmp_path)}, None)
+        assert len(checks) == 2  # revalidate each admission; audit only once
+        recs = [
+            json.loads(line) for line in (tmp_path / "audit" / "roe.jsonl").read_text().splitlines()
+        ]
+        assert any(
+            r.get("event") == "egress_provisioned"
+            and r.get("authority") == "openshell"
+            and r.get("policy_hash") == compiled.canonical_hash
+            for r in recs
+        )
+
+    def test_mismatched_policy_hash_fails_loudly_and_retries(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        from decepticon.backends import factory
+
+        _write_roe(tmp_path, {"in_scope": ["example.com"]})
+        backend, checks = self._openshell_backend("0" * 64)  # not the compiled hash
+        monkeypatch.setattr(factory, "build_sandbox_backend", lambda config=None: backend)
+        mw = RoEGuardrailMiddleware(sink=None)
+
+        for _ in range(2):
+            with pytest.raises(RuntimeError):
+                mw.before_agent({"workspace_path": str(tmp_path)}, None)
+        # Refused loudly both times: the workspace stays unmarked for retry
+        # instead of running with an unverifiable kernel boundary.
+        assert len(checks) == 2
+
+    def test_uncompilable_roe_refuses_provisioning(self, tmp_path: Path, monkeypatch) -> None:
+        from decepticon.backends import factory
+
+        _write_roe(tmp_path, {"in_scope": ["api-*.example.com"]})
+        calls: list[int] = []
+
+        def fake_build(config=None):
+            calls.append(1)
+            from types import SimpleNamespace
+
+            return SimpleNamespace(egress_authority="openshell")
+
+        monkeypatch.setattr(factory, "build_sandbox_backend", fake_build)
+        mw = RoEGuardrailMiddleware(sink=None)
+        for _ in range(2):
+            with pytest.raises(RuntimeError):
+                mw.before_agent({"workspace_path": str(tmp_path)}, None)
+        assert len(calls) == 2  # never marked provisioned
+
+    def test_non_openshell_backend_fails_loudly_and_retries(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        from types import SimpleNamespace
+
+        from decepticon.backends import factory
+
+        _write_roe(tmp_path, {"in_scope": ["10.0.0.0/24"]})
+        backend = SimpleNamespace(egress_authority="http", id="http-daemon")
+        calls: list[int] = []
+        monkeypatch.setattr(
+            factory, "build_sandbox_backend", lambda config=None: (calls.append(1), backend)[1]
+        )
+        mw = RoEGuardrailMiddleware(sink=None)
+        for _ in range(2):
+            with pytest.raises(RuntimeError):
+                mw.before_agent({"workspace_path": str(tmp_path)}, None)
+        # The nftables fallback was retired: a backend without OpenShell
+        # authority cannot provide a kernel boundary, so provisioning fails
+        # loudly and the workspace stays unmarked for retry.
+        assert len(calls) == 2
+
+
+@pytest.mark.parametrize("asynchronous", [False, True])
+@pytest.mark.asyncio
+async def test_real_agent_refuses_before_model_or_tool_when_boundary_missing(
+    tmp_path, monkeypatch, asynchronous
+):
+    from langchain.agents import AgentState, create_agent
+    from langchain_core.language_models.fake_chat_models import FakeListChatModel
+
+    from decepticon.backends import factory
+
+    class ScopedState(AgentState):
+        workspace_path: str
+
+    class Model(FakeListChatModel):
+        def bind_tools(self, tools, **kwargs):
+            return self
+
+    called = []
+
+    def forbidden_handler() -> str:
+        """This handler must never execute without admission."""
+        called.append("tool")
+        return "unexpected"
+
+    _write_roe(tmp_path, {"in_scope": ["example.com"]})
+    monkeypatch.setattr(
+        factory,
+        "build_sandbox_backend",
+        lambda config=None: SimpleNamespace(egress_authority="http"),
+    )
+    model = Model(responses=["must-not-run"], callbacks=[])
+    model_calls = []
+    from langchain_core.callbacks import BaseCallbackHandler
+
+    class Observer(BaseCallbackHandler):
+        def on_chat_model_start(self, *args, **kwargs):
+            model_calls.append(1)
+
+    graph = create_agent(
+        model,
+        tools=[forbidden_handler],
+        middleware=[RoEGuardrailMiddleware()],
+        state_schema=ScopedState,
+    )
+    state = {"workspace_path": str(tmp_path), "messages": [("user", "inspect")]}
+    with pytest.raises(RuntimeError, match="OpenShell"):
+        if asynchronous:
+            await graph.ainvoke(state, {"callbacks": [Observer()]})
+        else:
+            graph.invoke(state, {"callbacks": [Observer()]})
+    assert model_calls == called == []
+
+
+@pytest.mark.parametrize("asynchronous", [False, True])
+@pytest.mark.asyncio
+async def test_admission_retries_failures_and_passes_explicit_runtime_config(
+    tmp_path, monkeypatch, asynchronous
+):
+    from types import SimpleNamespace
+
+    from decepticon.backends import factory
+    from decepticon.middleware.policy_compiler import compile_openshell_policy
+
+    _write_roe(tmp_path, {"in_scope": ["example.com"]})
+    compiled = compile_openshell_policy(_load_rules_for_workspace(str(tmp_path)))
+    backend, checks = TestOpenShellProvisioning._openshell_backend("wrong")
+    configs = []
+    monkeypatch.setattr(
+        factory, "build_sandbox_backend", lambda config=None: (configs.append(config), backend)[1]
+    )
+    config = {"configurable": {"workspace_path": str(tmp_path), "openshell_binding_id": "owned"}}
+    runtime = SimpleNamespace(config=config)
+    mw = RoEGuardrailMiddleware()
+    for _ in range(2):
+        with pytest.raises(RuntimeError, match="hash"):
+            if asynchronous:
+                await mw.abefore_agent({"workspace_path": str(tmp_path)}, runtime)
+            else:
+                mw.before_agent({"workspace_path": str(tmp_path)}, runtime)
+    assert configs == [config, config] and len(checks) == 2
+    assert not mw._egress_provisioned
+    backend.current_admission = lambda: SimpleNamespace(
+        effective_policy_hash=compiled.canonical_hash
+    )
+    if asynchronous:
+        await mw.abefore_agent({"workspace_path": str(tmp_path)}, runtime)
+    else:
+        mw.before_agent({"workspace_path": str(tmp_path)}, runtime)
+    assert mw._egress_provisioned
+
+
+def test_concurrent_admission_waits_for_failed_verification(tmp_path, monkeypatch):
+    from concurrent.futures import ThreadPoolExecutor
+    from types import SimpleNamespace
+
+    from decepticon.backends import factory
+
+    _write_roe(tmp_path, {"in_scope": ["example.com"]})
+    entered, release = threading.Event(), threading.Event()
+    calls = []
+
+    def verify():
+        calls.append(1)
+        entered.set()
+        assert release.wait(5)
+        raise RuntimeError("verification refused")
+
+    backend = SimpleNamespace(egress_authority="openshell", check_admission=verify)
+    monkeypatch.setattr(factory, "build_sandbox_backend", lambda config=None: backend)
+    mw = RoEGuardrailMiddleware()
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        first = pool.submit(mw.before_agent, {"workspace_path": str(tmp_path)}, None)
+        assert entered.wait(5)
+        second = pool.submit(mw.before_agent, {"workspace_path": str(tmp_path)}, None)
+        assert not second.done()
+        release.set()
+        for result in [first, second]:
+            with pytest.raises(RuntimeError, match="verification refused"):
+                result.result(timeout=5)
+    assert len(calls) == 2 and not mw._egress_provisioned

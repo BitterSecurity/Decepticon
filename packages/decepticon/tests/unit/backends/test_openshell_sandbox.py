@@ -86,8 +86,6 @@ def test_no_direct_http_or_policy_mutation(admitted):
     backend, session, _ = admitted
     with pytest.raises(SandboxError, match="disabled"):
         backend._http()
-    with pytest.raises(SandboxError, match="control plane"):
-        backend.provision_egress({})
     with pytest.raises(SandboxError, match="operation"):
         backend._request("post", "/provision_egress", json={})
     session.exec.assert_not_called()

@@ -123,4 +123,4 @@ separately: missing or non-object machine configuration causes gated calls to
 be refused with `ROE_CONFIG_MISSING`. Legacy `mode` keys are ignored; they no
 longer select audit-only or warning-only execution. A present empty block still
 has an empty allowlist, so review actual scope rules. Provisioning does not
-replace the runtime guardrail or prove that egress policy was applied.
+replace the runtime guardrail; on OpenShell the admitted policy hash is verified against the compiled RoE every turn (`egress_provisioned` audit event).
