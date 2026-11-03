@@ -107,12 +107,18 @@ The real target authorization comes from the operator, not these example values.
 
 ## Network enforcement and limits
 
-The middleware attempts to compile and provision a separate sandbox egress
-policy from the same rules. `DECEPTICON_EGRESS_DISABLE=1` opts out. Provisioning
-is best-effort: exceptions are logged and a later turn can retry. A successful
-model/tool call therefore does not prove nftables/DNS rules were installed.
-Inspect the daemon's reported policy state and exercise the relevant network
-boundary before claiming confinement.
+OpenShell is the only network-boundary authority. The trusted admission
+resolver compiles the same machine block into an OpenShell `SandboxPolicy`
+(`decepticon.middleware.policy_compiler`) and attaches it at sandbox
+creation — the sandbox is born confined. Provisioning on each agent turn
+*verifies* the admitted policy hash against the freshly compiled RoE hash
+and records an `egress_provisioned` audit event; a mismatch, an
+uncompilable RoE, or a backend without OpenShell authority fails loudly
+and retries (there is no nftables fallback to quietly run on). The retired
+`DECEPTICON_EGRESS_DISABLE=1` flag only logs a warning. A successful
+model/tool call therefore still does not prove the sandbox started with
+the policy: exercise the kernel boundary and inspect the admission hash
+before claiming confinement.
 
 Shell target extraction is best-effort and can miss indirection, encodings or
 traffic initiated by an invoked program. Parser refusal prevents that handler
