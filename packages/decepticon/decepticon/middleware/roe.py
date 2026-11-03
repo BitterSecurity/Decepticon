@@ -5,15 +5,13 @@ machine configuration is refused; legacy mode keys do not enable audit-only or
 warning-only execution. Abort, time windows, command/target rules, concurrency
 and cadence are checked around gated calls.
 
-Target extraction is best-effort. Separate sandbox egress provisioning is
-attempted unless disabled, but provisioning errors are logged and retried rather
-than terminating a run. Parser refusal is not proof of network confinement.
-
-On OpenShell backends the kernel policy is the authoritative network boundary:
-it is attached at sandbox creation by the trusted resolver and provisioning here
-verifies the admitted policy hash against the RoE compiled from the same
-machine block (``decepticon.middleware.policy_compiler``). An unverifiable
-boundary fails loudly instead of running unprotected.
+Target extraction is best-effort. The network boundary is exclusively the
+OpenShell kernel policy: it is attached at sandbox creation by the trusted
+resolver and provisioning here verifies the admitted policy hash against
+the RoE compiled from the same machine block
+(``decepticon.middleware.policy_compiler``). An unverifiable boundary, or
+a backend without OpenShell authority, fails loudly instead of running
+unprotected — the legacy in-container nftables path has been retired.
 """
 
 from __future__ import annotations
@@ -255,20 +253,25 @@ def _command_from_tool_call(request) -> str:
 
 
 def _egress_disabled() -> bool:
-    """Whether the Layer-2 egress guardrail is turned OFF (opt-out).
+    """Deprecated opt-out flag, retained only to warn the operator.
 
-    Default ON: an ``enforce``-mode engagement automatically gets the
-    authoritative network boundary compiled + pushed to the sandbox — no
-    extra env needed. ``DECEPTICON_EGRESS_DISABLE=1`` is the escape hatch
-    for an operator whose environment the in-sandbox firewall doesn't fit
-    (it falls back to the parser layer alone). audit / warn modes never
-    touch the network regardless.
+    The nftables in-sandbox firewall this flag used to bypass has been
+    removed: OpenShell is the only network-boundary authority, and the
+    kernel policy is attached at sandbox creation by the trusted resolver
+    — there is no provisioning step left to disable. Setting the flag
+    changes nothing; the run keeps its OpenShell boundary.
     """
-    return os.environ.get("DECEPTICON_EGRESS_DISABLE", "").strip().lower() in {
+    disabled = os.environ.get("DECEPTICON_EGRESS_DISABLE", "").strip().lower() in {
         "1",
         "true",
         "yes",
     }
+    if disabled:
+        log.warning(
+            "roe: DECEPTICON_EGRESS_DISABLE is retired; OpenShell kernel "
+            "policies are structural and cannot be disabled per-run"
+        )
+    return disabled
 
 
 class RoEGuardrailMiddleware(AgentMiddleware):
@@ -436,24 +439,21 @@ class RoEGuardrailMiddleware(AgentMiddleware):
             log.error("roe: audit sink write failed: %s", exc)
 
     def _maybe_provision_egress(self, state) -> None:
-        """Attempt network-policy provisioning once per workspace.
+        """Verify the OpenShell kernel boundary once per workspace.
 
-        The operator can disable provisioning. Failures are logged and the
-        workspace is unmarked so a later turn can retry; errors do not stop the
-        run. Legacy machine mode keys do not select provisioning behavior.
-
-        OpenShell backends are born-confined: the trusted resolver attaches the
-        compiled RoE policy at sandbox creation, so provisioning here verifies
-        that the admitted policy hash still matches the workspace's RoE. A
-        mismatch is an error (unmarked → retried noisily) — silently running
-        without a kernel boundary is not an option.
+        OpenShell is the only network-boundary authority: the trusted
+        resolver attaches the compiled RoE policy at sandbox creation, so
+        provisioning here verifies that the admitted policy hash still
+        matches the workspace's RoE. A backend without OpenShell authority
+        cannot provide a kernel network boundary at all — provisioning
+        fails loudly and the workspace is unmarked so a later turn retries
+        (there is no nftables fallback to quietly run on).
         """
-        if _egress_disabled():
-            return
         get = state.get if hasattr(state, "get") else (lambda _k, _d=None: None)
         workspace = get("workspace_path") or None
         if not workspace:
             return
+        _egress_disabled()  # deprecated: warn only, never bypasses the boundary
         rules = _load_rules_for_workspace(workspace)
         # Every materialized RoE is enforced; there is no audit/warn bypass.
 
@@ -463,20 +463,16 @@ class RoEGuardrailMiddleware(AgentMiddleware):
             self._egress_provisioned.add(workspace)
         try:
             from decepticon.backends.factory import build_sandbox_backend
-            from decepticon.middleware.egress import compile_egress_policy
 
             backend = build_sandbox_backend()
-            if getattr(backend, "egress_authority", "") == "openshell":
-                self._verify_openshell_boundary(state, workspace, rules, backend)
-                return
-            policy = compile_egress_policy(rules)
-            result = backend.provision_egress(policy)
-            log.info(
-                "roe: egress provisioned for %s: applied=%s detail=%s",
-                workspace,
-                result.get("applied"),
-                result.get("detail"),
-            )
+            if getattr(backend, "egress_authority", "") != "openshell":
+                raise RuntimeError(
+                    f"backend {backend.id if hasattr(backend, 'id') else type(backend).__name__} "
+                    "has no OpenShell kernel boundary; OpenShell is the only "
+                    "network-boundary authority since the nftables path was retired — "
+                    "run engagements with DECEPTICON_SANDBOX_PROVIDER=openshell"
+                )
+            self._verify_openshell_boundary(state, workspace, rules, backend)
         except Exception as exc:  # noqa: BLE001 - provisioning must never break the run
             log.error("roe: egress provisioning failed for %s: %s", workspace, exc)
             # Un-mark so a later agent turn can retry rather than silently

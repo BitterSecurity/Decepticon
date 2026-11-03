@@ -233,8 +233,8 @@ RUN pip3 install --break-system-packages --no-cache-dir \
     "deepagents>=0.5.0"
 
 # ── Open-web acquisition engine (insane-search port, ADR-0010) ───────
-# decepticon/sandbox_web runs HERE, inside the sandbox, so all open-web
-# egress stays in sandbox-net behind the nftables allowlist. Python deps:
+# decepticon/sandbox_web runs HERE, inside the sandbox; its open-web
+# egress is scope-checked by the per-hop RoE gate. Python deps:
 #   * curl_cffi>=0.15 — TLS-impersonation fetch tier. 0.15 is REQUIRED by the
 #                    engine: it ships the current Chrome (146+) JA3/JA4
 #                    fingerprint, HTTP/3, and SSRF-safe redirect defaults; older

@@ -52,7 +52,6 @@ import hashlib
 import logging
 import re
 import time
-from typing import TYPE_CHECKING
 
 import httpx
 from deepagents.backends.protocol import (
@@ -63,9 +62,6 @@ from deepagents.backends.protocol import (
 from deepagents.backends.sandbox import BaseSandbox
 
 from decepticon.sandbox_kernel import BackgroundJob, BackgroundJobTracker
-
-if TYPE_CHECKING:
-    from decepticon.sandbox_kernel.egress import EgressPolicy
 
 log = logging.getLogger(__name__)
 
@@ -500,19 +496,3 @@ class HTTPSandbox(BaseSandbox):
         )
         return response.json()["path"]
 
-    def provision_egress(self, policy: "EgressPolicy") -> dict:
-        """Ship a compiled RoE egress policy to the sandbox's network edge.
-
-        The sandbox folds in its locally-discovered management plane and
-        loads the nftables connect-allowlist by default for an enforcing
-        policy (the operator can opt out sandbox-side via
-        ``DECEPTICON_EGRESS_DISABLE``). The returned dict reports whether
-        the ruleset was applied. See ``decepticon.middleware.egress`` for
-        the policy compiler.
-        """
-        response = self._request(
-            "post",
-            "/provision_egress",
-            json={"policy": policy.to_dict()},
-        )
-        return response.json()

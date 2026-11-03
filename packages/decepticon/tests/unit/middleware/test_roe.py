@@ -1354,29 +1354,23 @@ class TestOpenShellProvisioning:
         mw.before_agent({"workspace_path": str(tmp_path)}, None)
         assert len(calls) == 2  # never marked provisioned
 
-    def test_http_backend_keeps_nftables_path(
+    def test_non_openshell_backend_fails_loudly_and_retries(
         self, tmp_path: Path, monkeypatch
     ) -> None:
+        from types import SimpleNamespace
 
         from decepticon.backends import factory
-        from decepticon.middleware import egress as egress_mod
 
         _write_roe(tmp_path, {"in_scope": ["10.0.0.0/24"]})
-        seen: dict = {}
-
-        class FakeHttpBackend:
-            egress_authority = "http"
-
-            def provision_egress(self, policy):
-                seen["policy"] = policy
-                return {"applied": True, "detail": "ok"}
-
+        backend = SimpleNamespace(egress_authority="http", id="http-daemon")
+        calls: list[int] = []
         monkeypatch.setattr(
-            factory, "build_sandbox_backend", lambda config=None: FakeHttpBackend()
-        )
-        monkeypatch.setattr(
-            egress_mod, "compile_egress_policy", egress_mod.compile_egress_policy
+            factory, "build_sandbox_backend", lambda config=None: (calls.append(1), backend)[1]
         )
         mw = RoEGuardrailMiddleware(sink=None)
         mw.before_agent({"workspace_path": str(tmp_path)}, None)
-        assert seen["policy"].default_drop is True
+        mw.before_agent({"workspace_path": str(tmp_path)}, None)
+        # The nftables fallback was retired: a backend without OpenShell
+        # authority cannot provide a kernel boundary, so provisioning fails
+        # loudly and the workspace stays unmarked for retry.
+        assert len(calls) == 2

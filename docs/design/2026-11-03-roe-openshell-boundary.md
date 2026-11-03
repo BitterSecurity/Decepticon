@@ -220,3 +220,43 @@ Verification on this branch:
 - SDK: **0.1.6 is the current stable** (PyPI 2026-10-28; docs.nvidia.com "Latest (v0.1.6)"). `SandboxSpec.policy` attach was verified against both 0.1.5 and 0.1.6 wheels; no `UpdateConfig` push wrapper exists in either (raw stub or CLI remains the live-update path). Pin documents the SDK≤gateway minor guidance.
 - v0.1.6 release notes (for the record): gateway auth now mandatory (`allow_unauthenticated_users` dev opt-out), sandbox→supervisor control-connection flip requiring supervisor+runtime binaries paired, sandbox `suspend`/`resume`, Python SDK ships credential-driver proto bindings, OCSF audit events for authorization denials + credential-misuse findings, middleware `binding_policy`.
 - **Live kernel-enforcement replay is blocked by the host, not by this change**: WSL2 kernel `6.18.54.1-microsoft-standard-WSL2` refuses `seccomp(2, SECCOMP_FILTER_FLAG_NEW_LISTENER)` with `EBUSY` even for a minimal no-op filter, reproduced on the host outside Docker (so neither the gateway version nor Docker 29.9 is implicated). Every OpenShell sandbox therefore dies at the sandbox qualification probe (`seccomp notification probe: Resource busy`) on 0.1.5 and 0.1.6 gateways alike. The same host ran the committed live kernel evidence on 2026-10-26/27, so the kernel regressed in between (WSL kernel update). §8's retest plan applies unchanged once the host runs a kernel where the probe passes.
+
+## 10. Phase 2 — nftables retirement (same branch, same PR)
+
+Per the operator decision to make OpenShell the **only** network-boundary
+authority, the legacy path is removed in this change:
+
+- deleted `sandbox_kernel/egress.py` (nftables renderer, DNS allowlist,
+  management-plane discovery, applier) and its applier tests;
+- removed the daemon `POST /provision_egress` endpoint (plus its wire
+  models and the sandbox-side `DECEPTICON_EGRESS_DISABLE` gate) and the
+  `HTTPSandbox.provision_egress` transport call;
+- `RoEGuardrailMiddleware._maybe_provision_egress` is now
+  verification-only: OpenShell backends get the hash check (§4); any
+  backend without OpenShell authority raises a loud "OpenShell is the only
+  network-boundary authority" error and the workspace stays unmarked for
+  retry — there is no fallback to quietly run on;
+- dropped `NET_ADMIN` from the sandbox cap set (compose + isolation doc);
+  `middleware/egress.py` now only carries `osint_egress_hosts`;
+- security docs updated to the OpenShell-only contract.
+
+Full unit suite after the retirement: **6,116 passed, 3 skipped
+(Windows-only)**. The retired `DECEPTICON_EGRESS_DISABLE` flag logs a
+warning and never bypasses the boundary.
+
+### Root-cause correction for the live-verification blocker
+
+The earlier "kernel regression" reading in this document was **wrong**.
+The sandbox-provisioning `EBUSY` on this host is the known WSL2 mirrored-
+networking issue: upstream [NVIDIA/OpenShell #4902](https://github.com/NVIDIA/OpenShell/issues/4902)
+(follow-up to [#3842](https://github.com/NVIDIA/OpenShell/issues/3842))
+traces it to [microsoft/WSL #9548](https://github.com/microsoft/WSL/issues/9548) —
+`networkingMode=mirrored` installs a seccomp filter **with a notification
+listener on every process** (verified locally: every process shows
+`Seccomp_filters: 1`, including `--privileged` containers), and the kernel
+refuses a second `SECCOMP_FILTER_FLAG_NEW_LISTENER` (`EBUSY`; kernel-6.18
+`has_duplicate_listener` enforces one listener per filter stack). The
+kernel's seccomp user-notify is healthy: Landlock ABI 7, `user_notif` in
+`actions_avail`, plain filters install cleanly. Workarounds: run WSL with
+`networkingMode=nat`, or move sandboxes to a non-WSL node. The §8 retest
+plan applies unchanged on such a host.

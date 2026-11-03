@@ -241,7 +241,6 @@ services:
       - ALL
     cap_add:
       - NET_RAW
-      - NET_ADMIN
       - NET_BIND_SERVICE
       - SYS_PTRACE
       - SETUID

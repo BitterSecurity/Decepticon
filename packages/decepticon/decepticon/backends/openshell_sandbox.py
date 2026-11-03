@@ -121,9 +121,6 @@ class OpenShellSandbox(HTTPSandbox):
     def close(self) -> None:
         self._closed = True
 
-    def provision_egress(self, policy: Any) -> dict:
-        raise SandboxError("OpenShell policy must be installed by the trusted control plane")
-
     def _request(self, method: str, path: str, **kwargs: Any) -> httpx.Response:
         self.check_admission()
         if method.lower() != "post":

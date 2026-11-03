@@ -162,23 +162,6 @@ class SessionLogPathResponseModel(BaseModel):
     path: str
 
 
-class ProvisionEgressRequest(BaseModel):
-    policy: dict = Field(
-        description="Serialized EgressPolicy "
-        "(decepticon.sandbox_kernel.egress.EgressPolicy.to_dict()): the "
-        "compiled in-scope / out-of-scope / forbidden destinations.",
-    )
-
-
-class ProvisionEgressResponseModel(BaseModel):
-    applied: bool
-    enforce: bool
-    detail: str
-    management_cidrs: list[str]
-    resolved_host_ips: list[str]
-    dns_allowlist: list[str]
-
-
 # ── Module-level singletons. These live for the daemon's lifetime; we
 # don't recreate the backend per request because reusing the configured
 # workspace + tmux session managers is the whole point. ──────────────
@@ -469,51 +452,6 @@ def reset_session_log_offset(
         workspace_path=req.workspace_path,
     )
     return {"status": "ok"}
-
-
-def _egress_enforcement_enabled() -> bool:
-    """Whether the sandbox applies egress rules — default ON, opt-out.
-
-    Decided sandbox-side (its own env, not trusted from the wire). The
-    egress firewall loads by default for any enforcing policy; an operator
-    whose environment it doesn't fit sets ``DECEPTICON_EGRESS_DISABLE=1``
-    on the sandbox container to fall back to the parser layer alone. The
-    management plane is discovered locally, so default-on can't sever the
-    agent↔management (Neo4j / daemon) link.
-    """
-    return os.environ.get("DECEPTICON_EGRESS_DISABLE", "").strip().lower() not in {
-        "1",
-        "true",
-        "yes",
-    }
-
-
-@app.post("/provision_egress", response_model=ProvisionEgressResponseModel)
-def provision_egress(
-    req: ProvisionEgressRequest,
-    _: Annotated[None, Depends(auth)],
-) -> ProvisionEgressResponseModel:
-    """Apply the Layer-2 RoE egress guardrail (nftables connect-allowlist).
-
-    Reconstructs the agent-compiled ``EgressPolicy``, folds in the
-    locally-discovered management plane + resolver + resolved host IPs,
-    and loads the ruleset via ``nft``. Default ON for an enforcing
-    policy; an operator can opt out with ``DECEPTICON_EGRESS_DISABLE``,
-    in which case it returns the rendered ruleset for inspection without
-    touching the network.
-    """
-    from decepticon.sandbox_kernel.egress import EgressPolicy, apply_egress
-
-    policy = EgressPolicy.from_dict(req.policy)
-    result = apply_egress(policy, enabled=_egress_enforcement_enabled())
-    return ProvisionEgressResponseModel(
-        applied=result.applied,
-        enforce=result.enforce,
-        detail=result.detail,
-        management_cidrs=list(result.management_cidrs),
-        resolved_host_ips=list(result.resolved_host_ips),
-        dns_allowlist=list(result.dns_allowlist),
-    )
 
 
 @app.post("/session_log_path", response_model=SessionLogPathResponseModel)

@@ -24,7 +24,6 @@ sandbox:
   cap_drop: [ALL]
   cap_add:
     - NET_RAW          # nmap SYN scans
-    - NET_ADMIN        # raw routing
     - NET_BIND_SERVICE # low ports
     - SYS_PTRACE       # frida / gdb (Reverser)
     - SETUID
@@ -151,7 +150,7 @@ func (l *Lifecycle) Acquire(slug string) (*Handle, error) {
             "--name", name,
             "--network", netName,
             "--cap-drop=ALL",
-            "--cap-add=NET_RAW", "--cap-add=NET_ADMIN",
+            "--cap-add=NET_RAW",
             "--cap-add=NET_BIND_SERVICE", "--cap-add=SYS_PTRACE",
             "--cap-add=SETUID", "--cap-add=SETGID",
             "--cap-add=CHOWN", "--cap-add=DAC_OVERRIDE",
