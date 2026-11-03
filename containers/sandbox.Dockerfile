@@ -37,9 +37,18 @@ ARG NAABU_VERSION
 ARG GOBUSTER_VERSION
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked,id=sandbox-apt-cache \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked,id=sandbox-apt-lists \
+    find /etc/apt -maxdepth 2 -type f \( -name '*.list' -o -name '*.sources' \) \
+        -exec sed -i -e 's|http.kali.org/kali|kali.download/kali|g' \
+        -e 's|https://|http://|g' {} + && \
+    rm -f /etc/apt/apt.conf.d/docker-clean && \
+    echo 'APT::Sandbox::User "root";' > /etc/apt/apt.conf.d/10sandbox && \
     apt-get update && \
-    apt-get install -y --no-install-recommends --no-install-suggests \
-        ca-certificates curl unzip
+    apt-get install -y --no-install-recommends --no-install-suggests ca-certificates && \
+    update-ca-certificates && \
+    find /etc/apt -maxdepth 2 -type f \( -name '*.list' -o -name '*.sources' \) \
+        -exec sed -i 's|http://|https://|g' {} + && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends --no-install-suggests curl unzip
 RUN set -eu; \
     case "$TARGETARCH" in \
         amd64) PD_ARCH=amd64; GOB_ARCH=x86_64 ;; \
