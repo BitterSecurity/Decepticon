@@ -13,7 +13,7 @@ We use a vouch system. This exists because AI makes it trivial to generate plaus
    will close automatically.
 5. **Get vouched before opening a PR.** Once vouched, you can submit pull requests.
 
-**If you are not vouched, any pull request you open will be automatically closed.** The PR and its discussion are preserved. Once vouched, open a new PR (preferred) or reopen the closed one. It cannot be held open or converted to a draft to bypass the check. Org members and collaborators with push access bypass this check. AI-assisted contributions are still welcome — see [Working with AI assistants](#working-with-ai-assistants) — but the vouch request itself must be written by you, the human.
+**If you are not vouched, any pull request you open will be automatically closed.** The PR and its discussion are preserved. Once vouched, open a new PR (preferred) or reopen the closed one. It cannot be held open or converted to a draft to bypass the check. Org members and collaborators with push access bypass this check. AI-assisted contributions are still welcome (see [Working with AI assistants](#working-with-ai-assistants)), but the vouch request itself must be written by you, the human.
 
 ## Getting Started
 
