@@ -227,8 +227,15 @@ class TestResolveLocalBinding:
         )
         second = resolve_local_binding({"configurable": {"workspace_path": str(workspace)}})
         assert first is not second
-        assert first.current_admission().effective_policy_hash != (
+        from decepticon.backends.http_sandbox import SandboxError
+
+        with pytest.raises(SandboxError, match="unavailable"):
+            first.check_admission()
+        assert (
             second.current_admission().effective_policy_hash
+            == compile_openshell_policy(
+                MachineEnforcement.from_dict({"in_scope": ["other.example.com"]})
+            ).canonical_hash
         )
 
     def test_missing_roe_refuses(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

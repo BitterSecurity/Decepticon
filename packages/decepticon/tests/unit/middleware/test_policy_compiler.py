@@ -115,9 +115,7 @@ class TestFailClosed:
         assert compiled.errors == ()
 
     def test_out_of_scope_overlap_refuses(self) -> None:
-        compiled = _compile(
-            {"in_scope": ["*.example.net"], "out_of_scope": ["a.example.net"]}
-        )
+        compiled = _compile({"in_scope": ["*.example.net"], "out_of_scope": ["a.example.net"]})
         assert any("out_of_scope" in error for error in compiled.errors)
 
     def test_non_leading_glob_refuses(self) -> None:
@@ -145,9 +143,7 @@ class TestPortsAndBinaries:
         with pytest.raises(ValueError, match="invalid port"):
             roe_ports()
 
-    def test_binaries_scoped_when_configured(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_binaries_scoped_when_configured(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("DECEPTICON_OPENSHELL_ROE_BINARIES", "/usr/bin/curl, /usr/bin/python3")
         compiled = _compile({"in_scope": ["example.com"]})
         assert roe_binaries() == ("/usr/bin/curl", "/usr/bin/python3")
@@ -204,3 +200,73 @@ class TestMixedScopeGrammar:
         endpoint = sections["roe_in_scope"]["endpoints"][0]
         assert endpoint["allowed_ips"] == ["10.10.0.0/24"]
         assert endpoint["enforcement"] == "enforce"
+
+
+@pytest.mark.parametrize(
+    "scope,excluded,witness",
+    [
+        ("a.example.com", "*.example.com", "a.example.com"),
+        ("*.example.com", "api-*.example.com", "api-test.example.com"),
+        ("*.example.com", "*.example.com", "one.example.com"),
+        ("10.0.0.0/8", "10.1.0.0/16", "10.1.2.3"),
+        ("10.1.0.0/16", "10.0.0.0/8", "10.1.2.3"),
+        ("10.1.2.3", "10.1.0.0/16", "10.1.2.3"),
+        ("2001:db8::/32", "2001:db8:1::/48", "2001:db8:1::1"),
+    ],
+)
+def test_excluded_set_intersections_refuse(scope, excluded, witness):
+    from decepticon_core.types.roe import evaluate_target
+
+    rules = MachineEnforcement.from_dict({"in_scope": [scope], "out_of_scope": [excluded]})
+    assert not evaluate_target(witness, rules).allow
+    assert compile_openshell_policy(rules).errors
+
+
+@pytest.mark.parametrize(
+    "scope,excluded",
+    [
+        ("*.example.com", "*.other.com"),
+        ("*.example.com", "*.deep.example.com"),
+        ("10.0.0.0/16", "10.1.0.0/16"),
+        ("2001:db8::/32", "10.1.0.0/16"),
+    ],
+)
+def test_disjoint_exclusions_still_compile(scope, excluded):
+    assert not _compile({"in_scope": [scope], "out_of_scope": [excluded]}).errors
+
+
+@pytest.mark.parametrize("tld", ["gov", "mil", "edu", "int"])
+def test_deep_sensitive_wildcard_refuses_unless_operator_opted_in(tld):
+    scope = "*.deep.agency." + tld
+    assert _compile({"in_scope": [scope]}).errors
+    assert not _compile({"in_scope": [scope], "allow_sensitive_tlds": True}).errors
+
+
+def test_long_workspace_and_same_basename_never_drop_identity_or_policy(tmp_path):
+    first = str(tmp_path / "a" / ("x" * 80))
+    second = str(tmp_path / "b" / ("x" * 80))
+    names = {
+        sandbox_name(first, "a" * 64),
+        sandbox_name(first, "b" * 64),
+        sandbox_name(second, "a" * 64),
+    }
+    assert len(names) == 3
+    assert all(len(name) <= 63 for name in names)
+    assert sandbox_name(first, "a" * 64).endswith("a" * 16)
+
+
+@pytest.mark.parametrize(
+    "denial",
+    [{"out_of_scope": ["*.duckduckgo.com"]}, {"forbidden_destinations": ["duckduckgo.com"]}],
+)
+def test_osint_allowance_cannot_reintroduce_explicit_denial(denial):
+    compiled = _compile({"in_scope": ["example.com"], **denial})
+    assert not compiled.errors
+    hosts = {
+        entry["host"]
+        for entry in compiled.policy["network_policies"]["osint_allowance"]["endpoints"]
+    }
+    if "out_of_scope" in denial:
+        assert "html.duckduckgo.com" not in hosts
+    else:
+        assert "duckduckgo.com" not in hosts
