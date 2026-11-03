@@ -163,7 +163,60 @@ def _generation_token(ref: Any) -> str:
     )
 
 
-def _receipt(ref: Any, *, binding_id: str, workspace: str, compiled: CompiledRoePolicy, approval_hash: str):
+def _verified_runtime(client: Any, name: str, workspace: str, compiled: CompiledRoePolicy):
+    """Read effective policy and loaded ACK, bracketing them with runtime identity.
+
+    Expected compiler output is never an observation. Both new and reused
+    sandboxes must prove the complete effective protobuf equals that output.
+    The SDK has no public policy-read wrapper; use its authenticated stub so
+    TLS/bearer configuration and bounded RPC deadlines are retained.
+    """
+    from openshell._proto import datamodel_pb2, openshell_pb2, sandbox_pb2
+
+    before = client.get(name, workspace=workspace)
+    if before.status.phase != openshell_pb2.SANDBOX_PHASE_READY:
+        raise SandboxError("OpenShell sandbox is not ready")
+    before_generation = _generation_token(before)
+    before_id = before.id
+    before_version = before.current_policy_version
+    selector = datamodel_pb2.WorkspaceSelector(workspace=workspace)
+    config = client._stub.GetSandboxConfig(
+        sandbox_pb2.GetSandboxConfigRequest(workspace_scope=selector, name=name),
+        timeout=30.0,
+    )
+    if config.version < 1 or config.policy != _policy_spec(compiled).policy:
+        raise SandboxError("OpenShell effective policy does not match compiled RoE")
+    status = client._stub.GetSandboxPolicyStatus(
+        openshell_pb2.GetSandboxPolicyStatusRequest(
+            workspace_scope=selector,
+            sandbox=name,
+            version=config.version,
+        ),
+        timeout=30.0,
+    )
+    revision = status.revision
+    if not (
+        revision.status == openshell_pb2.POLICY_STATUS_LOADED
+        and revision.version == config.version == status.active_version
+        and config.policy_hash
+        and revision.policy_hash == config.policy_hash
+        and revision.policy == config.policy
+    ):
+        raise SandboxError("OpenShell effective policy has no matching loaded acknowledgement")
+    after = client.get(name, workspace=workspace)
+    if not (
+        after.id == before_id
+        and after.status.phase == openshell_pb2.SANDBOX_PHASE_READY
+        and after.current_policy_version == config.version == before_version
+        and _generation_token(after) == before_generation
+    ):
+        raise SandboxError("OpenShell runtime changed during policy verification")
+    return after
+
+
+def _receipt(
+    ref: Any, *, binding_id: str, workspace: str, compiled: CompiledRoePolicy, approval_hash: str
+):
     from decepticon.backends.openshell_sandbox import OpenShellAdmission
 
     return OpenShellAdmission(
@@ -207,7 +260,8 @@ def _wait_for_session_daemon(session: Any) -> None:
 
 def _attach_or_create(client: Any, name: str, workspace: str, compiled: CompiledRoePolicy) -> Any:
     try:
-        return client.get(name, workspace=workspace)
+        client.get(name, workspace=workspace)
+        return _verified_runtime(client, name, workspace, compiled)
     except Exception as exc:  # noqa: BLE001 - get() raises gateway errors for absent sandboxes
         if "not found" not in str(exc).lower() and "NOT_FOUND" not in str(exc):
             raise
@@ -215,7 +269,7 @@ def _attach_or_create(client: Any, name: str, workspace: str, compiled: Compiled
     ready = client.wait_ready(name, workspace=workspace, timeout_seconds=_READY_TIMEOUT_SECONDS)
     if ready.current_policy_version < 1:
         raise RuntimeError("OpenShell sandbox became ready without a loaded policy")
-    return ready
+    return _verified_runtime(client, name, workspace, compiled)
 
 
 def resolve_local_binding(run_config: Any):
@@ -242,6 +296,9 @@ def resolve_local_binding(run_config: Any):
 
     cache_key: tuple[str, str] | None = None
     cached = None
+    if not (Path(workspace_path) / "plan" / "roe.json").is_file():
+        raise RuntimeError("OpenShell binding requires a materialized plan/roe.json")
+    initial_approval_hash = _approval_hash(workspace_path)
     rules = _load_rules_for_workspace(workspace_path)
     if not rules.configured:
         raise RuntimeError(
@@ -266,6 +323,8 @@ def resolve_local_binding(run_config: Any):
     name = sandbox_name(workspace_path, compiled.canonical_hash)
     workspace = _openshell_workspace()
     approval_hash = _approval_hash(workspace_path)
+    if approval_hash != initial_approval_hash:
+        raise SandboxError("OpenShell RoE changed while preparing admission")
     client = _client()
     ref = _attach_or_create(client, name, workspace, compiled)
     session = client.get_session(name, workspace=workspace)
@@ -277,7 +336,10 @@ def resolve_local_binding(run_config: Any):
         else f"local-{name}"
     )
     receipt = _receipt(
-        ref, binding_id=binding_id, workspace=workspace, compiled=compiled,
+        ref,
+        binding_id=binding_id,
+        workspace=workspace,
+        compiled=compiled,
         approval_hash=approval_hash,
     )
 
@@ -288,13 +350,18 @@ def resolve_local_binding(run_config: Any):
         # A runtime/policy generation change returns the live receipt so the
         # mismatch fails closed on the next execution.
         try:
-            live = client.get(name, workspace=workspace)
+            if _approval_hash(workspace_path) != approval_hash:
+                raise SandboxError("OpenShell approved RoE changed")
+            live = _verified_runtime(client, name, workspace, compiled)
         except Exception as exc:  # noqa: BLE001 - admission must fail closed
             raise SandboxError("OpenShell admission source is unavailable") from exc
         if _generation_token(live) == receipt.runtime_generation:
             return receipt
         return _receipt(
-            live, binding_id=binding_id, workspace=workspace, compiled=compiled,
+            live,
+            binding_id=binding_id,
+            workspace=workspace,
+            compiled=compiled,
             approval_hash=approval_hash,
         )
 

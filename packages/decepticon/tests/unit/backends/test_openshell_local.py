@@ -37,7 +37,7 @@ def _workspace(tmp_path: Path) -> Path:
 
 class _FakeStatus:
     def __init__(self) -> None:
-        self.phase = 3
+        self.phase = 2
         self.current_policy_version = 1
         self.main_process_started_at_ms = 111
         self.restart_count = 0
@@ -75,13 +75,49 @@ class _FakeClient:
     """get() fails with a not-found error until create() runs."""
 
     def __init__(self, *args, **kwargs) -> None:  # noqa: ANN002, ANN003
+        from openshell._proto import openshell_pb2, sandbox_pb2
+
         self.created_spec = None
         self._exists = False
+        self._sandboxes = {}
+        self.config_reads = 0
+        self.policy_reads = 0
+        self.config_mutator = lambda response: response
+        self.status_mutator = lambda response: response
+        self.sessions = []
+
+        def config(request, timeout):
+            self.config_reads += 1
+            ref, spec = self._sandboxes[request.name]
+            return self.config_mutator(
+                sandbox_pb2.GetSandboxConfigResponse(
+                    policy=spec.policy,
+                    version=ref.current_policy_version,
+                    policy_hash="gateway-hash",
+                )
+            )
+
+        def status(request, timeout):
+            self.policy_reads += 1
+            ref, spec = self._sandboxes[request.sandbox]
+            return self.status_mutator(
+                openshell_pb2.GetSandboxPolicyStatusResponse(
+                    revision=openshell_pb2.SandboxPolicyRevision(
+                        version=ref.current_policy_version,
+                        policy=spec.policy,
+                        policy_hash="gateway-hash",
+                        status=openshell_pb2.POLICY_STATUS_LOADED,
+                    ),
+                    active_version=ref.current_policy_version,
+                )
+            )
+
+        self._stub = SimpleNamespace(GetSandboxConfig=config, GetSandboxPolicyStatus=status)
 
     def get(self, name, workspace):  # noqa: ANN001
-        if not self._exists:
+        if name not in self._sandboxes:
             raise RuntimeError("NOT_FOUND: sandbox does not exist")
-        return self.ref
+        return self._sandboxes[name][0]
 
     def create(self, workspace, name, spec):  # noqa: ANN001
         assert spec.policy.network_policies["roe_in_scope"].endpoints
@@ -89,13 +125,17 @@ class _FakeClient:
         self.created_spec = spec
         self._exists = True
         self.ref = _FakeRef()
+        self.ref.id = f"sbx-fake-{len(self._sandboxes) + 1}"
+        self._sandboxes[name] = (self.ref, spec)
         return self.ref
 
     def wait_ready(self, name, workspace, timeout_seconds):  # noqa: ANN001
-        return self.ref
+        return self.get(name, workspace)
 
     def get_session(self, name, workspace):  # noqa: ANN001
-        return _FakeSession(self.ref)
+        session = _FakeSession(self.get(name, workspace))
+        self.sessions.append(session)
+        return session
 
 
 @pytest.fixture(autouse=True)
@@ -221,9 +261,7 @@ class TestResolveLocalBinding:
 
 
 class TestResolverInstallGating:
-    def test_env_opt_in_installs_local_resolver(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_env_opt_in_installs_local_resolver(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(factory, "_openshell_resolver", None)
         monkeypatch.setenv("DECEPTICON_OPENSHELL_LOCAL", "1")
         from decepticon.backends.openshell_local import maybe_install_local_resolver
@@ -254,3 +292,138 @@ class TestResolverInstallGating:
         finally:
             factory._openshell_resolver = saved
             openshell_local._backends.clear()
+
+
+@pytest.mark.parametrize(
+    "failure",
+    [
+        "unready",
+        "changed_policy",
+        "pending",
+        "active_version",
+        "ack_hash",
+        "ack_policy",
+        "runtime_race",
+    ],
+)
+def test_existing_policy_must_be_observed_loaded_before_daemon_exec(tmp_path, monkeypatch, failure):
+    from openshell._proto import openshell_pb2
+
+    from decepticon.middleware.policy_compiler import sandbox_name
+    from decepticon.middleware.roe import _load_rules_for_workspace
+
+    workspace = _workspace(tmp_path)
+    compiled = compile_openshell_policy(_load_rules_for_workspace(str(workspace)))
+    client = _FakeClient()
+    name = sandbox_name(str(workspace), compiled.canonical_hash)
+    client.create("default", name, openshell_local._policy_spec(compiled))
+    if failure == "unready":
+        client.ref.status.phase = openshell_pb2.SANDBOX_PHASE_UNSPECIFIED
+    elif failure == "changed_policy":
+        client.created_spec.policy.network_policies.clear()
+    else:
+
+        def mutate(response):
+            if failure == "pending":
+                response.revision.status = openshell_pb2.POLICY_STATUS_PENDING
+            elif failure == "active_version":
+                response.active_version += 1
+            elif failure == "ack_hash":
+                response.revision.policy_hash = "different-hash"
+            elif failure == "ack_policy":
+                response.revision.policy.network_policies.clear()
+            elif failure == "runtime_race":
+                client.ref.status.restart_count += 1
+            return response
+
+        client.status_mutator = mutate
+    _patch_client(monkeypatch, client)
+    with pytest.raises(RuntimeError):
+        resolve_local_binding({"configurable": {"workspace_path": str(workspace)}})
+    assert client.sessions == []  # daemon and all workloads remain unexecuted
+    assert not openshell_local._backends
+
+
+def test_cached_same_generation_still_reads_effective_policy(tmp_path, monkeypatch):
+    from decepticon.backends.http_sandbox import SandboxError
+
+    workspace = _workspace(tmp_path)
+    client = _FakeClient()
+    _patch_client(monkeypatch, client)
+    backend = resolve_local_binding({"configurable": {"workspace_path": str(workspace)}})
+    executed = len(backend._session.calls)
+    client.created_spec.policy.network_policies.clear()
+    with pytest.raises(SandboxError):
+        backend.execute_tmux("must-not-execute")
+    assert len(backend._session.calls) == executed
+
+
+@pytest.mark.parametrize("corrupt", [False, True])
+def test_actual_sdk_authenticated_loopback_policy_rpc(tmp_path, corrupt):
+    """Real SDK serialization/auth/transport, with an owned loopback gateway fixture."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    import grpc
+    from openshell import SandboxClient
+    from openshell._proto import openshell_pb2 as pb
+    from openshell._proto import openshell_pb2_grpc, sandbox_pb2
+
+    from decepticon.backends.http_sandbox import SandboxError
+    from decepticon.middleware.roe import _load_rules_for_workspace
+
+    workspace = _workspace(tmp_path)
+    compiled = compile_openshell_policy(_load_rules_for_workspace(str(workspace)))
+    policy = openshell_local._policy_spec(compiled).policy
+    calls = []
+
+    class Gateway(openshell_pb2_grpc.OpenShellServicer):
+        def GetSandbox(self, request, context):
+            assert dict(context.invocation_metadata()).get("authorization") == "Bearer fixture-only"
+            assert request.workspace_scope.workspace == "default"
+            calls.append("sandbox")
+            response = pb.SandboxResponse()
+            response.sandbox.metadata.id = "owned-sandbox"
+            response.sandbox.metadata.name = "owned"
+            response.sandbox.metadata.workspace = "default"
+            response.sandbox.status.phase = pb.SANDBOX_PHASE_READY
+            response.sandbox.status.current_policy_version = 7
+            return response
+
+        def GetSandboxConfig(self, request, context):
+            assert dict(context.invocation_metadata()).get("authorization") == "Bearer fixture-only"
+            assert request.name == "owned" and request.workspace_scope.workspace == "default"
+            calls.append("config")
+            return sandbox_pb2.GetSandboxConfigResponse(
+                policy=policy, version=7, policy_hash="real-wire-hash"
+            )
+
+        def GetSandboxPolicyStatus(self, request, context):
+            assert dict(context.invocation_metadata()).get("authorization") == "Bearer fixture-only"
+            assert request.sandbox == "owned" and request.version == 7
+            calls.append("loaded")
+            return pb.GetSandboxPolicyStatusResponse(
+                active_version=7,
+                revision=pb.SandboxPolicyRevision(
+                    policy=policy,
+                    version=7,
+                    policy_hash="real-wire-hash",
+                    status=pb.POLICY_STATUS_PENDING if corrupt else pb.POLICY_STATUS_LOADED,
+                ),
+            )
+
+    server = grpc.server(ThreadPoolExecutor(max_workers=2))
+    openshell_pb2_grpc.add_OpenShellServicer_to_server(Gateway(), server)
+    port = server.add_insecure_port("127.0.0.1:0")
+    server.start()
+    client = SandboxClient(f"127.0.0.1:{port}", bearer_token="fixture-only")
+    try:
+        if corrupt:
+            with pytest.raises(SandboxError, match="acknowledgement"):
+                openshell_local._verified_runtime(client, "owned", "default", compiled)
+        else:
+            ref = openshell_local._verified_runtime(client, "owned", "default", compiled)
+            assert ref.id == "owned-sandbox" and ref.current_policy_version == 7
+        assert "config" in calls and "loaded" in calls
+    finally:
+        client.close()
+        server.stop(0).wait()

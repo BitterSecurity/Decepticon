@@ -28,7 +28,7 @@ whenever the kernel policy would be *wider* than the parser:
 Ports and binaries are narrowed contracts, not approximations: the
 legacy nftables path enforced hosts for *any* port and *any* process,
 while an OpenShell endpoint pins ports and a rule pins binaries. Defaults
-keep parity (``binaries: []`` means any process) and operators narrow
+keep parity (``binaries: [{path: "**"}]`` permits any process) and operators narrow
 them with ``DECEPTICON_OPENSHELL_ROE_PORTS`` /
 ``DECEPTICON_OPENSHELL_ROE_BINARIES``.
 
