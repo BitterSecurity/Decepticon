@@ -1,0 +1,131 @@
+{
+  "base_main": "79978a642b7a9c9cbd351150774b869fbb724416",
+  "parent_original": "0744bf78bc28981f10d47d568036dbbca57447dd",
+  "qualified_runtime_source": "c61e132139dc388a4116cf08e1a9f762bc143210",
+  "full_fast_source": "f2a54590e8d7085ff0e6a1cc443d48a1dd09a83f",
+  "full_fast": {
+    "process_exit": 0,
+    "process_seconds": 213.16,
+    "pytest_seconds": 203.0,
+    "passed": 6151,
+    "windows_only_skips": 3,
+    "slow_deselected": 3,
+    "xml": {
+      "tests": 6154,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 3
+    },
+    "command": [
+      "uv",
+      "run",
+      "--locked",
+      "--extra",
+      "openshell",
+      "--extra",
+      "mcp",
+      "pytest",
+      "packages/decepticon/tests/unit",
+      "packages/decepticon-core/tests",
+      "packages/decepticon-sdk/tests",
+      "-m",
+      "not slow",
+      "-q",
+      "--junitxml=/home/catow/GIT/decepticon-pr-review-20261101/oss-openshell-qualified-full-tests.xml"
+    ]
+  },
+  "installed_candidate": {
+    "process_exit": 0,
+    "wheel_versions": "0.0.0 local unversioned source candidates; not published",
+    "sdk": "0.1.6",
+    "dependencies_and_test_tools_pinned": 168,
+    "contracts": {
+      "tests": 231,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "steps": [
+      {
+        "name": "oss-openshell-installed-wheels",
+        "command": [
+          "uv",
+          "pip",
+          "install",
+          "--python",
+          "/home/catow/GIT/decepticon-pr-review-20261101/oss-openshell-installed-venv/bin/python",
+          "--no-deps",
+          "/home/catow/GIT/decepticon-pr-review-20261101/oss-openshell-final-wheels/decepticon-0.0.0-py3-none-any.whl",
+          "/home/catow/GIT/decepticon-pr-review-20261101/oss-openshell-final-wheels/decepticon_core-0.0.0-py3-none-any.whl",
+          "/home/catow/GIT/decepticon-pr-review-20261101/oss-openshell-final-wheels/decepticon_sdk-0.0.0-py3-none-any.whl"
+        ],
+        "exit_code": 0,
+        "seconds": 0.018
+      },
+      {
+        "name": "oss-openshell-installed-origin",
+        "command": [
+          "/home/catow/GIT/decepticon-pr-review-20261101/oss-openshell-installed-venv/bin/python",
+          "-c",
+          "import decepticon,pathlib,json; from decepticon.backends import openshell_local; p=pathlib.Path(openshell_local.__file__).resolve(); assert 'oss-openshell-installed-venv' in str(p); assert 'site-packages' in str(p); print(json.dumps({'installed_module':str(p)}))"
+        ],
+        "exit_code": 0,
+        "seconds": 4.197
+      },
+      {
+        "name": "oss-openshell-installed-contracts",
+        "command": [
+          "/home/catow/GIT/decepticon-pr-review-20261101/oss-openshell-installed-venv/bin/python",
+          "-m",
+          "pytest",
+          "-q",
+          "-o",
+          "asyncio_mode=auto",
+          "/home/catow/GIT/decepticon-pr-review-20261101/oss-openshell-installed-tests",
+          "--junitxml=/home/catow/GIT/decepticon-pr-review-20261101/oss-openshell-installed-contracts.xml"
+        ],
+        "exit_code": 0,
+        "seconds": 7.672
+      }
+    ],
+    "wheel_sha256": {
+      "decepticon-0.0.0-py3-none-any.whl": "4cb102d70ef80dd7fd7ea0fc0b6506dc03f9327b152dae43aad5da761ff145d0",
+      "decepticon_core-0.0.0-py3-none-any.whl": "07b1dbbb57427f9164547cc08898997241b48ef59c8521cb597673d98699315b",
+      "decepticon_sdk-0.0.0-py3-none-any.whl": "919c30076b3176d3ddbe5ecb533c887f8dcfdf5940a2c14c45d9a86dc96438bd"
+    },
+    "verified_payload_files": 830,
+    "source_overlays": false,
+    "artifact_byte_inventory_sha256": "908da9078019289e3d30d7fa2e40613ba3b3b6813353319c0ac3a63fea09558d"
+  },
+  "full_build": {
+    "canonical_all_package_sdist_and_wheels_exit": 0,
+    "initial_including_shared_slot_wait_seconds": 199.494,
+    "final_source": "c61e132139dc388a4116cf08e1a9f762bc143210",
+    "coordinator": "/home/catow/.local/bin/with-build-slot"
+  },
+  "supported_original_policy_byte_parity_cases": 8,
+  "ruff": {
+    "check_exit": 0,
+    "format_exit": 0,
+    "changed_python_files": 13
+  },
+  "known_failures_retained": [
+    "original independent admission reproduction",
+    "initial mutable-reference race:1failed151passed",
+    "first full run:5MCP collection errors",
+    "old-RoE admission assertion:1failed197passed; corrected to assert revocation",
+    "first isolated wheel tests:2async configuration failures229passed; repeated with original asyncio_mode=auto",
+    "two original whitespace-format failures corrected; unchanged AST",
+    "offline resolver lacked0.1.6 cache; online refresh no package-version drift"
+  ],
+  "kernel_replay": {
+    "independent_this_session": false,
+    "author_report": "Original #1144 clean-Linux patched0.1.6 matrix, not an independent kernel replay",
+    "supported_original_policy_bytes_unchanged": true,
+    "wsl_limitation_preserved": true,
+    "mixed_host_cidr_requires_upstream_5193_patch": true
+  },
+  "no_release_tag_publish_saas_qa_or_production_change": true,
+  "hosted_actions_pass_claimed": false,
+  "source_audit_scope": "This OSS boundary proposal and correction; broader SaaS source audit remains partial"
+}
