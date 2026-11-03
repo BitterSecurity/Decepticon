@@ -80,6 +80,7 @@ class CompiledRoePolicy:
     policy: dict
     canonical_hash: str
     errors: tuple[str, ...]
+    warnings: tuple[str, ...] = ()
 
 
 def roe_ports() -> tuple[int, ...]:
@@ -101,15 +102,24 @@ def roe_ports() -> tuple[int, ...]:
     return tuple(sorted(ports))
 
 
-def roe_binaries() -> tuple[str, ...]:
-    """Binary paths scoped on compiled rules; empty means any process.
+ANY_BINARY_GLOB = "**"
 
-    Empty keeps parity with the nftables path (every process was subject
-    to the host allowlist). Set ``DECEPTICON_OPENSHELL_ROE_BINARIES`` to a
+
+def roe_binaries() -> tuple[str, ...]:
+    """Binary paths scoped on compiled rules.
+
+    Defaults to the ``**`` glob (every process), matching the retired
+    nftables path where every process was subject to the host allowlist.
+    Verified live: an omitted or empty ``binaries`` field is NOT
+    "any process" on the 0.1.6 runtime — it permits nothing (every
+    connection is refused with "binary not allowed"), so the parity glob
+    must be explicit. Set ``DECEPTICON_OPENSHELL_ROE_BINARIES`` to a
     comma-separated list of absolute paths (globs allowed) to adopt the
     kernel's binary×host scoping.
     """
-    raw = os.environ.get("DECEPTICON_OPENSHELL_ROE_BINARIES", "")
+    raw = os.environ.get("DECEPTICON_OPENSHELL_ROE_BINARIES")
+    if raw is None:
+        return (ANY_BINARY_GLOB,)
     return tuple(sorted({p.strip() for p in raw.split(",") if p.strip()}))
 
 
@@ -161,6 +171,35 @@ def _in_scope_sections(
         ports.extend(_rule_ports(rule))
     ports = sorted(set(ports))
 
+    has_host = any(
+        network_scope_pattern(r) is not None
+        and (r.resolved_kind() if network_scope_pattern(r) == r.pattern else "host")
+        in ("host", "domain-glob")
+        for r in rules.in_scope
+    )
+    has_cidr = any(
+        network_scope_pattern(r) is not None
+        and (r.resolved_kind() if network_scope_pattern(r) == r.pattern else "host")
+        in ("cidr", "ip")
+        for r in rules.in_scope
+    )
+    if has_host and has_cidr:
+        # The OpenShell validator rejects any two endpoints that overlap on
+        # ports with conflicting metadata, and a hostless allowed_ips
+        # endpoint (forward-proxy path, no protocol) can never share the
+        # pinned ports with a host's rest endpoint (allowed_ips and
+        # protocol necessarily differ). A mixed host+CIDR scope therefore
+        # cannot become ONE kernel policy — refuse instead of silently
+        # narrowing either side.
+        errors.append(
+            "in_scope mixes host/domain-glob rules with CIDR/IP rules: the "
+            "OpenShell kernel policy grammar cannot express both in one "
+            "policy (hostless allowed_ips endpoints conflict with rest "
+            "endpoints on shared ports). Split the engagement scopes or "
+            "drop the CIDR entries"
+        )
+        return [], []
+
     for rule in rules.in_scope:
         pattern = network_scope_pattern(rule)
         if pattern is None:
@@ -190,8 +229,19 @@ def _in_scope_sections(
             )
         elif kind in ("cidr", "ip"):
             # Hostless allowlist rides the forward proxy; protocol: tcp
-            # requires a DNS hostname and cannot represent IP scopes.
-            cidr_endpoints.append({"ports": ports, "allowed_ips": [pattern]})
+            # requires a DNS hostname and cannot represent IP scopes. The
+            # endpoint still declares enforce/full metadata: hostless rules
+            # overlap the rest endpoints' ports (they match any domain),
+            # and the gateway validator rejects ambiguous overlaps with
+            # conflicting enforcement metadata.
+            cidr_endpoints.append(
+                {
+                    "ports": ports,
+                    "allowed_ips": [pattern],
+                    "enforcement": "enforce",
+                    "access": "full",
+                }
+            )
         else:  # pragma: no cover - resolved_kind is closed over these values
             errors.append(f"in_scope {pattern!r}: unknown rule kind {kind!r}")
     return host_endpoints, cidr_endpoints
@@ -259,6 +309,19 @@ def compile_openshell_policy(rules: MachineEnforcement) -> CompiledRoePolicy:
         return CompiledRoePolicy(policy={}, canonical_hash="", errors=tuple(errors))
 
     binaries = [{"path": path} for path in roe_binaries()]
+    cidr_only = not host_endpoints and bool(cidr_endpoints)
+    warnings: list[str] = []
+    if cidr_only and osint_egress_hosts():
+        # OSINT rest endpoints cannot share the hostless endpoints' ports
+        # (validator rejects conflicting metadata on overlapping ports) and
+        # cannot join the hostless section either — target-exempt
+        # web_search will be kernel-denied on CIDR-only engagements.
+        warnings.append(
+            "CIDR-only scope: the OSINT search-provider allowance is "
+            "omitted (rest endpoints cannot coexist with hostless "
+            "allowed_ips endpoints); target-exempt web_search will be "
+            "kernel-denied"
+        )
     rule: dict = {
         "name": "roe-in-scope",
         "endpoints": sorted(
@@ -266,32 +329,37 @@ def compile_openshell_policy(rules: MachineEnforcement) -> CompiledRoePolicy:
             key=lambda ep: (ep.get("host") or ",".join(ep.get("allowed_ips", ())),),
         ),
     }
-    if binaries:
-        rule["binaries"] = binaries
+    rule["binaries"] = binaries
     policy: dict = {
         "version": 1,
         "filesystem_policy": {"include_workdir": True},
         "network_policies": {
             "roe_in_scope": rule,
-            "osint_allowance": {
-                "name": "osint-allowance",
-                "endpoints": [
-                    {
-                        "host": host,
-                        "ports": list(roe_ports()),
-                        "protocol": "rest",
-                        "enforcement": "enforce",
-                        "access": "full",
+            **(
+                {}
+                if cidr_only
+                else {
+                    "osint_allowance": {
+                        "name": "osint-allowance",
+                        "endpoints": [
+                            {
+                                "host": host,
+                                "ports": list(roe_ports()),
+                                "protocol": "rest",
+                                "enforcement": "enforce",
+                                "access": "full",
+                            }
+                            for host in sorted(osint_egress_hosts())
+                        ],
+                        **({"binaries": binaries} if binaries else {}),
                     }
-                    for host in sorted(osint_egress_hosts())
-                ],
-                **({"binaries": binaries} if binaries else {}),
-            },
+                }
+            ),
         },
     }
     canonical = json.dumps(policy, sort_keys=True, separators=(",", ":")).encode()
     digest = hashlib.sha256(canonical).hexdigest()
-    return CompiledRoePolicy(policy=policy, canonical_hash=digest, errors=())
+    return CompiledRoePolicy(policy=policy, canonical_hash=digest, errors=(), warnings=tuple(warnings))
 
 
 def sandbox_name(workspace_path: str, roe_hash: str) -> str:

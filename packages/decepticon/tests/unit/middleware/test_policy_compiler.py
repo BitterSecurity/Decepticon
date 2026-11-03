@@ -156,9 +156,11 @@ class TestPortsAndBinaries:
             {"path": "/usr/bin/python3"},
         ]
 
-    def test_binaries_omitted_means_any_process(self) -> None:
+    def test_binaries_default_is_parity_any_process_glob(self) -> None:
+        # Verified live on 0.1.6: an omitted or empty binaries field permits
+        # nothing — the any-process parity requires the explicit ** glob.
         compiled = _compile({"in_scope": ["example.com"]})
-        assert "binaries" not in _roe_section(compiled)
+        assert _roe_section(compiled)["binaries"] == [{"path": "**"}]
 
 
 class TestSandboxName:
@@ -178,3 +180,20 @@ class TestSandboxName:
         assert "!" not in name and " " not in name
         assert len(name) <= 63
         assert name[0].isalnum() and name[-1].isalnum()
+
+
+class TestMixedScopeGrammar:
+    def test_mixed_host_and_cidr_refuses(self) -> None:
+        compiled = _compile({"in_scope": ["example.com", "10.10.0.0/24"]})
+        assert any("cannot express both" in error for error in compiled.errors)
+        assert compiled.policy == {}
+
+    def test_cidr_only_compiles_hostless_without_osint(self) -> None:
+        compiled = _compile({"in_scope": ["10.10.0.0/24"]})
+        assert compiled.errors == ()
+        sections = compiled.policy["network_policies"]
+        assert "osint_allowance" not in sections
+        endpoint = sections["roe_in_scope"]["endpoints"][0]
+        assert endpoint["allowed_ips"] == ["10.10.0.0/24"]
+        assert endpoint["enforcement"] == "enforce"
+        assert any("web_search" in warning for warning in compiled.warnings)
