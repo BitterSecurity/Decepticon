@@ -83,6 +83,15 @@ class OpenShellSandbox(HTTPSandbox):
     def id(self) -> str:
         return f"openshell:{self._admission.sandbox_id}:{self._admission.runtime_generation}"
 
+    def current_admission(self) -> OpenShellAdmission:
+        """The trusted host's current admission receipt for this binding.
+
+        Provisioning verification reads this instead of the construction
+        receipt so a revoked or policy-swapped binding is caught at
+        provisioning time, not only at the next execution.
+        """
+        return self._current_admission()
+
     def check_admission(self) -> None:
         expected = self._admission
         if self._closed or self._current_admission() != expected:

@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.13"
 resolution-markers = [
     "python_full_version >= '3.15'",
@@ -677,6 +677,7 @@ all = [
     { name = "bs-autobot" },
     { name = "mcp" },
     { name = "neo4j" },
+    { name = "openshell" },
     { name = "opentelemetry-api" },
     { name = "opentelemetry-exporter-otlp" },
     { name = "opentelemetry-sdk" },
@@ -692,6 +693,9 @@ mcp = [
 neo4j = [
     { name = "neo4j" },
 ]
+openshell = [
+    { name = "openshell" },
+]
 telemetry = [
     { name = "opentelemetry-api" },
     { name = "opentelemetry-exporter-otlp" },
@@ -705,7 +709,7 @@ requires-dist = [
     { name = "certifi", specifier = ">=2026.10.19" },
     { name = "click", specifier = ">=8.3.3" },
     { name = "cryptography", specifier = ">=50.0.0" },
-    { name = "decepticon", extras = ["neo4j", "telemetry", "mcp", "blue"], marker = "extra == 'all'", editable = "packages/decepticon" },
+    { name = "decepticon", extras = ["neo4j", "telemetry", "mcp", "blue", "openshell"], marker = "extra == 'all'", editable = "packages/decepticon" },
     { name = "decepticon-core", editable = "packages/decepticon-core" },
     { name = "deepagents", specifier = ">=0.7.32,<0.8" },
     { name = "defusedxml", specifier = ">=0.7.0" },
@@ -721,6 +725,7 @@ requires-dist = [
     { name = "langgraph-sdk", specifier = ">=0.1.0" },
     { name = "mcp", marker = "extra == 'mcp'", specifier = ">=1.30.0,<2" },
     { name = "neo4j", marker = "extra == 'neo4j'", specifier = ">=6,<7" },
+    { name = "openshell", marker = "extra == 'openshell'", specifier = ">=0.1.5,<0.2" },
     { name = "opentelemetry-api", marker = "extra == 'telemetry'", specifier = ">=1.27" },
     { name = "opentelemetry-exporter-otlp", marker = "extra == 'telemetry'", specifier = ">=1.27" },
     { name = "opentelemetry-sdk", marker = "extra == 'telemetry'", specifier = ">=1.27" },
@@ -735,7 +740,7 @@ requires-dist = [
     { name = "uvicorn", specifier = ">=0.30.0" },
     { name = "xxhash", specifier = ">=3.0.0" },
 ]
-provides-extras = ["neo4j", "telemetry", "mcp", "blue", "all"]
+provides-extras = ["neo4j", "telemetry", "mcp", "blue", "openshell", "all"]
 
 [[package]]
 name = "decepticon-core"
@@ -799,6 +804,9 @@ mcp = [
 neo4j = [
     { name = "decepticon", extra = ["neo4j"] },
 ]
+openshell = [
+    { name = "decepticon", extra = ["openshell"] },
+]
 
 [package.dev-dependencies]
 dev = [
@@ -826,10 +834,11 @@ requires-dist = [
     { name = "decepticon", editable = "packages/decepticon" },
     { name = "decepticon", extras = ["mcp"], marker = "extra == 'mcp'", editable = "packages/decepticon" },
     { name = "decepticon", extras = ["neo4j"], marker = "extra == 'neo4j'", editable = "packages/decepticon" },
+    { name = "decepticon", extras = ["openshell"], marker = "extra == 'openshell'", editable = "packages/decepticon" },
     { name = "decepticon-core", editable = "packages/decepticon-core" },
     { name = "decepticon-sdk", editable = "packages/decepticon-sdk" },
 ]
-provides-extras = ["neo4j", "mcp"]
+provides-extras = ["neo4j", "mcp", "openshell"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -2342,6 +2351,21 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/8f/12/cfa322c5f5dd8fa21aab9a7a8e979e7a11123800f86ca8d82eb68a83d213/openai-2.38.0.tar.gz", hash = "sha256:798694c6cf74145541fda94325b6f8f72d8e1fd0262cc137c8d728177a6a4ce3", size = 772764, upload-time = "2026-05-21T21:23:42.105Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/0a/bf/ccff9be562e24207716d04ef9dc931c76aff0c89a7265da43e2104d7fe06/openai-2.38.0-py3-none-any.whl", hash = "sha256:ec6661c57b2dcc47414a767e6e3335c7ed3d19c9696999283a3c82e95c756a3c", size = 1344910, upload-time = "2026-05-21T21:23:39.636Z" },
+]
+
+[[package]]
+name = "openshell"
+version = "0.1.6"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "cloudpickle" },
+    { name = "googleapis-common-protos" },
+    { name = "grpcio" },
+    { name = "httpx" },
+    { name = "protobuf" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f5/04/d563f51ae4cb5c2439340b8af7e64674bdcc335f55e945b36f57221bb841/openshell-0.1.6-py3-none-any.whl", hash = "sha256:a0c5b0e9954ffdbdb4d34110d4a9d0d2dc57579a53e4a67372e0f8dd3b75cd81", size = 150773, upload-time = "2026-10-28T00:21:48.415Z" },
 ]
 
 [[package]]

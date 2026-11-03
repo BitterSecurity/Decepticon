@@ -191,6 +191,12 @@ def build_sandbox_backend(config: Any = None) -> HTTPSandbox:
         raise RuntimeError("Host requires OpenShell; provider downgrade is disabled")
     if host_provider == "openshell" or requested == "openshell":
         if _openshell_resolver is None:
+            # The operator's explicit env opt-in is what makes the local
+            # resolver trusted — agent config can never install one.
+            from decepticon.backends.openshell_local import maybe_install_local_resolver
+
+            maybe_install_local_resolver()
+        if _openshell_resolver is None:
             raise RuntimeError("OpenShell provider requires a trusted host admission resolver")
         if not run_config:
             return _UnboundOpenShellSandbox()

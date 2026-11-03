@@ -20,6 +20,7 @@ dependencies = [
 # is invisible at root because uv treats extras as per-project.
 neo4j = ["decepticon[neo4j]"]
 mcp = ["decepticon[mcp]"]
+openshell = ["decepticon[openshell]"]
 
 [tool.uv]
 # Virtual root — no wheel built from the workspace umbrella. Real

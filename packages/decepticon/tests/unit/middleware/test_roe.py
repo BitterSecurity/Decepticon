@@ -1278,3 +1278,105 @@ class TestRoEThrottle:
         mw.wrap_tool_call(req, handler)
         mw.wrap_tool_call(req, handler)
         assert slept == []
+
+
+class TestOpenShellProvisioning:
+    """Kernel-boundary verification on OpenShell backends (policy compiler route)."""
+
+    @staticmethod
+    def _openshell_backend(compiled_hash: str):
+        from types import SimpleNamespace
+
+        checks: list[int] = []
+
+        def current_admission():
+            checks.append(1)
+            return SimpleNamespace(effective_policy_hash=compiled_hash)
+
+        return SimpleNamespace(egress_authority="openshell", current_admission=current_admission), checks
+
+    def test_matching_policy_hash_provisions_and_audits(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        from decepticon.backends import factory
+        from decepticon.middleware.policy_compiler import compile_openshell_policy
+
+        _write_roe(tmp_path, {"in_scope": ["example.com", "*.staging.example.com"]})
+        compiled = compile_openshell_policy(_load_rules_for_workspace(str(tmp_path)))
+        backend, checks = self._openshell_backend(compiled.canonical_hash)
+        monkeypatch.setattr(factory, "build_sandbox_backend", lambda config=None: backend)
+        sink = RoEAuditSink(path=tmp_path / "audit" / "roe.jsonl")
+        mw = RoEGuardrailMiddleware(sink=sink)
+
+        mw.before_agent({"workspace_path": str(tmp_path)}, None)
+        mw.before_agent({"workspace_path": str(tmp_path)}, None)
+        assert len(checks) == 1  # provisioned once per workspace
+        recs = [json.loads(line) for line in (tmp_path / "audit" / "roe.jsonl").read_text().splitlines()]
+        assert any(
+            r.get("event") == "egress_provisioned" and r.get("authority") == "openshell"
+            and r.get("policy_hash") == compiled.canonical_hash
+            for r in recs
+        )
+
+    def test_mismatched_policy_hash_fails_loudly_and_retries(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        from decepticon.backends import factory
+
+        _write_roe(tmp_path, {"in_scope": ["example.com"]})
+        backend, checks = self._openshell_backend("0" * 64)  # not the compiled hash
+        monkeypatch.setattr(factory, "build_sandbox_backend", lambda config=None: backend)
+        mw = RoEGuardrailMiddleware(sink=None)
+
+        mw.before_agent({"workspace_path": str(tmp_path)}, None)
+        mw.before_agent({"workspace_path": str(tmp_path)}, None)
+        # Refused loudly both times: the workspace stays unmarked for retry
+        # instead of running with an unverifiable kernel boundary.
+        assert len(checks) == 2
+
+    def test_uncompilable_roe_refuses_provisioning(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        from decepticon.backends import factory
+
+        _write_roe(tmp_path, {"in_scope": ["api-*.example.com"]})
+        calls: list[int] = []
+
+        def fake_build(config=None):
+            calls.append(1)
+            from types import SimpleNamespace
+
+            return SimpleNamespace(egress_authority="openshell")
+
+        monkeypatch.setattr(factory, "build_sandbox_backend", fake_build)
+        mw = RoEGuardrailMiddleware(sink=None)
+        mw.before_agent({"workspace_path": str(tmp_path)}, None)
+        mw.before_agent({"workspace_path": str(tmp_path)}, None)
+        assert len(calls) == 2  # never marked provisioned
+
+    def test_http_backend_keeps_nftables_path(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+
+        from decepticon.backends import factory
+        from decepticon.middleware import egress as egress_mod
+
+        _write_roe(tmp_path, {"in_scope": ["10.0.0.0/24"]})
+        seen: dict = {}
+
+        class FakeHttpBackend:
+            egress_authority = "http"
+
+            def provision_egress(self, policy):
+                seen["policy"] = policy
+                return {"applied": True, "detail": "ok"}
+
+        monkeypatch.setattr(
+            factory, "build_sandbox_backend", lambda config=None: FakeHttpBackend()
+        )
+        monkeypatch.setattr(
+            egress_mod, "compile_egress_policy", egress_mod.compile_egress_policy
+        )
+        mw = RoEGuardrailMiddleware(sink=None)
+        mw.before_agent({"workspace_path": str(tmp_path)}, None)
+        assert seen["policy"].default_drop is True
