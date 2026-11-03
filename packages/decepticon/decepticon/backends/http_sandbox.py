@@ -495,4 +495,3 @@ class HTTPSandbox(BaseSandbox):
             json={"session": session, "workspace_path": workspace_path},
         )
         return response.json()["path"]
-

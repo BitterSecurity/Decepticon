@@ -440,5 +440,3 @@ def test_lifespan_shutdown_swallows_kill_all_sessions_errors() -> None:
     # If the lifespan re-raises, _client's __exit__ would propagate.
     with _client(backend) as _client_ctx:
         pass
-
-

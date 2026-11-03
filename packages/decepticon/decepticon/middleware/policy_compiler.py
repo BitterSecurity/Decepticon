@@ -28,7 +28,7 @@ whenever the kernel policy would be *wider* than the parser:
 Ports and binaries are narrowed contracts, not approximations: the
 legacy nftables path enforced hosts for *any* port and *any* process,
 while an OpenShell endpoint pins ports and a rule pins binaries. Defaults
-keep parity (``binaries: []`` means any process) and operators narrow
+keep parity (``binaries: [{path: "**"}]`` permits any process) and operators narrow
 them with ``DECEPTICON_OPENSHELL_ROE_PORTS`` /
 ``DECEPTICON_OPENSHELL_ROE_BINARIES``.
 
@@ -45,7 +45,7 @@ import ipaddress
 import json
 import os
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -53,6 +53,7 @@ from decepticon.middleware.egress import osint_egress_hosts
 from decepticon_core.types.roe import (
     MachineEnforcement,
     ScopeRule,
+    evaluate_target,
     matches_domain_glob,
     network_scope_pattern,
 )
@@ -218,46 +219,81 @@ def _in_scope_sections(
     return host_endpoints, cidr_endpoints
 
 
-def _coverage_errors(rules: MachineEnforcement, errors: list[str]) -> None:
-    """Refuse whenever an in-scope rule could kernel-admit a parser-denied host."""
-    forbidden: list[str] = []
-    for dest in rules.effective_forbidden_destinations():
-        pattern = network_scope_pattern(ScopeRule(pattern=dest))
-        forbidden.append(pattern or dest)
-    probes: list[tuple[str, str]] = [(f"forbidden {host}", host) for host in forbidden]
-    probes.extend((f"sensitive TLD .{tld}", f"a.{tld}") for tld in _sensitive_tlds(rules))
-    probes.extend((f"sensitive TLD .{tld}", f"a.b.{tld}") for tld in _sensitive_tlds(rules))
-    probes.extend((f"sensitive TLD .{tld}", tld) for tld in _sensitive_tlds(rules))
-    for deny_rule in rules.out_of_scope:
-        deny_pattern = network_scope_pattern(deny_rule, deny=True)
-        if deny_pattern is not None:
-            probes.append((f"out_of_scope {deny_pattern}", deny_pattern.rstrip(".")))
+def _rule_identity(rule: ScopeRule, *, deny: bool = False) -> tuple[str, str] | None:
+    pattern = network_scope_pattern(rule, deny=deny)
+    if pattern is None:
+        return None
+    kind = rule.resolved_kind() if pattern == rule.pattern else "host"
+    return kind, pattern.rstrip(".").lower()
 
-    for rule in rules.in_scope:
-        pattern = network_scope_pattern(rule)
-        if pattern is None:
-            continue
-        kind = rule.resolved_kind() if pattern == rule.pattern else "host"
-        probes_for_rule = list(probes)
-        if kind == "host":
-            # The rule admits its own pattern; when that host itself carries
-            # a sensitive TLD the parser denies it while the kernel would
-            # allow it — probe the rule's own target too.
-            normalized = pattern.rstrip(".")
-            matched_tld = next(
-                (
-                    tld
-                    for tld in _sensitive_tlds(rules)
-                    if normalized.lower().endswith("." + tld) or normalized.lower() == tld
-                ),
-                None,
+
+def _intersects(allow: tuple[str, str], deny: tuple[str, str]) -> bool:
+    """Prove disjointness for compiled host/leading-wildcard/IP scope sets.
+
+    Deny globs retain the parser's arbitrary single-label wildcard grammar.
+    Unknown IP/glob intersections refuse conservatively rather than sampling
+    a pattern string as if it were a concrete destination.
+    """
+    ak, ap = allow
+    dk, dp = deny
+    if ak in ("ip", "cidr"):
+        network = ipaddress.ip_network(ap, strict=False)
+        if dk in ("ip", "cidr"):
+            other = ipaddress.ip_network(dp, strict=False)
+            return network.version == other.version and network.overlaps(other)
+        if dk == "domain-glob":
+            alphabet = "0123456789.*?" if network.version == 4 else "0123456789abcdef:*?"
+            return all(char in alphabet for char in dp)
+        try:
+            return ipaddress.ip_address(dp) in network
+        except ValueError:
+            return False
+    if ak == "host":
+        return _rule_covers_host(dk, dp, ap)
+    if ak == "domain-glob":
+        if dk in ("ip", "cidr"):
+            # A numeric DNS wildcard can also match IP-literal targets.
+            alphabet = (
+                "0123456789.*?"
+                if ipaddress.ip_network(dp, strict=False).version == 4
+                else "0123456789abcdef:*?"
             )
-            if matched_tld is not None:
-                probes_for_rule.append((f"sensitive TLD .{matched_tld}", normalized))
-        for label, host in probes_for_rule:
-            if _rule_covers_host(kind, pattern, host):
+            return all(char in alphabet for char in ap)
+        if dk == "host":
+            return _rule_covers_host(ak, ap, dp)
+        allowed_labels, denied_labels = ap.split("."), dp.split(".")
+        if len(allowed_labels) != len(denied_labels):
+            return False
+        # The compiler admits only a leading '*' label. All remaining labels
+        # are concrete, so checking them against each denied label is exact.
+        return bool(denied_labels[0]) and all(
+            matches_domain_glob(pattern, host)
+            for pattern, host in zip(denied_labels[1:], allowed_labels[1:])
+        )
+    return True  # unknown grammar cannot establish a safe kernel superset
+
+
+def _coverage_errors(rules: MachineEnforcement, errors: list[str]) -> None:
+    """Reject nonempty intersections with parser-denied destination sets."""
+    denied = [
+        (f"forbidden {dest}", ScopeRule(pattern=dest), False)
+        for dest in rules.effective_forbidden_destinations()
+    ]
+    denied.extend((f"out_of_scope {rule.pattern}", rule, True) for rule in rules.out_of_scope)
+    for rule in rules.in_scope:
+        allow = _rule_identity(rule)
+        if allow is None:
+            continue
+        kind, pattern = allow
+        if kind in ("host", "domain-glob"):
+            for tld in _sensitive_tlds(rules):
+                if pattern == tld or pattern.endswith("." + tld):
+                    errors.append(f"in_scope {pattern!r} kernel-covers sensitive TLD .{tld}")
+        for label, denied_rule, is_deny in denied:
+            deny = _rule_identity(denied_rule, deny=is_deny)
+            if deny is not None and _intersects(allow, deny):
                 errors.append(
-                    f"in_scope {pattern!r} kernel-covers {label} {host!r} the parser denies; "
+                    f"in_scope {pattern!r} kernel-covers {label}; "
                     "narrow the scope so the kernel is never wider than the parser"
                 )
 
@@ -304,6 +340,7 @@ def compile_openshell_policy(rules: MachineEnforcement) -> CompiledRoePolicy:
                         "access": "full",
                     }
                     for host in sorted(osint_egress_hosts())
+                    if evaluate_target(host, replace(rules, in_scope=())).allow
                 ],
                 **({"binaries": binaries} if binaries else {}),
             },
@@ -317,9 +354,10 @@ def compile_openshell_policy(rules: MachineEnforcement) -> CompiledRoePolicy:
 def sandbox_name(workspace_path: str, roe_hash: str) -> str:
     """Deterministic DNS-1123 sandbox name binding one engagement to one RoE.
 
-    ``dcpt-<workspace-slug>-<roe8>`` — the RoE hash in the name means a
+    ``dcpt-<bounded-slug>-<workspace16>-<policy16>`` — the RoE hash in the name means a
     changed RoE provisions a fresh sandbox instead of mutating a running
     one's policy underneath it (no policy-mixing window).
     """
     slug = re.sub(r"[^a-z0-9-]+", "-", Path(workspace_path).name.lower()).strip("-") or "engagement"
-    return f"dcpt-{slug}-{roe_hash[:8]}"[:63].rstrip("-")
+    workspace_hash = hashlib.sha256(str(Path(workspace_path).resolve()).encode()).hexdigest()[:16]
+    return f"dcpt-{slug[:24].rstrip(chr(45))}-{workspace_hash}-{roe_hash[:16]}"

@@ -1,5 +1,5 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = ">=3.13"
 resolution-markers = [
     "python_full_version >= '3.15'",
@@ -725,7 +725,7 @@ requires-dist = [
     { name = "langgraph-sdk", specifier = ">=0.1.0" },
     { name = "mcp", marker = "extra == 'mcp'", specifier = ">=1.30.0,<2" },
     { name = "neo4j", marker = "extra == 'neo4j'", specifier = ">=6,<7" },
-    { name = "openshell", marker = "extra == 'openshell'", specifier = ">=0.1.5,<0.2" },
+    { name = "openshell", marker = "extra == 'openshell'", specifier = ">=0.1.6,<0.2" },
     { name = "opentelemetry-api", marker = "extra == 'telemetry'", specifier = ">=1.27" },
     { name = "opentelemetry-exporter-otlp", marker = "extra == 'telemetry'", specifier = ">=1.27" },
     { name = "opentelemetry-sdk", marker = "extra == 'telemetry'", specifier = ">=1.27" },
