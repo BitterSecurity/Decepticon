@@ -9,3 +9,5 @@
 # Format: one GitHub username per line, no @ prefix. Sorted alphabetically.
 # Prefix with - to denounce. See https://github.com/mitchellh/vouch for details.
 PurpleCHOIms
+NetVar1337
+PurpleCHOIms
