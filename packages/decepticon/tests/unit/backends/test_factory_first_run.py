@@ -17,9 +17,7 @@ from decepticon.backends import factory
 
 
 def _resolver_missing_scope(run_config):  # pragma: no cover - trivial
-    raise RuntimeError(
-        "OpenShell binding for /workspace requires a materialized plan/roe.json"
-    )
+    raise RuntimeError("OpenShell binding for /workspace requires a materialized plan/roe.json")
 
 
 @pytest.fixture(autouse=True)
@@ -54,3 +52,23 @@ def test_other_resolver_errors_still_raise(monkeypatch: pytest.MonkeyPatch):
     factory.configure_openshell_resolver(resolver_changed)
     with pytest.raises(RuntimeError, match="approved RoE changed"):
         factory.build_sandbox_backend({"configurable": {}})
+
+
+def test_unbound_reads_report_empty_workspace():
+    """Pre-admission reads must see an empty workspace, not a crash."""
+    monkeypatch_env = pytest.MonkeyPatch()
+    monkeypatch_env.setenv("DECEPTICON_SANDBOX_PROVIDER", "openshell")
+    factory.configure_openshell_resolver(_resolver_missing_scope)
+    backend = factory.build_sandbox_backend({"configurable": {}})
+
+    read = backend.read("/workspace/plan/opplan.json")
+    assert read.error and "path_not_found" in read.error and read.file_data is None
+    assert backend.ls("/workspace").entries == []
+    assert backend.glob("/workspace/**/*.json").matches == []
+    assert backend.grep("secret", "/workspace").matches == []
+
+    # The loud path stays loud: writes and execution still refuse.
+    with pytest.raises(RuntimeError, match="run binding is required"):
+        backend._request("post", "/execute", json={})
+
+    monkeypatch_env.undo()
