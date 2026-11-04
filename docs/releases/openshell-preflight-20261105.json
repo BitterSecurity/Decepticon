@@ -125,5 +125,131 @@
     "all publication signing SBOM platform gates",
     "SaaS E2B provider adoption"
   ],
-  "reproductionScriptSha256": "846a221dbaa32fdfa4dde4c974fd418021615d465641d51d28b4d47402ac3d69"
+  "reproductionScriptSha256": "846a221dbaa32fdfa4dde4c974fd418021615d465641d51d28b4d47402ac3d69",
+  "authorizationControls": {
+    "observedAtUtc": "2026-11-04T15:15:03.021863+00:00",
+    "repository": "BitterSecurity/Decepticon",
+    "environment": {
+      "name": "pypi-release",
+      "protection_rules": [
+        {
+          "id": 56164164,
+          "node_id": "GA_kwDOO3L3cs4DWP9E",
+          "type": "branch_policy"
+        }
+      ],
+      "deployment_branch_policy": {
+        "protected_branches": false,
+        "custom_branch_policies": true
+      },
+      "can_admins_bypass": true
+    },
+    "allowedDeploymentRefs": [
+      {
+        "name": "v*",
+        "type": "tag"
+      }
+    ],
+    "rulesets": [
+      {
+        "id": 14869722,
+        "name": "main",
+        "target": "branch",
+        "enforcement": "active",
+        "conditions": {
+          "ref_name": {
+            "exclude": [],
+            "include": [
+              "refs/heads/main"
+            ]
+          }
+        },
+        "rules": [
+          {
+            "type": "deletion"
+          },
+          {
+            "type": "non_fast_forward"
+          },
+          {
+            "type": "pull_request",
+            "parameters": {
+              "required_approving_review_count": 0,
+              "dismiss_stale_reviews_on_push": true,
+              "required_reviewers": [],
+              "require_code_owner_review": false,
+              "dismissal_restriction": {
+                "enabled": false,
+                "allowed_actors": []
+              },
+              "require_last_push_approval": false,
+              "required_review_thread_resolution": false,
+              "require_extra_approval_for_unattributed_changes": true,
+              "allowed_merge_methods": [
+                "merge",
+                "squash",
+                "rebase"
+              ]
+            }
+          },
+          {
+            "type": "required_status_checks",
+            "parameters": {
+              "strict_required_status_checks_policy": false,
+              "do_not_enforce_on_create": false,
+              "required_status_checks": [
+                {
+                  "context": "CI OK (required status)"
+                }
+              ]
+            }
+          }
+        ],
+        "bypass_actors": []
+      },
+      {
+        "id": 17116628,
+        "name": "tag-immutability-v",
+        "target": "tag",
+        "enforcement": "active",
+        "conditions": {
+          "ref_name": {
+            "exclude": [],
+            "include": [
+              "refs/tags/v*"
+            ]
+          }
+        },
+        "rules": [
+          {
+            "type": "deletion"
+          },
+          {
+            "type": "non_fast_forward"
+          },
+          {
+            "type": "update"
+          }
+        ],
+        "bypass_actors": [
+          {
+            "actor_id": null,
+            "actor_type": "OrganizationAdmin",
+            "bypass_mode": "always"
+          }
+        ]
+      }
+    ],
+    "authenticatedActorPermissions": {
+      "admin": true,
+      "maintain": true,
+      "push": true,
+      "triage": true,
+      "pull": true
+    },
+    "writesPerformed": false,
+    "pypiTrustedPublisherSettingsInspected": false,
+    "tagPushAutomaticallyStartsPypiPublish": true,
+    "gitHubUndraftDependsOnPypiPublish": false
+  }
 }

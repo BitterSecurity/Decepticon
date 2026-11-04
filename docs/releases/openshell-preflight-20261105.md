@@ -104,6 +104,38 @@ above is independent; no GitHub billing rejection was observed for this run.
 
 ## Release and adoption disposition
 
+### Actual authorization controls
+
+Read-only GitHub API inspection on November 5 KST confirmed these settings; no
+environment, ruleset, publisher, tag or workflow setting was changed:
+
+| Actual control | Observed setting |
+| --- | --- |
+| `pypi-release` environment protections | Branch policy only; no required reviewers, wait timer or additional approval rule returned |
+| Environment deployment policy | Custom tag policy `v*`; branches are not the allowed release ref |
+| Active `tag-immutability-v` ruleset | Matches `refs/tags/v*`; forbids updating, deleting and force-updating existing tags; no creation restriction returned |
+| Active `main` ruleset | PR required; required status `CI OK (required status)`; configured reviewer count 0; no bypass actors; extra approval protection for unattributed changes remains enabled |
+| Authenticated repository access | Push/admin available; no bypass exercised |
+
+Sources are the repository APIs `environments/pypi-release`,
+`environments/pypi-release/deployment-branch-policies`, `rulesets/17116628`,
+`rulesets/14869722` and repository permission metadata. GitHub reports an
+OrganizationAdmin bypass actor on the tag ruleset and environment administrator
+bypass capability; those capabilities are not authorization to override policy.
+
+The checked-in release workflow runs on a `v*` tag push. `publish-pypi` has the
+`pypi-release` environment, OIDC write permission and **no job dependency on a
+manual/candidate-verification job**. A tag push can therefore start real PyPI
+uploads without another human approval prompt. Do not push a tag as a harmless
+way to test whether a later approval gate appears.
+
+`publish-release` waits for launcher/image jobs but not `publish-pypi`, then
+automatically undrafts the GitHub release. An initial draft is not a manual
+publication barrier. PyPI success must be verified independently. Current PyPI
+Trusted Publisher settings were not inspected through an authenticated PyPI
+account; repository OIDC configuration and earlier publication do not prove that
+external authorization is unchanged. No test upload was attempted.
+
 Follow [RELEASE.md](../../RELEASE.md). A final version/tag has not been selected.
 If the removal of the previously supported HTTP execution contract remains in
 the release, the compatibility rule calls for a **Major**, with an explicit
