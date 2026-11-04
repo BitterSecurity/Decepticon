@@ -26,6 +26,7 @@ from __future__ import annotations
 import functools
 import os
 from collections.abc import Callable
+from types import SimpleNamespace
 from typing import Any
 
 from decepticon.backends.http_sandbox import HTTPSandbox
@@ -35,7 +36,16 @@ _openshell_resolver: Callable[[Any], HTTPSandbox] | None = None
 
 
 class _UnboundOpenShellSandbox(HTTPSandbox):
-    """A graph-construction placeholder; it can never perform an operation."""
+    """A graph-construction placeholder; it can never perform an operation.
+
+    Reads are the one carve-out: before a scope is imported the workspace is
+    simply empty, so ``/download_files`` reports each requested path as
+    not-found instead of raising — graph-construction-time hooks (OPPLAN
+    load, engagement markers) then see an empty workspace and the operator
+    journey reaches ``/scope import``. Every other operation stays loud:
+    without an admitted binding there is no kernel boundary to execute
+    anything behind.
+    """
 
     egress_authority = "openshell"
 
@@ -50,6 +60,15 @@ class _UnboundOpenShellSandbox(HTTPSandbox):
         raise RuntimeError("OpenShell run binding is required; direct HTTP is disabled")
 
     def _request(self, method: str, path: str, **kwargs: Any):
+        if method.lower() == "post" and path == "/download_files":
+            paths = (kwargs.get("json") or {}).get("paths", [])
+            return SimpleNamespace(
+                json=lambda: {
+                    "files": [
+                        {"path": p, "data_b64": None, "error": "path_not_found"} for p in paths
+                    ]
+                }
+            )
         raise RuntimeError("OpenShell run binding is required before execution")
 
 
