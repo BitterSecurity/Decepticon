@@ -274,7 +274,10 @@ def _attach_or_create(client: Any, name: str, workspace: str, compiled: Compiled
 
 def resolve_local_binding(run_config: Any):
     """Trusted-host resolver: RoE → compiled policy → born-confined sandbox."""
-    from decepticon.backends.openshell_sandbox import OpenShellSandbox
+    from decepticon.backends.openshell_sandbox import (  # noqa: F401 - re-exported in closures
+        OpenShellAdmission,
+        OpenShellSandbox,
+    )
     from decepticon.middleware.roe import _load_rules_for_workspace
 
     try:
