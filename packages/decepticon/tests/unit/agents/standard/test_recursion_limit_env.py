@@ -22,10 +22,10 @@ def test_env_override_values(monkeypatch: pytest.MonkeyPatch) -> None:
     assert decepticon_module._recursion_limit_from_env() == 25
 
     monkeypatch.setenv("DECEPTICON_RECURSION_LIMIT", "not-a-number")
-    assert decepticon_module._recursion_limit_from_env() == 400
+    assert decepticon_module._recursion_limit_from_env() == 2000
 
     monkeypatch.delenv("DECEPTICON_RECURSION_LIMIT", raising=False)
-    assert decepticon_module._recursion_limit_from_env() == 400
+    assert decepticon_module._recursion_limit_from_env() == 2000
 
 
 def test_module_constant_reflects_env(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -38,4 +38,4 @@ def test_module_constant_reflects_env(monkeypatch: pytest.MonkeyPatch) -> None:
     finally:
         monkeypatch.delenv("DECEPTICON_RECURSION_LIMIT", raising=False)
         importlib.reload(decepticon_module)
-    assert decepticon_module._RECURSION_LIMIT == 400
+    assert decepticon_module._RECURSION_LIMIT == 2000

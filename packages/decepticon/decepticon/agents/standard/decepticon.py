@@ -86,12 +86,12 @@ def _recursion_limit_from_env() -> int:
     """
     raw = os.environ.get("DECEPTICON_RECURSION_LIMIT", "").strip()
     if not raw:
-        return 400
+        return 2000
     try:
         value = int(raw)
     except ValueError:
-        logger.warning("invalid DECEPTICON_RECURSION_LIMIT=%r — using the default 400", raw)
-        return 400
+        logger.warning("invalid DECEPTICON_RECURSION_LIMIT=%r — using the default 2000", raw)
+        return 2000
     if value < 25:
         logger.warning(
             "DECEPTICON_RECURSION_LIMIT=%d below LangGraph's own floor (25) — clamping",

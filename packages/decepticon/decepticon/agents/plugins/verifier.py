@@ -85,7 +85,7 @@ _SKILL_SOURCES: list[str] = [
 
 
 _ROLE = "verifier"
-_RECURSION_LIMIT = 150
+_RECURSION_LIMIT = 2000  # issue #1145: raised from the per-role values (120-1000) — flash models loop in report phases; the env-tunable main budget is 2000 too
 
 
 def create_verifier_agent(
