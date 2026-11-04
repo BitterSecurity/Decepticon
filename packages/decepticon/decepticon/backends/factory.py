@@ -202,7 +202,22 @@ def build_sandbox_backend(config: Any = None) -> HTTPSandbox:
             return _UnboundOpenShellSandbox()
         from decepticon.backends.openshell_sandbox import OpenShellSandbox
 
-        backend = _openshell_resolver(run_config)
+        try:
+            backend = _openshell_resolver(run_config)
+        except RuntimeError as exc:
+            # First-run journey (observed on the OSS verification stack):
+            # graph construction runs before any engagement scope exists, and
+            # the binding refuses to admit a workspace without a materialized
+            # plan/roe.json. Booting must not crash-loop on that — an
+            # unbound placeholder keeps the daemon up, the RoE guard fails
+            # loudly if a run is attempted before /scope import, and the
+            # binding resolves for real once the operator imports a scope.
+            # A real run (has a thread_id) still fails loudly.
+            if "materialized plan/roe.json" in str(exc) and not (
+                isinstance(configurable, dict) and configurable.get("thread_id")
+            ):
+                return _UnboundOpenShellSandbox()
+            raise
         if not isinstance(backend, OpenShellSandbox):
             raise RuntimeError("OpenShell resolver did not return an admitted OpenShell backend")
         backend.check_admission()
