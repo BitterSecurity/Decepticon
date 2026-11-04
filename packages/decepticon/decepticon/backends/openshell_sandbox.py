@@ -70,14 +70,12 @@ class OpenShellSandbox(HTTPSandbox):
         *,
         admission: OpenShellAdmission,
         current_admission: Callable[[], OpenShellAdmission],
-        renew_admission: Callable[[], OpenShellAdmission] | None = None,
         timeout: float = 120,
     ) -> None:
         super().__init__("http://127.0.0.1:9999", timeout=timeout)
         self._session = session
         self._admission = admission
         self._current_admission = current_admission
-        self._renew_admission = renew_admission
         self._closed = False
         self.check_admission()
 
@@ -113,30 +111,9 @@ class OpenShellSandbox(HTTPSandbox):
             or not math.isfinite(expected.expires_at)
             or time.time() >= expected.expires_at
         ):
-            # The runtime identity is unchanged (the equality check above
-            # passed); only the receipt TTL ran out — a long-lived daemon
-            # hits this on every request after the host's admission window
-            # passes. Renew through the trusted host (which re-verifies the
-            # approved RoE hash and the live runtime) instead of discarding
-            # the run. A revoked/changed binding still fails closed above.
-            renewed = self._renew()
-            if renewed is not None:
-                expected = self._admission
-            if (
-                not expected.ready
-                or not math.isfinite(expected.expires_at)
-                or time.time() >= expected.expires_at
-            ):
-                raise SandboxError("OpenShell execution admission is not ready or has expired")
+            raise SandboxError("OpenShell execution admission is not ready or has expired")
         if self._session.id != expected.sandbox_id:
             raise SandboxError("OpenShell session does not match the admitted sandbox")
-
-    def _renew(self) -> OpenShellAdmission | None:
-        """Re-read the receipt through the trusted host; None if unsupported."""
-        if self._renew_admission is None:
-            return None
-        self._admission = self._renew_admission()
-        return self._admission
 
     def _http(self) -> httpx.Client:
         raise SandboxError("Direct daemon HTTP is disabled for OpenShell")
