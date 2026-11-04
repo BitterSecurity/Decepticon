@@ -62,7 +62,7 @@ def test_unbound_reads_report_empty_workspace():
     backend = factory.build_sandbox_backend({"configurable": {}})
 
     read = backend.read("/workspace/plan/opplan.json")
-    assert read.error and "path_not_found" in read.error and read.file_data is None
+    assert read.error and "file_not_found" in read.error and read.file_data is None
     assert backend.ls("/workspace").entries == []
     assert backend.glob("/workspace/**/*.json").matches == []
     assert backend.grep("secret", "/workspace").matches == []

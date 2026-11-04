@@ -69,14 +69,14 @@ class _UnboundOpenShellSandbox(HTTPSandbox):
             return SimpleNamespace(
                 json=lambda: {
                     "files": [
-                        {"path": p, "data_b64": None, "error": "path_not_found"} for p in paths
+                        {"path": p, "data_b64": None, "error": "file_not_found"} for p in paths
                     ]
                 }
             )
         raise RuntimeError("OpenShell run binding is required before execution")
 
     def read(self, file_path: str, *, offset: int = 0, limit: int = 2000) -> ReadResult:
-        return ReadResult(error=f"Path '{file_path}': path_not_found")
+        return ReadResult(error=f"File '{file_path}': file_not_found")
 
     def ls(self, path: str) -> LsResult:
         return LsResult(error=None, entries=[])
