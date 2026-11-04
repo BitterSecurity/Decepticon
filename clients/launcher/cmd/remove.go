@@ -114,16 +114,47 @@ func runRemove(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	// Resolve the launcher before touching the installation directory. On
+	// the Windows layout the launcher lives INSIDE the installation
+	// directory (~/.decepticon/bin/decepticon.exe), and Windows cannot
+	// delete a running executable — RemoveAll would abort mid-way, leave
+	// the locked launcher behind, and the next install would fail (#1138).
+	// Rename works on a running exe: move it out of the tree first, then
+	// schedule its deletion after this process exits.
+	execPath, execErr := os.Executable()
+	launcherInsideHome := execErr == nil && isInsidePath(execPath, home)
+	var deferredLauncherDelete string
+	if launcherInsideHome {
+		temp := filepath.Join(
+			os.TempDir(),
+			fmt.Sprintf("decepticon-remove-%d%s", os.Getpid(), filepath.Ext(execPath)),
+		)
+		if err := os.Rename(execPath, temp); err == nil {
+			deferredLauncherDelete = temp
+		} else {
+			ui.Warning(fmt.Sprintf("Could not move the running launcher out of %s — the reinstall may fail until it is deleted manually: %v", home, err))
+		}
+	}
+
 	// Phase 3: Remove config directory
 	ui.Info("Removing " + home + "...")
 	if err := os.RemoveAll(home); err != nil {
 		return fmt.Errorf("remove installation directory %s: %w", home, err)
 	}
+	if deferredLauncherDelete != "" {
+		_ = scheduleSelfDelete(deferredLauncherDelete)
+	}
 
-	// Phase 4: Remove launcher binary
-	execPath, _ := os.Executable()
-	ui.Info("Removing launcher binary...")
-	_ = os.Remove(execPath)
+	// Phase 4: Remove launcher binary outside the installation directory
+	// (POSIX layout: ~/.local/bin/decepticon). Unlinking a running binary
+	// is safe on POSIX. Surface failures instead of silently swallowing
+	// them so a leftover launcher stays diagnosable.
+	if !launcherInsideHome && execErr == nil {
+		ui.Info("Removing launcher binary...")
+		if err := os.Remove(execPath); err != nil {
+			ui.Warning(fmt.Sprintf("Could not remove the launcher binary at %s: %v", execPath, err))
+		}
+	}
 
 	// Phase 5: Clean PATH from shell rc files
 	cleanShellRC()
@@ -133,6 +164,15 @@ func runRemove(cmd *cobra.Command, args []string) error {
 		ui.DimText("Workspace data preserved at " + backupDir)
 	}
 	return nil
+}
+
+// isInsidePath reports whether path is located inside dir (or dir itself).
+func isInsidePath(path, dir string) bool {
+	rel, err := filepath.Rel(dir, path)
+	if err != nil {
+		return false
+	}
+	return rel == "." || (!strings.HasPrefix(rel, ".."+string(filepath.Separator)) && rel != "..")
 }
 
 // cleanShellRC removes PATH additions from shell config files.
