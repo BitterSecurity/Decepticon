@@ -274,7 +274,10 @@ def _attach_or_create(client: Any, name: str, workspace: str, compiled: Compiled
 
 def resolve_local_binding(run_config: Any):
     """Trusted-host resolver: RoE → compiled policy → born-confined sandbox."""
-    from decepticon.backends.openshell_sandbox import OpenShellSandbox
+    from decepticon.backends.openshell_sandbox import (  # noqa: F401 - re-exported in closures
+        OpenShellAdmission,
+        OpenShellSandbox,
+    )
     from decepticon.middleware.roe import _load_rules_for_workspace
 
     try:
@@ -342,6 +345,25 @@ def resolve_local_binding(run_config: Any):
         compiled=compiled,
         approval_hash=approval_hash,
     )
+    # Shared holder: renewal swaps the receipt in place so current_admission
+    # keeps returning the SAME object while the runtime identity is stable
+    # (receipt equality is what distinguishes "unchanged" from "revoked").
+    holder: dict[str, OpenShellAdmission] = {"receipt": receipt}
+
+    def _verified_receipt():
+        try:
+            if _approval_hash(workspace_path) != approval_hash:
+                raise SandboxError("OpenShell approved RoE changed")
+            live = _verified_runtime(client, name, workspace, compiled)
+        except Exception as exc:  # noqa: BLE001 - admission must fail closed
+            raise SandboxError("OpenShell admission source is unavailable") from exc
+        return _receipt(
+            live,
+            binding_id=binding_id,
+            workspace=workspace,
+            compiled=compiled,
+            approval_hash=approval_hash,
+        )
 
     def current_admission():
         # While the sandbox runtime identity is unchanged the SAME receipt
@@ -355,17 +377,33 @@ def resolve_local_binding(run_config: Any):
             live = _verified_runtime(client, name, workspace, compiled)
         except Exception as exc:  # noqa: BLE001 - admission must fail closed
             raise SandboxError("OpenShell admission source is unavailable") from exc
-        if _generation_token(live) == receipt.runtime_generation:
-            return receipt
-        return _receipt(
+        if _generation_token(live) == holder["receipt"].runtime_generation:
+            return holder["receipt"]
+        fresh = _receipt(
             live,
             binding_id=binding_id,
             workspace=workspace,
             compiled=compiled,
             approval_hash=approval_hash,
         )
+        holder["receipt"] = fresh
+        return fresh
 
-    backend = OpenShellSandbox(session, admission=receipt, current_admission=current_admission)
+    def renew_admission():
+        # Same trust chain as current_admission, but always rebuild the
+        # receipt so an expired TTL renews without reprovisioning. The
+        # approved-RoE hash check and the live-runtime verification above
+        # keep this fail-closed against RoE edits and policy swaps.
+        fresh = _verified_receipt()
+        holder["receipt"] = fresh
+        return fresh
+
+    backend = OpenShellSandbox(
+        session,
+        admission=receipt,
+        current_admission=current_admission,
+        renew_admission=renew_admission,
+    )
     _backends[cache_key] = backend
     log.info(
         "openshell: admitted %s (sandbox=%s roe_policy=%s)",
