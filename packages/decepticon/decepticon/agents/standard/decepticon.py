@@ -53,6 +53,7 @@ sub-agent: the launcher routes to its standalone assistant in Plan mode.
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any
 
 from deepagents.middleware.subagents import CompiledSubAgent
@@ -71,10 +72,36 @@ from decepticon_core.plugin_loader import (
 )
 
 _ROLE = "decepticon"
-_RECURSION_LIMIT = 400
-
 
 logger = logging.getLogger(__name__)
+
+
+def _recursion_limit_from_env() -> int:
+    """Operator-tunable agent step budget (``DECEPTICON_RECURSION_LIMIT``).
+
+    Source of truth for both the LangGraph ``recursion_limit`` config and the
+    StepBudgetMiddleware budget. Editing the constant in a source checkout is
+    easy to miss (issue #1145: an operator rebuilt after editing it and saw no
+    effect); the env var flows through the launcher's ``env_file`` instead.
+    """
+    raw = os.environ.get("DECEPTICON_RECURSION_LIMIT", "").strip()
+    if not raw:
+        return 2000
+    try:
+        value = int(raw)
+    except ValueError:
+        logger.warning("invalid DECEPTICON_RECURSION_LIMIT=%r — using the default 2000", raw)
+        return 2000
+    if value < 25:
+        logger.warning(
+            "DECEPTICON_RECURSION_LIMIT=%d below LangGraph's own floor (25) — clamping",
+            value,
+        )
+        return 25
+    return value
+
+
+_RECURSION_LIMIT = _recursion_limit_from_env()
 
 
 def create_decepticon_agent(
