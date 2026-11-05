@@ -5,7 +5,7 @@ model prompt, registers OPPLAN tools from ``decepticon.tools.opplan``, and
 enforces one OPPLAN tool call per model step.
 
 OPPLAN persistence uses the same configured backend as the engagement
-filesystem tools. In production that backend is HTTPSandbox, scoped through
+filesystem tools. In production that backend is HTTPTransportSandbox, scoped through
 EngagementFilesystemBackend, so reads/writes target the sandbox's active
 engagement workspace rather than the LangGraph host filesystem.
 

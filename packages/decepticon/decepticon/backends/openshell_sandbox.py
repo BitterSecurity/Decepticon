@@ -17,8 +17,8 @@ from typing import Any, Protocol
 
 import httpx
 
-from decepticon.backends.http_sandbox import (
-    HTTPSandbox,
+from decepticon.backends.daemon_client import (
+    SandboxDaemonClient,
     SandboxError,
     _mirror_key,
     _normalize_workspace,
@@ -54,7 +54,7 @@ class OpenShellAdmission:
     ready: bool
 
 
-class OpenShellSandbox(HTTPSandbox):
+class OpenShellSandbox(SandboxDaemonClient):
     """Reuse wire serialization/job bookkeeping, replacing the entire transport.
 
     current_admission must consult trusted host state, including revocation,
@@ -73,7 +73,7 @@ class OpenShellSandbox(HTTPSandbox):
         renew_admission: Callable[[], OpenShellAdmission] | None = None,
         timeout: float = 120,
     ) -> None:
-        super().__init__("http://127.0.0.1:9999", timeout=timeout)
+        super().__init__(timeout=timeout)
         self._session = session
         self._admission = admission
         self._current_admission = current_admission

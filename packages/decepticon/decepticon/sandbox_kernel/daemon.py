@@ -43,7 +43,7 @@ validation to ``upload_files`` / ``download_files`` before shipping.
       (``SANDBOX_DAEMON=1``) so the local stack uses the same HTTP
       transport as production. The historical no-daemon path
       (``DockerSandbox`` + ``docker exec`` from the agent host) has
-      been retired; ``HTTPSandbox`` is the only agent-side client now.
+      been retired; ``HTTPTransportSandbox`` is the only agent-side client now.
 
 Class-level state inheritance
 -----------------------------
@@ -61,7 +61,7 @@ Layering
 This module lives in ``sandbox_kernel/``, not ``backends/``, on purpose.
 The sandbox container image ships only ``sandbox_kernel/`` +
 ``sandbox_server/`` — no agent-side transport (``DockerSandbox``,
-``HTTPSandbox``, ``factory``). That keeps the pre-refactor boundary
+``HTTPTransportSandbox``, ``factory``). That keeps the pre-refactor boundary
 intact: agent holds transport, sandbox holds zero transport.
 """
 

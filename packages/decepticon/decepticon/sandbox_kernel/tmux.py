@@ -5,7 +5,7 @@ sandbox daemon (`sandbox_server/`) is the only production caller.
 Historical note: the original implementation lived in
 `decepticon/backends/docker_sandbox.py` and ran from the agent host via
 `exec_prefix=["docker", "exec", <ctn>]`. That `DockerSandbox` transport
-has been retired in favor of `HTTPSandbox` + the in-container daemon,
+has been retired in favor of `HTTPTransportSandbox` + the in-container daemon,
 so the docker-exec branch is no longer reachable from any production
 caller (`exec_prefix` defaults to `[]`).
 
@@ -333,7 +333,7 @@ class TmuxSessionManager:
         # *inside* the sandbox container and drives tmux directly. The old
         # `["docker", "exec", container_name]` default served the
         # retired DockerSandbox transport and is no longer reachable from
-        # any production caller (HTTPSandbox is the agent-side client).
+        # any production caller (HTTPTransportSandbox is the agent-side client).
         self._exec_prefix: list[str] = list(exec_prefix) if exec_prefix is not None else []
 
     # ── tmux helpers ──

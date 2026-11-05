@@ -371,7 +371,7 @@ def test_large_report_refused_before_upload(remote: dict) -> None:
 
 
 def test_http_auth_failure_propagates(remote: dict, monkeypatch: pytest.MonkeyPatch) -> None:
-    from decepticon.backends.http_sandbox import SandboxError
+    from decepticon.backends.http_transport import SandboxError
 
     server = importlib.import_module("decepticon.sandbox_server.app")
     monkeypatch.setattr(server, "_required_token", "fixture-only-token")

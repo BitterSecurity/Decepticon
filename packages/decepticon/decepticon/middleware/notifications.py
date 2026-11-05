@@ -161,7 +161,7 @@ class SandboxNotificationMiddleware(AgentMiddleware):
     def _jobs_view(self):
         """Defensive accessor for the sandbox's job registry.
 
-        ``HTTPSandbox`` exposes ``_jobs`` as an internal attribute (mirrored
+        ``HTTPTransportSandbox`` exposes ``_jobs`` as an internal attribute (mirrored
         from the daemon-side tracker). Going through ``getattr`` lets us
         survive a backend that has not yet attached the registry (e.g. a
         partially constructed sandbox in a test fixture) without crashing

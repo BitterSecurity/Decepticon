@@ -10,7 +10,7 @@ from unittest.mock import Mock
 import pytest
 
 from decepticon.backends import factory
-from decepticon.backends.http_sandbox import SandboxError
+from decepticon.backends.http_transport import SandboxError
 from decepticon.backends.openshell_sandbox import OpenShellAdmission, OpenShellSandbox
 
 

@@ -39,7 +39,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from decepticon.backends.http_sandbox import SandboxError
+from decepticon.backends.http_transport import SandboxError
 from decepticon.middleware.policy_compiler import (
     CompiledRoePolicy,
     compile_openshell_policy,
