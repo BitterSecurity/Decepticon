@@ -1,0 +1,255 @@
+{
+  "observedAtUtc": "2026-11-04T15:06:55.053049+00:00",
+  "sourceMain": "0a8518f00e38766dfaf87536c9e482949aa74752",
+  "decision": "HOLD_PUBLICATION",
+  "releaseAuthorizedByUserIfNeeded": true,
+  "tagPushed": false,
+  "published": false,
+  "saasProductionChanged": false,
+  "lint": {
+    "command": [
+      "make",
+      "ci-lint"
+    ],
+    "exitCode": 0,
+    "seconds": 31.348,
+    "source": "0a8518f00e38766dfaf87536c9e482949aa74752"
+  },
+  "python": {
+    "command": [
+      "uv",
+      "run",
+      "--frozen",
+      "--extra",
+      "mcp",
+      "--extra",
+      "openshell",
+      "pytest",
+      "-n",
+      "4",
+      "--cov",
+      "--cov-report=term",
+      "--cov-fail-under=60",
+      "-q"
+    ],
+    "exitCode": 0,
+    "seconds": 100.915,
+    "source": "0a8518f00e38766dfaf87536c9e482949aa74752",
+    "passed": 6182,
+    "skipped": 7,
+    "warnings": 21,
+    "coveragePercent": 75.14,
+    "pytestSeconds": 93.75,
+    "skips": {
+      "missingPlaywright": 3,
+      "missingTransformers": 1,
+      "windowsOnly": 3
+    }
+  },
+  "defaultAdmission": {
+    "source": "0a8518f00e38766dfaf87536c9e482949aa74752",
+    "test": "actual graph and default factory; synthetic model and target; no gateway or target request",
+    "results": [
+      {
+        "refused": true,
+        "errorType": "RuntimeError",
+        "error": "RoE requires an admitted OpenShell kernel boundary; configure DECEPTICON_SANDBOX_PROVIDER=openshell",
+        "asynchronous": false,
+        "backendType": "HTTPSandbox",
+        "calls": []
+      },
+      {
+        "refused": true,
+        "errorType": "RuntimeError",
+        "error": "RoE requires an admitted OpenShell kernel boundary; configure DECEPTICON_SANDBOX_PROVIDER=openshell",
+        "asynchronous": true,
+        "backendType": "HTTPSandbox",
+        "calls": []
+      }
+    ],
+    "defaultExecutionWorks": false,
+    "policyBypassIntroduced": false
+  },
+  "defaultInstallProfile": {
+    "profile": "uv sync --frozen --no-dev --extra neo4j --extra mcp",
+    "openshellSdkInstalled": false,
+    "actualContainerImageTest": false
+  },
+  "compose": {
+    "composeValid": true,
+    "langgraphImage": "ghcr.io/bittersecurity/decepticon-langgraph:latest",
+    "sandboxUrl": "http://sandbox:9999",
+    "provider": null,
+    "localResolver": null,
+    "environmentFiles": [
+      ".env (operator file not loaded in this config-only probe)"
+    ],
+    "explicitEnvironmentOnly": true,
+    "customOperatorOverridesNotInspected": true
+  },
+  "pypi": {
+    "observedAt": "2026-11-04T15:04:20.605454+00:00",
+    "packages": {
+      "decepticon": {
+        "version": "2.2.2",
+        "source": "https://pypi.org/pypi/decepticon/json"
+      },
+      "decepticon-core": {
+        "version": "2.2.2",
+        "source": "https://pypi.org/pypi/decepticon-core/json"
+      },
+      "decepticon-sdk": {
+        "version": "2.2.2",
+        "source": "https://pypi.org/pypi/decepticon-sdk/json"
+      }
+    }
+  },
+  "packageBuild": {
+    "command": "bash /home/catow/.local/bin/with-build-slot uv build --all-packages --out-dir <private-candidate-directory>",
+    "exitCode": 0,
+    "version": "0.0.0 local sentinel; not a release",
+    "files": {
+      "decepticon-0.0.0-py3-none-any.whl": "86b8a340f737f855ad5f8127b95aa2ad54a744ba7c397d74af6d00dcc93b3b2c",
+      "decepticon-0.0.0.tar.gz": "4f9874f9a18df83ca6aef4f246008b4a64b10caa1217baf8bdca14aa3ef91c9f",
+      "decepticon_core-0.0.0-py3-none-any.whl": "07b1dbbb57427f9164547cc08898997241b48ef59c8521cb597673d98699315b",
+      "decepticon_core-0.0.0.tar.gz": "7c49e458abd6d2307c58919098e5e2ab5200b360ebf251f748da09472f53312c",
+      "decepticon_sdk-0.0.0-py3-none-any.whl": "919c30076b3176d3ddbe5ecb533c887f8dcfdf5940a2c14c45d9a86dc96438bd",
+      "decepticon_sdk-0.0.0.tar.gz": "51b92dc07dad2e3ff6345f6032f7749566f2365feee1f919ff842d93002e6bba"
+    }
+  },
+  "notEstablished": [
+    "actual isolated WSL launcher startup and interactive CLI",
+    "live stock OpenShell kernel confinement and representative scopes",
+    "same-volume upgrade and checkpoint compatibility",
+    "candidate downloaded launcher and versioned images",
+    "all publication signing SBOM platform gates",
+    "SaaS E2B provider adoption"
+  ],
+  "reproductionScriptSha256": "846a221dbaa32fdfa4dde4c974fd418021615d465641d51d28b4d47402ac3d69",
+  "authorizationControls": {
+    "observedAtUtc": "2026-11-04T15:15:03.021863+00:00",
+    "repository": "BitterSecurity/Decepticon",
+    "environment": {
+      "name": "pypi-release",
+      "protection_rules": [
+        {
+          "id": 56164164,
+          "node_id": "GA_kwDOO3L3cs4DWP9E",
+          "type": "branch_policy"
+        }
+      ],
+      "deployment_branch_policy": {
+        "protected_branches": false,
+        "custom_branch_policies": true
+      },
+      "can_admins_bypass": true
+    },
+    "allowedDeploymentRefs": [
+      {
+        "name": "v*",
+        "type": "tag"
+      }
+    ],
+    "rulesets": [
+      {
+        "id": 14869722,
+        "name": "main",
+        "target": "branch",
+        "enforcement": "active",
+        "conditions": {
+          "ref_name": {
+            "exclude": [],
+            "include": [
+              "refs/heads/main"
+            ]
+          }
+        },
+        "rules": [
+          {
+            "type": "deletion"
+          },
+          {
+            "type": "non_fast_forward"
+          },
+          {
+            "type": "pull_request",
+            "parameters": {
+              "required_approving_review_count": 0,
+              "dismiss_stale_reviews_on_push": true,
+              "required_reviewers": [],
+              "require_code_owner_review": false,
+              "dismissal_restriction": {
+                "enabled": false,
+                "allowed_actors": []
+              },
+              "require_last_push_approval": false,
+              "required_review_thread_resolution": false,
+              "require_extra_approval_for_unattributed_changes": true,
+              "allowed_merge_methods": [
+                "merge",
+                "squash",
+                "rebase"
+              ]
+            }
+          },
+          {
+            "type": "required_status_checks",
+            "parameters": {
+              "strict_required_status_checks_policy": false,
+              "do_not_enforce_on_create": false,
+              "required_status_checks": [
+                {
+                  "context": "CI OK (required status)"
+                }
+              ]
+            }
+          }
+        ],
+        "bypass_actors": []
+      },
+      {
+        "id": 17116628,
+        "name": "tag-immutability-v",
+        "target": "tag",
+        "enforcement": "active",
+        "conditions": {
+          "ref_name": {
+            "exclude": [],
+            "include": [
+              "refs/tags/v*"
+            ]
+          }
+        },
+        "rules": [
+          {
+            "type": "deletion"
+          },
+          {
+            "type": "non_fast_forward"
+          },
+          {
+            "type": "update"
+          }
+        ],
+        "bypass_actors": [
+          {
+            "actor_id": null,
+            "actor_type": "OrganizationAdmin",
+            "bypass_mode": "always"
+          }
+        ]
+      }
+    ],
+    "authenticatedActorPermissions": {
+      "admin": true,
+      "maintain": true,
+      "push": true,
+      "triage": true,
+      "pull": true
+    },
+    "writesPerformed": false,
+    "pypiTrustedPublisherSettingsInspected": false,
+    "tagPushAutomaticallyStartsPypiPublish": true,
+    "gitHubUndraftDependsOnPypiPublish": false
+  }
+}
