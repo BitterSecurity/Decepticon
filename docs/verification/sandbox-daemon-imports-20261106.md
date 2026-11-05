@@ -20,7 +20,7 @@ A private wrapper reused an older local Chromium cleanup filename, overwriting t
 
 The first new wire assertion expected an older list-shaped file content; actual pinned Deep Agents returns a string, so the assertion now checks that real contract without changing serialization. Initial type warnings exposed the kernel's missing download contract and Starlette's httpx2/client distinction. Explicit structural result protocols, the preserved legacy default and a test-only ASGI response bridge resolve them without ignores or changing production transport dependencies.
 
-## Remaining actual E2B acceptance
+## Actual E2B result and remaining acceptance
 
 The full derived guest preserves all24 executable hashes, copied framework files and three selected package versions relative to the canonical image; stock0.1.6 runtime, kernel and boundary remain pinned. A new private c1 template is built in the existing provider project. Its first1.34GB rootfs upload fails with `TypeError: fetch failed` after100.056s. Read-only observation finds that build still waiting with zero logs; it did not execute the new workload. One bounded retransmission uses the same private template name and exact rootfs, with a separate build receipt. No production alias changes.
 
