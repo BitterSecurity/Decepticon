@@ -227,7 +227,7 @@ RUN echo "set-option -g history-limit 20000" > /root/.tmux.conf
 # heavier decepticon agent / LLM / langgraph SDKs are deliberately
 # left out so the sandbox image doesn't bloat for the >95% of users
 # who never enable the daemon.
-RUN pip3 install --break-system-packages --no-cache-dir \
+RUN pip3 install --break-system-packages --no-cache-dir --ignore-installed \
     "fastapi>=0.115.0" \
     "uvicorn>=0.30.0" \
     "deepagents>=0.5.0"
@@ -353,6 +353,9 @@ ENV GHIDRA_INSTALL_DIR=/opt/ghidra \
 COPY packages/decepticon/decepticon/__init__.py /opt/decepticon/__init__.py
 COPY packages/decepticon/decepticon/sandbox_kernel /opt/decepticon/sandbox_kernel
 COPY packages/decepticon/decepticon/sandbox_server /opt/decepticon/sandbox_server
+COPY packages/decepticon/decepticon/__init__.py /workspace/.decepticon/decepticon/__init__.py
+COPY packages/decepticon/decepticon/sandbox_server /workspace/.decepticon/decepticon/sandbox_server
+COPY packages/decepticon/decepticon/sandbox_kernel /workspace/.decepticon/decepticon/sandbox_kernel
 # Open-web engine (ADR-0010) + the pure contract layer it uses for the
 # per-hop RoE scope_check. decepticon-core imports only pydantic + stdlib
 # (never langchain/langgraph), so it is safe to ship to the lean sandbox.
@@ -382,6 +385,7 @@ ENV DECEPTICON_SKIP_BOOT=1
 # Root access is required for raw sockets (nmap SYN scans), packet capture,
 # and unrestricted filesystem access during red team operations.
 WORKDIR /workspace
+RUN chmod 1777 /workspace
 
 # Skills are NO LONGER baked into the sandbox image. They live in the
 # langgraph container (see ``containers/langgraph.Dockerfile``), where

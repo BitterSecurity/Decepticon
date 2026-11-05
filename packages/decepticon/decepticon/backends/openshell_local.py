@@ -49,9 +49,9 @@ from decepticon.middleware.policy_compiler import (
 log = logging.getLogger(__name__)
 
 _ADMISSION_TTL_SECONDS = 3600.0
-_READY_TIMEOUT_SECONDS = 120.0
-_DAEMON_START_TIMEOUT_SECONDS = 15.0
-_DAEMON_READY_TIMEOUT_SECONDS = 30.0
+_READY_TIMEOUT_SECONDS = 120
+_DAEMON_START_TIMEOUT_SECONDS = 15
+_DAEMON_READY_TIMEOUT_SECONDS = 30
 _BRIDGE_POLL_SECONDS = 0.5
 
 # The sandbox image is the same artifact the compose daemon deployment
@@ -61,8 +61,9 @@ _BRIDGE_POLL_SECONDS = 0.5
 _DEFAULT_OPENSHELL_IMAGE = "ghcr.io/bittersecurity/decepticon-sandbox:latest"
 
 _DAEMON_START_COMMAND = (
-    "mkdir -p /workspace; "
-    "PYTHONPATH=/opt DECEPTICON_SKIP_BOOT=1 SANDBOX_ROOT_DIR=/workspace "
+    "mkdir -p /workspace/plan; "
+    "[ -f /workspace/plan/roe.json ] || printf %s \"$DECEPTICON_ROE_B64\" | base64 -d > /workspace/plan/roe.json; "
+    "PYTHONPATH=/workspace/.decepticon DECEPTICON_SKIP_BOOT=1 SANDBOX_ROOT_DIR=/workspace "
     "SANDBOX_DAEMON_HOST=127.0.0.1 "
     "/usr/bin/python3 -m decepticon.sandbox_server >/tmp/session-daemon.log 2>&1 </dev/null & "
     "sleep 1; cat /tmp/session-daemon.log"
@@ -70,7 +71,7 @@ _DAEMON_START_COMMAND = (
 
 _bridge_command = [
     "/usr/bin/python3",
-    "/opt/decepticon/sandbox_server/session_client.py",
+    "/workspace/.decepticon/decepticon/sandbox_server/session_client.py",
 ]
 
 _backends: dict[tuple[str, str], Any] = {}
@@ -122,6 +123,9 @@ def _policy_spec(compiled: CompiledRoePolicy):
     policy = _apply_enum_symbols(policy)
     spec = openshell_pb2.SandboxSpec()
     spec.template.image = _openshell_image()
+    roe_b64 = os.environ.get("DECEPTICON_ROE_SNAPSHOT_B64", "")
+    if roe_b64:
+        spec.environment["DECEPTICON_ROE_B64"] = roe_b64
     ParseDict(policy, spec.policy)
     if not spec.policy.version:
         raise RuntimeError("compiled OpenShell policy failed proto conversion")
@@ -135,7 +139,6 @@ def _apply_enum_symbols(node: Any) -> Any:
             "enforce": "NETWORK_ENFORCEMENT_MODE_ENFORCE",
             "audit": "NETWORK_ENFORCEMENT_MODE_AUDIT",
         },
-        "protocol": {"rest": "NETWORK_PROTOCOL_REST", "tcp": "NETWORK_PROTOCOL_TCP"},
         "access": {
             "full": "NETWORK_ACCESS_PRESET_FULL",
             "read-write": "NETWORK_ACCESS_PRESET_READ_WRITE",
@@ -220,7 +223,10 @@ def _attach_or_create(client: Any, name: str, workspace: str, compiled: Compiled
 
 def resolve_local_binding(run_config: Any):
     """Trusted-host resolver: RoE → compiled policy → born-confined sandbox."""
-    from decepticon.backends.openshell_sandbox import OpenShellSandbox
+    from decepticon.backends.openshell_sandbox import (  # noqa: F401
+        OpenShellAdmission,
+        OpenShellSandbox,
+    )
     from decepticon.middleware.roe import _load_rules_for_workspace
 
     try:
@@ -236,9 +242,11 @@ def resolve_local_binding(run_config: Any):
     configurable = configurable if isinstance(configurable, dict) else {}
     workspace_path = configurable.get("workspace_path")
     if not isinstance(workspace_path, str) or not workspace_path:
-        raise RuntimeError(
-            "OpenShell binding requires the run's workspace_path; no engagement context"
-        )
+        # Graph-load fallback: mirror middleware_slots engagement resolution
+        # (env workspace, then /workspace) so the graph can load outside a run.
+        workspace_path = os.environ.get("DECEPTICON_WORKSPACE_PATH", "") or "/workspace"
+        if isinstance(configurable, dict):
+            configurable["workspace_path"] = workspace_path
 
     cache_key: tuple[str, str] | None = None
     cached = None
@@ -263,6 +271,10 @@ def resolve_local_binding(run_config: Any):
         except SandboxError:
             _backends.pop(cache_key, None)  # stale receipt: re-resolve below
 
+    import base64 as _b64
+    os.environ["DECEPTICON_ROE_SNAPSHOT_B64"] = _b64.b64encode(
+        (Path(workspace_path) / "plan" / "roe.json").read_bytes()
+    ).decode()
     name = sandbox_name(workspace_path, compiled.canonical_hash)
     workspace = _openshell_workspace()
     approval_hash = _approval_hash(workspace_path)
@@ -291,14 +303,45 @@ def resolve_local_binding(run_config: Any):
             live = client.get(name, workspace=workspace)
         except Exception as exc:  # noqa: BLE001 - admission must fail closed
             raise SandboxError("OpenShell admission source is unavailable") from exc
-        if _generation_token(live) == receipt.runtime_generation:
-            return receipt
-        return _receipt(
+        if _generation_token(live) == holder["receipt"].runtime_generation:
+            return holder["receipt"]
+        fresh = _receipt(
             live, binding_id=binding_id, workspace=workspace, compiled=compiled,
             approval_hash=approval_hash,
         )
+        holder["receipt"] = fresh
+        return fresh
 
-    backend = OpenShellSandbox(session, admission=receipt, current_admission=current_admission)
+    holder: dict[str, OpenShellAdmission] = {"receipt": receipt}
+
+    def _verified_receipt():
+        try:
+            if _approval_hash(workspace_path) != approval_hash:
+                raise SandboxError("OpenShell approved RoE changed")
+            live = _verified_runtime(client, name, workspace, compiled)
+        except Exception as exc:  # noqa: BLE001 - admission must fail closed
+            raise SandboxError("OpenShell admission source is unavailable") from exc
+        return _receipt(
+            live,
+            binding_id=binding_id,
+            workspace=workspace,
+            compiled=compiled,
+            approval_hash=approval_hash,
+        )
+
+    def renew_admission():
+        # Same trust chain as current_admission, but always rebuild the
+        # receipt so an expired TTL renews without reprovisioning.
+        fresh = _verified_receipt()
+        holder["receipt"] = fresh
+        return fresh
+
+    backend = OpenShellSandbox(
+        session,
+        admission=receipt,
+        current_admission=current_admission,
+        renew_admission=renew_admission,
+    )
     _backends[cache_key] = backend
     log.info(
         "openshell: admitted %s (sandbox=%s roe_policy=%s)",
