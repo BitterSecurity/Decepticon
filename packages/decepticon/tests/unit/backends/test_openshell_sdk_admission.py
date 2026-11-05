@@ -10,6 +10,7 @@ import pytest
 from decepticon.backends import openshell_local
 from decepticon.backends.http_transport import SandboxError
 from decepticon.middleware.policy_compiler import compile_openshell_policy
+from decepticon.sandbox_server.session_client import MANAGED_BRIDGE, MANAGED_START
 from decepticon_core.types.roe import MachineEnforcement, ScopeRule
 
 pytest.importorskip("openshell")
@@ -24,7 +25,15 @@ def compiled_policy():
     return openshell_local._policy_spec(compiled).policy
 
 
-def test_real_sdk_serializes_daemon_and_poll_timeouts_before_fixture_exec():
+@pytest.mark.parametrize(
+    "health_wire",
+    [
+        b'{"status":200,"body":{"status":"ok","pid":42,"start":"fixture"}}',
+        b"not-json",
+        b'{"status":401,"body":{}}',
+    ],
+)
+def test_real_sdk_serializes_daemon_and_poll_timeouts_before_fixture_exec(health_wire):
     import grpc
     from openshell import SandboxClient
     from openshell._proto import openshell_pb2 as pb
@@ -37,6 +46,12 @@ def test_real_sdk_serializes_daemon_and_poll_timeouts_before_fixture_exec():
         def ExecSandbox(self, request, context):
             requests.append(request)
             # Deliberately do not execute the supplied command.
+            if request.command[-1] == MANAGED_START:
+                yield pb.ExecSandboxEvent(
+                    stdout=pb.ExecSandboxStdout(data=b'{"pid":42,"start":"fixture","reused":false}')
+                )
+            if request.command[-1] == MANAGED_BRIDGE:
+                yield pb.ExecSandboxEvent(stdout=pb.ExecSandboxStdout(data=health_wire))
             yield pb.ExecSandboxEvent(exit=pb.ExecSandboxExit(exit_code=0))
 
     with ThreadPoolExecutor(max_workers=1) as executor:
@@ -50,7 +65,15 @@ def test_real_sdk_serializes_daemon_and_poll_timeouts_before_fixture_exec():
             session = SandboxSession(
                 client, SimpleNamespace(name="owned", workspace="fixture", id="fixture-only")
             )
-            openshell_local._wait_for_session_daemon(session)
+            if health_wire.startswith(b'{"status":200'):
+                openshell_local._wait_for_session_daemon(
+                    session, approved_roe=b'{"machine_enforcement":{}}'
+                )
+            else:
+                with pytest.raises(SandboxError, match="readiness"):
+                    openshell_local._wait_for_session_daemon(
+                        session, approved_roe=b'{"machine_enforcement":{}}'
+                    )
         finally:
             client.close()
             server.stop(0).wait()
@@ -58,7 +81,8 @@ def test_real_sdk_serializes_daemon_and_poll_timeouts_before_fixture_exec():
     assert all(request.execution_timeout.seconds == 15 for request in requests)
     assert all(request.no_login_shell for request in requests)
     assert all(request.workspace_scope.workspace == "fixture" for request in requests)
-    assert requests[0].command[0] == "/bin/sh"
+    assert requests[0].command[:2] == ["/usr/bin/python3", "-I"]
+    assert requests[0].command[-1] == MANAGED_START
     assert requests[1].command[0] == "/usr/bin/python3"
 
 

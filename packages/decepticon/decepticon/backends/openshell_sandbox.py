@@ -23,7 +23,11 @@ from decepticon.backends.daemon_client import (
     _mirror_key,
     _normalize_workspace,
 )
-from decepticon.sandbox_server.session_client import MAX_MESSAGE_BYTES, SESSION_PATHS
+from decepticon.sandbox_server.session_client import (
+    MANAGED_BRIDGE,
+    MAX_MESSAGE_BYTES,
+    SESSION_PATHS,
+)
 
 
 class OpenShellSession(Protocol):
@@ -167,7 +171,7 @@ class OpenShellSandbox(SandboxDaemonClient):
             raise SandboxError("OpenShell session request too large")
         # No automatic retry: a failed stream may already have run a mutation.
         result = self._session.exec(
-            ["/usr/bin/python3", "/opt/decepticon/sandbox_server/session_client.py"],
+            ["/usr/bin/python3", "-I", MANAGED_BRIDGE],
             stdin=wire,
             timeout_seconds=math.ceil(timeout) + 10,
             no_login_shell=True,

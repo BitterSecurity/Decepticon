@@ -42,7 +42,11 @@ def test_exec_uses_only_openshell_stdio_bridge(admitted):
     result = backend.execute("printf x; exit 7", timeout=10)
     assert result.output == "ok" and result.exit_code == 7
     args, kwargs = session.exec.call_args
-    assert args[0] == ["/usr/bin/python3", "/opt/decepticon/sandbox_server/session_client.py"]
+    assert args[0] == [
+        "/usr/bin/python3",
+        "-I",
+        "/usr/local/lib/decepticon-sandbox/decepticon/sandbox_server/session_client.py",
+    ]
     assert json.loads(kwargs["stdin"])["body"]["command"] == "printf x; exit 7"
     assert kwargs["no_login_shell"] is True
 

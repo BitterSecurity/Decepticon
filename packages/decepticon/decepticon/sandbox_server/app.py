@@ -267,11 +267,16 @@ app = FastAPI(
 
 
 @app.get("/healthz")
-def healthz() -> dict[str, str]:
+def healthz() -> dict[str, str | int]:
     """Cheap liveness probe. Cloud Run / Kubernetes startup probes
     should target this — it doesn't touch the backend so it stays
     green even during a long-running command."""
-    return {"status": "ok"}
+    result: dict[str, str | int] = {"status": "ok"}
+    if os.environ.get("DECEPTICON_MANAGED_SESSION") == "1":
+        from decepticon.sandbox_server.managed_start import process_identity
+
+        result.update(pid=os.getpid(), start=process_identity(os.getpid()) or "")
+    return result
 
 
 # ── BaseSandbox surface ───────────────────────────────────────────────

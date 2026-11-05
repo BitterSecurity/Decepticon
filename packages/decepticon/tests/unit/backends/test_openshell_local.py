@@ -21,6 +21,7 @@ from decepticon.backends.openshell_local import (
     resolve_local_binding,
 )
 from decepticon.middleware.policy_compiler import compile_openshell_policy
+from decepticon.sandbox_server.session_client import MANAGED_START
 from decepticon_core.types.roe import MachineEnforcement
 
 pytest.importorskip("openshell")
@@ -68,9 +69,15 @@ class _FakeSession:
 
     def exec(self, command, **kwargs):  # noqa: ANN001, ANN003 - fake signature
         self.calls.append(list(command))
-        if command[:1] == ["/bin/sh"]:
-            return _FakeExecResult(exit_code=0, stdout="daemon log", stderr="")
-        return _FakeExecResult(exit_code=0, stdout="", stderr="")
+        if command[-1:] == [MANAGED_START]:
+            return _FakeExecResult(
+                exit_code=0, stdout='{"pid":42,"start":"fixture","reused":false}', stderr=""
+            )
+        return _FakeExecResult(
+            exit_code=0,
+            stdout='{"status":200,"body":{"status":"ok","pid":42,"start":"fixture"}}',
+            stderr="",
+        )
 
 
 class _FakeClient:
@@ -201,10 +208,11 @@ class TestResolveLocalBinding:
         assert client.created_spec is not None
         # Session daemon started through the exec path (never image ENTRYPOINT).
         daemon_start = next(
-            (call for call in backend._session.calls if call[:1] == ["/bin/sh"]), None
+            (call for call in backend._session.calls if call[-1:] == [MANAGED_START]),
+            None,
         )
         assert daemon_start is not None
-        assert "decepticon.sandbox_server" in " ".join(daemon_start)
+        assert daemon_start == ["/usr/bin/python3", "-I", MANAGED_START]
 
     def test_reuses_cached_backend_per_workspace_roe(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch

@@ -31,6 +31,7 @@ the operator's trust decision, never something agent config can set.
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 import logging
@@ -45,6 +46,12 @@ from decepticon.middleware.policy_compiler import (
     compile_openshell_policy,
     sandbox_binding_digest,
     sandbox_name,
+)
+from decepticon.sandbox_server.session_client import (
+    MANAGED_BRIDGE,
+    MANAGED_LOG,
+    MANAGED_START,
+    MAX_MESSAGE_BYTES,
 )
 
 log = logging.getLogger(__name__)
@@ -70,17 +77,10 @@ _PROXY_BASELINE_READ_WRITE = frozenset(("/tmp", "/dev/null"))
 # test does.
 _DEFAULT_OPENSHELL_IMAGE = "ghcr.io/bittersecurity/decepticon-sandbox:latest"
 
-_DAEMON_START_COMMAND = (
-    "mkdir -p /workspace; "
-    "PYTHONPATH=/opt DECEPTICON_SKIP_BOOT=1 SANDBOX_ROOT_DIR=/workspace "
-    "SANDBOX_DAEMON_HOST=127.0.0.1 "
-    "/usr/bin/python3 -m decepticon.sandbox_server >/tmp/session-daemon.log 2>&1 </dev/null & "
-    "sleep 1; cat /tmp/session-daemon.log"
-)
-
 _bridge_command = [
     "/usr/bin/python3",
-    "/opt/decepticon/sandbox_server/session_client.py",
+    "-I",
+    MANAGED_BRIDGE,
 ]
 
 _backends: dict[tuple[str, str, str], Any] = {}
@@ -288,26 +288,59 @@ def _receipt(
     )
 
 
-def _wait_for_session_daemon(session: Any) -> None:
+def _wait_for_session_daemon(session: Any, *, approved_roe: bytes) -> None:
+    wire = json.dumps(
+        {
+            "roe_b64": base64.b64encode(approved_roe).decode(),
+            "roe_sha256": hashlib.sha256(approved_roe).hexdigest(),
+        }
+    ).encode()
+    if len(wire) > MAX_MESSAGE_BYTES:
+        raise SandboxError("Approved scope exceeds the session message limit")
     daemon = session.exec(
-        ["/bin/sh", "-c", _DAEMON_START_COMMAND],
+        ["/usr/bin/python3", "-I", MANAGED_START],
+        stdin=wire,
         timeout_seconds=_DAEMON_START_TIMEOUT_SECONDS,
         no_login_shell=True,
     )
     if daemon.exit_code != 0:
         raise RuntimeError(f"OpenShell session daemon failed to start: {daemon.stderr[:400]}")
+    try:
+        started = json.loads(daemon.stdout)
+        if (
+            not isinstance(started, dict)
+            or isinstance(started.get("pid"), bool)
+            or not isinstance(started.get("pid"), int)
+            or started["pid"] <= 1
+            or not isinstance(started.get("start"), str)
+            or not started["start"]
+            or not isinstance(started.get("reused"), bool)
+        ):
+            raise ValueError("Incomplete startup identity")
+    except (ValueError, TypeError) as exc:
+        raise SandboxError("OpenShell session daemon returned invalid startup identity") from exc
     deadline = time.monotonic() + _DAEMON_READY_TIMEOUT_SECONDS
     while True:
         bridge = session.exec(
             _bridge_command,
-            stdin=json.dumps({"path": "/poll_completion", "body": {"session": "none"}}).encode(),
+            stdin=json.dumps({"path": "/healthz", "body": {}, "timeout": 3}).encode(),
             timeout_seconds=_DAEMON_START_TIMEOUT_SECONDS,
             no_login_shell=True,
         )
         if bridge.exit_code == 0:
-            return
+            try:
+                health = json.loads(bridge.stdout)
+            except (ValueError, TypeError) as exc:
+                raise SandboxError("OpenShell session daemon returned invalid readiness") from exc
+            if health == {
+                "status": 200,
+                "body": {"status": "ok", "pid": started["pid"], "start": started["start"]},
+            }:
+                return
+            if isinstance(health, dict) and health.get("status") in (401, 403):
+                raise SandboxError("OpenShell session daemon refused readiness authentication")
         if time.monotonic() >= deadline:
-            logs = session.exec(["/bin/cat", "/tmp/session-daemon.log"], no_login_shell=True)
+            logs = session.exec(["/bin/cat", MANAGED_LOG], no_login_shell=True)
             raise RuntimeError(
                 "OpenShell session daemon did not become ready: "
                 f"{(logs.stdout + logs.stderr)[:400]}"
@@ -392,6 +425,9 @@ def resolve_local_binding(run_config: Any):
     approval_hash = _approval_hash(workspace_path)
     if approval_hash != initial_approval_hash:
         raise SandboxError("OpenShell RoE changed while preparing admission")
+    approved_roe = (Path(workspace_path) / "plan" / "roe.json").read_bytes()
+    if hashlib.sha256(approved_roe).hexdigest() != approval_hash:
+        raise SandboxError("OpenShell RoE changed before startup payload capture")
     name = sandbox_name(workspace_path, compiled.canonical_hash, approval_hash=approval_hash)
     binding_digest = sandbox_binding_digest(
         workspace_path, compiled.canonical_hash, approval_hash=approval_hash
@@ -399,7 +435,7 @@ def resolve_local_binding(run_config: Any):
     client = _client()
     ref = _attach_or_create(client, name, workspace, compiled, binding_digest=binding_digest)
     session = client.get_session(name, workspace=workspace)
-    _wait_for_session_daemon(session)
+    _wait_for_session_daemon(session, approved_roe=approved_roe)
     binding_id = (
         configurable.get("openshell_binding_id")
         if isinstance(configurable.get("openshell_binding_id"), str)
