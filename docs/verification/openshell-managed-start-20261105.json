@@ -237,5 +237,6 @@
     "Old-framework/old-image mix is unsupported: update matching framework and sandbox image; no /opt or HTTP fallback.",
     "Inherited DS-0002HIGH root default and DS-0013MEDIUM RUNcd findings remain reported; no rule exception/waiver added. Native managed identity/confinement still requires actual proof before release.",
     "VM memory/rollout attribution, final active-run recovery/clock, operator prod connection/catalog/quota and standalone entitlement remain open."
-  ]
+  ],
+  "pullRequest": "https://github.com/BitterSecurity/Decepticon/pull/1162"
 }
