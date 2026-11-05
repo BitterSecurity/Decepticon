@@ -18,7 +18,7 @@ methods over HTTP. The wire surface mirrors the in-process surface 1:1:
 
 The agent's tmux session state lives inside this daemon process (via
 the shared `TmuxSessionManager._initialized` + `DaemonSandbox._jobs`
-class vars). `HTTPSandbox` on the agent side just forwards calls; the
+class vars). `HTTPTransportSandbox` on the agent side just forwards calls; the
 PS1 marker / size watchdog / auto-background semantics all happen here
 where they always did, just no longer behind a docker socket.
 
@@ -107,7 +107,7 @@ class DownloadFilesResponse(BaseModel):
 # ── tmux / background surface — wraps DockerSandbox.execute_tmux,
 # start_background, poll_completion, etc. These are the methods the
 # bash tool consumes, so once they're up the LLM-driven bash chain
-# transparently works through HTTPSandbox. ───────────────────────────
+# transparently works through HTTPTransportSandbox. ───────────────────────────
 
 
 class ExecuteTmuxRequest(BaseModel):
@@ -258,7 +258,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(
     title="Decepticon sandbox daemon",
-    summary="HTTP transport for the DaemonSandbox surface. Pairs with HTTPSandbox.",
+    summary="HTTP transport for the DaemonSandbox surface. Pairs with HTTPTransportSandbox.",
     lifespan=lifespan,
 )
 

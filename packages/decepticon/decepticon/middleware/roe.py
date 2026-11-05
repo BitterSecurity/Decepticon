@@ -309,18 +309,20 @@ class RoEGuardrailMiddleware(AgentMiddleware):
         self._pace_lock = threading.Lock()
         self._last_gated_monotonic = 0.0
         self._egress_lock = threading.Lock()
-        self._egress_provisioned: set[str] = set()
+        self._egress_provisioned: set[tuple[str, str, str]] = set()
 
     @override
     def before_agent(self, state, runtime) -> None:
-        self._maybe_provision_egress(state)
+        self._maybe_provision_egress(state, getattr(runtime, "config", None))
         return None
 
     @override
     async def abefore_agent(self, state, runtime) -> None:
         # Provisioning does a one-time synchronous HTTP round-trip to the
         # sandbox daemon; offload it so the event loop isn't blocked.
-        await asyncio.to_thread(self._maybe_provision_egress, state)
+        await asyncio.to_thread(
+            self._maybe_provision_egress, state, getattr(runtime, "config", None)
+        )
         return None
 
     @override
@@ -438,15 +440,15 @@ class RoEGuardrailMiddleware(AgentMiddleware):
         except Exception as exc:  # noqa: BLE001 - audit must never break tool execution
             log.error("roe: audit sink write failed: %s", exc)
 
-    def _maybe_provision_egress(self, state) -> None:
-        """Verify the OpenShell kernel boundary once per workspace.
+    def _maybe_provision_egress(self, state, config=None) -> None:
+        """Verify the OpenShell kernel boundary on every agent admission.
 
         OpenShell is the only network-boundary authority: the trusted
         resolver attaches the compiled RoE policy at sandbox creation, so
         provisioning here verifies that the admitted policy hash still
         matches the workspace's RoE. A backend without OpenShell authority
         cannot provide a kernel network boundary at all — provisioning
-        fails loudly and the workspace is unmarked so a later turn retries
+        raises before model/tool execution and leaves a later turn free to retry
         (there is no nftables fallback to quietly run on).
         """
         get = state.get if hasattr(state, "get") else (lambda _k, _d=None: None)
@@ -457,30 +459,24 @@ class RoEGuardrailMiddleware(AgentMiddleware):
         rules = _load_rules_for_workspace(workspace)
         # Every materialized RoE is enforced; there is no audit/warn bypass.
 
+        # Hold admission until verification completes. A concurrent caller may
+        # never treat an in-progress check as a successful cached admission.
         with self._egress_lock:
-            if workspace in self._egress_provisioned:
-                return
-            self._egress_provisioned.add(workspace)
-        try:
             from decepticon.backends.factory import build_sandbox_backend
 
-            backend = build_sandbox_backend()
+            backend = build_sandbox_backend(config)
             if getattr(backend, "egress_authority", "") != "openshell":
                 raise RuntimeError(
-                    f"backend {backend.id if hasattr(backend, 'id') else type(backend).__name__} "
-                    "has no OpenShell kernel boundary; OpenShell is the only "
-                    "network-boundary authority since the nftables path was retired — "
-                    "run engagements with DECEPTICON_SANDBOX_PROVIDER=openshell"
+                    "RoE requires an admitted OpenShell kernel boundary; "
+                    "configure DECEPTICON_SANDBOX_PROVIDER=openshell"
                 )
-            self._verify_openshell_boundary(state, workspace, rules, backend)
-        except Exception as exc:  # noqa: BLE001 - provisioning must never break the run
-            log.error("roe: egress provisioning failed for %s: %s", workspace, exc)
-            # Un-mark so a later agent turn can retry rather than silently
-            # leaving the engagement with no network boundary.
-            with self._egress_lock:
-                self._egress_provisioned.discard(workspace)
+            compiled = self._verify_openshell_boundary(state, workspace, rules, backend)
+            key = (workspace, compiled.canonical_hash, backend.id)
+            if key not in self._egress_provisioned:
+                self._record_provision(state, compiled)
+                self._egress_provisioned.add(key)
 
-    def _verify_openshell_boundary(self, state, workspace, rules, backend) -> None:
+    def _verify_openshell_boundary(self, state, workspace, rules, backend):
         """Confirm the admitted OpenShell policy is compiled from this RoE.
 
         The kernel policy is the authoritative boundary, so it must be
@@ -495,9 +491,9 @@ class RoEGuardrailMiddleware(AgentMiddleware):
         compiled = compile_openshell_policy(rules)
         if compiled.errors:
             raise RuntimeError(
-                "RoE cannot be compiled into an OpenShell policy: "
-                + "; ".join(compiled.errors)
+                "RoE cannot be compiled into an OpenShell policy: " + "; ".join(compiled.errors)
             )
+        backend.check_admission()
         admission = backend.current_admission()
         if admission.effective_policy_hash != compiled.canonical_hash:
             raise RuntimeError(
@@ -506,12 +502,13 @@ class RoEGuardrailMiddleware(AgentMiddleware):
                 f"{compiled.canonical_hash[:12]}); refusing to admit agents "
                 "on an unverifiable boundary"
             )
-        self._record_provision(state, compiled)
         log.info(
             "roe: openshell kernel boundary verified for %s: policy=%s",
             workspace,
             compiled.canonical_hash[:12],
         )
+
+        return compiled
 
     def _record_provision(self, state, compiled) -> None:
         if self._sink is None:

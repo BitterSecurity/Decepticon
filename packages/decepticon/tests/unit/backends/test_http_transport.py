@@ -7,7 +7,7 @@ from typing import Any
 import httpx
 import pytest
 
-from decepticon.backends.http_sandbox import HTTPSandbox, SandboxError, _retry_on_connection_error
+from decepticon.backends.http_transport import HTTPSandbox, SandboxError, _retry_on_connection_error
 from decepticon.sandbox_kernel import BackgroundJob
 
 
@@ -82,7 +82,7 @@ def test_close_when_no_client_initialized_does_not_raise() -> None:
 def test_retry_succeeds_first_try_no_sleep(monkeypatch: pytest.MonkeyPatch) -> None:
     sleep_calls: list[float] = []
     monkeypatch.setattr(
-        "decepticon.backends.http_sandbox.time.sleep", lambda d: sleep_calls.append(d)
+        "decepticon.backends.http_transport.time.sleep", lambda d: sleep_calls.append(d)
     )
     result = _retry_on_connection_error(lambda: "ok")
     assert result == "ok"
@@ -92,7 +92,7 @@ def test_retry_succeeds_first_try_no_sleep(monkeypatch: pytest.MonkeyPatch) -> N
 def test_retry_recovers_after_two_transient_connect_errors(monkeypatch: pytest.MonkeyPatch) -> None:
     sleep_calls: list[float] = []
     monkeypatch.setattr(
-        "decepticon.backends.http_sandbox.time.sleep", lambda d: sleep_calls.append(d)
+        "decepticon.backends.http_transport.time.sleep", lambda d: sleep_calls.append(d)
     )
     sentinel = object()
     attempts: list[int] = []
@@ -109,7 +109,7 @@ def test_retry_recovers_after_two_transient_connect_errors(monkeypatch: pytest.M
 
 
 def test_retry_exhausts_reraises_connect_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr("decepticon.backends.http_sandbox.time.sleep", lambda d: None)
+    monkeypatch.setattr("decepticon.backends.http_transport.time.sleep", lambda d: None)
 
     def always_fail() -> None:
         raise httpx.ConnectTimeout("timeout")
@@ -124,7 +124,7 @@ def test_retry_rides_out_sandbox_boot_window(monkeypatch: pytest.MonkeyPatch) ->
     3-attempt cap — so the agent's first tool call survives the boot."""
     sleep_calls: list[float] = []
     monkeypatch.setattr(
-        "decepticon.backends.http_sandbox.time.sleep", lambda d: sleep_calls.append(d)
+        "decepticon.backends.http_transport.time.sleep", lambda d: sleep_calls.append(d)
     )
     sentinel = object()
     attempts: list[int] = []
@@ -148,7 +148,7 @@ def test_retry_budget_is_bounded(monkeypatch: pytest.MonkeyPatch) -> None:
     the cumulative (intended) backoff stays within max_total_delay."""
     sleep_calls: list[float] = []
     monkeypatch.setattr(
-        "decepticon.backends.http_sandbox.time.sleep", lambda d: sleep_calls.append(d)
+        "decepticon.backends.http_transport.time.sleep", lambda d: sleep_calls.append(d)
     )
 
     def always_fail() -> None:

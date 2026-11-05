@@ -10,7 +10,7 @@ from unittest.mock import Mock
 import pytest
 
 from decepticon.backends import factory
-from decepticon.backends.http_sandbox import SandboxError
+from decepticon.backends.http_transport import SandboxError
 from decepticon.backends.openshell_sandbox import OpenShellAdmission, OpenShellSandbox
 
 
@@ -71,6 +71,96 @@ def test_expired_initial_admission_is_rejected(admitted):
     expired = replace(current[0], expires_at=0)
     with pytest.raises(SandboxError, match="expired"):
         OpenShellSandbox(session, admission=expired, current_admission=lambda: expired)
+    session.exec.assert_not_called()
+
+
+def test_expired_admission_renews_through_trusted_host():
+    # A long-lived daemon holds the graph-load backend across the host's
+    # admission window: the runtime identity is unchanged but the receipt
+    # TTL passed. With a renew callable wired, the expiry re-reads the
+    # receipt through the trusted host instead of discarding the run.
+    receipt = OpenShellAdmission(
+        binding_id="host-owned-binding",
+        sandbox_id="sandbox-a",
+        workspace="engagement-a",
+        runtime_generation="generation-a",
+        approval_hash="approved-roe-sha",
+        effective_policy_hash="gateway-canonical-policy-sha",
+        expires_at=time.time() - 10,
+        ready=True,
+    )
+    renewed = replace(receipt, expires_at=time.time() + 600)
+    current = [receipt]
+    renew_calls: list[int] = []
+
+    def renew():
+        renew_calls.append(1)
+        current[0] = renewed
+        return renewed
+
+    session = Mock(id="sandbox-a")
+    session.exec.return_value = SimpleNamespace(
+        exit_code=0,
+        stdout=json.dumps({"status": 200, "body": {"output": "ok", "exit_code": 0}}),
+        stderr="",
+    )
+    backend = OpenShellSandbox(
+        session,
+        admission=receipt,
+        current_admission=lambda: current[0],
+        renew_admission=renew,
+    )
+    assert current[0] is renewed
+    backend.execute("echo hi", timeout=5)
+    assert len(renew_calls) == 1
+    session.exec.assert_called_once()
+
+
+def test_expired_admission_without_renew_still_fails_closed():
+    receipt = OpenShellAdmission(
+        binding_id="host-owned-binding",
+        sandbox_id="sandbox-a",
+        workspace="engagement-a",
+        runtime_generation="generation-a",
+        approval_hash="approved-roe-sha",
+        effective_policy_hash="gateway-canonical-policy-sha",
+        expires_at=time.time() - 10,
+        ready=True,
+    )
+    session = Mock(id="sandbox-a")
+    with pytest.raises(SandboxError, match="expired"):
+        OpenShellSandbox(
+            session,
+            admission=receipt,
+            current_admission=lambda: receipt,
+            renew_admission=None,
+        )
+    session.exec.assert_not_called()
+
+
+def test_renewal_failure_fails_closed():
+    receipt = OpenShellAdmission(
+        binding_id="host-owned-binding",
+        sandbox_id="sandbox-a",
+        workspace="engagement-a",
+        runtime_generation="generation-a",
+        approval_hash="approved-roe-sha",
+        effective_policy_hash="gateway-canonical-policy-sha",
+        expires_at=time.time() - 10,
+        ready=True,
+    )
+
+    def renew():
+        raise SandboxError("OpenShell admission source is unavailable")
+
+    session = Mock(id="sandbox-a")
+    with pytest.raises(SandboxError, match="unavailable"):
+        OpenShellSandbox(
+            session,
+            admission=receipt,
+            current_admission=lambda: receipt,
+            renew_admission=renew,
+        )
     session.exec.assert_not_called()
 
 
@@ -150,6 +240,7 @@ def test_jobs_are_isolated_between_bindings(admitted):
 
 
 def test_openshell_selection_cannot_fall_back_to_http(monkeypatch):
+    monkeypatch.setenv("DECEPTICON_OPENSHELL_LOCAL", "0")  # no local resolver wired
     monkeypatch.setattr(factory, "_openshell_resolver", None)
     with pytest.raises(RuntimeError, match="trusted host"):
         factory.build_sandbox_backend(

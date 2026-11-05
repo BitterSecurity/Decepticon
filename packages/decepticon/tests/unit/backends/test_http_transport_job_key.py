@@ -1,7 +1,7 @@
 import time as _t
 from unittest.mock import MagicMock, patch
 
-from decepticon.backends.http_sandbox import HTTPSandbox, _mirror_key
+from decepticon.backends.http_transport import HTTPSandbox, _mirror_key
 
 
 def _make_sandbox():

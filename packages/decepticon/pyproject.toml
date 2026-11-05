@@ -118,7 +118,7 @@ blue = ["bs-autobot>=0.1.1"]
 # Keep the SDK at or below the target gateway's minor version: a newer SDK
 # against an older gateway is unqualified skew (0.1.6 SDK → 0.1.5 gateway
 # shares protocol v1, but is not a tested pairing).
-openshell = ["openshell>=0.1.5,<0.2"]
+openshell = ["openshell>=0.1.6,<0.2"]
 all = ["decepticon[neo4j,telemetry,mcp,blue,openshell]"]
 
 [project.scripts]

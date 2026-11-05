@@ -3,6 +3,12 @@
 Date: 2026-11-03 · Status: draft for review · Baseline: `main` @ `cd252a5` (post PR #1139)
 Verification artifact of: prototype compiler + gateway grammar probes (see §5, §6)
 
+## Current integration contract — 2026-11-04
+
+This section supersedes the historical phase descriptions below. OpenShell is the only enforcing network authority; HTTP/nftables fallback is retired. Admission must read the actual effective `SandboxPolicy` and matching Loaded/active revision through the authenticated SDK0.1.6 transport, compare complete protobuf contents with the compiled RoE, and bracket reads with a stable READY runtime identity. A compiler hash alone is not observation. Validate new, existing and cached bindings before execution; changed approved RoE revokes the old binding. Every agent admission revalidates rather than treating an earlier successful audit as perpetual authority. Failed/unsupported boundary verification propagates and prevents model/tool execution; concurrent callers cannot pass an unfinished verification. Explicit `runtime.config` reaches the factory, including sub-agents.
+
+The minimum optional SDK is0.1.6, qualified by owned loopback authenticated RPC and actual sync/async agent execution. Host+CIDR kernel behavior still depends on the documented upstream class-separation patch. Historical author clean-Linux kernel claims below are separately attributed, and the local WSL mirrored-networking limitation remains. See [independent evidence and exact limitations](../verification/openshell-policy-admission-20261104.md). Merging source does not publish a wheel, upgrade SaaS, adopt a QA image or deploy production.
+
 ## 1. Goal
 
 Make OpenShell the **single network enforcement authority** for machine RoE in OSS

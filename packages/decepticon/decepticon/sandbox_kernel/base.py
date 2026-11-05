@@ -156,7 +156,7 @@ class SandboxBase(BaseSandbox):
         # *inside* the sandbox container and drives tmux/exec directly.
         # The old `["docker", "exec", container_name]` default served the
         # retired DockerSandbox transport and is no longer reachable from
-        # any production caller (HTTPSandbox is the agent-side client).
+        # any production caller (HTTPTransportSandbox is the agent-side client).
         self._exec_prefix: list[str] = list(exec_prefix) if exec_prefix is not None else []
 
     @staticmethod

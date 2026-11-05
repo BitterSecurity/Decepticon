@@ -39,7 +39,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from decepticon.backends.http_sandbox import SandboxError
+from decepticon.backends.http_transport import SandboxError
 from decepticon.middleware.policy_compiler import (
     CompiledRoePolicy,
     compile_openshell_policy,
@@ -49,9 +49,9 @@ from decepticon.middleware.policy_compiler import (
 log = logging.getLogger(__name__)
 
 _ADMISSION_TTL_SECONDS = 3600.0
-_READY_TIMEOUT_SECONDS = 120
-_DAEMON_START_TIMEOUT_SECONDS = 15
-_DAEMON_READY_TIMEOUT_SECONDS = 30
+_READY_TIMEOUT_SECONDS = 120.0
+_DAEMON_START_TIMEOUT_SECONDS = 15.0
+_DAEMON_READY_TIMEOUT_SECONDS = 30.0
 _BRIDGE_POLL_SECONDS = 0.5
 
 # The sandbox image is the same artifact the compose daemon deployment
@@ -61,9 +61,8 @@ _BRIDGE_POLL_SECONDS = 0.5
 _DEFAULT_OPENSHELL_IMAGE = "ghcr.io/bittersecurity/decepticon-sandbox:latest"
 
 _DAEMON_START_COMMAND = (
-    "mkdir -p /workspace/plan; "
-    "[ -f /workspace/plan/roe.json ] || printf %s \"$DECEPTICON_ROE_B64\" | base64 -d > /workspace/plan/roe.json; "
-    "PYTHONPATH=/workspace/.decepticon DECEPTICON_SKIP_BOOT=1 SANDBOX_ROOT_DIR=/workspace "
+    "mkdir -p /workspace; "
+    "PYTHONPATH=/opt DECEPTICON_SKIP_BOOT=1 SANDBOX_ROOT_DIR=/workspace "
     "SANDBOX_DAEMON_HOST=127.0.0.1 "
     "/usr/bin/python3 -m decepticon.sandbox_server >/tmp/session-daemon.log 2>&1 </dev/null & "
     "sleep 1; cat /tmp/session-daemon.log"
@@ -71,17 +70,27 @@ _DAEMON_START_COMMAND = (
 
 _bridge_command = [
     "/usr/bin/python3",
-    "/workspace/.decepticon/decepticon/sandbox_server/session_client.py",
+    "/opt/decepticon/sandbox_server/session_client.py",
 ]
 
 _backends: dict[tuple[str, str], Any] = {}
 
 
 def local_resolver_enabled() -> bool:
-    return os.environ.get("DECEPTICON_OPENSHELL_LOCAL", "").strip().lower() in {
-        "1",
-        "true",
-        "yes",
+    """Trusted local admission resolver — ON by default, explicit opt-out only.
+
+    The default provider is openshell (#1144: OpenShell is the only
+    network-boundary authority), so the trusted host resolver must come up
+    with the daemon. The env var now only DISABLES it (for exotic
+    deployments that wire their own resolver through
+    ``configure_openshell_resolver``); agent config still can never install
+    one — the factory guard is unchanged.
+    """
+    return os.environ.get("DECEPTICON_OPENSHELL_LOCAL", "").strip().lower() not in {
+        "0",
+        "false",
+        "no",
+        "off",
     }
 
 
@@ -123,9 +132,6 @@ def _policy_spec(compiled: CompiledRoePolicy):
     policy = _apply_enum_symbols(policy)
     spec = openshell_pb2.SandboxSpec()
     spec.template.image = _openshell_image()
-    roe_b64 = os.environ.get("DECEPTICON_ROE_SNAPSHOT_B64", "")
-    if roe_b64:
-        spec.environment["DECEPTICON_ROE_B64"] = roe_b64
     ParseDict(policy, spec.policy)
     if not spec.policy.version:
         raise RuntimeError("compiled OpenShell policy failed proto conversion")
@@ -139,6 +145,7 @@ def _apply_enum_symbols(node: Any) -> Any:
             "enforce": "NETWORK_ENFORCEMENT_MODE_ENFORCE",
             "audit": "NETWORK_ENFORCEMENT_MODE_AUDIT",
         },
+        "protocol": {"rest": "NETWORK_PROTOCOL_REST", "tcp": "NETWORK_PROTOCOL_TCP"},
         "access": {
             "full": "NETWORK_ACCESS_PRESET_FULL",
             "read-write": "NETWORK_ACCESS_PRESET_READ_WRITE",
@@ -166,7 +173,60 @@ def _generation_token(ref: Any) -> str:
     )
 
 
-def _receipt(ref: Any, *, binding_id: str, workspace: str, compiled: CompiledRoePolicy, approval_hash: str):
+def _verified_runtime(client: Any, name: str, workspace: str, compiled: CompiledRoePolicy):
+    """Read effective policy and loaded ACK, bracketing them with runtime identity.
+
+    Expected compiler output is never an observation. Both new and reused
+    sandboxes must prove the complete effective protobuf equals that output.
+    The SDK has no public policy-read wrapper; use its authenticated stub so
+    TLS/bearer configuration and bounded RPC deadlines are retained.
+    """
+    from openshell._proto import datamodel_pb2, openshell_pb2, sandbox_pb2
+
+    before = client.get(name, workspace=workspace)
+    if before.status.phase != openshell_pb2.SANDBOX_PHASE_READY:
+        raise SandboxError("OpenShell sandbox is not ready")
+    before_generation = _generation_token(before)
+    before_id = before.id
+    before_version = before.current_policy_version
+    selector = datamodel_pb2.WorkspaceSelector(workspace=workspace)
+    config = client._stub.GetSandboxConfig(
+        sandbox_pb2.GetSandboxConfigRequest(workspace_scope=selector, name=name),
+        timeout=30.0,
+    )
+    if config.version < 1 or config.policy != _policy_spec(compiled).policy:
+        raise SandboxError("OpenShell effective policy does not match compiled RoE")
+    status = client._stub.GetSandboxPolicyStatus(
+        openshell_pb2.GetSandboxPolicyStatusRequest(
+            workspace_scope=selector,
+            sandbox=name,
+            version=config.version,
+        ),
+        timeout=30.0,
+    )
+    revision = status.revision
+    if not (
+        revision.status == openshell_pb2.POLICY_STATUS_LOADED
+        and revision.version == config.version == status.active_version
+        and config.policy_hash
+        and revision.policy_hash == config.policy_hash
+        and revision.policy == config.policy
+    ):
+        raise SandboxError("OpenShell effective policy has no matching loaded acknowledgement")
+    after = client.get(name, workspace=workspace)
+    if not (
+        after.id == before_id
+        and after.status.phase == openshell_pb2.SANDBOX_PHASE_READY
+        and after.current_policy_version == config.version == before_version
+        and _generation_token(after) == before_generation
+    ):
+        raise SandboxError("OpenShell runtime changed during policy verification")
+    return after
+
+
+def _receipt(
+    ref: Any, *, binding_id: str, workspace: str, compiled: CompiledRoePolicy, approval_hash: str
+):
     from decepticon.backends.openshell_sandbox import OpenShellAdmission
 
     return OpenShellAdmission(
@@ -210,7 +270,8 @@ def _wait_for_session_daemon(session: Any) -> None:
 
 def _attach_or_create(client: Any, name: str, workspace: str, compiled: CompiledRoePolicy) -> Any:
     try:
-        return client.get(name, workspace=workspace)
+        client.get(name, workspace=workspace)
+        return _verified_runtime(client, name, workspace, compiled)
     except Exception as exc:  # noqa: BLE001 - get() raises gateway errors for absent sandboxes
         if "not found" not in str(exc).lower() and "NOT_FOUND" not in str(exc):
             raise
@@ -218,12 +279,12 @@ def _attach_or_create(client: Any, name: str, workspace: str, compiled: Compiled
     ready = client.wait_ready(name, workspace=workspace, timeout_seconds=_READY_TIMEOUT_SECONDS)
     if ready.current_policy_version < 1:
         raise RuntimeError("OpenShell sandbox became ready without a loaded policy")
-    return ready
+    return _verified_runtime(client, name, workspace, compiled)
 
 
 def resolve_local_binding(run_config: Any):
     """Trusted-host resolver: RoE → compiled policy → born-confined sandbox."""
-    from decepticon.backends.openshell_sandbox import (  # noqa: F401
+    from decepticon.backends.openshell_sandbox import (  # noqa: F401 - re-exported in closures
         OpenShellAdmission,
         OpenShellSandbox,
     )
@@ -242,14 +303,15 @@ def resolve_local_binding(run_config: Any):
     configurable = configurable if isinstance(configurable, dict) else {}
     workspace_path = configurable.get("workspace_path")
     if not isinstance(workspace_path, str) or not workspace_path:
-        # Graph-load fallback: mirror middleware_slots engagement resolution
-        # (env workspace, then /workspace) so the graph can load outside a run.
-        workspace_path = os.environ.get("DECEPTICON_WORKSPACE_PATH", "") or "/workspace"
-        if isinstance(configurable, dict):
-            configurable["workspace_path"] = workspace_path
+        raise RuntimeError(
+            "OpenShell binding requires the run's workspace_path; no engagement context"
+        )
 
     cache_key: tuple[str, str] | None = None
     cached = None
+    if not (Path(workspace_path) / "plan" / "roe.json").is_file():
+        raise RuntimeError("OpenShell binding requires a materialized plan/roe.json")
+    initial_approval_hash = _approval_hash(workspace_path)
     rules = _load_rules_for_workspace(workspace_path)
     if not rules.configured:
         raise RuntimeError(
@@ -271,13 +333,11 @@ def resolve_local_binding(run_config: Any):
         except SandboxError:
             _backends.pop(cache_key, None)  # stale receipt: re-resolve below
 
-    import base64 as _b64
-    os.environ["DECEPTICON_ROE_SNAPSHOT_B64"] = _b64.b64encode(
-        (Path(workspace_path) / "plan" / "roe.json").read_bytes()
-    ).decode()
     name = sandbox_name(workspace_path, compiled.canonical_hash)
     workspace = _openshell_workspace()
     approval_hash = _approval_hash(workspace_path)
+    if approval_hash != initial_approval_hash:
+        raise SandboxError("OpenShell RoE changed while preparing admission")
     client = _client()
     ref = _attach_or_create(client, name, workspace, compiled)
     session = client.get_session(name, workspace=workspace)
@@ -289,29 +349,15 @@ def resolve_local_binding(run_config: Any):
         else f"local-{name}"
     )
     receipt = _receipt(
-        ref, binding_id=binding_id, workspace=workspace, compiled=compiled,
+        ref,
+        binding_id=binding_id,
+        workspace=workspace,
+        compiled=compiled,
         approval_hash=approval_hash,
     )
-
-    def current_admission():
-        # While the sandbox runtime identity is unchanged the SAME receipt
-        # object must come back: the sandbox compares receipts for equality,
-        # and a recomputed expires_at would make every call look revoked.
-        # A runtime/policy generation change returns the live receipt so the
-        # mismatch fails closed on the next execution.
-        try:
-            live = client.get(name, workspace=workspace)
-        except Exception as exc:  # noqa: BLE001 - admission must fail closed
-            raise SandboxError("OpenShell admission source is unavailable") from exc
-        if _generation_token(live) == holder["receipt"].runtime_generation:
-            return holder["receipt"]
-        fresh = _receipt(
-            live, binding_id=binding_id, workspace=workspace, compiled=compiled,
-            approval_hash=approval_hash,
-        )
-        holder["receipt"] = fresh
-        return fresh
-
+    # Shared holder: renewal swaps the receipt in place so current_admission
+    # keeps returning the SAME object while the runtime identity is stable
+    # (receipt equality is what distinguishes "unchanged" from "revoked").
     holder: dict[str, OpenShellAdmission] = {"receipt": receipt}
 
     def _verified_receipt():
@@ -329,9 +375,35 @@ def resolve_local_binding(run_config: Any):
             approval_hash=approval_hash,
         )
 
+    def current_admission():
+        # While the sandbox runtime identity is unchanged the SAME receipt
+        # object must come back: the sandbox compares receipts for equality,
+        # and a recomputed expires_at would make every call look revoked.
+        # A runtime/policy generation change returns the live receipt so the
+        # mismatch fails closed on the next execution.
+        try:
+            if _approval_hash(workspace_path) != approval_hash:
+                raise SandboxError("OpenShell approved RoE changed")
+            live = _verified_runtime(client, name, workspace, compiled)
+        except Exception as exc:  # noqa: BLE001 - admission must fail closed
+            raise SandboxError("OpenShell admission source is unavailable") from exc
+        if _generation_token(live) == holder["receipt"].runtime_generation:
+            return holder["receipt"]
+        fresh = _receipt(
+            live,
+            binding_id=binding_id,
+            workspace=workspace,
+            compiled=compiled,
+            approval_hash=approval_hash,
+        )
+        holder["receipt"] = fresh
+        return fresh
+
     def renew_admission():
         # Same trust chain as current_admission, but always rebuild the
-        # receipt so an expired TTL renews without reprovisioning.
+        # receipt so an expired TTL renews without reprovisioning. The
+        # approved-RoE hash check and the live-runtime verification above
+        # keep this fail-closed against RoE edits and policy swaps.
         fresh = _verified_receipt()
         holder["receipt"] = fresh
         return fresh

@@ -1,0 +1,39 @@
+{
+  "base_main": "79978a642b7a9c9cbd351150774b869fbb724416",
+  "parent_head": "4a404063f228633086b2ab93e0a8d4c78559aa27",
+  "actual_failed_python_job": "https://github.com/BitterSecurity/Decepticon/actions/runs/41671886792/job/126042279084",
+  "make_ci_lint_exit": 0,
+  "basedpyright": {
+    "filesAnalyzed": 851,
+    "errorCount": 0,
+    "warningCount": 985,
+    "informationCount": 0,
+    "timeInSec": 29.834
+  },
+  "installed_tests": {
+    "passed": 62,
+    "command": [
+      "/home/catow/GIT/decepticon-pr-review-20261101/oss-openshell-installed-venv/bin/python",
+      "-m",
+      "pytest",
+      "-q",
+      "-o",
+      "asyncio_mode=auto",
+      "/home/catow/GIT/decepticon-pr-review-20261101/oss-openshell-installed-tests/test_openshell_local.py",
+      "/home/catow/GIT/decepticon-pr-review-20261101/oss-openshell-installed-tests/test_policy_compiler.py",
+      "--junitxml=/home/catow/GIT/decepticon-pr-review-20261101/oss-openshell-types-final-installed-tests.xml"
+    ],
+    "exit_code": 0,
+    "seconds": 7.156,
+    "runtime_source": "c61e1321",
+    "no_application_source_overlay": true
+  },
+  "unchanged_qualified_runtime_objects": {
+    "packages/decepticon/decepticon": "b5caa5dfce355de1613bb459c09a4e82c4e188e4",
+    "packages/decepticon-core/decepticon_core": "3cb8e09d1e854c20a79bb819b9a63fc3f00ffa71",
+    "packages/decepticon-sdk/decepticon_sdk": "a96d96e0d12d4fcbe894f492ac838d3cd6e51b80"
+  },
+  "diagnostics_suppressed": false,
+  "version_or_lock_change": false,
+  "no_release_qa_prod_change": true
+}

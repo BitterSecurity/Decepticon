@@ -13,7 +13,7 @@ from unittest.mock import MagicMock
 
 # ── Stub heavy transitive imports ────────────────────────────────────────
 # ``decepticon.tools.research.bounty`` transitively pulls in
-# ``decepticon.backends.http_sandbox`` which requires ``deepagents``.
+# ``decepticon.backends.http_transport`` which requires ``deepagents``.
 # We stub just enough of the import chain so the pure functions load.
 
 

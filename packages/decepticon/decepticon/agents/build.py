@@ -373,7 +373,7 @@ def build_middleware(
         llm: bound language model for summarization + per-slot use.
         fallback_models: list passed to ``ModelFallbackMiddleware``;
             empty / None skips the MODEL_FALLBACK slot.
-        sandbox: the underlying ``HTTPSandbox`` instance — required for
+        sandbox: the underlying ``HTTPTransportSandbox`` instance — required for
             the SANDBOX_NOTIFICATION slot if the role uses it.
         subagents: list of ``CompiledSubAgent`` instances for the
             SUBAGENT slot (orchestrators only).

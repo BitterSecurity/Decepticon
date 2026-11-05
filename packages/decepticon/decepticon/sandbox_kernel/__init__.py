@@ -5,7 +5,7 @@ Layering: this package is the lowest layer of the sandbox stack. It
 contains the tmux session manager, the background-job tracker, and the
 ``DaemonSandbox`` class that the daemon wraps. Two consumers hang off it:
 
-  ``decepticon.backends.http_sandbox.HTTPSandbox`` — agent-side,
+  ``decepticon.backends.http_transport.HTTPTransportSandbox`` — agent-side,
       uses HTTP as transport. Imports ``BackgroundJob`` and
       ``BackgroundJobTracker`` from this package so the
       ``SandboxNotificationMiddleware`` mirror pattern works against
@@ -18,7 +18,7 @@ contains the tmux session manager, the background-job tracker, and the
 
 Historical note: an earlier ``DockerSandbox`` ran the same machinery
 from the agent host via ``exec_prefix=["docker", "exec", <ctn>]``. That
-transport was retired in favor of ``HTTPSandbox`` + the in-container
+transport was retired in favor of ``HTTPTransportSandbox`` + the in-container
 daemon (see ``backends/factory.py`` — "there is no longer a docker-exec
 transport"). ``TmuxSessionManager`` still accepts a non-empty
 ``exec_prefix`` for parity with the old wire format, but no production
@@ -27,7 +27,7 @@ caller exercises that branch.
 Why a separate package: the OSS sandbox container image is a *passive*
 container (Kali Linux + red-team tools + tmux); historically it shipped
 zero decepticon Python code. Adding the daemon required *some* in-
-container Python, but the agent-side transport (``HTTPSandbox``,
+container Python, but the agent-side transport (``HTTPTransportSandbox``,
 ``factory``) has no business inside the sandbox. Splitting the shared
 utilities out keeps the original "agent has everything, sandbox has
 nothing" boundary intact: the sandbox image ships only

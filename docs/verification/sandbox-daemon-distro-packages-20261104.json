@@ -1,0 +1,103 @@
+{
+  "base_main": "79978a642b7a9c9cbd351150774b869fbb724416",
+  "parent_integration": "6e635a9c9875c9d24e926f8e8d5f609b5289f64b",
+  "build": {
+    "source_commit": "6aceb3081427b86ddee39d608c0960859c1f4bbe",
+    "command": [
+      "bash",
+      "/home/catow/.local/bin/with-build-slot",
+      "docker",
+      "build",
+      "-f",
+      "containers/sandbox.Dockerfile",
+      "--label",
+      "org.opencontainers.image.revision=6aceb3081427b86ddee39d608c0960859c1f4bbe",
+      "-t",
+      "decepticon-oss-sandbox:distro-daemon-fix-20261104",
+      "."
+    ],
+    "tag": "decepticon-oss-sandbox:distro-daemon-fix-20261104",
+    "status": "finished",
+    "started_utc": "2026-11-03T16:22:24.879714+00:00",
+    "qa_prod_changed": false,
+    "exit_code": 0,
+    "seconds_including_slot_wait": 428.553,
+    "image_id": "sha256:7adabd7852395791a92d11a9a2d7d9ecf9eaf78f939ca94bd6e69f234998692e"
+  },
+  "actual_image_smoke": {
+    "image": "sha256:7adabd7852395791a92d11a9a2d7d9ecf9eaf78f939ca94bd6e69f234998692e",
+    "build_source": "6aceb3081427b86ddee39d608c0960859c1f4bbe",
+    "owner": "oss-sandbox-distro-smoke-6be290110a",
+    "started_utc": "2026-11-03T16:30:17.743053+00:00",
+    "network": "none",
+    "capabilities": "ALL dropped",
+    "host_ports": [],
+    "qa_prod_changed": false,
+    "checks": [
+      {
+        "health": {
+          "status": 200,
+          "body": "{\"status\":\"ok\"}"
+        }
+      },
+      {
+        "invalid_token_denied": 401
+      },
+      {
+        "retired_egress_endpoint": 404
+      },
+      {
+        "actual_tmux_command": {
+          "status": 200,
+          "body": "{\"output\":\"sandbox-image-contract\\n[cwd: /workspace]\\n[DCPTN_COMPLETE exit=0]\"}"
+        }
+      },
+      {
+        "file_roundtrip": true
+      },
+      {
+        "name": "debian_certifi_files",
+        "exit_code": 0,
+        "output": ""
+      },
+      {
+        "name": "pip_dependency_consistency",
+        "exit_code": 0,
+        "output": "No broken requirements found.\n"
+      }
+    ],
+    "status": "finished",
+    "runtime_inventory": {
+      "certifi_import": "/usr/local/lib/python3.14/dist-packages/certifi/__init__.py",
+      "versions": {
+        "certifi": "2026.10.23",
+        "fastapi": "0.162.0",
+        "uvicorn": "0.54.0",
+        "deepagents": "0.7.32",
+        "curl_cffi": "0.17.0",
+        "pydantic": "2.14.2"
+      }
+    },
+    "copied_source_payloads_verified": 66,
+    "exit_code": 0,
+    "owned_fixture_removed": true
+  },
+  "image_revision_label_verified": true,
+  "unchanged_image_input_objects_after_parent_integration": {
+    "containers/sandbox.Dockerfile": "82c3f33f8083c8f39ac72c3bbca2d5f967923958",
+    "containers/sandbox-entrypoint.sh": "1eb167d047d9f0a3301ebac550b522fee95405bd",
+    "packages/decepticon/decepticon/__init__.py": "a83d2f2a105a598b910ffdde512f9f01eb9b4f97",
+    "packages/decepticon/decepticon/sandbox_kernel": "2a330639a55facaf906370cdf756520255b281e5",
+    "packages/decepticon/decepticon/sandbox_server": "0e9f020f412b87d5ae71c5d76e15be1f139e6074",
+    "packages/decepticon/decepticon/sandbox_web": "210602b4fa7e361d6116be19d8432b774ec50613",
+    "packages/decepticon-core/decepticon_core": "3cb8e09d1e854c20a79bb819b9a63fc3f00ffa71"
+  },
+  "initial_failures_preserved": {
+    "actual_github_sandbox_job": "https://github.com/BitterSecurity/Decepticon/actions/runs/41671886792/job/126042279121",
+    "first_local_build_exit": 1,
+    "first_local_build_seconds": 17.071,
+    "first_local_reason": "Go-tool-stage missing CA before redirected HTTPS APT; final-stage direct-mirror signed-APT bootstrap already existed"
+  },
+  "scope": "build-only flags/bootstrap; no dependency constraints/version or daemon authority change",
+  "no_publication_qa_adoption_production_deployment": true
+}

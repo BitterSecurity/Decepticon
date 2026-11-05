@@ -51,7 +51,7 @@ async def validate_workspace_finding(
         )
     sandbox = get_sandbox()
     if sandbox is None:
-        return json.dumps({"error": "HTTPSandbox not initialized"}, sort_keys=True)
+        return json.dumps({"error": "HTTPTransportSandbox not initialized"}, sort_keys=True)
     try:
         cvss = parse_cvss_vector(cvss_vector)
     except ValueError as exc:

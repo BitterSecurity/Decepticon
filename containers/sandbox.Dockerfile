@@ -37,9 +37,18 @@ ARG NAABU_VERSION
 ARG GOBUSTER_VERSION
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked,id=sandbox-apt-cache \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked,id=sandbox-apt-lists \
+    find /etc/apt -maxdepth 2 -type f \( -name '*.list' -o -name '*.sources' \) \
+        -exec sed -i -e 's|http.kali.org/kali|kali.download/kali|g' \
+        -e 's|https://|http://|g' {} + && \
+    rm -f /etc/apt/apt.conf.d/docker-clean && \
+    echo 'APT::Sandbox::User "root";' > /etc/apt/apt.conf.d/10sandbox && \
     apt-get update && \
-    apt-get install -y --no-install-recommends --no-install-suggests \
-        ca-certificates curl unzip
+    apt-get install -y --no-install-recommends --no-install-suggests ca-certificates && \
+    update-ca-certificates && \
+    find /etc/apt -maxdepth 2 -type f \( -name '*.list' -o -name '*.sources' \) \
+        -exec sed -i 's|http://|https://|g' {} + && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends --no-install-suggests curl unzip
 RUN set -eu; \
     case "$TARGETARCH" in \
         amd64) PD_ARCH=amd64; GOB_ARCH=x86_64 ;; \
@@ -227,6 +236,7 @@ RUN echo "set-option -g history-limit 20000" > /root/.tmux.conf
 # heavier decepticon agent / LLM / langgraph SDKs are deliberately
 # left out so the sandbox image doesn't bloat for the >95% of users
 # who never enable the daemon.
+# Preserve apt-owned packages without RECORD metadata, as in the web-engine layer below.
 RUN pip3 install --break-system-packages --no-cache-dir --ignore-installed \
     "fastapi>=0.115.0" \
     "uvicorn>=0.30.0" \
@@ -353,9 +363,6 @@ ENV GHIDRA_INSTALL_DIR=/opt/ghidra \
 COPY packages/decepticon/decepticon/__init__.py /opt/decepticon/__init__.py
 COPY packages/decepticon/decepticon/sandbox_kernel /opt/decepticon/sandbox_kernel
 COPY packages/decepticon/decepticon/sandbox_server /opt/decepticon/sandbox_server
-COPY packages/decepticon/decepticon/__init__.py /workspace/.decepticon/decepticon/__init__.py
-COPY packages/decepticon/decepticon/sandbox_server /workspace/.decepticon/decepticon/sandbox_server
-COPY packages/decepticon/decepticon/sandbox_kernel /workspace/.decepticon/decepticon/sandbox_kernel
 # Open-web engine (ADR-0010) + the pure contract layer it uses for the
 # per-hop RoE scope_check. decepticon-core imports only pydantic + stdlib
 # (never langchain/langgraph), so it is safe to ship to the lean sandbox.
@@ -385,7 +392,6 @@ ENV DECEPTICON_SKIP_BOOT=1
 # Root access is required for raw sockets (nmap SYN scans), packet capture,
 # and unrestricted filesystem access during red team operations.
 WORKDIR /workspace
-RUN chmod 1777 /workspace
 
 # Skills are NO LONGER baked into the sandbox image. They live in the
 # langgraph container (see ``containers/langgraph.Dockerfile``), where

@@ -22,7 +22,7 @@ from langchain_core.language_models.fake_chat_models import FakeListChatModel
 from langchain_core.messages import AIMessage, ToolMessage
 
 from decepticon.agents.middleware_slots import _make_filesystem
-from decepticon.backends.http_sandbox import HTTPSandbox
+from decepticon.backends.http_transport import HTTPSandbox
 from decepticon.middleware.filesystem import (
     EngagementFilesystemBackend,
     FilesystemMiddleware,
