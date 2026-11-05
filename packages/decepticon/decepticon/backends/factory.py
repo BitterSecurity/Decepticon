@@ -26,12 +26,11 @@ from __future__ import annotations
 import functools
 import os
 from collections.abc import Callable
-from types import SimpleNamespace
 from typing import Any
 
 from deepagents.backends.protocol import GlobResult, GrepResult, LsResult, ReadResult
 
-from decepticon.backends.http_sandbox import HTTPSandbox
+from decepticon.backends.http_sandbox import FileDownloadResponse, HTTPSandbox
 
 _DEFAULT_SANDBOX_URL = "http://localhost:9999"
 _openshell_resolver: Callable[[Any], HTTPSandbox] | None = None
@@ -64,18 +63,14 @@ class _UnboundOpenShellSandbox(HTTPSandbox):
         raise RuntimeError("OpenShell run binding is required; direct HTTP is disabled")
 
     def _request(self, method: str, path: str, **kwargs: Any):
-        if method.lower() == "post" and path == "/download_files":
-            paths = (kwargs.get("json") or {}).get("paths", [])
-            return SimpleNamespace(
-                json=lambda: {
-                    "files": [
-                        {"path": p, "data_b64": None, "error": "file_not_found"} for p in paths
-                    ]
-                }
-            )
         raise RuntimeError("OpenShell run binding is required before execution")
 
-    def read(self, file_path: str, *, offset: int = 0, limit: int = 2000) -> ReadResult:
+    def download_files(self, paths: list[str]) -> list[FileDownloadResponse]:
+        # Pre-admission the workspace is empty: every requested path reports
+        # the daemon's own not-found convention instead of raising.
+        return [FileDownloadResponse(path=p, content=None, error="file_not_found") for p in paths]
+
+    def read(self, file_path: str, offset: int = 0, limit: int = 2000) -> ReadResult:
         return ReadResult(error=f"File '{file_path}': file_not_found")
 
     def ls(self, path: str) -> LsResult:
