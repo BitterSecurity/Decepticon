@@ -97,5 +97,6 @@
     "Latest main retains /opt daemon/bridge paths although the selected filesystem profile does not expose that tree; PR1159 prose is not proof that all listed fixes landed.",
     "Separate deterministic workspace-name collision reproduced for two synthetic paths; must be fixed before multi-tenant adoption.",
     "VM rollout timeout/memory attribution, final active-run fault/clock, production operator path/quota and standalone entitlement remain open."
-  ]
+  ],
+  "sourcePR": "https://github.com/BitterSecurity/Decepticon/pull/1160"
 }
