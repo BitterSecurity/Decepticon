@@ -87,3 +87,19 @@ def test_silent_well_under_budget():
 def test_invalid_total_rejected():
     with pytest.raises(ValueError):
         StepBudgetMiddleware(total_steps=0)
+
+
+def test_effective_recursion_limit_adds_margin():
+    """The langgraph cap must sit ABOVE the enforced wrap-up point.
+
+    At the budget the middleware strips the tool binding and the model needs
+    a few more supersteps to deliver its final answer; a cap equal to the
+    budget fires GraphRecursionError in the same superstep and discards the
+    run (observed live at a 2000/2000 budget).
+    """
+    from decepticon.middleware.step_budget import RECURSION_MARGIN, effective_recursion_limit
+
+    assert RECURSION_MARGIN == 50
+    assert effective_recursion_limit(2000) == 2050
+    assert effective_recursion_limit(25) == 75
+    assert effective_recursion_limit(0) == RECURSION_MARGIN
