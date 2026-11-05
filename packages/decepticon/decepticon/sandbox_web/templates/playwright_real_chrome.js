@@ -18,6 +18,7 @@
 const fs = require('fs');
 const dns = require('dns').promises;
 const ipaddr = require('ipaddr.js');
+const { chromiumOptions } = require('./chromium_options');
 
 // Drain stdout fully before exiting. `process.exit()` can truncate a large
 // HTML payload because it does not wait for pending stdout I/O (Node docs).
@@ -151,16 +152,7 @@ async function main() {
     // playwright keeps the fixed viewport it has always used.
     // Decepticon: launch the sandbox's system Chromium by executablePath when
     // provided (INSANE_CHROMIUM_PATH); else fall back to the real Chrome channel.
-    const ctxOpts = { headless };
-    if (process.env.INSANE_CHROMIUM_PATH) {
-      ctxOpts.executablePath = process.env.INSANE_CHROMIUM_PATH;
-    } else {
-      ctxOpts.channel = 'chrome';
-    }
-    // Chromium refuses to launch as root (the sandbox user) without
-    // --no-sandbox; --disable-dev-shm-usage avoids /dev/shm exhaustion crashes
-    // in containers with a small shm. Decepticon sandbox-runtime adaptation.
-    ctxOpts.args = ['--no-sandbox', '--disable-dev-shm-usage'];
+    const ctxOpts = { ...chromiumOptions(), headless };
     if (automation === 'patchright') {
       ctxOpts.viewport = null;     // == no_viewport=True (use real window size)
     } else {

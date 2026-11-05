@@ -13,6 +13,7 @@ import ipaddress
 import json
 import os
 import re
+import shlex
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -41,6 +42,9 @@ def main():
     parser.add_argument("--fixture-address", required=True)
     parser.add_argument("--state-dir", type=Path, required=True)
     parser.add_argument("--report", type=Path, required=True)
+    parser.add_argument(
+        "--browser", action="store_true", help="Qualify actual desktop Node template"
+    )
     args = parser.parse_args()
     if not re.fullmatch(r"127\.0\.0\.1:[0-9]{1,5}", args.endpoint):
         parser.error("A dedicated loopback gateway is required")
@@ -74,8 +78,27 @@ def main():
             def do_GET(self):
                 hits[kind] += 1
                 self.send_response(200)
+                if args.browser and kind == "allowed" and self.path == "/browser":
+                    self.send_header("Content-Type", "text/html; charset=utf-8")
                 self.end_headers()
-                self.wfile.write(b"owned-native-fixture")
+                if args.browser and kind == "allowed" and self.path == "/browser":
+                    body = (
+                        '<output id="proof">owned browser fixture</output><script>'
+                        'const count=Number(localStorage.getItem("visits")||0)+1;'
+                        'localStorage.setItem("visits",String(count));'
+                        'document.cookie="native_cookie=retained;path=/;max-age=600";'
+                        'document.querySelector("#proof").setAttribute("data-visits",String(count));'
+                        'fetch("http://host.docker.internal:'
+                        + str(denied.server_port)
+                        + '/browser-denied",{signal:AbortSignal.timeout(1500)}).then(()=>{'
+                        'document.querySelector("#proof").setAttribute("data-network","unexpected");'
+                        "}).catch(()=>{"
+                        'document.querySelector("#proof").setAttribute("data-network","denied");});'
+                        "</script>"
+                    ).encode()
+                    self.wfile.write(body)
+                else:
+                    self.wfile.write(b"owned-native-fixture")
 
             def log_message(self, format, *values):
                 pass
@@ -182,10 +205,69 @@ def main():
         bad = a.execute(
             f"curl -fsS --max-time 5 http://host.docker.internal:{denied.server_port}", timeout=10
         )
+        checks["ownedNetworkResults"] = {
+            "allowed": {"exitCode": good.exit_code, "output": good.output},
+            "denied": {"exitCode": bad.exit_code, "output": bad.output},
+            "listenerHits": dict(hits),
+        }
         assert good.exit_code == 0 and "owned-native-fixture" in good.output
         assert bad.exit_code != 0 and hits["allowed"] > 0 and hits["denied"] == 0
         checks["ownedNetworkAllowDeny"] = True
         checks["ownedListenerHits"] = dict(hits)
+        if args.browser:
+            rows = []
+            for visit in (1, 2):
+                payload = json.dumps(
+                    {
+                        "url": f"http://host.docker.internal:{allowed.server_port}/browser",
+                        "profileDir": "/workspace/native-chrome-profile",
+                        "waitSelector": "#proof[data-visits]",
+                        "headless": True,
+                        "allowPrivate": True,  # Owned fixture; runtime policy must still deny.
+                        "timeout": 15000,
+                    }
+                )
+                wire = base64.b64encode(payload.encode()).decode()
+                started = time.monotonic()
+                result = a.execute(
+                    f"printf %s {shlex.quote(wire)} | base64 -d | node "
+                    "/usr/local/lib/decepticon-sandbox/decepticon/sandbox_web/templates/"
+                    "playwright_real_chrome.js",
+                    timeout=40,
+                )
+                assert result.exit_code == 0, result.output
+                # Daemon execution wraps stdout/stderr; parse only the JSON envelope line.
+                envelopes = [
+                    json.loads(line)
+                    for line in result.output.splitlines()
+                    if line.startswith('{"html":')
+                ]
+                assert len(envelopes) == 1, result.output
+                envelope = envelopes[0]
+                checks.setdefault("desktopBrowserObservations", []).append(envelope)
+                assert envelope["status"] == 200
+                assert f'data-visits="{visit}"' in envelope["html"]
+                assert 'data-network="denied"' in envelope["html"]
+                assert any(
+                    cookie["name"] == "native_cookie" and cookie["value"] == "retained"
+                    for cookie in envelope["cookies"]
+                )
+                rows.append(
+                    {
+                        "visit": visit,
+                        "seconds": round(time.monotonic() - started, 3),
+                        "automation": envelope["automation"],
+                        "status": envelope["status"],
+                    }
+                )
+            assert hits["denied"] == 0
+            checks["desktopBrowser"] = {
+                "runs": rows,
+                "javascriptExecuted": True,
+                "cookieReturned": True,
+                "localStorageSurvivesContextRestart": True,
+                "ownedDeniedListenerHits": hits["denied"],
+            }
         audit = pb.GetSandboxLogsRequest(sandbox=next(iter(owned)), lines=500)
         audit.workspace_scope.workspace = "default"
         deadline = time.monotonic() + 10

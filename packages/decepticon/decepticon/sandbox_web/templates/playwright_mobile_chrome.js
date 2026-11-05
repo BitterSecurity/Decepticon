@@ -13,6 +13,7 @@
 
 const dns = require('dns').promises;
 const ipaddr = require('ipaddr.js');
+const { chromiumOptions } = require('./chromium_options');
 
 function writeStdoutAsync(payload) {
   return new Promise((resolve, reject) => {
@@ -140,12 +141,8 @@ async function main() {
     // Decepticon: prefer the sandbox's system Chromium (INSANE_CHROMIUM_PATH);
     // else the real Chrome channel.
     ctx = await chromium.launchPersistentContext(profileDir, {
-      ...(process.env.INSANE_CHROMIUM_PATH
-        ? { executablePath: process.env.INSANE_CHROMIUM_PATH }
-        : { channel: 'chrome' }),
+      ...chromiumOptions(),
       headless,
-      // Chromium won't launch as root without --no-sandbox in a container.
-      args: ['--no-sandbox', '--disable-dev-shm-usage'],
       ...dev,
     });
     const page = await ctx.newPage();
