@@ -387,7 +387,7 @@ def _persist_result(graph: KnowledgeGraph, result: PoCResult) -> None:
         pass
 
 
-# ── Convenience: build a runner from an HTTPSandbox ─────────────────────
+# ── Convenience: build a runner from an HTTPTransportSandbox ─────────────────────
 
 # Typed-error sentinels: callers distinguish a hung runner from a crash by
 # inspecting the stderr prefix (return shape stays (stdout, stderr, code)).
@@ -401,7 +401,7 @@ POC_RUNNER_TIMEOUT_SECONDS: float = 120.0
 
 
 def sandbox_runner(sandbox: Any, *, timeout: float | None = None) -> PoCRunner:
-    """Adapt an ``HTTPSandbox`` into a :data:`PoCRunner` callable.
+    """Adapt an ``HTTPTransportSandbox`` into a :data:`PoCRunner` callable.
 
     The sandbox must expose ``execute_tmux_async`` (or ``execute_tmux``) that
     returns a str output ending with ``[DCPTN_COMPLETE exit=N]`` only after

@@ -1,47 +1,20 @@
-"""HTTP-transport sandbox backend.
+"""Daemon-routed sandbox operations — the transport-agnostic layer.
 
-`HTTPSandbox` is a `BaseSandbox` subclass that forwards every operation
-the agent needs — `execute`, `upload_files`, `download_files`,
-`execute_tmux`, `start_background`, `poll_completion`, `kill_session`,
-`read_session_log_diff`, `reset_session_log_offset`, `session_log_path` —
-to a remote sandbox daemon over HTTP. The peer is
-`decepticon.sandbox_server`, a FastAPI app that runs *inside* the
-sandbox container and wraps a `LocalSandbox` (a `SandboxBase`
-subclass with `docker exec` swapped for direct subprocess execution).
+Every Decepticon sandbox transport (plain HTTP to the sandbox daemon, an
+admitted OpenShell session bridge, future drivers) reaches the SAME peer:
+the ``decepticon.sandbox_server`` daemon running inside the sandbox
+container, over its HTTP API routes. This module implements every
+agent-facing operation against those routes in terms of one abstract seam:
 
-Architecture
-------------
-The existing `DockerSandbox` shells `docker exec <container> ...` into a
-sibling sandbox container — great in dev where a docker daemon is
-available, untenable on serverless runtimes (Cloud Run, Fargate, etc.)
-that explicitly do not expose a host docker socket between sibling
-containers. `HTTPSandbox` keeps **every** semantic of the existing
-DockerSandbox + middleware stack — tmux session management, PS1 marker
-parsing, size watchdog, auto-background after 60s, session log diff —
-and only swaps the wire layer from `docker exec` to HTTP. The daemon
-side re-uses the exact same `TmuxSessionManager` class via the new
-`exec_prefix=[]` switch, so the agent gets bit-for-bit equivalent
-behaviour from the bash tool whether it's pointed at DockerSandbox
-(dev / GCE Spot) or HTTPSandbox (Cloud Run multi-container).
+    ``_request(method, path, **kwargs)`` — subclasses provide the transport.
 
-Why HTTP and not SSH / gRPC: OpenHands explicitly deprecated SSH
-(Issue #2404) because sshd-in-every-image is untenable when users
-bring their own sandbox images. E2B, Modal, Daytona, SmolAgents,
-SWE-ReX all converged on REST. Cloud Run sibling-container loopback
-is HTTP/1.1-first; gRPC needs h2c; SSH needs key distribution + sshd.
-REST + SSE has the strongest container-runtime tool support and the
-lowest configuration burden.
-
-Class-level state
------------------
-`SandboxNotificationMiddleware` polls `sandbox._jobs.all_jobs()` to
-discover which background commands are still running and then calls
-`sandbox.poll_completion(...)` to refresh each one. To stay drop-in
-compatible with that middleware, `HTTPSandbox` exposes a class-level
-`BackgroundJobTracker` populated locally by `start_background` and
-refreshed by `poll_completion`. The tracker is a *mirror* — the source
-of truth still lives in the daemon's `LocalSandbox._jobs` — but
-the middleware doesn't need to know which side owns the registry.
+Nothing here opens sockets or knows how the route is reached; the tmux
+session semantics themselves (PS1 markers, size watchdog, auto-background,
+``TmuxSessionManager``) always lived on the daemon side
+(``decepticon.sandbox_kernel``), so this layer is purely route + local
+background-job bookkeeping. Adding a transport means subclassing and
+implementing ``_request`` — see ``HTTPTransportSandbox`` (plain HTTP) and
+``OpenShellSandbox`` (admitted session bridge).
 """
 
 from __future__ import annotations
@@ -51,9 +24,7 @@ import base64
 import hashlib
 import logging
 import re
-import time
 
-import httpx
 from deepagents.backends.protocol import (
     ExecuteResponse,
     FileDownloadResponse,
@@ -104,135 +75,26 @@ class SandboxError(RuntimeError):
     pass
 
 
-def _retry_on_connection_error(fn, max_total_delay=150.0, base_delay=0.5, max_delay=8.0):
-    """Retry a function on httpx connection errors with capped exponential backoff.
+class SandboxDaemonClient(BaseSandbox):
+    """Agent operations implemented over the sandbox daemon's HTTP API.
 
-    Only ``ConnectError`` / ``ConnectTimeout`` are retried — both mean the TCP
-    connection was never established, so the request never reached the daemon
-    and re-sending it is side-effect-free (unlike a ``ReadTimeout``, where the
-    command may already be running). That safety is what lets us retry even
-    ``execute`` (bash) here.
-
-    The retry budget is time-based (``max_total_delay`` seconds of cumulative
-    sleep) rather than a fixed attempt count, because a per-engagement sandbox
-    can take 1-2 minutes to become reachable: VM provision -> COS boot ->
-    sandbox image pull -> container start before the daemon listens on :9999.
-    During that window connections are refused; retrying for ~``max_total_delay``
-    lets the agent's first tool call ride out the boot instead of failing the
-    run. A genuinely dead/unroutable sandbox still surfaces the error within
-    roughly ``max_total_delay`` (delays are capped at ``max_delay`` so the loop
-    keeps probing rather than backing off unboundedly).
-    """
-    last_exc = None
-    slept = 0.0
-    attempt = 0
-    while True:
-        try:
-            return fn()
-        except (httpx.ConnectError, httpx.ConnectTimeout) as exc:
-            last_exc = exc
-            delay = min(base_delay * (2**attempt), max_delay)
-            if slept + delay > max_total_delay:
-                break
-            log.warning(
-                "Sandbox connection failed (attempt %d, %.1fs/%.0fs elapsed), "
-                "retrying in %.1fs: %s",
-                attempt + 1,
-                slept,
-                max_total_delay,
-                delay,
-                exc,
-            )
-            time.sleep(delay)
-            slept += delay
-            attempt += 1
-    if last_exc is None:  # max_total_delay <= 0 — never able to retry
-        raise SandboxError("retry loop made no attempts (max_total_delay <= 0)")
-    raise last_exc
-
-
-class HTTPSandbox(BaseSandbox):
-    """A `BaseSandbox` that talks to a `decepticon.sandbox_server` daemon.
-
-    The peer endpoint is a FastAPI service running inside the sandbox
-    container, typically reachable over Cloud Run's loopback interface
-    (`http://localhost:9999` by default) or any service-mesh address
-    when deployed on Kubernetes / Fargate / ECS / etc.
-
-    Args:
-        base_url: Daemon base URL, e.g. ``http://localhost:9999``. No
-            trailing slash required.
-        token: Optional shared-secret bearer token. When set, the daemon
-            requires every request to carry ``Authorization: Bearer
-            <token>``. The Cloud Run loopback path is not network-
-            reachable from outside the service, so this is defence-in-
-            depth rather than a primary authn mechanism — but it is
-            still strongly recommended.
-        timeout: Default request timeout in seconds. Per-call timeouts
-            on ``execute()`` / ``execute_tmux()`` override this for
-            long-running commands.
+    Subclasses implement exactly one seam — ``_request(method, path,
+    **kwargs)`` — returning an object with ``.json()``. Everything else in
+    this class is transport-agnostic: the tmux/session routes, the local
+    background-job mirror (``BackgroundJobTracker``), and the file transfer
+    routes.
     """
 
-    def __init__(
-        self,
-        base_url: str,
-        *,
-        token: str | None = None,
-        timeout: float = 120.0,
-    ) -> None:
-        self._base_url = base_url.rstrip("/")
-        self._token = token
+    def __init__(self, *, timeout: float = 120.0) -> None:
         self._timeout = timeout
-        self._client: httpx.Client | None = None
         # Instance-level job tracker — mirrors daemon-side state for
         # SandboxNotificationMiddleware. Previously a ClassVar, now
         # per-instance so multiple sandbox instances don't collide.
         self._jobs = BackgroundJobTracker()
 
-    @property
-    def id(self) -> str:
-        return f"http-sandbox:{self._base_url}"
+    def _request(self, method: str, path: str, **kwargs):
+        raise NotImplementedError("SandboxDaemonClient subclasses must implement _request()")
 
-    # ── httpx client lifecycle ─────────────────────────────────────────
-    def _http(self) -> httpx.Client:
-        """Lazily create a connection-pooled HTTP client.
-
-        Sharing one `httpx.Client` across requests is the supported
-        pattern — it keeps the TCP connection pool warm so the per-call
-        overhead on a healthy loopback path stays in the microseconds
-        rather than reopening a socket per request.
-        """
-        if self._client is None:
-            headers = {"User-Agent": "decepticon-http-sandbox/1"}
-            if self._token:
-                headers["Authorization"] = f"Bearer {self._token}"
-            self._client = httpx.Client(
-                base_url=self._base_url,
-                headers=headers,
-                timeout=self._timeout,
-            )
-        return self._client
-
-    def close(self) -> None:
-        """Best-effort cleanup. Safe to call multiple times."""
-        if self._client is not None:
-            try:
-                self._client.close()
-            finally:
-                self._client = None
-
-    def _request(self, method: str, path: str, **kwargs) -> httpx.Response:
-        """Send an HTTP request with retry on transient errors and domain error wrapping."""
-        resp = _retry_on_connection_error(lambda: getattr(self._http(), method)(path, **kwargs))
-        try:
-            resp.raise_for_status()
-        except httpx.HTTPStatusError as exc:
-            raise SandboxError(
-                f"Sandbox returned {exc.response.status_code}: {exc.response.text[:200]}"
-            ) from exc
-        return resp
-
-    # ── BaseSandbox abstract methods ───────────────────────────────────
     def execute(
         self,
         command: str,

@@ -344,7 +344,7 @@ def _rebind_sandbox_per_run(backend: BackendProtocol, runtime: Any = None) -> Ba
 
     The agent backend is composed ONCE at construction
     (``make_agent_backend(build_sandbox_backend())``) — no run context exists
-    yet, so its ``/workspace`` ``HTTPSandbox`` binds to the process-wide env
+    yet, so its ``/workspace`` ``HTTPTransportSandbox`` binds to the process-wide env
     endpoint (``SANDBOX_URL``). In a SHARED langgraph serving many engagements
     that single endpoint cannot reach a per-engagement sandbox, so every
     filesystem op (read / write / ls / glob / grep / edit / download) would land
@@ -373,12 +373,12 @@ def _rebind_sandbox_per_run(backend: BackendProtocol, runtime: Any = None) -> Ba
     from deepagents.backends import CompositeBackend
 
     from decepticon.backends import build_sandbox_backend
-    from decepticon.backends.http_sandbox import HTTPSandbox
+    from decepticon.backends.daemon_client import SandboxDaemonClient
 
     config = getattr(runtime, "config", None)
-    if isinstance(backend, HTTPSandbox):
+    if isinstance(backend, SandboxDaemonClient):
         return build_sandbox_backend(config)
-    if isinstance(backend, CompositeBackend) and isinstance(backend.default, HTTPSandbox):
+    if isinstance(backend, CompositeBackend) and isinstance(backend.default, SandboxDaemonClient):
         return CompositeBackend(
             default=build_sandbox_backend(config),
             routes=backend.routes,

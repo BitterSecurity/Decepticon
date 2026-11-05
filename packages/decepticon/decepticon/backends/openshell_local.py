@@ -39,7 +39,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from decepticon.backends.http_sandbox import SandboxError
+from decepticon.backends.http_transport import SandboxError
 from decepticon.middleware.policy_compiler import (
     CompiledRoePolicy,
     compile_openshell_policy,
@@ -77,10 +77,20 @@ _backends: dict[tuple[str, str], Any] = {}
 
 
 def local_resolver_enabled() -> bool:
-    return os.environ.get("DECEPTICON_OPENSHELL_LOCAL", "").strip().lower() in {
-        "1",
-        "true",
-        "yes",
+    """Trusted local admission resolver — ON by default, explicit opt-out only.
+
+    The default provider is openshell (#1144: OpenShell is the only
+    network-boundary authority), so the trusted host resolver must come up
+    with the daemon. The env var now only DISABLES it (for exotic
+    deployments that wire their own resolver through
+    ``configure_openshell_resolver``); agent config still can never install
+    one — the factory guard is unchanged.
+    """
+    return os.environ.get("DECEPTICON_OPENSHELL_LOCAL", "").strip().lower() not in {
+        "0",
+        "false",
+        "no",
+        "off",
     }
 
 

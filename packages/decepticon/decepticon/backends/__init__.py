@@ -5,7 +5,10 @@ from typing import Any
 from deepagents.backends import CompositeBackend, FilesystemBackend
 
 from .factory import build_sandbox_backend
-from .http_sandbox import HTTPSandbox
+from .http_transport import (
+    HTTPSandbox,  # back-compat alias re-export
+    HTTPTransportSandbox,
+)
 
 # Skills ship as package data under ``decepticon/skills/`` and are read
 # in-process by a local ``FilesystemBackend`` (not the sandbox container).
@@ -66,7 +69,7 @@ def make_agent_backend(
     Routes ``/skills/`` to a local ``FilesystemBackend`` reading the
     package's ``decepticon/skills`` tree in-process, and routes everything
     else (notably ``/workspace/``) through the sandbox transport
-    (``HTTPSandbox``). Returning a ``CompositeBackend`` lets
+    (``HTTPTransportSandbox``). Returning a ``CompositeBackend`` lets
     ``SkillsMiddleware`` and ``FilesystemMiddleware`` share the same
     backend object while reading from different physical storage:
 
@@ -74,7 +77,7 @@ def make_agent_backend(
       /workspace/.. ->  sandbox container via HTTP (isolated, persistent)
 
     Args:
-        sandbox: the default transport (``HTTPSandbox`` in OSS). All
+        sandbox: the default transport (``HTTPTransportSandbox`` in OSS). All
             paths that don't match a more specific route fall through
             here.
         extra_routes: optional caller-supplied prefix -> backend mapping
@@ -115,6 +118,7 @@ def make_agent_backend(
 
 
 __all__ = [
+    "HTTPTransportSandbox",
     "HTTPSandbox",
     "SKILLS_LOCAL_PATH",
     "build_sandbox_backend",
