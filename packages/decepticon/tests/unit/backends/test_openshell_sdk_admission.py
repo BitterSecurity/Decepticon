@@ -5,18 +5,14 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor
 from types import SimpleNamespace
 
-import grpc
 import pytest
-from google.protobuf.descriptor import FieldDescriptor
-from openshell import SandboxClient
-from openshell._proto import openshell_pb2 as pb
-from openshell._proto import openshell_pb2_grpc
-from openshell.sandbox import SandboxSession
 
 from decepticon.backends import openshell_local
 from decepticon.backends.http_transport import SandboxError
 from decepticon.middleware.policy_compiler import compile_openshell_policy
 from decepticon_core.types.roe import MachineEnforcement, ScopeRule
+
+pytest.importorskip("openshell")
 
 
 @pytest.fixture
@@ -29,6 +25,12 @@ def compiled_policy():
 
 
 def test_real_sdk_serializes_daemon_and_poll_timeouts_before_fixture_exec():
+    import grpc
+    from openshell import SandboxClient
+    from openshell._proto import openshell_pb2 as pb
+    from openshell._proto import openshell_pb2_grpc
+    from openshell.sandbox import SandboxSession
+
     requests = []
 
     class Gateway(openshell_pb2_grpc.OpenShellServicer):
@@ -61,6 +63,8 @@ def test_real_sdk_serializes_daemon_and_poll_timeouts_before_fixture_exec():
 
 
 def test_selected_proto_retains_l7_protocol_vocabulary(compiled_policy):
+    from google.protobuf.descriptor import FieldDescriptor
+
     endpoint = compiled_policy.network_policies["roe_in_scope"].endpoints[0]
     field = endpoint.DESCRIPTOR.fields_by_name["protocol"]
     assert field.type == FieldDescriptor.TYPE_STRING

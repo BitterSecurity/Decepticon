@@ -65,7 +65,68 @@
       "sourceModuleSha256": "22899675f4574487a780eca5dcae054ddbd0db46616d41cd54c48beb6c673563",
       "published": false,
       "actualGatewayKernelTest": false
-    }
+    },
+    "optionalProfiles": [
+      {
+        "command": [
+          "uv",
+          "sync",
+          "--frozen",
+          "--extra",
+          "mcp"
+        ],
+        "exitCode": 0
+      },
+      {
+        "command": [
+          "uv",
+          "run",
+          "--frozen",
+          "--extra",
+          "mcp",
+          "pytest",
+          "packages/decepticon/tests/unit/backends/test_openshell_sdk_admission.py",
+          "packages/decepticon/tests/unit/backends/test_http_transport.py",
+          "-q"
+        ],
+        "exitCode": 0
+      },
+      {
+        "command": [
+          "uv",
+          "sync",
+          "--frozen",
+          "--extra",
+          "mcp",
+          "--extra",
+          "openshell"
+        ],
+        "exitCode": 0
+      },
+      {
+        "command": [
+          "uv",
+          "run",
+          "--frozen",
+          "--extra",
+          "mcp",
+          "--extra",
+          "openshell",
+          "pytest",
+          "packages/decepticon/tests/unit/backends",
+          "packages/decepticon/tests/unit/middleware/test_policy_compiler.py",
+          "-q"
+        ],
+        "exitCode": 0
+      }
+    ],
+    "sdkAbsentProfile": {
+      "passed": 16,
+      "moduleSkipped": 1,
+      "reason": "Optional openshell SDK absent; no collection error",
+      "exitCode": 0
+    },
+    "sdkRestoredAffectedCases": 207
   },
   "selectedRuntimeBaseline": {
     "source": "https://raw.githubusercontent.com/NVIDIA/OpenShell/ac7f615cd12d5cc49cb16eb1f5f10ffeb1e90f47/crates/openshell-supervisor/src/lib.rs",
@@ -88,7 +149,7 @@
   },
   "sourceHashes": {
     "packages/decepticon/decepticon/backends/openshell_local.py": "22899675f4574487a780eca5dcae054ddbd0db46616d41cd54c48beb6c673563",
-    "packages/decepticon/tests/unit/backends/test_openshell_sdk_admission.py": "2da69aecaab20651f17d32a28bcc07e86ce4e2fc36a3bc37bd26704d257db34e",
+    "packages/decepticon/tests/unit/backends/test_openshell_sdk_admission.py": "deeb2c2ea09a24b9f1f9c0e87bcb13595fe5fdf2e5abf6b17c6c74ed6fc181c0",
     "uv.lock": "f871950ab4e0b524969a33872d96da8c0bfc2c1a784c0922cc33ccaab82ef315"
   },
   "remaining": [
