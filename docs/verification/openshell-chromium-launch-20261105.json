@@ -152,5 +152,6 @@
     "Production traffic or deployment",
     "All alternative tool images",
     "OSS publication gates"
-  ]
+  ],
+  "pullRequest": "https://github.com/BitterSecurity/Decepticon/pull/1164"
 }
