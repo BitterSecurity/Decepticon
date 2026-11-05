@@ -1,5 +1,5 @@
 {
-  "status": "Proposed; actual native local/image/wheel passed, new E2B build pending",
+  "status": "Proposed scoped source fix; local/source/wheel/native E2B functional gates pass; production adoption remains unqualified",
   "freshMain": "44eb9032651c18df3f40e9f19a09e860d74ab43e",
   "stackBase": "ea192d45f4d4656b7d6b121ba30ef039375b7144",
   "stackedOnPR": 1164,
@@ -219,12 +219,123 @@
     "sourceLane": "Its own validation receipt confirms both bound records deleted; do not attribute the last-writer gateway-exit receipt to the source lane.",
     "futureWrapperPathsCorrected": true
   },
-  "actualNewE2b": "Pending; do not substitute local results for cloud cold-readiness or full smoke",
+  "actualNewE2b": {
+    "passed": true,
+    "nativeE2bSmokePassed": true,
+    "saasTenantQualified": false,
+    "productionEquivalent": false,
+    "productionChanged": false,
+    "modelCalls": 0,
+    "externalTargetRequests": 0,
+    "template": "fwy0ln4ujsdijfe6uajg",
+    "diagnosticOnly": false,
+    "harnessSha256": "216304dde61e742569cd2d186b3c77d784be59974dbbdc467dc67be9f3f62323",
+    "owner": "full016-8adb449dc53845af866aecb0b51d425a",
+    "timings": {
+      "createToVerifiedReadySeconds": 30.669,
+      "daemonReadySeconds": 30.457,
+      "identitySeconds": 2.709,
+      "nmapVersionSeconds": 4.507,
+      "nucleiVersionSeconds": 17.182,
+      "twoTmuxCallsSeconds": 17.837,
+      "chromiumLocalDomSeconds": 121.562,
+      "playwrightSharedLaunchAndPersistenceSeconds": 116.93
+    },
+    "cleanupErrors": [],
+    "processExitCodes": {
+      "gateway": 0,
+      "driver": 0
+    },
+    "ownedProviderSandboxesRemaining": 0,
+    "seconds": 366.696,
+    "socketRemoved": true,
+    "checks": {
+      "realPolicyAckAndBindingVerified": true,
+      "identity": {
+        "exitCode": 0
+      },
+      "nmapVersion": {
+        "exitCode": 0
+      },
+      "nucleiVersion": {
+        "exitCode": 0
+      },
+      "scopeAndFileRoundtrip": true,
+      "tmuxStateRetained": true,
+      "chromiumLocalDom": {
+        "exitCode": 0
+      },
+      "playwrightSharedLaunchAndPersistence": {
+        "exitCode": 0
+      },
+      "reattachRetainsFiles": true
+    },
+    "fullPrivateReceiptSha256": "2ca6ac973b19c8ec54bbcf7184313fa88194554afa72d00368d484c33afbd54f",
+    "qualificationLimit": "One operator-owned offline functional smoke; not SaaS/production equivalence, latency acceptance or a percentile",
+    "lateObserver": "One additional native read-only process-state diagnostic ran during the prolonged browser phase; cold readiness predates it. Do not treat browser timings as an unobserved benchmark."
+  },
   "notQualified": [
     "SaaS tenant/custody integration",
     "long lease extension and durable driver restart",
     "all alternative tool images",
     "aggregate VM resource/fault acceptance",
     "OSS release gates"
-  ]
+  ],
+  "pullRequest": "https://github.com/BitterSecurity/Decepticon/pull/1165",
+  "mechanicalMove": {
+    "existingMethodBodiesAndArgumentsUnchanged": true,
+    "methodCount": 20,
+    "allowedNormalization": "SandboxBase class references renamed SandboxKernel; return annotations/types verified separately by real wire/adapter tests",
+    "addedKernelMethod": "download_files interface; legacy adapter delegates to original Deep Agents default",
+    "productionChanged": false
+  },
+  "fullGuestBuild": {
+    "export": {
+      "passed": true,
+      "ownedContainerRemoved": true,
+      "canonicalImage": "sha256:013335273ec46e377dc7ac1d5d1ca4c94c622113b841878729e670566c895d72",
+      "guestImage": "sha256:04f4b59425f00da55080ab8b6b6e2f2550e66e670e5500e1a00bbb7e7f0f3af1",
+      "allCanonicalLayersRetained": true,
+      "all24ToolsAndAllFrameworkFilesIdenticalToCanonical": true,
+      "rootfsSha256": "f25e44989acddf2b7c3dceb78e502893e853aa70be94b4f51a7ea59af7901f0d",
+      "rootfsBytes": 1340195442,
+      "seconds": 98.577
+    },
+    "firstUpload": {
+      "templateName": "dcptn-inner016-lean-20261106-c1",
+      "productionAliasChanged": false,
+      "providerProject": "Existing E2B project, credential not emitted",
+      "sourceWorktree": "/home/catow/GIT/decepticon-e2b-openshell-full-guest-20261105",
+      "fullRootfsSha256": "f25e44989acddf2b7c3dceb78e502893e853aa70be94b4f51a7ea59af7901f0d",
+      "passed": false,
+      "error": "Failed to upload file: TypeError: fetch failed",
+      "seconds": 100.056
+    },
+    "firstBuildReadOnlyObservation": {
+      "observedAt": "2026-11-05T15:28:53.317Z",
+      "templateId": "fwy0ln4ujsdijfe6uajg",
+      "buildId": "e4a47d96-fb67-4c92-b7c6-512225343806",
+      "state": "waiting",
+      "logsCount": 0,
+      "reason": null
+    },
+    "retryBuild": {
+      "templateName": "dcptn-inner016-lean-20261106-c1",
+      "productionAliasChanged": false,
+      "providerProject": "Existing E2B project, credential not emitted",
+      "sourceWorktree": "/home/catow/GIT/decepticon-e2b-openshell-full-guest-20261105",
+      "fullRootfsSha256": "f25e44989acddf2b7c3dceb78e502893e853aa70be94b4f51a7ea59af7901f0d",
+      "passed": true,
+      "seconds": 239.865
+    },
+    "buildIdentity": {
+      "alias": "dcptn-inner016-lean-20261106-c1",
+      "name": "dcptn-inner016-lean-20261106-c1",
+      "tags": [
+        "default"
+      ],
+      "templateId": "fwy0ln4ujsdijfe6uajg",
+      "buildId": "f172610b-ea87-4c79-bd98-5c496d2736c7"
+    }
+  }
 }
