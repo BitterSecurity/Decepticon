@@ -225,7 +225,9 @@ def build_sandbox_backend(config: Any = None) -> HTTPSandbox:
     # EXPLICIT escape hatch for non-engagement contexts (tests, benchmarks,
     # pre-scope file ops) — under a materialized RoE the RoE middleware still
     # refuses it loudly, by design.
-    host_provider = os.environ.get("DECEPTICON_SANDBOX_PROVIDER", "openshell").strip() or "openshell"
+    host_provider = (
+        os.environ.get("DECEPTICON_SANDBOX_PROVIDER", "openshell").strip() or "openshell"
+    )
     if host_provider not in ("http", "openshell"):
         raise RuntimeError("Unsupported host sandbox provider")
     requested = configurable.get("sandbox_provider") if isinstance(configurable, dict) else None
