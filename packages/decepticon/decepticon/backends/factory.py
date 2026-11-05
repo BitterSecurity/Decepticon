@@ -220,8 +220,13 @@ def build_sandbox_backend(config: Any = None) -> HTTPSandbox:
     """
     run_config = _run_config(config)
     configurable = run_config.get("configurable", {})
-    host_provider = os.environ.get("DECEPTICON_SANDBOX_PROVIDER", "").strip()
-    if host_provider not in ("", "http", "openshell"):
+    # OpenShell is the only network-boundary authority since the nftables
+    # retirement (#1144): the default provider is openshell. HTTP remains an
+    # EXPLICIT escape hatch for non-engagement contexts (tests, benchmarks,
+    # pre-scope file ops) — under a materialized RoE the RoE middleware still
+    # refuses it loudly, by design.
+    host_provider = os.environ.get("DECEPTICON_SANDBOX_PROVIDER", "openshell").strip() or "openshell"
+    if host_provider not in ("http", "openshell"):
         raise RuntimeError("Unsupported host sandbox provider")
     requested = configurable.get("sandbox_provider") if isinstance(configurable, dict) else None
     if host_provider == "openshell" and requested not in (None, "openshell"):

@@ -21,6 +21,7 @@ def _clear_shared_sandbox_cache() -> Iterator[None]:
 def test_build_sandbox_backend_returns_shared_instance(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    monkeypatch.setenv("DECEPTICON_SANDBOX_PROVIDER", "http")
     """Repeated calls with the same env must return the *same* HTTPSandbox.
 
     Why this matters: ``langgraph dev`` invokes one factory per registered
@@ -140,6 +141,7 @@ def test_resolve_endpoint_default_url_when_nothing_set(
 def test_build_sandbox_backend_routes_per_run_config(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    monkeypatch.setenv("DECEPTICON_SANDBOX_PROVIDER", "http")
     """Two runs with distinct configurable sandboxes get distinct instances."""
     monkeypatch.delenv("SANDBOX_URL", raising=False)
     monkeypatch.delenv("SANDBOX_TOKEN", raising=False)
@@ -163,6 +165,7 @@ def test_build_sandbox_backend_routes_per_run_config(
 def test_build_sandbox_backend_reads_configurable_inside_a_run(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    monkeypatch.setenv("DECEPTICON_SANDBOX_PROVIDER", "http")
     """A real LangGraph run should route the factory from run config."""
     from langgraph.graph import END, START, StateGraph
 

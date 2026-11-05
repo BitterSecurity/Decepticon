@@ -240,6 +240,7 @@ def test_jobs_are_isolated_between_bindings(admitted):
 
 
 def test_openshell_selection_cannot_fall_back_to_http(monkeypatch):
+    monkeypatch.setenv("DECEPTICON_OPENSHELL_LOCAL", "0")  # no local resolver wired
     monkeypatch.setattr(factory, "_openshell_resolver", None)
     with pytest.raises(RuntimeError, match="trusted host"):
         factory.build_sandbox_backend(
