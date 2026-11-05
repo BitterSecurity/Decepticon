@@ -66,6 +66,24 @@ _PLAN_MUTATION_TOOLS = frozenset(
 
 def _reduce_engagement_name(current: str | None, update: str | None) -> str | None:
     """Merge concurrent launcher/tool writes to the stable engagement slug."""
+    import logging as _log
+
+    if update == "roe-tui-verify":
+        try:
+            from langgraph.config import get_config as _gc
+
+            cfg = _gc()
+            node = (cfg or {}).get("metadata", {}).get("langgraph_node")
+            ccfg = (cfg or {}).get("configurable", {})
+            _log.getLogger(__name__).warning(
+                "REDUCE-NODE node=%r thread=%r cfg.eng=%r cfg.thread=%r",
+                node,
+                ccfg.get("thread_id"),
+                ccfg.get("engagement_name"),
+                ccfg.get("thread_id"),
+            )
+        except Exception as exc:  # noqa: BLE001
+            _log.getLogger(__name__).warning("REDUCE-NODE cfg unreadable: %s", exc)
     return update if update is not None else current
 
 

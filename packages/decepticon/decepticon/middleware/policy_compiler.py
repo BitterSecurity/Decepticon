@@ -325,7 +325,15 @@ def compile_openshell_policy(rules: MachineEnforcement) -> CompiledRoePolicy:
     rule["binaries"] = binaries
     policy: dict = {
         "version": 1,
-        "filesystem_policy": {"include_workdir": True},
+        "filesystem_policy": {
+            "include_workdir": True,
+            # Sandbox runtime invariant: the tmux-based exec substrate needs
+            # PTY allocation, which the default-deny filesystem policy blocks
+            # at the seccomp-notify layer (verified live: /dev/ptmx and
+            # /dev/tty EPERM without these; "create window failed: fork
+            # failed: Permission denied" with them absent).
+            "read_write": ["/dev/ptmx", "/dev/tty", "/dev/pts"],
+        },
         "network_policies": {
             "roe_in_scope": rule,
             "osint_allowance": {

@@ -35,7 +35,13 @@ class TestCompilation:
             assert endpoint["protocol"] == "rest"
             assert endpoint["enforcement"] == "enforce"
             assert endpoint["access"] == "full"
-        assert compiled.policy["filesystem_policy"] == {"include_workdir": True}
+        # The runtime-invariant PTY grants ride on every compiled policy
+        # (tmux-based exec substrate; verified live — the default-deny
+        # filesystem policy blocks PTY allocation at the seccomp-notify layer).
+        assert compiled.policy["filesystem_policy"] == {
+            "include_workdir": True,
+            "read_write": ["/dev/ptmx", "/dev/tty", "/dev/pts"],
+        }
         # Static confinement (landlock/process) is intentionally not part of
         # the v1 network-boundary conversion — image defaults stay in force.
         assert "landlock" not in compiled.policy
