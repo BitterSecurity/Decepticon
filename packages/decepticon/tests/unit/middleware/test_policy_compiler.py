@@ -257,7 +257,9 @@ def test_long_workspace_and_same_basename_never_drop_identity_or_policy(tmp_path
     # The policy digest stays as the name suffix (truncated to the budget).
     assert sandbox_name(first, "a" * 64).endswith(("a" * 8))
     # The workspace digest keeps same-basename engagements distinct.
-    assert sandbox_name(first, "a" * 64).split("-")[1] != sandbox_name(second, "a" * 64).split("-")[1]
+    assert (
+        sandbox_name(first, "a" * 64).split("-")[1] != sandbox_name(second, "a" * 64).split("-")[1]
+    )
 
 
 @pytest.mark.parametrize(
