@@ -44,7 +44,6 @@ import hashlib
 import ipaddress
 import json
 import os
-import re
 from dataclasses import dataclass, replace
 from pathlib import Path
 from urllib.parse import urlsplit
