@@ -114,5 +114,6 @@
     "Actual native kernel/launcher/versioned-distribution/full release gates remain unqualified; no tag/publication.",
     "Existing background processes are not stopped by this admission refusal; trusted lifecycle controller owns cancellation and stop. No atomic exec/name-generation guarantee is claimed.",
     "Current main /opt daemon path packaging, VM load/memory/rollout, final active fault/clock, prod operator path/quota and standalone entitlement remain open."
-  ]
+  ],
+  "sourcePR": "https://github.com/BitterSecurity/Decepticon/pull/1161"
 }
