@@ -119,5 +119,6 @@
   ],
   "aggregateProductionGo": false,
   "frameworkWheelSha256": "ce5a87ed569979d3e1311b316e9951bcc5757d7476ae63bc4d85d742be3a6645",
-  "validatorSha256": "8aa39a156173f5ef5b6b527c6a648490d1fe00ed66c9f426884c1994d46c91b5"
+  "validatorSha256": "8aa39a156173f5ef5b6b527c6a648490d1fe00ed66c9f426884c1994d46c91b5",
+  "pullRequest": "https://github.com/BitterSecurity/Decepticon/pull/1163"
 }
