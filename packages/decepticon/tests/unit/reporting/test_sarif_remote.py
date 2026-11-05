@@ -82,6 +82,9 @@ def dispatch(tool: Any, args: dict, state: dict, config: dict) -> dict:
 @pytest.fixture
 def remote(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[dict]:
     """Replace network and container mount namespace only, not transfer methods."""
+    # These tests exercise the plain-HTTP daemon transport: pin the explicit
+    # escape hatch (the default provider is openshell).
+    monkeypatch.setenv("DECEPTICON_SANDBOX_PROVIDER", "http")
     server = importlib.import_module("decepticon.sandbox_server.app")
     daemon = importlib.import_module("decepticon.sandbox_kernel.daemon")
     report_module = importlib.import_module("decepticon.tools.reporting.tools")

@@ -52,7 +52,7 @@ from decepticon.agents.prompts import load_prompt
 from decepticon.backends import build_sandbox_backend, make_agent_backend
 from decepticon.llm import LLMFactory
 from decepticon.middleware.filesystem import FilesystemMiddleware
-from decepticon.middleware.step_budget import StepBudgetMiddleware
+from decepticon.middleware.step_budget import StepBudgetMiddleware, effective_recursion_limit
 from decepticon.middleware.workflow import PlanningWorkflowMiddleware
 from decepticon.tools.interaction import ask_user_question, complete_engagement_planning
 from decepticon_core.plugin_loader import is_bundle_enabled, load_plugin_callbacks
@@ -180,7 +180,7 @@ def create_soundwave_agent(
         name=_ROLE,
     ).with_config(
         {
-            "recursion_limit": recursion_limit or _RECURSION_LIMIT,
+            "recursion_limit": effective_recursion_limit(recursion_limit or _RECURSION_LIMIT),
             "callbacks": load_plugin_callbacks(role=_ROLE, backend=backend),
         }
     )

@@ -5,7 +5,10 @@ from typing import Any
 from deepagents.backends import CompositeBackend, FilesystemBackend
 
 from .factory import build_sandbox_backend
-from .http_transport import HTTPTransportSandbox
+from .http_transport import (
+    HTTPSandbox,  # back-compat alias re-export
+    HTTPTransportSandbox,
+)
 
 # Skills ship as package data under ``decepticon/skills/`` and are read
 # in-process by a local ``FilesystemBackend`` (not the sandbox container).
@@ -116,6 +119,7 @@ def make_agent_backend(
 
 __all__ = [
     "HTTPTransportSandbox",
+    "HTTPSandbox",
     "SKILLS_LOCAL_PATH",
     "build_sandbox_backend",
     "make_agent_backend",
