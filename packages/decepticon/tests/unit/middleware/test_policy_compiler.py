@@ -252,8 +252,12 @@ def test_long_workspace_and_same_basename_never_drop_identity_or_policy(tmp_path
         sandbox_name(second, "a" * 64),
     }
     assert len(names) == 3
-    assert all(len(name) <= 63 for name in names)
-    assert sandbox_name(first, "a" * 64).endswith("a" * 16)
+    # The OpenShell proto caps sandbox names at 19 chars (verified live).
+    assert all(len(name) <= 19 for name in names)
+    # The policy digest stays as the name suffix (truncated to the budget).
+    assert sandbox_name(first, "a" * 64).endswith(("a" * 8))
+    # The workspace digest keeps same-basename engagements distinct.
+    assert sandbox_name(first, "a" * 64).split("-")[1] != sandbox_name(second, "a" * 64).split("-")[1]
 
 
 @pytest.mark.parametrize(
