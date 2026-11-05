@@ -27,6 +27,20 @@ from langchain.agents.middleware import AgentMiddleware
 from langchain_core.messages import SystemMessage
 from typing_extensions import override
 
+# The LangGraph ``recursion_limit`` config must sit ABOVE the step budget:
+# at the budget the middleware strips the tool binding, and the model then
+# needs a few more supersteps to emit its final answer. If the hard cap
+# equals the budget, both fire in the same superstep and the run dies on
+# GraphRecursionError before the answer lands (observed live on the
+# verification stack at a 2000/2000 budget). The margin is runway for the
+# wrap-up, not extra work: tools are already gone.
+RECURSION_MARGIN = 50
+
+
+def effective_recursion_limit(budget: int) -> int:
+    """LangGraph recursion_limit for a given step budget (budget + margin)."""
+    return budget + RECURSION_MARGIN
+
 
 class StepBudgetMiddleware(AgentMiddleware):
     """Inject wrap-up guidance as the run approaches its step budget."""
