@@ -2,7 +2,7 @@
 
 These are thin wrappers: they dispatch the open-web engine
 (``decepticon.sandbox_web``) **inside the sandbox** over the existing execution
-surface (``HTTPSandbox.execute``), so every byte of egress happens in
+surface (``HTTPTransportSandbox.execute``), so every byte of egress happens in
 ``sandbox-net`` behind the RoE-compiled nftables allowlist. No new transport,
 no side channel — same pattern as the bash tool reaching the sandbox.
 

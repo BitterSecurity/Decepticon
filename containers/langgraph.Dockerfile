@@ -35,7 +35,7 @@ RUN sed -i 's/^version = "[^"]*"/version = "'"$VERSION"'"/' \
         packages/decepticon/pyproject.toml \
         packages/decepticon-sdk/pyproject.toml
 
-RUN uv sync --no-dev --frozen --extra neo4j --extra mcp
+RUN uv sync --no-dev --frozen --extra neo4j --extra mcp --extra openshell
 
 # uv sync creates /app/.venv but does NOT modify PATH. Prepend
 # the venv's bin/ so ``langgraph`` and any other workspace-installed

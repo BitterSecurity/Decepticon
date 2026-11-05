@@ -227,7 +227,7 @@ class TestResolveLocalBinding:
         )
         second = resolve_local_binding({"configurable": {"workspace_path": str(workspace)}})
         assert first is not second
-        from decepticon.backends.http_sandbox import SandboxError
+        from decepticon.backends.http_transport import SandboxError
 
         with pytest.raises(SandboxError, match="unavailable"):
             first.check_admission()
@@ -353,7 +353,7 @@ def test_existing_policy_must_be_observed_loaded_before_daemon_exec(tmp_path, mo
 
 
 def test_cached_same_generation_still_reads_effective_policy(tmp_path, monkeypatch):
-    from decepticon.backends.http_sandbox import SandboxError
+    from decepticon.backends.http_transport import SandboxError
 
     workspace = _workspace(tmp_path)
     client = _FakeClient()
@@ -377,7 +377,7 @@ def test_actual_sdk_authenticated_loopback_policy_rpc(tmp_path, corrupt):
     from openshell._proto import openshell_pb2 as pb
     from openshell._proto import openshell_pb2_grpc, sandbox_pb2
 
-    from decepticon.backends.http_sandbox import SandboxError
+    from decepticon.backends.http_transport import SandboxError
     from decepticon.middleware.roe import _load_rules_for_workspace
 
     workspace = _workspace(tmp_path)

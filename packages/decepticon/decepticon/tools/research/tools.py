@@ -2060,7 +2060,7 @@ async def validate_finding(
 
     sandbox = get_sandbox()
     if sandbox is None:
-        return _json({"error": "HTTPSandbox not initialized"})
+        return _json({"error": "HTTPTransportSandbox not initialized"})
 
     def _split(s: str) -> list[str]:
         return [p.strip() for p in s.split(",") if p.strip()]

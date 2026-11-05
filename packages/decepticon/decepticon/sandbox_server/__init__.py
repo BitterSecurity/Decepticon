@@ -1,4 +1,4 @@
-"""Sandbox daemon — the server peer of `HTTPSandbox`.
+"""Sandbox daemon — the server peer of `HTTPTransportSandbox`.
 
 Runs inside the sandbox container, wraps a `LocalShellBackend` (which
 already implements the BaseSandbox semantics for direct-host execution),

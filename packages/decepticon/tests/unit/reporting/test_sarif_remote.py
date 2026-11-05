@@ -82,6 +82,9 @@ def dispatch(tool: Any, args: dict, state: dict, config: dict) -> dict:
 @pytest.fixture
 def remote(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[dict]:
     """Replace network and container mount namespace only, not transfer methods."""
+    # These tests exercise the plain-HTTP daemon transport: pin the explicit
+    # escape hatch (the default provider is openshell).
+    monkeypatch.setenv("DECEPTICON_SANDBOX_PROVIDER", "http")
     server = importlib.import_module("decepticon.sandbox_server.app")
     daemon = importlib.import_module("decepticon.sandbox_kernel.daemon")
     report_module = importlib.import_module("decepticon.tools.reporting.tools")
@@ -371,7 +374,7 @@ def test_large_report_refused_before_upload(remote: dict) -> None:
 
 
 def test_http_auth_failure_propagates(remote: dict, monkeypatch: pytest.MonkeyPatch) -> None:
-    from decepticon.backends.http_sandbox import SandboxError
+    from decepticon.backends.http_transport import SandboxError
 
     server = importlib.import_module("decepticon.sandbox_server.app")
     monkeypatch.setattr(server, "_required_token", "fixture-only-token")

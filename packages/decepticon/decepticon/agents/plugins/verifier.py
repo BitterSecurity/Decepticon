@@ -1,7 +1,7 @@
 """Verifier Agent — Stage 3 of the vulnresearch pipeline.
 
 Given a ``VULNERABILITY`` node from the Detector, the Verifier crafts a
-minimal PoC, runs it inside the HTTPSandbox, and either promotes the
+minimal PoC, runs it inside the HTTPTransportSandbox, and either promotes the
 vuln to a ``FINDING`` (via the Zero-False-Positive ``validate_finding``
 tool) or records a reproducible failure and moves on.
 

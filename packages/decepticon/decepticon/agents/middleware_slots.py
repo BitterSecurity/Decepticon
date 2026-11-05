@@ -223,7 +223,7 @@ def _make_sandbox_notification(*, sandbox: Any = None, **_: Any):
     if sandbox is None:
         raise ValueError(
             "SandboxNotificationMiddleware requires a sandbox kwarg; "
-            "the agent factory must pass the HTTPSandbox instance it built."
+            "the agent factory must pass the HTTPTransportSandbox instance it built."
         )
     return SandboxNotificationMiddleware(sandbox=sandbox)
 
