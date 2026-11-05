@@ -173,6 +173,37 @@ def _generation_token(ref: Any) -> str:
     )
 
 
+def _assert_effective_policy_matches(effective, compiled_spec):
+    """Verify the admitted policy against the compiled RoE, tolerating runtime enrichment.
+
+    Raw protobuf equality cannot hold against a real gateway: the supervisor
+    enriches the filesystem at admission with its proxy-mode baseline mounts
+    (``openshell-supervisor`` PROXY_BASELINE_* — /usr /lib /etc /var/log /proc
+    /dev/urandom read-only; /tmp /dev/null read-write; nonexistent paths
+    skipped). That enrichment is runtime infrastructure, not scope. Verified
+    live on the verification stack: raw equality failed while the compiled
+    rules were present verbatim in the effective policy.
+
+    So compare the operator-authored parts exactly — the network rules (the
+    actual scope) and the process/landlock blocks — and treat the filesystem
+    as a superset check: every compiled grant must survive; gateway-added
+    baseline paths are tolerated. Anything the gateway DROPPED fails closed.
+    """
+    if effective.network_policies != compiled_spec.network_policies:
+        raise SandboxError("OpenShell effective policy does not match compiled RoE")
+    if getattr(effective, "process", None) != getattr(compiled_spec, "process", None):
+        raise SandboxError("OpenShell effective policy process block does not match compiled RoE")
+    if getattr(effective, "landlock", None) != getattr(compiled_spec, "landlock", None):
+        raise SandboxError("OpenShell effective policy landlock block does not match compiled RoE")
+    lfs, efs = compiled_spec.filesystem, effective.filesystem
+    if lfs.include_workdir and not efs.include_workdir:
+        raise SandboxError("OpenShell effective policy dropped include_workdir")
+    if not set(lfs.read_only) <= set(efs.read_only):
+        raise SandboxError("OpenShell effective policy dropped operator read-only grants")
+    if not set(lfs.read_write) <= set(efs.read_write):
+        raise SandboxError("OpenShell effective policy dropped operator read-write grants")
+
+
 def _verified_runtime(client: Any, name: str, workspace: str, compiled: CompiledRoePolicy):
     """Read effective policy and loaded ACK, bracketing them with runtime identity.
 
@@ -194,8 +225,9 @@ def _verified_runtime(client: Any, name: str, workspace: str, compiled: Compiled
         sandbox_pb2.GetSandboxConfigRequest(workspace_scope=selector, name=name),
         timeout=30.0,
     )
-    if config.version < 1 or config.policy != _policy_spec(compiled).policy:
-        raise SandboxError("OpenShell effective policy does not match compiled RoE")
+    if config.version < 1:
+        raise SandboxError("OpenShell sandbox config has no admitted policy")
+    _assert_effective_policy_matches(config.policy, _policy_spec(compiled).policy)
     status = client._stub.GetSandboxPolicyStatus(
         openshell_pb2.GetSandboxPolicyStatusRequest(
             workspace_scope=selector,
