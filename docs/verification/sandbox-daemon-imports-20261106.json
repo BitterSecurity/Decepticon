@@ -1,0 +1,230 @@
+{
+  "status": "Proposed; actual native local/image/wheel passed, new E2B build pending",
+  "freshMain": "44eb9032651c18df3f40e9f19a09e860d74ab43e",
+  "stackBase": "ea192d45f4d4656b7d6b121ba30ef039375b7144",
+  "stackedOnPR": 1164,
+  "productionChanged": false,
+  "published": false,
+  "normalReadinessTimeoutChanged": false,
+  "stockRuntimeChanged": false,
+  "actualPriorE2bFailure": {
+    "template": "ri3gvpizc864uh6tf2ky",
+    "normalReadiness": "failed before browser execution",
+    "profileImportSeconds": 35.735568,
+    "deepagentsCumulativeSeconds": 23.524641,
+    "profileOnlyNotSmoke": true
+  },
+  "localImageImport": {
+    "exitCode": 0,
+    "measurement": {
+      "importSeconds": 0.26342497900077433,
+      "userSeconds": 0.25438299999999997,
+      "systemSeconds": 0.047695999999999995,
+      "maxRssKiB": 49976,
+      "python": "3.14.8 (main, Oct  1 2026, 19:55:55) [GCC 16.2.0]",
+      "agentStackModulesLoaded": []
+    },
+    "instrumentedNotSla": true
+  },
+  "localGates": {
+    "existingAffected": {
+      "passed": 226,
+      "warnings": 3,
+      "seconds": 0.87
+    },
+    "finalAffected": "229 passed in 1.10s",
+    "newContractTests": {
+      "passed": 3,
+      "scopes": [
+        "fresh interpreter rejects agent imports",
+        "legacy adapter returns real Deep Agents execution record",
+        "real ASGI/kernel IO through agent HTTP transport with file pagination/edit and auth refusal"
+      ]
+    },
+    "fullFast": {
+      "passed": 6233,
+      "skipped": 3,
+      "warnings": 17,
+      "seconds": 48.07
+    },
+    "lint": {
+      "formattedFiles": 898,
+      "typeErrors": 0,
+      "inheritedWarnings": 972
+    }
+  },
+  "build": {
+    "canonicalDockerfile": true,
+    "sharedBuildSlot": true,
+    "exitCode": 0,
+    "image": "sha256:013335273ec46e377dc7ac1d5d1ca4c94c622113b841878729e670566c895d72"
+  },
+  "wheel": {
+    "wheelSha256": "d9673a5f645d3d4a0488426e3e5f8ae710d62d66a13b5e6b4ac7ba103129711a",
+    "sourceWheelInstallBytesMatch": true,
+    "files": {
+      "decepticon/sandbox_kernel/base.py": "e205db85c62c8df94ae71033acefa1850a0984105ec80edf39324e716ad1667b",
+      "decepticon/sandbox_kernel/core.py": "8bb13fd278ae6ab6d40cee9a37a671db75e0a1fc51cd3938c353c231d157c350",
+      "decepticon/sandbox_kernel/protocol.py": "286556a4a8e98035afa0bebfa5a045d6b0c947746078b3f53427cfd627d9218e",
+      "decepticon/sandbox_kernel/daemon.py": "c4fa08d78a234cfbc021fb4603a2c890869b7a0469a2771ecea5c792f7cd1318",
+      "decepticon/sandbox_server/app.py": "d04b4b9d494e8e2ab8ccdf9ad53d21572b231801071d89e4854c56a8305d047d",
+      "decepticon/sandbox_web/templates/chromium_options.js": "27100baa157a89fe9ce40e2597f77591ab990f51f1ef844e5b61462792f636e1"
+    },
+    "published": false,
+    "imageSourceWheelInstallBytesMatch": true,
+    "image": "sha256:013335273ec46e377dc7ac1d5d1ca4c94c622113b841878729e670566c895d72"
+  },
+  "nativeSource": {
+    "nativeOpenShell": true,
+    "syntheticAdmission": false,
+    "trustedClientInjection": "Real mTLS SDK client supplied to OSS local resolver",
+    "saasTenantQualified": false,
+    "e2bQualified": false,
+    "productionEquivalent": false,
+    "modelCalls": 0,
+    "externalTargetRequests": 0,
+    "image": "sha256:013335273ec46e377dc7ac1d5d1ca4c94c622113b841878729e670566c895d72",
+    "passed": true,
+    "cleanedSandboxes": [
+      "dcpt-yze4qqtgb44rim",
+      "dcpt-3pq7u56vguqzra"
+    ],
+    "checks": {
+      "differentRuntimeIds": true,
+      "identity": "1000\n6.18.54.1-microsoft-standard-WSL2\n",
+      "scopeAndRuntimeFilesIsolated": true,
+      "tmuxStateAndSessionIsolation": true,
+      "ownedNetworkResults": {
+        "allowed": {
+          "exitCode": 0,
+          "output": "owned-native-fixture"
+        },
+        "denied": {
+          "exitCode": 7,
+          "output": "\n<stderr>curl: (7) Failed to connect to host.docker.internal:44417 after 5 ms: Could not connect to server</stderr>"
+        },
+        "listenerHits": {
+          "allowed": 1,
+          "denied": 0
+        }
+      },
+      "ownedNetworkAllowDeny": true,
+      "ownedListenerHits": {
+        "allowed": 1,
+        "denied": 0
+      },
+      "desktopBrowser": {
+        "runs": [
+          {
+            "visit": 1,
+            "seconds": 7.837,
+            "automation": "playwright-extra+stealth",
+            "status": 200
+          },
+          {
+            "visit": 2,
+            "seconds": 7.242,
+            "automation": "playwright-extra+stealth",
+            "status": 200
+          }
+        ],
+        "javascriptExecuted": true,
+        "cookieReturned": true,
+        "localStorageSurvivesContextRestart": true,
+        "ownedDeniedListenerHits": 0
+      },
+      "supervisorPolicyDenialObserved": true,
+      "syntheticDnsMappingBoundToOwnedListener": true,
+      "fourNativeReattachmentsKeepProcessAndData": true,
+      "changedApprovedBytesRefuseNewExecution": true
+    },
+    "seconds": 36.584
+  },
+  "nativeInstalledWheel": {
+    "nativeOpenShell": true,
+    "syntheticAdmission": false,
+    "trustedClientInjection": "Real mTLS SDK client supplied to OSS local resolver",
+    "saasTenantQualified": false,
+    "e2bQualified": false,
+    "productionEquivalent": false,
+    "modelCalls": 0,
+    "externalTargetRequests": 0,
+    "image": "sha256:013335273ec46e377dc7ac1d5d1ca4c94c622113b841878729e670566c895d72",
+    "passed": true,
+    "cleanedSandboxes": [
+      "dcpt-mzbc4kfwuvxxm2",
+      "dcpt-h4wd735zr42qsi"
+    ],
+    "checks": {
+      "differentRuntimeIds": true,
+      "identity": "1000\n6.18.54.1-microsoft-standard-WSL2\n",
+      "scopeAndRuntimeFilesIsolated": true,
+      "tmuxStateAndSessionIsolation": true,
+      "ownedNetworkResults": {
+        "allowed": {
+          "exitCode": 0,
+          "output": "owned-native-fixture"
+        },
+        "denied": {
+          "exitCode": 7,
+          "output": "\n<stderr>curl: (7) Failed to connect to host.docker.internal:41931 after 4 ms: Could not connect to server</stderr>"
+        },
+        "listenerHits": {
+          "allowed": 1,
+          "denied": 0
+        }
+      },
+      "ownedNetworkAllowDeny": true,
+      "ownedListenerHits": {
+        "allowed": 1,
+        "denied": 0
+      },
+      "desktopBrowser": {
+        "runs": [
+          {
+            "visit": 1,
+            "seconds": 8.003,
+            "automation": "playwright-extra+stealth",
+            "status": 200
+          },
+          {
+            "visit": 2,
+            "seconds": 7.596,
+            "automation": "playwright-extra+stealth",
+            "status": 200
+          }
+        ],
+        "javascriptExecuted": true,
+        "cookieReturned": true,
+        "localStorageSurvivesContextRestart": true,
+        "ownedDeniedListenerHits": 0
+      },
+      "supervisorPolicyDenialObserved": true,
+      "syntheticDnsMappingBoundToOwnedListener": true,
+      "fourNativeReattachmentsKeepProcessAndData": true,
+      "changedApprovedBytesRefuseNewExecution": true
+    },
+    "seconds": 37.62
+  },
+  "wheelGatewayCleanup": {
+    "remaining": 0,
+    "gatewayExitCode": 0
+  },
+  "cleanupEvidenceNote": {
+    "incident": "Private wrapper cleanup filename was reused from prior local Chromium diagnostic; values were overwritten by later completed local lanes. Main validation receipts remain separate and unchanged.",
+    "lastWriter": "Installed-wheel local native lane at lean016w1",
+    "lastWriterReceiptCopy": "oss-lean-daemon-wheel-native-r1-cleanup-20261106.receipt.json",
+    "copiedFrom": "oss-chromium-native-r6-cleanup-20261105.receipt.json",
+    "sha256": "fc68328d5a84f642a6f05c6880030b57ed327dd27e68be2070b3872901f6ab98",
+    "sourceLane": "Its own validation receipt confirms both bound records deleted; do not attribute the last-writer gateway-exit receipt to the source lane.",
+    "futureWrapperPathsCorrected": true
+  },
+  "actualNewE2b": "Pending; do not substitute local results for cloud cold-readiness or full smoke",
+  "notQualified": [
+    "SaaS tenant/custody integration",
+    "long lease extension and durable driver restart",
+    "all alternative tool images",
+    "aggregate VM resource/fault acceptance",
+    "OSS release gates"
+  ]
+}
