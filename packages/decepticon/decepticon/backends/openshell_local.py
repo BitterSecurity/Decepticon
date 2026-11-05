@@ -50,9 +50,17 @@ log = logging.getLogger(__name__)
 
 _ADMISSION_TTL_SECONDS = 3600.0
 _READY_TIMEOUT_SECONDS = 120.0
-_DAEMON_START_TIMEOUT_SECONDS = 15.0
+_DAEMON_START_TIMEOUT_SECONDS = 15
 _DAEMON_READY_TIMEOUT_SECONDS = 30.0
 _BRIDGE_POLL_SECONDS = 0.5
+
+# OpenShell v0.1.6 supervisor, ac7f615cd12d5cc49cb16eb1f5f10ffeb1e90f47,
+# crates/openshell-supervisor/src/lib.rs, PROXY_BASELINE_{READ_ONLY,READ_WRITE}.
+# Permit only these runtime additions, not an arbitrary filesystem superset.
+_PROXY_BASELINE_READ_ONLY = frozenset(
+    ("/usr", "/lib", "/etc", "/app", "/var/log", "/proc", "/dev/urandom")
+)
+_PROXY_BASELINE_READ_WRITE = frozenset(("/tmp", "/dev/null"))
 
 # The sandbox image is the same artifact the compose daemon deployment
 # ships; the managed runtime ignores its ENTRYPOINT lifecycle, so the
@@ -145,7 +153,6 @@ def _apply_enum_symbols(node: Any) -> Any:
             "enforce": "NETWORK_ENFORCEMENT_MODE_ENFORCE",
             "audit": "NETWORK_ENFORCEMENT_MODE_AUDIT",
         },
-        "protocol": {"rest": "NETWORK_PROTOCOL_REST", "tcp": "NETWORK_PROTOCOL_TCP"},
         "access": {
             "full": "NETWORK_ACCESS_PRESET_FULL",
             "read-write": "NETWORK_ACCESS_PRESET_READ_WRITE",
@@ -174,20 +181,11 @@ def _generation_token(ref: Any) -> str:
 
 
 def _assert_effective_policy_matches(effective, compiled_spec):
-    """Verify the admitted policy against the compiled RoE, tolerating runtime enrichment.
+    """Compare the full protobuf except selected supervisor baseline additions.
 
-    Raw protobuf equality cannot hold against a real gateway: the supervisor
-    enriches the filesystem at admission with its proxy-mode baseline mounts
-    (``openshell-supervisor`` PROXY_BASELINE_* — /usr /lib /etc /var/log /proc
-    /dev/urandom read-only; /tmp /dev/null read-write; nonexistent paths
-    skipped). That enrichment is runtime infrastructure, not scope. Verified
-    live on the verification stack: raw equality failed while the compiled
-    rules were present verbatim in the effective policy.
-
-    So compare the operator-authored parts exactly — the network rules (the
-    actual scope) and the process/landlock blocks — and treat the filesystem
-    as a superset check: every compiled grant must survive; gateway-added
-    baseline paths are tolerated. Anything the gateway DROPPED fails closed.
+    The supervisor adds existing baseline paths without dropping authored
+    grants. Arbitrary extra paths, permission upgrades, changed flags and
+    unrelated/unknown protobuf content are not runtime normalization.
     """
     if effective.network_policies != compiled_spec.network_policies:
         raise SandboxError("OpenShell effective policy does not match compiled RoE")
@@ -202,6 +200,16 @@ def _assert_effective_policy_matches(effective, compiled_spec):
         raise SandboxError("OpenShell effective policy dropped operator read-only grants")
     if not set(lfs.read_write) <= set(efs.read_write):
         raise SandboxError("OpenShell effective policy dropped operator read-write grants")
+    if not set(efs.read_only) - set(lfs.read_only) <= _PROXY_BASELINE_READ_ONLY:
+        raise SandboxError("OpenShell effective policy added unauthorized read-only grants")
+    if not set(efs.read_write) - set(lfs.read_write) <= _PROXY_BASELINE_READ_WRITE:
+        raise SandboxError("OpenShell effective policy added unauthorized read-write grants")
+    normalized = type(effective)()
+    normalized.CopyFrom(effective)
+    normalized.filesystem.read_only[:] = lfs.read_only
+    normalized.filesystem.read_write[:] = lfs.read_write
+    if normalized != compiled_spec:
+        raise SandboxError("OpenShell effective policy does not match compiled RoE")
 
 
 def _verified_runtime(client: Any, name: str, workspace: str, compiled: CompiledRoePolicy):
@@ -457,7 +465,7 @@ def resolve_local_binding(run_config: Any):
 
 
 def maybe_install_local_resolver() -> bool:
-    """Install the local resolver when the operator opted in via env."""
+    """Install the default local resolver unless the host explicitly disables it."""
     if not local_resolver_enabled():
         return False
     from decepticon.backends import factory

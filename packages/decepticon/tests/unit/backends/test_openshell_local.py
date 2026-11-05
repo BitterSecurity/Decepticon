@@ -165,7 +165,7 @@ class TestEnumSymbols:
             }
         )
         endpoint = mapped["endpoints"][0]
-        assert endpoint["protocol"] == "NETWORK_PROTOCOL_REST"
+        assert endpoint["protocol"] == "rest"
         assert endpoint["enforcement"] == "NETWORK_ENFORCEMENT_MODE_ENFORCE"
         assert endpoint["access"] == "NETWORK_ACCESS_PRESET_FULL"
         assert endpoint["host"] == "example.com"
@@ -276,25 +276,37 @@ class TestResolverInstallGating:
         assert maybe_install_local_resolver() is True
         assert factory._openshell_resolver is not None
 
-    def test_no_env_no_install(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_default_installs_trusted_local_resolver(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(factory, "_openshell_resolver", None)
         monkeypatch.delenv("DECEPTICON_OPENSHELL_LOCAL", raising=False)
         from decepticon.backends.openshell_local import maybe_install_local_resolver
 
-        assert maybe_install_local_resolver() is False
-        assert factory._openshell_resolver is None
+        assert maybe_install_local_resolver() is True
+        assert factory._openshell_resolver is openshell_local.resolve_local_binding
+
+    @pytest.mark.parametrize("value", ["0", "false", "no", "off"])
+    def test_explicit_opt_out_preserves_host_resolver_requirement(self, monkeypatch, value):
+        monkeypatch.setattr(factory, "_openshell_resolver", None)
+        monkeypatch.setenv("DECEPTICON_OPENSHELL_LOCAL", value)
+        monkeypatch.setenv("DECEPTICON_SANDBOX_PROVIDER", "openshell")
+        assert openshell_local.maybe_install_local_resolver() is False
+        with pytest.raises(RuntimeError, match="trusted host admission resolver"):
+            factory.build_sandbox_backend({"configurable": {"thread_id": "owned"}})
 
     def test_factory_lazily_installs_on_env_opt_in(
         self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
     ) -> None:
         saved = factory._openshell_resolver
+        monkeypatch.setattr(factory, "_openshell_resolver", None)
         monkeypatch.setenv("DECEPTICON_SANDBOX_PROVIDER", "openshell")
         monkeypatch.setenv("DECEPTICON_OPENSHELL_LOCAL", "1")
         try:
             # Resolver installed lazily; the binding itself then fails closed on
             # the missing engagement context instead of silently downgrading.
             with pytest.raises(RuntimeError):
-                factory.build_sandbox_backend({"configurable": {"sandbox_provider": "openshell"}})
+                factory.build_sandbox_backend(
+                    {"configurable": {"sandbox_provider": "openshell", "thread_id": "owned"}}
+                )
             assert factory._openshell_resolver is not None
         finally:
             factory._openshell_resolver = saved
@@ -367,7 +379,7 @@ def test_cached_same_generation_still_reads_effective_policy(tmp_path, monkeypat
     assert len(backend._session.calls) == executed
 
 
-@pytest.mark.parametrize("corrupt", [False, True])
+@pytest.mark.parametrize("corrupt", [None, "pending", "filesystem"])
 def test_actual_sdk_authenticated_loopback_policy_rpc(tmp_path, corrupt):
     """Real SDK serialization/auth/transport, with an owned loopback gateway fixture."""
     from concurrent.futures import ThreadPoolExecutor
@@ -383,6 +395,8 @@ def test_actual_sdk_authenticated_loopback_policy_rpc(tmp_path, corrupt):
     workspace = _workspace(tmp_path)
     compiled = compile_openshell_policy(_load_rules_for_workspace(str(workspace)))
     policy = openshell_local._policy_spec(compiled).policy
+    if corrupt == "filesystem":
+        policy.filesystem.read_write.append("/root")
     calls = []
 
     class Gateway(openshell_pb2_grpc.OpenShellServicer):
@@ -416,7 +430,9 @@ def test_actual_sdk_authenticated_loopback_policy_rpc(tmp_path, corrupt):
                     policy=policy,
                     version=7,
                     policy_hash="real-wire-hash",
-                    status=pb.POLICY_STATUS_PENDING if corrupt else pb.POLICY_STATUS_LOADED,
+                    status=pb.POLICY_STATUS_PENDING
+                    if corrupt == "pending"
+                    else pb.POLICY_STATUS_LOADED,
                 ),
             )
 
@@ -426,13 +442,19 @@ def test_actual_sdk_authenticated_loopback_policy_rpc(tmp_path, corrupt):
     server.start()
     client = SandboxClient(f"127.0.0.1:{port}", bearer_token="fixture-only")
     try:
-        if corrupt:
+        if corrupt == "filesystem":
+            with pytest.raises(SandboxError, match="unauthorized read-write"):
+                openshell_local._verified_runtime(client, "owned", "default", compiled)
+            assert calls == ["sandbox", "config"]
+        elif corrupt == "pending":
             with pytest.raises(SandboxError, match="acknowledgement"):
                 openshell_local._verified_runtime(client, "owned", "default", compiled)
         else:
             ref = openshell_local._verified_runtime(client, "owned", "default", compiled)
             assert ref.id == "owned-sandbox" and ref.current_policy_version == 7
-        assert "config" in calls and "loaded" in calls
+        assert "config" in calls
+        if corrupt != "filesystem":
+            assert "loaded" in calls
     finally:
         client.close()
         server.stop(0).wait()
