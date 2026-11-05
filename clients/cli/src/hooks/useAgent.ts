@@ -17,7 +17,7 @@ import { runtimeWorkspace } from "../utils/runtimeWorkspace.js";
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { Client } from "@langchain/langgraph-sdk";
-import { saveThread, touchThread, loadThreadByIndex, validateThread, listThreads } from "../utils/threadStore.js";
+import { staleEngagementCheckpoint, saveThread, touchThread, loadThreadByIndex, validateThread, listThreads } from "../utils/threadStore.js";
 import type { ActiveQuestion, AgentEvent, AskUserOption } from "../types.js";
 import {
   type SubagentCustomEvent,
@@ -265,6 +265,14 @@ export function useAgent({
         const saved = await validateThread(candidate);
         const state = await clientRef.current.threads.getState(candidate);
         if (stopped) return;
+        const staleEngagement = staleEngagementCheckpoint(state, process.env.DECEPTICON_ENGAGEMENT ?? "");
+        if (staleEngagement) {
+          threadIdRef.current = null;
+          setError(
+            `Skipped session from engagement '${staleEngagement}' (runtime engagement is '${process.env.DECEPTICON_ENGAGEMENT ?? ""}') — starting a fresh session.`,
+          );
+          return;
+        }
         const messages = (state.values as { messages?: LangChainMessage[] })?.messages ?? [];
         lastCountRef.current = messages.length;
         eventsRef.current = messages.flatMap((message): AgentEvent[] => {

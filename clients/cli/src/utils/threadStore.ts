@@ -58,6 +58,29 @@ export async function listThreads(options: ThreadListOptions = {}): Promise<Thre
     offset += page.length;
   }
 }
+/**
+ * Detect a checkpoint whose graph state was hydrated under a different
+ * runtime engagement. The daemon's binding guard rejects such sessions on
+ * the next run ("Session does not belong to the launcher runtime
+ * engagement"), so the resume path skips them and starts fresh instead of
+ * dead-ending the operator. Returns the mismatched label, or null when the
+ * checkpoint carries no engagement binding (fresh thread) or matches.
+ */
+export function staleEngagementCheckpoint(
+  state: unknown,
+  envEngagement: string,
+): string | null {
+  if (!envEngagement) return null;
+  const values = state !== null && typeof state === "object" && !Array.isArray(state)
+    ? (state as Record<string, unknown>).values
+    : undefined;
+  const record = values !== null && typeof values === "object" && !Array.isArray(values)
+    ? values as Record<string, unknown>
+    : {};
+  const label = record.engagement_name;
+  return typeof label === "string" && label !== "" && label !== envEngagement ? label : null;
+}
+
 export async function loadThreadByIndex(index: number): Promise<ThreadEntry | null> {
   return (await listThreads({ limit: 1, offset: index }))[0] ?? null;
 }

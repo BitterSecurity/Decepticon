@@ -1,6 +1,7 @@
+import { staleEngagementCheckpoint } from "./threadStore.js";
 import { once } from "node:events";
 import { createServer } from "node:http";
-import { expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 it("reports session-list authentication failure instead of an empty history", async () => {
   const server = createServer((_request, response) => {
@@ -144,4 +145,34 @@ it("keeps canonical and pre-upgrade web sessions in their original server namesp
     server.closeAllConnections();
     await new Promise<void>(resolve => server.close(() => resolve()));
   }
+});
+
+describe("staleEngagementCheckpoint", () => {
+  const stateOf = (values: unknown): unknown => ({ values, checkpoint: { checkpoint_id: "cp-1" } });
+
+  it("returns the mismatched label when the checkpoint belongs to another engagement", () => {
+    const state = stateOf({ engagement_name: "roe-tui-verify", messages: [] });
+    expect(staleEngagementCheckpoint(state, "oss-verify")).toBe("roe-tui-verify");
+  });
+
+  it("returns null when the checkpoint matches the runtime engagement", () => {
+    const state = stateOf({ engagement_name: "oss-verify", messages: [] });
+    expect(staleEngagementCheckpoint(state, "oss-verify")).toBeNull();
+  });
+
+  it("returns null for a fresh thread with no engagement binding", () => {
+    expect(staleEngagementCheckpoint(stateOf({ messages: [] }), "oss-verify")).toBeNull();
+    expect(staleEngagementCheckpoint(stateOf({}), "oss-verify")).toBeNull();
+    expect(staleEngagementCheckpoint(null, "oss-verify")).toBeNull();
+  });
+
+  it("returns null when no runtime engagement is set (shared-root compose)", () => {
+    const state = stateOf({ engagement_name: "roe-tui-verify" });
+    expect(staleEngagementCheckpoint(state, "")).toBeNull();
+  });
+
+  it("ignores non-string engagement values", () => {
+    const state = stateOf({ engagement_name: 12345 });
+    expect(staleEngagementCheckpoint(state, "oss-verify")).toBeNull();
+  });
 });

@@ -28,6 +28,7 @@ vi.mock("../utils/threadStore.js", () => ({
   loadThreadByIndex: vi.fn(async () => null),
   listThreads: vi.fn(async () => []),
   validateThread: vi.fn(async (threadId: string) => ({ threadId, assistantId: "soundwave", engagementName: "eng-abc", workspacePath: "/tmp/ws", legacyMetadata: false })),
+  staleEngagementCheckpoint: vi.fn(() => null),
 }));
 
 vi.mock("../commands/rolePurpose.js", () => ({
