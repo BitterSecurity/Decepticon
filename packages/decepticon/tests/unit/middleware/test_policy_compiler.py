@@ -172,7 +172,8 @@ class TestSandboxName:
         name = sandbox_name(str(tmp_path), compiled.canonical_hash)
         assert name == sandbox_name(str(tmp_path), compiled.canonical_hash)
         assert name.startswith("dcpt-")
-        assert compiled.canonical_hash[:8] in name
+        different = _compile({"in_scope": ["other.example.com"]})
+        assert name != sandbox_name(str(tmp_path), different.canonical_hash)
 
     def test_name_is_dns_label(self, tmp_path: Path) -> None:
         weird = tmp_path / "Engagement!! With Spaces"
@@ -260,12 +261,7 @@ def test_long_workspace_and_same_basename_never_drop_identity_or_policy(tmp_path
     assert len(names) == 3
     # The OpenShell proto caps sandbox names at 19 chars (verified live).
     assert all(len(name) <= 19 for name in names)
-    # The policy digest stays as the name suffix (truncated to the budget).
-    assert sandbox_name(first, "a" * 64).endswith(("a" * 8))
-    # The workspace digest keeps same-basename engagements distinct.
-    assert (
-        sandbox_name(first, "a" * 64).split("-")[1] != sandbox_name(second, "a" * 64).split("-")[1]
-    )
+    assert all(name.startswith("dcpt-") and len(name) == 19 for name in names)
 
 
 @pytest.mark.parametrize(

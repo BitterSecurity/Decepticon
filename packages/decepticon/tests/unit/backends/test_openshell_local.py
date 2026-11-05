@@ -8,6 +8,7 @@ against the real installed SDK's proto surface, so the verified YAML-to-
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 from types import SimpleNamespace
@@ -49,6 +50,7 @@ class _FakeRef:
         self.name = "dcpt-fake"
         self.workspace = "default"
         self.status = _FakeStatus()
+        self.labels = {}
 
     @property
     def current_policy_version(self) -> int:
@@ -119,13 +121,14 @@ class _FakeClient:
             raise RuntimeError("NOT_FOUND: sandbox does not exist")
         return self._sandboxes[name][0]
 
-    def create(self, workspace, name, spec):  # noqa: ANN001
+    def create(self, workspace, name, spec, labels=None):  # noqa: ANN001
         assert spec.policy.network_policies["roe_in_scope"].endpoints
         assert spec.template.image
         self.created_spec = spec
         self._exists = True
         self.ref = _FakeRef()
         self.ref.id = f"sbx-fake-{len(self._sandboxes) + 1}"
+        self.ref.labels = dict(labels or {})
         self._sandboxes[name] = (self.ref, spec)
         return self.ref
 
@@ -328,14 +331,23 @@ class TestResolverInstallGating:
 def test_existing_policy_must_be_observed_loaded_before_daemon_exec(tmp_path, monkeypatch, failure):
     from openshell._proto import openshell_pb2
 
-    from decepticon.middleware.policy_compiler import sandbox_name
+    from decepticon.middleware.policy_compiler import sandbox_binding_digest, sandbox_name
     from decepticon.middleware.roe import _load_rules_for_workspace
 
     workspace = _workspace(tmp_path)
     compiled = compile_openshell_policy(_load_rules_for_workspace(str(workspace)))
     client = _FakeClient()
-    name = sandbox_name(str(workspace), compiled.canonical_hash)
-    client.create("default", name, openshell_local._policy_spec(compiled))
+    approval = hashlib.sha256((workspace / "plan/roe.json").read_bytes()).hexdigest()
+    name = sandbox_name(str(workspace), compiled.canonical_hash, approval_hash=approval)
+    binding = sandbox_binding_digest(
+        str(workspace), compiled.canonical_hash, approval_hash=approval
+    )
+    client.create(
+        "default",
+        name,
+        openshell_local._policy_spec(compiled),
+        labels={openshell_local._BINDING_LABEL: binding},
+    )
     if failure == "unready":
         client.ref.status.phase = openshell_pb2.SANDBOX_PHASE_UNSPECIFIED
     elif failure == "changed_policy":
@@ -379,7 +391,9 @@ def test_cached_same_generation_still_reads_effective_policy(tmp_path, monkeypat
     assert len(backend._session.calls) == executed
 
 
-@pytest.mark.parametrize("corrupt", [None, "pending", "filesystem"])
+@pytest.mark.parametrize(
+    "corrupt", [None, "pending", "filesystem", "missing_binding", "foreign_binding", "binding_race"]
+)
 def test_actual_sdk_authenticated_loopback_policy_rpc(tmp_path, corrupt):
     """Real SDK serialization/auth/transport, with an owned loopback gateway fixture."""
     from concurrent.futures import ThreadPoolExecutor
@@ -394,6 +408,12 @@ def test_actual_sdk_authenticated_loopback_policy_rpc(tmp_path, corrupt):
 
     workspace = _workspace(tmp_path)
     compiled = compile_openshell_policy(_load_rules_for_workspace(str(workspace)))
+    from decepticon.middleware.policy_compiler import sandbox_binding_digest
+
+    approval = hashlib.sha256((workspace / "plan/roe.json").read_bytes()).hexdigest()
+    binding = sandbox_binding_digest(
+        str(workspace), compiled.canonical_hash, approval_hash=approval
+    )
     policy = openshell_local._policy_spec(compiled).policy
     if corrupt == "filesystem":
         policy.filesystem.read_write.append("/root")
@@ -408,6 +428,26 @@ def test_actual_sdk_authenticated_loopback_policy_rpc(tmp_path, corrupt):
             response.sandbox.metadata.id = "owned-sandbox"
             response.sandbox.metadata.name = "owned"
             response.sandbox.metadata.workspace = "default"
+            if corrupt != "missing_binding":
+                label = (
+                    "foreign"
+                    if corrupt == "foreign_binding"
+                    or (corrupt == "binding_race" and calls.count("sandbox") > 1)
+                    else binding
+                )
+                response.sandbox.metadata.labels[openshell_local._BINDING_LABEL] = label
+            response.sandbox.status.phase = pb.SANDBOX_PHASE_READY
+            response.sandbox.status.current_policy_version = 7
+            return response
+
+        def CreateSandbox(self, request, context):
+            assert dict(context.invocation_metadata()).get("authorization") == "Bearer fixture-only"
+            assert request.labels[openshell_local._BINDING_LABEL] == binding
+            response = pb.SandboxResponse()
+            response.sandbox.metadata.id = "owned-sandbox"
+            response.sandbox.metadata.name = request.name
+            response.sandbox.metadata.workspace = request.workspace_scope.workspace
+            response.sandbox.metadata.labels.update(request.labels)
             response.sandbox.status.phase = pb.SANDBOX_PHASE_READY
             response.sandbox.status.current_policy_version = 7
             return response
@@ -442,18 +482,40 @@ def test_actual_sdk_authenticated_loopback_policy_rpc(tmp_path, corrupt):
     server.start()
     client = SandboxClient(f"127.0.0.1:{port}", bearer_token="fixture-only")
     try:
+        if corrupt is None:
+            created = client.create(
+                workspace="default",
+                name="owned",
+                spec=openshell_local._policy_spec(compiled),
+                labels={openshell_local._BINDING_LABEL: binding},
+            )
+            assert created.labels[openshell_local._BINDING_LABEL] == binding
+
+        def verify():
+            return openshell_local._verified_runtime(
+                client, "owned", "default", compiled, binding_digest=binding
+            )
+
         if corrupt == "filesystem":
             with pytest.raises(SandboxError, match="unauthorized read-write"):
-                openshell_local._verified_runtime(client, "owned", "default", compiled)
+                verify()
             assert calls == ["sandbox", "config"]
         elif corrupt == "pending":
             with pytest.raises(SandboxError, match="acknowledgement"):
-                openshell_local._verified_runtime(client, "owned", "default", compiled)
+                verify()
+        elif corrupt in ("missing_binding", "foreign_binding"):
+            with pytest.raises(SandboxError, match="binding"):
+                verify()
+            assert calls == ["sandbox"]
+        elif corrupt == "binding_race":
+            with pytest.raises(SandboxError, match="changed during policy verification"):
+                verify()
         else:
-            ref = openshell_local._verified_runtime(client, "owned", "default", compiled)
+            ref = verify()
             assert ref.id == "owned-sandbox" and ref.current_policy_version == 7
-        assert "config" in calls
-        if corrupt != "filesystem":
+        if corrupt not in ("missing_binding", "foreign_binding"):
+            assert "config" in calls
+        if corrupt not in ("filesystem", "missing_binding", "foreign_binding"):
             assert "loaded" in calls
     finally:
         client.close()

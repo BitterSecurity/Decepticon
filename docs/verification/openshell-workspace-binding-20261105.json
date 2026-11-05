@@ -1,0 +1,118 @@
+{
+  "scope": "OSS trusted local resolver binding isolation; source/real SDK/installed wheel, not SaaS tenant authorization or kernel qualification",
+  "baseMain": "44eb9032651c18df3f40e9f19a09e860d74ab43e",
+  "stackedOnPR": 1160,
+  "stackBase": "902f582d90025572ad6421e2215bd9d81730b8ba",
+  "productionChanged": false,
+  "qaRestartedOrAuthorityExtended": false,
+  "tagPushed": false,
+  "published": false,
+  "originalSyntheticCollision": {
+    "source": "44eb9032651c18df3f40e9f19a09e860d74ab43e",
+    "differentWorkspacePaths": [
+      "/workspace/owned-identity-fixture-159",
+      "/workspace/owned-identity-fixture-226"
+    ],
+    "sameFullPolicyHash": true,
+    "generatedNames": [
+      "dcpt-40c6-aaaaaaaa",
+      "dcpt-40c6-aaaaaaaa"
+    ],
+    "samplesUntilCollision": 227,
+    "collision": true,
+    "actualGatewayOrTenantAccessPerformed": false,
+    "scope": "Offline synthetic binding-name collision only; no filesystem objects, sandbox or target created"
+  },
+  "meaningfulBaseline": "Five regressions fail before code correction; fixture lifecycle reuses same runtime for distinct colliding workspaces. No real gateway/tenant access performed.",
+  "binding": {
+    "locator": "dcpt- plus14base32 characters of combined identity SHA256;19characters/70locator bits",
+    "fullMetadata": "decepticon-binding label,52base32 characters/256bits",
+    "inputs": [
+      "v1 domain-separated canonical JSON",
+      "canonical absolute workspace path",
+      "full compiled policy SHA256",
+      "full approved document SHA256"
+    ],
+    "checks": [
+      "creation labels carried by real selected SDK",
+      "full label before and after policy/ACK read",
+      "same-bound cache, reattach and renewal verify label",
+      "forced name collision rejected without extra session/exec",
+      "missing/foreign/racing labels rejected",
+      "changed approved bytes with same policy creates new runtime; old runtime retained"
+    ],
+    "legacyPolicy": "Never adopt, relabel, rename or delete unlabeled/old-named runtimes; explicit data migration remains an operator task"
+  },
+  "local": {
+    "focusedCases": 223,
+    "focusedSkipsFailuresErrors": 0,
+    "finalGates": [
+      {
+        "gate": "lint",
+        "command": [
+          "make",
+          "ci-lint"
+        ],
+        "exitCode": 0,
+        "seconds": 29.161
+      },
+      {
+        "gate": "python",
+        "command": [
+          "uv",
+          "run",
+          "--frozen",
+          "--extra",
+          "mcp",
+          "--extra",
+          "openshell",
+          "pytest",
+          "-n",
+          "4",
+          "--cov",
+          "--cov-report=term",
+          "--cov-fail-under=60",
+          "-q"
+        ],
+        "exitCode": 0,
+        "seconds": 79.467
+      }
+    ],
+    "fullPythonPassed": 6225,
+    "fullPythonSkipped": 7,
+    "skips": {
+      "missingPlaywright": 3,
+      "missingTransformers": 1,
+      "WindowsOnly": 3
+    },
+    "coverageSummary": "TOTAL                                                                          34345   7566  10556   1503    75%",
+    "basedpyrightErrors": 0,
+    "basedpyrightWarnings": 972,
+    "installedArtifact": {
+      "exitCode": 0,
+      "seconds": 7.026,
+      "realInstalledWheel": true,
+      "sourceModules": {
+        "decepticon/backends/openshell_local.py": "c97b287a4b0520b9f2f1cf3ca836a9a1c18108f0c66faa823cb1a06da5bc4cb7",
+        "decepticon/middleware/policy_compiler.py": "3d2fe8b6ba9879d8e70c92c4f0ab732162e118f5f0662f024f285a745c6fba71"
+      },
+      "artifacts": {
+        "decepticon-0.0.0-py3-none-any.whl": "ca0ddbad0113fa9d7ef93075603720506491051d01c99d4ebc89d0f19d63c86f",
+        "decepticon-0.0.0.tar.gz": "d3b2baeedc91ce6dedc5d4ac3cb89ca1529383d7163e1852b8fc868fae2b9719"
+      },
+      "kernelOrCustomerSandboxExecution": false,
+      "published": false
+    }
+  },
+  "sourceHashes": {
+    "packages/decepticon/decepticon/backends/openshell_local.py": "c97b287a4b0520b9f2f1cf3ca836a9a1c18108f0c66faa823cb1a06da5bc4cb7",
+    "packages/decepticon/decepticon/middleware/policy_compiler.py": "3d2fe8b6ba9879d8e70c92c4f0ab732162e118f5f0662f024f285a745c6fba71",
+    "uv.lock": "f871950ab4e0b524969a33872d96da8c0bfc2c1a784c0922cc33ccaab82ef315"
+  },
+  "remaining": [
+    "SaaS org/run/custody authorization and normal OpenShell provisioning/resolver/template adoption are separate required gates.",
+    "Actual native kernel/launcher/versioned-distribution/full release gates remain unqualified; no tag/publication.",
+    "Existing background processes are not stopped by this admission refusal; trusted lifecycle controller owns cancellation and stop. No atomic exec/name-generation guarantee is claimed.",
+    "Current main /opt daemon path packaging, VM load/memory/rollout, final active fault/clock, prod operator path/quota and standalone entitlement remain open."
+  ]
+}
