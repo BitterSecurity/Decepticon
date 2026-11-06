@@ -589,5 +589,15 @@
     "Installed Windows/launcher distribution, OSS version/tag/publication and full release security gates",
     "Consolidated VM prod conversion remains held"
   ],
-  "pullRequest": "https://github.com/BitterSecurity/Decepticon/pull/1166"
+  "pullRequest": "https://github.com/BitterSecurity/Decepticon/pull/1166",
+  "blockingSemgrep": {
+    "exitCode": 0,
+    "seconds": 12.603,
+    "metrics": false,
+    "exceptionsAdded": false,
+    "findings": 0,
+    "errors": [],
+    "scannedFiles": 780,
+    "productionCoreIncluded": true
+  }
 }
