@@ -188,6 +188,13 @@ def main():
         assert b.download_files(["/workspace/retained"])[0].content is None
         assert a.download_files(["/workspace/plan/roe.json"])[0].content == roe
         checks["scopeAndRuntimeFilesIsolated"] = True
+        for backend in (a, b):
+            permissions = backend.execute(
+                'test "$(stat -c %a:%u /workspace/plan/roe.json)" = "400:$(id -u)"',
+                timeout=10,
+            )
+            assert permissions.exit_code == 0, permissions.output
+        checks["scopeOwnerOnlyRead"] = True
         assert "kept:/tmp" in a.execute_tmux(
             'export NATIVE_STATE=kept; cd /tmp; printf "%s:%s" "$NATIVE_STATE" "$PWD"',
             session="persistent",
