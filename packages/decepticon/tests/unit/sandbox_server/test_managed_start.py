@@ -49,6 +49,7 @@ def test_scope_bytes_restored_without_exposing_a_configurable_path(managed, prep
     mode = (root / "plan/roe.json").stat().st_mode
     assert mode & 0o400
     assert not mode & 0o222
+    assert not mode & 0o077, "Approved scope must be private to the admitted workload UID"
     args, kwargs = spawn.call_args
     assert args[0][1] == "-I" and args[0][-1] == "--serve"
     assert kwargs["cwd"] == root

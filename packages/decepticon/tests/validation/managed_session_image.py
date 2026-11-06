@@ -161,9 +161,13 @@ def main():
                 [
                     "/bin/sh",
                     "-c",
-                    "mkdir -p /workspace/decepticon; "
-                    'printf "raise RuntimeError("workspace shadow imported")\\n" > /workspace/json.py; '
-                    'printf "raise RuntimeError("workspace shadow imported")\\n" > /workspace/decepticon/__init__.py',
+                    "; ".join(
+                        [
+                            "mkdir -p /workspace/decepticon",
+                            "printf '%s\\n' 'raise RuntimeError(\"workspace shadow imported\")' > /workspace/json.py",
+                            "printf '%s\\n' 'raise RuntimeError(\"workspace shadow imported\")' > /workspace/decepticon/__init__.py",
+                        ]
+                    ),
                 ]
             )
             assert poison.exit_code == 0

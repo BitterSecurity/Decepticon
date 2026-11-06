@@ -29,12 +29,13 @@ def restore_scope(root: Path, content: bytes) -> None:
         try:
             os.mkdir("plan", mode=0o755, dir_fd=root_fd)
         except FileExistsError:
+            # Reattachment keeps the directory; the no-follow open checks it.
             pass
         plan_fd = os.open("plan", os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=root_fd)
         try:
             name = ".roe-" + secrets.token_hex(12)
             fd = os.open(
-                name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o444, dir_fd=plan_fd
+                name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o400, dir_fd=plan_fd
             )
             try:
                 with os.fdopen(fd, "wb") as output:
@@ -47,6 +48,7 @@ def restore_scope(root: Path, content: bytes) -> None:
                 try:
                     os.unlink(name, dir_fd=plan_fd)
                 except FileNotFoundError:
+                    # Successful atomic replacement has already consumed it.
                     pass
         finally:
             os.close(plan_fd)
@@ -92,6 +94,7 @@ def bootstrap(message: dict, *, root: Path = ROOT, state: Path = STATE) -> dict:
                 ):
                     return {"pid": pid, "start": existing["start"], "reused": True}
             except FileNotFoundError:
+                # First startup has no identity to reuse.
                 pass
             log = os.open(
                 "daemon.log",
@@ -133,6 +136,7 @@ def bootstrap(message: dict, *, root: Path = ROOT, state: Path = STATE) -> dict:
                 try:
                     child.terminate()
                 except ProcessLookupError:
+                    # The known new child exited before cleanup signalled it.
                     pass
                 try:
                     child.wait(timeout=5)
@@ -144,6 +148,7 @@ def bootstrap(message: dict, *, root: Path = ROOT, state: Path = STATE) -> dict:
                 try:
                     os.unlink(pending, dir_fd=directory)
                 except FileNotFoundError:
+                    # Successful atomic replacement has already consumed it.
                     pass
             return {"pid": child.pid, "start": identity, "reused": False}
         finally:

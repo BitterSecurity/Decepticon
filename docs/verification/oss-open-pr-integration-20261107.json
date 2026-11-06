@@ -1,5 +1,5 @@
 {
-  "status": "Locally qualified source integration; proposed, unpublished",
+  "status": "Owner-only scope permission correction in progress; preceding artifact receipts retained, requalification pending",
   "freshMain": "44eb9032651c18df3f40e9f19a09e860d74ab43e",
   "integratedAncestorPrs": [
     1160,
@@ -599,5 +599,13 @@
     "errors": [],
     "scannedFiles": 780,
     "productionCoreIncluded": true
+  },
+  "followupCodeQL": {
+    "rule": "py/overly-permissive-file",
+    "finding": "Approved scope copy created with world-readable0444",
+    "correction": "Owner-read-only0400; same admitted UID reads scope",
+    "red": "1 failure/16 passes; umask022 exposes group/other bits",
+    "nativeAndArtifactRequalificationPending": true,
+    "exceptionsAdded": false
   }
 }
