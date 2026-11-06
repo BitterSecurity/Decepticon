@@ -193,6 +193,14 @@ def main():
             session="persistent",
             timeout=10,
         )
+        # A second ordinary call must retain state from the first call. Reading
+        # immediately after export/cd in the same command cannot prove that.
+        assert "kept:/tmp" in a.execute_tmux(
+            'printf "%s:%s" "${NATIVE_STATE:-unset}" "$PWD"',
+            session="persistent",
+            timeout=10,
+        )
+        checks["tmuxStateAcrossCalls"] = True
         assert "unset" in a.execute_tmux(
             'printf "%s" "${NATIVE_STATE:-unset}"',
             session="separate",
