@@ -1,5 +1,5 @@
 {
-  "status": "review and combined qualification in progress; unpublished",
+  "status": "Locally qualified source integration; proposed, unpublished",
   "freshMain": "44eb9032651c18df3f40e9f19a09e860d74ab43e",
   "integratedAncestorPrs": [
     1160,
@@ -51,10 +51,10 @@
     "packages/decepticon/tests/validation/managed_native.py",
     "packages/decepticon/tests/validation/managed_session_image.py"
   ],
-  "allPathsSourceReviewComplete": false,
+  "allPathsSourceReviewComplete": true,
   "existingAffectedCases": 327,
   "existingAffectedProcessExitCode": 0,
-  "newSeparateCallNativeTmuxEvidencePending": true,
+  "newSeparateCallNativeTmuxEvidencePending": false,
   "productionChanged": false,
   "published": false,
   "selectedSdkSourceGates": {
@@ -272,5 +272,321 @@
     "allEqual": true
   },
   "resolverDocumentationCorrection": "Correct obsolete opt-in-only module prose; the existing default/opt-outs and all runtime AST remain unchanged",
-  "nativeAndInstalledWheelPending": true
+  "nativeAndInstalledWheelPending": false,
+  "reviewDisposition": {
+    "dependencyOrder": [
+      1160,
+      1161,
+      1162,
+      1163,
+      1164,
+      1165
+    ],
+    "fullOriginalChangedPaths": 39,
+    "relatedContracts": [
+      "complete protobuf policy with selected optional supervisor baseline only",
+      "canonical workspace/full approved bytes/binding metadata and cached admission revalidation",
+      "immutable startup, scope-copy authority separation, health/process identity and legacy readiness refusal",
+      "execution-only daemon plus genuine Deep Agents compatibility and HTTP file/edit/auth behavior",
+      "both Chromium template consumers; actual desktop persistent profile and mapped native denial"
+    ],
+    "fixes": [
+      "Separate subsequent execute_tmux call proves retained environment and cwd; independent session remains isolated",
+      "Correct stale resolver opt-in module prose without changing non-docstring runtime AST"
+    ],
+    "historicalEvidence": "Original six PR records remain historical and retain their exact distinct artifacts, failures and limitations"
+  },
+  "artifactIdentity": {
+    "source": "b1a0a62a1d4f4319bc788aa7e8dc5d0c5c8488c2",
+    "canonicalImage": "sha256:7df606a43b59b62d165b1db2f67427c861d9af2314e13874a3c48fc8454e3158",
+    "canonicalCopyInputObjectsUnchanged": true,
+    "frameworkWheelSha256": "cebb0af99353d01e1c99beef50e73eaeeae57a76366a416ad2f05e49a7f1709e",
+    "wheelPayloadsMatched": 783,
+    "installedWheelPayloadsMatched": 783,
+    "imagePayloadsMatched": 134,
+    "sourceMismatches": [],
+    "privateSentinelNotPublication": true,
+    "productionChanged": false,
+    "exitCode": 0
+  },
+  "actualNative": {
+    "source": "b1a0a62a1d4f4319bc788aa7e8dc5d0c5c8488c2",
+    "image": "sha256:7df606a43b59b62d165b1db2f67427c861d9af2314e13874a3c48fc8454e3158",
+    "steps": [
+      {
+        "gate": "oss-combined-wheel-private-install-20261107",
+        "exitCode": 0,
+        "seconds": 0.064
+      },
+      {
+        "gate": "oss-owned-native-retry-source-20261107",
+        "exitCode": 0,
+        "seconds": 39.795
+      },
+      {
+        "gate": "oss-owned-native-retry-wheel-20261107",
+        "exitCode": 0,
+        "seconds": 40.446
+      }
+    ],
+    "gatewayStopped": true,
+    "initialOwnedSandboxCount": 0,
+    "unauthenticatedClientRefused": {
+      "type": "GatewayError",
+      "detail": "<_InactiveRpcError of RPC that terminated with:\n\tstatus = StatusCode.UNAUTHENTICATED\n\tdetails = \"missing authorization header\"\n\tdebug_error_string = \"UNAUTHENTICATED:missing authorization header\"\n>"
+    },
+    "ownedRemainingBeforeFinalCleanup": 0,
+    "ownedRemainingAfterCleanup": 0,
+    "gatewayExitCode": 0,
+    "exitCode": 0,
+    "seconds": 81.611,
+    "lanes": {
+      "source": {
+        "nativeOpenShell": true,
+        "syntheticAdmission": false,
+        "trustedClientInjection": "Real mTLS SDK client supplied to OSS local resolver",
+        "saasTenantQualified": false,
+        "e2bQualified": false,
+        "productionEquivalent": false,
+        "modelCalls": 0,
+        "externalTargetRequests": 0,
+        "image": "sha256:7df606a43b59b62d165b1db2f67427c861d9af2314e13874a3c48fc8454e3158",
+        "passed": true,
+        "cleanedSandboxes": [
+          "dcpt-gswspex2mstb64",
+          "dcpt-7bf4uc3nwhgrdc"
+        ],
+        "checks": {
+          "differentRuntimeIds": true,
+          "identity": "1000\n6.18.54.1-microsoft-standard-WSL2\n",
+          "scopeAndRuntimeFilesIsolated": true,
+          "tmuxStateAcrossCalls": true,
+          "tmuxStateAndSessionIsolation": true,
+          "ownedNetworkResults": {
+            "allowed": {
+              "exitCode": 0,
+              "output": "owned-native-fixture"
+            },
+            "denied": {
+              "exitCode": 7,
+              "output": "\n<stderr>curl: (7) Failed to connect to host.docker.internal:46781 after 3 ms: Could not connect to server</stderr>"
+            },
+            "listenerHits": {
+              "allowed": 1,
+              "denied": 0
+            }
+          },
+          "ownedNetworkAllowDeny": true,
+          "ownedListenerHits": {
+            "allowed": 1,
+            "denied": 0
+          },
+          "desktopBrowserObservations": [
+            {
+              "html": "<html><head></head><body><output id=\"proof\" data-visits=\"1\" data-network=\"denied\">owned browser fixture</output><script>const count=Number(localStorage.getItem(\"visits\")||0)+1;localStorage.setItem(\"visits\",String(count));document.cookie=\"native_cookie=retained;path=/;max-age=600\";document.querySelector(\"#proof\").setAttribute(\"data-visits\",String(count));fetch(\"http://host.docker.internal:46781/browser-denied\",{signal:AbortSignal.timeout(1500)}).then(()=>{document.querySelector(\"#proof\").setAttribute(\"data-network\",\"unexpected\");}).catch(()=>{document.querySelector(\"#proof\").setAttribute(\"data-network\",\"denied\");});</script></body></html>",
+              "finalUrl": "http://host.docker.internal:43251/browser",
+              "status": 200,
+              "cookies": [
+                {
+                  "name": "native_cookie",
+                  "value": "retained",
+                  "domain": "host.docker.internal"
+                }
+              ],
+              "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+              "automation": "playwright-extra+stealth"
+            },
+            {
+              "html": "<html><head></head><body><output id=\"proof\" data-visits=\"2\" data-network=\"denied\">owned browser fixture</output><script>const count=Number(localStorage.getItem(\"visits\")||0)+1;localStorage.setItem(\"visits\",String(count));document.cookie=\"native_cookie=retained;path=/;max-age=600\";document.querySelector(\"#proof\").setAttribute(\"data-visits\",String(count));fetch(\"http://host.docker.internal:46781/browser-denied\",{signal:AbortSignal.timeout(1500)}).then(()=>{document.querySelector(\"#proof\").setAttribute(\"data-network\",\"unexpected\");}).catch(()=>{document.querySelector(\"#proof\").setAttribute(\"data-network\",\"denied\");});</script></body></html>",
+              "finalUrl": "http://host.docker.internal:43251/browser",
+              "status": 200,
+              "cookies": [
+                {
+                  "name": "native_cookie",
+                  "value": "retained",
+                  "domain": "host.docker.internal"
+                }
+              ],
+              "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+              "automation": "playwright-extra+stealth"
+            }
+          ],
+          "desktopBrowser": {
+            "runs": [
+              {
+                "visit": 1,
+                "seconds": 7.812,
+                "automation": "playwright-extra+stealth",
+                "status": 200
+              },
+              {
+                "visit": 2,
+                "seconds": 7.113,
+                "automation": "playwright-extra+stealth",
+                "status": 200
+              }
+            ],
+            "javascriptExecuted": true,
+            "cookieReturned": true,
+            "localStorageSurvivesContextRestart": true,
+            "ownedDeniedListenerHits": 0
+          },
+          "supervisorPolicyDenialObserved": true,
+          "syntheticDnsMappingBoundToOwnedListener": true,
+          "fourNativeReattachmentsKeepProcessAndData": true,
+          "changedApprovedBytesRefuseNewExecution": true
+        },
+        "seconds": 38.071
+      },
+      "wheel": {
+        "nativeOpenShell": true,
+        "syntheticAdmission": false,
+        "trustedClientInjection": "Real mTLS SDK client supplied to OSS local resolver",
+        "saasTenantQualified": false,
+        "e2bQualified": false,
+        "productionEquivalent": false,
+        "modelCalls": 0,
+        "externalTargetRequests": 0,
+        "image": "sha256:7df606a43b59b62d165b1db2f67427c861d9af2314e13874a3c48fc8454e3158",
+        "passed": true,
+        "cleanedSandboxes": [
+          "dcpt-upgrbcvth7rjhc",
+          "dcpt-r4m3c6di2l3q6o"
+        ],
+        "checks": {
+          "differentRuntimeIds": true,
+          "identity": "1000\n6.18.54.1-microsoft-standard-WSL2\n",
+          "scopeAndRuntimeFilesIsolated": true,
+          "tmuxStateAcrossCalls": true,
+          "tmuxStateAndSessionIsolation": true,
+          "ownedNetworkResults": {
+            "allowed": {
+              "exitCode": 0,
+              "output": "owned-native-fixture"
+            },
+            "denied": {
+              "exitCode": 7,
+              "output": "\n<stderr>curl: (7) Failed to connect to host.docker.internal:41127 after 3 ms: Could not connect to server</stderr>"
+            },
+            "listenerHits": {
+              "allowed": 1,
+              "denied": 0
+            }
+          },
+          "ownedNetworkAllowDeny": true,
+          "ownedListenerHits": {
+            "allowed": 1,
+            "denied": 0
+          },
+          "desktopBrowserObservations": [
+            {
+              "html": "<html><head></head><body><output id=\"proof\" data-visits=\"1\" data-network=\"denied\">owned browser fixture</output><script>const count=Number(localStorage.getItem(\"visits\")||0)+1;localStorage.setItem(\"visits\",String(count));document.cookie=\"native_cookie=retained;path=/;max-age=600\";document.querySelector(\"#proof\").setAttribute(\"data-visits\",String(count));fetch(\"http://host.docker.internal:41127/browser-denied\",{signal:AbortSignal.timeout(1500)}).then(()=>{document.querySelector(\"#proof\").setAttribute(\"data-network\",\"unexpected\");}).catch(()=>{document.querySelector(\"#proof\").setAttribute(\"data-network\",\"denied\");});</script></body></html>",
+              "finalUrl": "http://host.docker.internal:45097/browser",
+              "status": 200,
+              "cookies": [
+                {
+                  "name": "native_cookie",
+                  "value": "retained",
+                  "domain": "host.docker.internal"
+                }
+              ],
+              "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+              "automation": "playwright-extra+stealth"
+            },
+            {
+              "html": "<html><head></head><body><output id=\"proof\" data-visits=\"2\" data-network=\"denied\">owned browser fixture</output><script>const count=Number(localStorage.getItem(\"visits\")||0)+1;localStorage.setItem(\"visits\",String(count));document.cookie=\"native_cookie=retained;path=/;max-age=600\";document.querySelector(\"#proof\").setAttribute(\"data-visits\",String(count));fetch(\"http://host.docker.internal:41127/browser-denied\",{signal:AbortSignal.timeout(1500)}).then(()=>{document.querySelector(\"#proof\").setAttribute(\"data-network\",\"unexpected\");}).catch(()=>{document.querySelector(\"#proof\").setAttribute(\"data-network\",\"denied\");});</script></body></html>",
+              "finalUrl": "http://host.docker.internal:45097/browser",
+              "status": 200,
+              "cookies": [
+                {
+                  "name": "native_cookie",
+                  "value": "retained",
+                  "domain": "host.docker.internal"
+                }
+              ],
+              "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+              "automation": "playwright-extra+stealth"
+            }
+          ],
+          "desktopBrowser": {
+            "runs": [
+              {
+                "visit": 1,
+                "seconds": 7.591,
+                "automation": "playwright-extra+stealth",
+                "status": 200
+              },
+              {
+                "visit": 2,
+                "seconds": 7.1,
+                "automation": "playwright-extra+stealth",
+                "status": 200
+              }
+            ],
+            "javascriptExecuted": true,
+            "cookieReturned": true,
+            "localStorageSurvivesContextRestart": true,
+            "ownedDeniedListenerHits": 0
+          },
+          "supervisorPolicyDenialObserved": true,
+          "syntheticDnsMappingBoundToOwnedListener": true,
+          "fourNativeReattachmentsKeepProcessAndData": true,
+          "changedApprovedBytesRefuseNewExecution": true
+        },
+        "seconds": 38.573
+      }
+    }
+  },
+  "managedImageSyntheticTransport": {
+    "image": "sha256:7df606a43b59b62d165b1db2f67427c861d9af2314e13874a3c48fc8454e3158",
+    "nativeOpenShell": false,
+    "admission": "synthetic local transport fixture only",
+    "productionEquivalent": false,
+    "productionChanged": false,
+    "ownedContainersRemoved": [
+      true,
+      true
+    ],
+    "coldDaemonReadySeconds": 1.058,
+    "realExecuteUid1000": true,
+    "realTmux": true,
+    "scopeAndFileRoundtrip": true,
+    "concurrentReattaches": 8,
+    "sameProcessAndDataRetained": true,
+    "workspaceShadowIgnored": true,
+    "runtimeBundleReadOnly": true,
+    "legacyHttp200RejectedWithoutKillingLegacyService": true,
+    "passed": true,
+    "seconds": 9.523
+  },
+  "imageImportDenial": {
+    "exitCode": 0,
+    "seconds": 0.604,
+    "stdout": "{\"importSeconds\": 0.21415518799949496, \"agentModulesLoaded\": []}\n",
+    "stderr": ""
+  },
+  "finalComponentProcesses": [
+    {
+      "gate": "oss-combined-gitleaks-final-20261107",
+      "exitCode": 0,
+      "seconds": 0.409
+    },
+    {
+      "gate": "oss-combined-managed-image-20261107",
+      "exitCode": 0,
+      "seconds": 12.898
+    }
+  ],
+  "retainedFreshFailedAttempts": [
+    "SDK absence assertion failed because inexact existing environment retained optional SDK; separate exact-synced environment proves absence",
+    "Dedicated gateway initial preflight placed guest_tls_ca in driver instead of gateway config; corrected selected-source field, guards unchanged",
+    "First native attempt lacked required launch-scoped JWT signer; FAILED_PRECONDITION before sandbox creation; corrected gateway-owned signer then both native lanes passed"
+  ],
+  "notQualified": [
+    "CIDR scope combined with default OSINT remains rejected as ambiguous by selected gateway; supported hostname is a distinct passing case",
+    "Fresh E2B full-path/performance or long-lease/durable-driver-restart acceptance; prior author measurements retain their own artifacts",
+    "SaaS org/run/custody resolver, installed SaaS1.2.5 migration, tenant/billing/credit or production release acceptance",
+    "Installed Windows/launcher distribution, OSS version/tag/publication and full release security gates",
+    "Consolidated VM prod conversion remains held"
+  ]
 }
