@@ -588,5 +588,6 @@
     "SaaS org/run/custody resolver, installed SaaS1.2.5 migration, tenant/billing/credit or production release acceptance",
     "Installed Windows/launcher distribution, OSS version/tag/publication and full release security gates",
     "Consolidated VM prod conversion remains held"
-  ]
+  ],
+  "pullRequest": "https://github.com/BitterSecurity/Decepticon/pull/1166"
 }
