@@ -1,8 +1,8 @@
 """Local trusted OpenShell admission resolver for self-hosted OSS flows.
 
-In a self-hosted OSS deployment the operator *is* the trusted host. Setting
-``DECEPTICON_SANDBOX_PROVIDER=openshell`` plus the explicit
-``DECEPTICON_OPENSHELL_LOCAL=1`` opt-in installs this resolver, which:
+In a self-hosted OSS deployment the operator *is* the trusted host. The default
+OpenShell provider installs this local resolver unless the host explicitly
+disables it through ``DECEPTICON_OPENSHELL_LOCAL``. The resolver:
 
 1. reads the engagement's ``plan/roe.json`` (never agent-supplied input),
 2. compiles it into an OpenShell sandbox policy
@@ -24,9 +24,10 @@ metadata before and after policy/ACK reads; a short-name collision never grants
 access. A changed approved document gets a fresh binding. One backend is cached
 per complete binding so agents in the same engagement share one job view.
 
-Without ``DECEPTICON_OPENSHELL_LOCAL=1`` nothing is installed and the
-factory keeps demanding an operator-provided resolver — the env flag is
-the operator's trust decision, never something agent config can set.
+An explicit false value disables automatic local installation; the host must
+then configure its own resolver. Agent configuration cannot install a resolver
+or replace this trusted-host decision. Actual admission requires the optional
+OpenShell SDK and the approved machine scope; there is no host-execution fallback.
 """
 
 from __future__ import annotations
