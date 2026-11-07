@@ -1,0 +1,262 @@
+{
+  "observedUtc": "2026-11-07T20:48:31.409903+00:00",
+  "source": "38fccaee158eb2a989ac2e293cf86d5a88e41daf",
+  "status": "Private unreleased wheel payload/selected installed-policy contracts qualified; SaaS adoption remains blocked",
+  "build": {
+    "exit": 0,
+    "seconds": 1.388,
+    "uv": "0.8.15",
+    "python": "3.13.7",
+    "offline": true,
+    "command": "uv build --offline --all-packages --wheel --python <Python3.13.7> --out-dir <private-candidate-directory>",
+    "containerImageBuilt": false
+  },
+  "wheels": [
+    {
+      "package": "decepticon",
+      "version": "0.0.0",
+      "filename": "decepticon-0.0.0-py3-none-any.whl",
+      "bytes": 3827036,
+      "sha256": "53be8f7d66262132e9a3f2ab2fb4dd19b34fbd41ffce02431f6bd86f653d48e8",
+      "sourcePythonModulesMatched": 387,
+      "missing": [],
+      "mismatched": [],
+      "recordEntriesVerified": 796,
+      "siblingRequirements": [
+        "decepticon-core"
+      ],
+      "criticalModules": [
+        "decepticon/middleware/policy_compiler.py",
+        "decepticon/sandbox_server/managed_start.py"
+      ],
+      "allTrackedPayloadFiles": 794,
+      "allTrackedPayloadMatched": 793,
+      "excludedTrackedPayload": [
+        "decepticon/skills/benchmark/SKILL.md"
+      ],
+      "mismatchedPayload": [],
+      "extraPackagePayload": []
+    },
+    {
+      "package": "decepticon-core",
+      "version": "0.0.0",
+      "filename": "decepticon_core-0.0.0-py3-none-any.whl",
+      "bytes": 372140,
+      "sha256": "07b1dbbb57427f9164547cc08898997241b48ef59c8521cb597673d98699315b",
+      "sourcePythonModulesMatched": 34,
+      "missing": [],
+      "mismatched": [],
+      "recordEntriesVerified": 38,
+      "siblingRequirements": [],
+      "criticalModules": [],
+      "allTrackedPayloadFiles": 36,
+      "allTrackedPayloadMatched": 36,
+      "excludedTrackedPayload": [],
+      "mismatchedPayload": [],
+      "extraPackagePayload": []
+    },
+    {
+      "package": "decepticon-sdk",
+      "version": "0.0.0",
+      "filename": "decepticon_sdk-0.0.0-py3-none-any.whl",
+      "bytes": 9225,
+      "sha256": "919c30076b3176d3ddbe5ecb533c887f8dcfdf5940a2c14c45d9a86dc96438bd",
+      "sourcePythonModulesMatched": 5,
+      "missing": [],
+      "mismatched": [],
+      "recordEntriesVerified": 9,
+      "siblingRequirements": [
+        "decepticon-core",
+        "decepticon; extra == 'fixtures'"
+      ],
+      "criticalModules": [],
+      "allTrackedPayloadFiles": 6,
+      "allTrackedPayloadMatched": 6,
+      "excludedTrackedPayload": [],
+      "mismatchedPayload": [],
+      "extraPackagePayload": []
+    }
+  ],
+  "sourcePayloadFilesMatched": 835,
+  "configuredExcludedBenchmarkSkillFiles": 1,
+  "installedCohort": {
+    "payloadExit": 0,
+    "dependencyCheckExit": 0,
+    "expectedUnchangedPins": 185,
+    "installedDistributions": 188,
+    "pinMismatches": {},
+    "installedPayload": [
+      {
+        "package": "decepticon",
+        "installedVersion": "0.0.0",
+        "payloadFiles": 793,
+        "mismatches": []
+      },
+      {
+        "package": "decepticon-core",
+        "installedVersion": "0.0.0",
+        "payloadFiles": 36,
+        "mismatches": []
+      },
+      {
+        "package": "decepticon-sdk",
+        "installedVersion": "0.0.0",
+        "payloadFiles": 6,
+        "mismatches": []
+      }
+    ],
+    "normalization": "PEP503 collapses runs of hyphens/underscores/periods; only three published OSS requirements are replaced by exact local wheel files/hashes. Remaining185dependency pins/hashes retained."
+  },
+  "installedTests": {
+    "processExit": 0,
+    "processSeconds": 7.169,
+    "pytestSeconds": 1.058,
+    "tests": 196,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "testSourceHashes": {
+      "packages/decepticon/tests/unit/middleware/test_roe.py": "1dac48b16e7f4484b999150ddafbe5611b5d029bcbb980e17ccfab870f6b4b39",
+      "packages/decepticon/tests/unit/middleware/test_policy_compiler.py": "27eaca4183b8394075c89180e0909c93eb8ac4839e260a3274a7c370af30c65f",
+      "packages/decepticon/tests/unit/sandbox_server/test_managed_start.py": "2075720b56876eeaa546f67873a3cad7099f8987fb9b4aa93289734f9e57f7e3"
+    },
+    "installedModulesVerifiedWithoutCheckoutShadowing": true,
+    "sourceOrApplicationCodeMounted": false,
+    "refusedExternalOperations": [],
+    "allowedImportOnlyLoopbackBinds": [
+      {
+        "kind": "urllib3 import-only IPv6 capability probe",
+        "destination": "::1",
+        "port": 0
+      }
+    ],
+    "controlledAdmissionObservations": [
+      {
+        "asynchronous": false,
+        "mode": "legacy-applied-false",
+        "refused": true,
+        "verificationCalls": 0
+      },
+      {
+        "asynchronous": false,
+        "mode": "verification-exception",
+        "refused": true,
+        "verificationCalls": 1
+      },
+      {
+        "asynchronous": false,
+        "mode": "wrong-policy",
+        "refused": true,
+        "verificationCalls": 1
+      },
+      {
+        "asynchronous": false,
+        "mode": "disabled-legacy",
+        "refused": true,
+        "verificationCalls": 0
+      },
+      {
+        "asynchronous": false,
+        "mode": "empty-scope",
+        "refused": true,
+        "verificationCalls": 0
+      },
+      {
+        "asynchronous": false,
+        "mode": "matching-policy",
+        "refused": false,
+        "verificationCalls": 1
+      },
+      {
+        "asynchronous": true,
+        "mode": "legacy-applied-false",
+        "refused": true,
+        "verificationCalls": 0
+      },
+      {
+        "asynchronous": true,
+        "mode": "verification-exception",
+        "refused": true,
+        "verificationCalls": 1
+      },
+      {
+        "asynchronous": true,
+        "mode": "wrong-policy",
+        "refused": true,
+        "verificationCalls": 1
+      },
+      {
+        "asynchronous": true,
+        "mode": "disabled-legacy",
+        "refused": true,
+        "verificationCalls": 0
+      },
+      {
+        "asynchronous": true,
+        "mode": "empty-scope",
+        "refused": true,
+        "verificationCalls": 0
+      },
+      {
+        "asynchronous": true,
+        "mode": "matching-policy",
+        "refused": false,
+        "verificationCalls": 1
+      }
+    ],
+    "observationLimit": "Backend/admission authority is controlled. Legacy mode refuses before legacy provisioning; verification exception, policy mismatch, disabled-legacy and empty-scope refuse. Matching-policy controls admit. This is not real SDK/kernel/gateway confinement."
+  },
+  "saasIntegration": {
+    "source": "5163f209420e5f33e3d8a49cc971e8c6eb0ff44e",
+    "relatedPr": 1637,
+    "testExit": 2,
+    "testSeconds": 6.917,
+    "collectionErrors": 82,
+    "commonRootCause": "SaaS startup sandbox_transport_auth imports removed decepticon.backends.http_sandbox before tests collect; current OSS explicit transport is decepticon.backends.http_transport.HTTPTransportSandbox. Need connected transport/agent-adapter/API/auth review; do not fabricate an old module or skip the startup hook.",
+    "actualPostgresFixtureCreated": true,
+    "actualTcpReadiness": true,
+    "postgresCasesExecuted": false,
+    "ownedCleanupExit": 0,
+    "ownedContainerAbsent": true,
+    "allSaasTestsQualified": false
+  },
+  "retainedDiagnostics": [
+    "uv pip sync initially refused an invalid --requirement flag; positional requirements file succeeds without changing the environment pins.",
+    "Naive initial name auditor omitted period normalization for backports.zstd; correct PEP503 normalization confirms all185pins without package changes.",
+    "First two installed-unit processes show196passed but runnerexit1 because the offline guard intercepted urllib3 import-time IPv6 capability bind; trace identifies only ::1:0 in urllib3.util.connection._has_ipv6. That exact local-only capability probe is recorded/allowed; external connects/DNS/binds and subprocess execution stay refused.",
+    "Initial additional admission probe used empty scope as a positive, which the policy compiler correctly rejects. Preserve it as a negative control and use explicit example.com scope for matching positive controls.",
+    "SaaS test command exit2/82collection errors is a real new adoption blocker; a running fixture or196selected OSS passes does not qualify SaaS/PG."
+  ],
+  "releaseBoundary": {
+    "allSourceVersionSentinelsRemain": "0.0.0",
+    "ossTagCreated": false,
+    "pypiPublished": false,
+    "publicReleaseSelected": false,
+    "saasPinsChanged": false,
+    "productionSuitableArtifactIdentity": false,
+    "productionChanged": false,
+    "vmConversionOnHold": true
+  },
+  "remaining": [
+    "Coherent approved supported artifact/version/adoption route; these private0.0.0source sentinels are not published2.2.2 or a production version.",
+    "Repair and qualify SaaS transport/agent-adapter/auth startup consumers on both serving/selected current cohorts; rerun the full relevant suite and actual PG/checkpoint/native/CLI/MCP paths.",
+    "Matching OpenShell SDK/native/E2B templates, normal SaaS authority/custody/tenant/billing/archive and all optional profiles remain unqualified here.",
+    "Supported final Agent Server image security/licensing/drain and all final-image/release gates remain blocking.",
+    "No OSS publication/tag/semver decision is authorized by this evidence; follow RELEASE.md and keep SaaS independent."
+  ],
+  "evidencePr": 1167,
+  "hostedDocumentationChecks": {
+    "head": "b544cd9c55421f4ed365a865ef0a87ad9ce4003b",
+    "run": 42412899516,
+    "conclusion": "success",
+    "executed": [
+      "Detect changes",
+      "actionlint (workflows)",
+      "Security (pip-audit)",
+      "CI OK (required status)"
+    ],
+    "runtimeImageAndComposeLanes": "path-skipped for docs-only changes; not runtime verification",
+    "initialMergeAttempt": "405required status expected; no bypass; authoritative later job state establishes completion",
+    "finalHeadCheckStillRequired": true
+  }
+}
