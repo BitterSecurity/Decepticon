@@ -243,5 +243,6 @@
     "Matching OpenShell SDK/native/E2B templates, normal SaaS authority/custody/tenant/billing/archive and all optional profiles remain unqualified here.",
     "Supported final Agent Server image security/licensing/drain and all final-image/release gates remain blocking.",
     "No OSS publication/tag/semver decision is authorized by this evidence; follow RELEASE.md and keep SaaS independent."
-  ]
+  ],
+  "evidencePr": 1167
 }
