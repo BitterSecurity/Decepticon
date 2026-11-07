@@ -244,5 +244,19 @@
     "Supported final Agent Server image security/licensing/drain and all final-image/release gates remain blocking.",
     "No OSS publication/tag/semver decision is authorized by this evidence; follow RELEASE.md and keep SaaS independent."
   ],
-  "evidencePr": 1167
+  "evidencePr": 1167,
+  "hostedDocumentationChecks": {
+    "head": "b544cd9c55421f4ed365a865ef0a87ad9ce4003b",
+    "run": 42412899516,
+    "conclusion": "success",
+    "executed": [
+      "Detect changes",
+      "actionlint (workflows)",
+      "Security (pip-audit)",
+      "CI OK (required status)"
+    ],
+    "runtimeImageAndComposeLanes": "path-skipped for docs-only changes; not runtime verification",
+    "initialMergeAttempt": "405required status expected; no bypass; authoritative later job state establishes completion",
+    "finalHeadCheckStillRequired": true
+  }
 }
