@@ -40,6 +40,7 @@ always refused upstream regardless of rules, which is why
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import ipaddress
 import json
@@ -358,22 +359,38 @@ def compile_openshell_policy(rules: MachineEnforcement) -> CompiledRoePolicy:
     return CompiledRoePolicy(policy=policy, canonical_hash=digest, errors=())
 
 
-def sandbox_name(workspace_path: str, roe_hash: str) -> str:
-    """Deterministic DNS-1123 sandbox name binding one workspace to one RoE.
+def sandbox_binding_digest(workspace_path: str, roe_hash: str, *, approval_hash: str) -> str:
+    """Full SHA256 binding in label-safe base32; never truncate owner identity."""
+    for digest in (roe_hash, approval_hash):
+        if (
+            not isinstance(digest, str)
+            or len(digest) != 64
+            or any(char not in "0123456789abcdef" for char in digest)
+        ):
+            raise ValueError("Full canonical policy and approval SHA256 required")
+    identity = {
+        "version": 1,
+        "workspace": str(Path(workspace_path).resolve()),
+        "policy": roe_hash,
+        "approval": approval_hash,
+    }
+    canonical = json.dumps(identity, sort_keys=True, separators=(",", ":")).encode()
+    return base64.b32encode(hashlib.sha256(canonical).digest()).decode().rstrip("=").lower()
 
-    ``dcpt-<workspace4>-<policy8>`` — the policy hash in the name means a
-    changed RoE provisions a fresh sandbox instead of mutating a running
-    one's policy underneath it (no policy-mixing window); the workspace
-    hash keeps two engagements with the same basename distinct.
 
-    The OpenShell proto caps sandbox names at 19 characters (verified live:
-    CreateSandbox rejects longer names with INVALID_ARGUMENT "name exceeds
-    maximum length"), so the name is dcpt- (5) + a 4-char workspace digest +
-    a hyphen + the first 8 hex chars of the policy hash = 18. The #1147
-    identity requirement (distinct workspaces and distinct RoEs never
-    collide) is preserved through the two digests; the readable slug does
-    not fit the proto budget and lives in the daemon-side workspace
-    selector instead.
+def sandbox_name(workspace_path: str, roe_hash: str, *, approval_hash: str | None = None) -> str:
+    """19-character locator, hashing the complete workspace/policy pair.
+
+    The 70-bit locator is not authority. Admission must also verify the full
+    256-bit binding label before and after reading policy/ACK. A locator
+    collision fails closed; legacy names and unlabeled runtimes are retained,
+    never adopted, renamed or deleted by this function.
     """
-    workspace_hash = hashlib.sha256(str(Path(workspace_path).resolve()).encode()).hexdigest()
-    return f"dcpt-{workspace_hash[:4]}-{roe_hash[:8]}"
+    return (
+        "dcpt-"
+        + sandbox_binding_digest(
+            workspace_path,
+            roe_hash,
+            approval_hash=approval_hash if approval_hash is not None else roe_hash,
+        )[:14]
+    )

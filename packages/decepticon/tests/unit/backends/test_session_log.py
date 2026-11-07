@@ -19,7 +19,7 @@ def test_initialize_does_not_create_root_workspace_sessions_log():
     with (
         patch.object(mgr, "_sync_passthrough_env"),
         patch.object(mgr, "_tmux") as mock_tmux,
-        patch("decepticon.sandbox_kernel.base.subprocess.run") as mock_run,
+        patch("decepticon.sandbox_kernel.core.subprocess.run") as mock_run,
         patch("time.sleep"),
     ):
         mock_tmux.side_effect = [
@@ -52,7 +52,7 @@ def test_initialize_pipes_pane_to_engagement_scoped_sessions_log():
     with (
         patch.object(mgr, "_sync_passthrough_env"),
         patch.object(mgr, "_tmux") as mock_tmux,
-        patch("decepticon.sandbox_kernel.base.subprocess.run") as mock_run,
+        patch("decepticon.sandbox_kernel.core.subprocess.run") as mock_run,
         patch("time.sleep"),
     ):
         mock_tmux.side_effect = [
@@ -91,7 +91,7 @@ def test_initialize_creates_sessions_directory_inside_engagement_workspace():
     with (
         patch.object(mgr, "_sync_passthrough_env"),
         patch.object(mgr, "_tmux") as mock_tmux,
-        patch("decepticon.sandbox_kernel.base.subprocess.run") as mock_run,
+        patch("decepticon.sandbox_kernel.core.subprocess.run") as mock_run,
         patch("time.sleep"),
     ):
         mock_tmux.side_effect = [
@@ -135,7 +135,7 @@ def test_initialize_warns_when_mkdir_fails(caplog):
         with (
             patch.object(mgr, "_sync_passthrough_env"),
             patch.object(mgr, "_tmux") as mock_tmux,
-            patch("decepticon.sandbox_kernel.base.subprocess.run") as mock_run,
+            patch("decepticon.sandbox_kernel.core.subprocess.run") as mock_run,
             patch("time.sleep"),
         ):
             mock_tmux.side_effect = [
@@ -547,7 +547,7 @@ def test_initialize_recreates_stale_cached_pane_without_error_string_matching():
     with (
         patch.object(mgr, "_sync_passthrough_env"),
         patch.object(mgr, "_tmux") as mock_tmux,
-        patch("decepticon.sandbox_kernel.base.subprocess.run") as mock_run,
+        patch("decepticon.sandbox_kernel.core.subprocess.run") as mock_run,
         patch("time.sleep"),
     ):
         mock_tmux.side_effect = [

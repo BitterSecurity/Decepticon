@@ -1,0 +1,157 @@
+{
+  "scope": "source package and canonical sandbox image browser compatibility; not SaaS/E2B migration",
+  "main": "44eb9032651c18df3f40e9f19a09e860d74ab43e",
+  "base": "2b7ae68039864d3f2b10f3f1f21ab82192bce64d",
+  "selectedOpenShell": "0.1.6",
+  "stockRuntimePatched": false,
+  "productionChanged": false,
+  "published": false,
+  "baselineDiagnostic": {
+    "exitCode": 134,
+    "seconds": 1.207,
+    "rendered": false
+  },
+  "candidateDiagnostic": {
+    "exitCode": 0,
+    "seconds": 0.861,
+    "rendered": true,
+    "localSandboxesRemaining": 0,
+    "gatewayExitCode": 0
+  },
+  "localGates": {
+    "sandboxWeb": {
+      "passed": 73,
+      "warnings": 3,
+      "seconds": 9.14
+    },
+    "fastPython": {
+      "passed": 6230,
+      "skipped": 3,
+      "warnings": 17,
+      "seconds": 71.03,
+      "command": "DECEPTICON_SKIP_BOOT=1 .venv/bin/pytest -n 4 -q -m 'not slow'"
+    },
+    "lint": {
+      "ruff": "pass",
+      "formattedFiles": 895,
+      "typeErrors": 0,
+      "inheritedWarnings": 972
+    },
+    "jsSyntax": "both Node templates pass"
+  },
+  "wheel": {
+    "wheelSha256": "6bea1df44aa3c94f8b5ad68e80afa890d042702231d38937be850c1c52008a1e",
+    "templates": {
+      "decepticon/sandbox_web/templates/playwright_real_chrome.js": "fed3d6702896ca87478ea8f49b434fdc84169babd6642f4cbb41de3234297b6f",
+      "decepticon/sandbox_web/templates/playwright_mobile_chrome.js": "887435606ec7c199a68b48899d1de2e092fa3fc6df43307861c9ef65b9d32841",
+      "decepticon/sandbox_web/templates/chromium_options.js": "27100baa157a89fe9ce40e2597f77591ab990f51f1ef844e5b61462792f636e1"
+    },
+    "canonicalImage": "sha256:85711442a1cc62458baaa9e383783644c6c3c7a3f4ce6dff9bf4faf8e8526cfb",
+    "imageBytesMatchWheelAndSource": true,
+    "published": false
+  },
+  "build": {
+    "command": "bash /home/catow/.local/bin/with-build-slot docker build --progress=plain -f containers/sandbox.Dockerfile -t decepticon-chromium-native:20261105-r2 .",
+    "exitCode": 0,
+    "canonicalDockerfile": true,
+    "image": "sha256:85711442a1cc62458baaa9e383783644c6c3c7a3f4ce6dff9bf4faf8e8526cfb",
+    "browserAndExploitDbEnabled": true,
+    "published": false
+  },
+  "nativeDesktop": {
+    "nativeOpenShell": true,
+    "syntheticAdmission": false,
+    "trustedClientInjection": "Real mTLS SDK client supplied to OSS local resolver",
+    "saasTenantQualified": false,
+    "e2bQualified": false,
+    "productionEquivalent": false,
+    "modelCalls": 0,
+    "externalTargetRequests": 0,
+    "image": "sha256:85711442a1cc62458baaa9e383783644c6c3c7a3f4ce6dff9bf4faf8e8526cfb",
+    "passed": true,
+    "cleanedSandboxes": [
+      "dcpt-ofbjrxd6snhv6b",
+      "dcpt-plkdhqpytdg4yr"
+    ],
+    "checks": {
+      "differentRuntimeIds": true,
+      "identity": "1000\n6.18.54.1-microsoft-standard-WSL2\n",
+      "scopeAndRuntimeFilesIsolated": true,
+      "tmuxStateAndSessionIsolation": true,
+      "ownedNetworkResults": {
+        "allowed": {
+          "exitCode": 0,
+          "output": "owned-native-fixture"
+        },
+        "denied": {
+          "exitCode": 7,
+          "output": "\n<stderr>curl: (7) Failed to connect to host.docker.internal:43801 after 3 ms: Could not connect to server</stderr>"
+        },
+        "listenerHits": {
+          "allowed": 1,
+          "denied": 0
+        }
+      },
+      "ownedNetworkAllowDeny": true,
+      "ownedListenerHits": {
+        "allowed": 1,
+        "denied": 0
+      },
+      "desktopBrowser": {
+        "runs": [
+          {
+            "visit": 1,
+            "seconds": 8.299,
+            "automation": "playwright-extra+stealth",
+            "status": 200
+          },
+          {
+            "visit": 2,
+            "seconds": 7.368,
+            "automation": "playwright-extra+stealth",
+            "status": 200
+          }
+        ],
+        "javascriptExecuted": true,
+        "cookieReturned": true,
+        "localStorageSurvivesContextRestart": true,
+        "ownedDeniedListenerHits": 0
+      },
+      "supervisorPolicyDenialObserved": true,
+      "syntheticDnsMappingBoundToOwnedListener": true,
+      "fourNativeReattachmentsKeepProcessAndData": true,
+      "changedApprovedBytesRefuseNewExecution": true
+    },
+    "seconds": 40.45
+  },
+  "cleanup": {
+    "remaining": 0,
+    "gatewayExitCode": 0
+  },
+  "retainedFailures": [
+    {
+      "run": "local diagnostic r1",
+      "result": "Stock Docker driver refuses explicit root image metadata before browser execution; derived image corrected separately in SaaS #1604."
+    },
+    {
+      "run": "native r1/r2",
+      "result": "Missing explicit trusted Docker host alias in fixture gateway; allowed curl fails and both listener counters stay zero; resources removed."
+    },
+    {
+      "run": "native r3",
+      "result": "Normal template chooses absent Chrome channel because native clean environment omits INSANE_CHROMIUM_PATH. Fixed via system binary discovery."
+    },
+    {
+      "run": "native r4/r5",
+      "result": "An empty output element is hidden to Playwright waitForSelector, causing legitimate template reload and observed count2 on first fixture visit. Fix the owned fixture visibility, retain product selector/reload behavior."
+    }
+  ],
+  "notQualified": [
+    "E2B whole product path",
+    "SaaS tenant and billing parity",
+    "Production traffic or deployment",
+    "All alternative tool images",
+    "OSS publication gates"
+  ],
+  "pullRequest": "https://github.com/BitterSecurity/Decepticon/pull/1164"
+}

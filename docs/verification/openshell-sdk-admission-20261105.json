@@ -1,0 +1,163 @@
+{
+  "scope": "OSS selected SDK admission correction; source and installed wheel, not native kernel/SaaS adoption or release",
+  "baseMain": "44eb9032651c18df3f40e9f19a09e860d74ab43e",
+  "saasProductionChanged": false,
+  "qaRestarted": false,
+  "tagPushed": false,
+  "published": false,
+  "baselineDefects": {
+    "meaningfulRed": "11failed2passed after correcting an initial fixture protobuf namespace error",
+    "floatTimeout": "Real SDK0.1.6 rejects15.0 for protobuf Duration.seconds before fixture RPC",
+    "l7Protocol": "Selected proto defines protocol as string; REST vocabulary was incorrectly enum-rewritten",
+    "policyOvergrant": "Arbitrary filesystem additions and unrelated policy content passed the old subset-only comparison"
+  },
+  "verification": {
+    "focusedCases": 207,
+    "focusedSkipsFailuresErrors": 0,
+    "fullPython": {
+      "command": [
+        "uv",
+        "run",
+        "--frozen",
+        "--extra",
+        "mcp",
+        "--extra",
+        "openshell",
+        "pytest",
+        "-n",
+        "4",
+        "--cov",
+        "--cov-report=term",
+        "--cov-fail-under=60",
+        "-q"
+      ],
+      "exitCode": 0,
+      "seconds": 128.983
+    },
+    "fullPythonPassed": 6209,
+    "fullPythonSkipped": 7,
+    "skipDisposition": {
+      "missingPlaywright": 3,
+      "missingTransformers": 1,
+      "WindowsOnly": 3
+    },
+    "coverageSummary": "TOTAL                                                                          34333   7566  10550   1502    75%",
+    "fullLint": {
+      "command": [
+        "make",
+        "ci-lint"
+      ],
+      "exitCode": 0,
+      "seconds": 29.899
+    },
+    "basedpyrightErrors": 0,
+    "basedpyrightWarnings": 972,
+    "installedArtifact": {
+      "exitCode": 0,
+      "seconds": 14.126,
+      "installedFrameworkFromActualWheel": true,
+      "changedModuleBytesMatchSource": true,
+      "artifacts": {
+        "decepticon-0.0.0-py3-none-any.whl": "a65a0f7292e148fb47bdafdc74fe553e32ff40390ec5ef06600f8c7b6b8aa088",
+        "decepticon-0.0.0.tar.gz": "ea08714af28d4e74690deb7a7cad92cdedd11ce9478067c47eafaa87aee7cae7",
+        ".gitignore": "684888c0ebb17f374298b65ee2807526c066094c701bcc7ebbe1c1095f494fc1"
+      },
+      "sourceModuleSha256": "22899675f4574487a780eca5dcae054ddbd0db46616d41cd54c48beb6c673563",
+      "published": false,
+      "actualGatewayKernelTest": false
+    },
+    "optionalProfiles": [
+      {
+        "command": [
+          "uv",
+          "sync",
+          "--frozen",
+          "--extra",
+          "mcp"
+        ],
+        "exitCode": 0
+      },
+      {
+        "command": [
+          "uv",
+          "run",
+          "--frozen",
+          "--extra",
+          "mcp",
+          "pytest",
+          "packages/decepticon/tests/unit/backends/test_openshell_sdk_admission.py",
+          "packages/decepticon/tests/unit/backends/test_http_transport.py",
+          "-q"
+        ],
+        "exitCode": 0
+      },
+      {
+        "command": [
+          "uv",
+          "sync",
+          "--frozen",
+          "--extra",
+          "mcp",
+          "--extra",
+          "openshell"
+        ],
+        "exitCode": 0
+      },
+      {
+        "command": [
+          "uv",
+          "run",
+          "--frozen",
+          "--extra",
+          "mcp",
+          "--extra",
+          "openshell",
+          "pytest",
+          "packages/decepticon/tests/unit/backends",
+          "packages/decepticon/tests/unit/middleware/test_policy_compiler.py",
+          "-q"
+        ],
+        "exitCode": 0
+      }
+    ],
+    "sdkAbsentProfile": {
+      "passed": 16,
+      "moduleSkipped": 1,
+      "reason": "Optional openshell SDK absent; no collection error",
+      "exitCode": 0
+    },
+    "sdkRestoredAffectedCases": 207
+  },
+  "selectedRuntimeBaseline": {
+    "source": "https://raw.githubusercontent.com/NVIDIA/OpenShell/ac7f615cd12d5cc49cb16eb1f5f10ffeb1e90f47/crates/openshell-supervisor/src/lib.rs",
+    "sha256": "376beb416129d86efc80475f97ccb70768d003edbec9e84d1160ad8b23d091bb",
+    "baseline": {
+      "READ_ONLY": [
+        "/usr",
+        "/lib",
+        "/etc",
+        "/app",
+        "/var/log",
+        "/proc",
+        "/dev/urandom"
+      ],
+      "READ_WRITE": [
+        "/tmp",
+        "/dev/null"
+      ]
+    }
+  },
+  "sourceHashes": {
+    "packages/decepticon/decepticon/backends/openshell_local.py": "22899675f4574487a780eca5dcae054ddbd0db46616d41cd54c48beb6c673563",
+    "packages/decepticon/tests/unit/backends/test_openshell_sdk_admission.py": "deeb2c2ea09a24b9f1f9c0e87bcb13595fe5fdf2e5abf6b17c6c74ed6fc181c0",
+    "uv.lock": "f871950ab4e0b524969a33872d96da8c0bfc2c1a784c0922cc33ccaab82ef315"
+  },
+  "remaining": [
+    "Real kernel/launcher/changed-flow distribution and full publication gates remain required; no tag is authorized by passing these narrow cases.",
+    "SaaS still pins older1.2.5 artifacts and lacks trusted normal OpenShell provisioning/resolver wiring.",
+    "Latest main retains /opt daemon/bridge paths although the selected filesystem profile does not expose that tree; PR1159 prose is not proof that all listed fixes landed.",
+    "Separate deterministic workspace-name collision reproduced for two synthetic paths; must be fixed before multi-tenant adoption.",
+    "VM rollout timeout/memory attribution, final active-run fault/clock, production operator path/quota and standalone entitlement remain open."
+  ],
+  "sourcePR": "https://github.com/BitterSecurity/Decepticon/pull/1160"
+}

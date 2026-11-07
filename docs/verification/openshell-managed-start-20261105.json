@@ -1,0 +1,242 @@
+{
+  "scope": "Managed workload startup/stdio transport and actual canonical container; not native OpenShell confinement or production parity",
+  "freshMain": "44eb9032651c18df3f40e9f19a09e860d74ab43e",
+  "stackBase": "5107725e4835b5cdcefcd743877cf15abe9d9e26",
+  "stackedOnPR": 1161,
+  "productionChanged": false,
+  "qaRestartedOrAuthorityExtended": false,
+  "published": false,
+  "nativeOpenShellKernelTest": false,
+  "build": {
+    "command": [
+      "bash",
+      "/home/catow/.local/bin/with-build-slot",
+      "docker",
+      "build",
+      "--progress=plain",
+      "-f",
+      "containers/sandbox.Dockerfile",
+      "-t",
+      "decepticon-managed-daemon:20261105-r3",
+      "."
+    ],
+    "exitCode": 0,
+    "seconds": 15.734,
+    "canonicalDockerfile": true,
+    "defaultBrowserAndExploitDb": true,
+    "published": false,
+    "imageId": "sha256:c7fa8b8a648813f6a24a29cd8495636fc9ae2be9841d58b3aaea1631fd444191"
+  },
+  "imagePayload": {
+    "image": "sha256:c7fa8b8a648813f6a24a29cd8495636fc9ae2be9841d58b3aaea1631fd444191",
+    "sourceBytesMatch": true,
+    "inventory": {
+      "files": {
+        "sandbox_server/managed_start.py": {
+          "sha256": "e47497c1882757795960252873bf72029bdbb354d39d72ba70e38395153f0502",
+          "mode": "0o644",
+          "uid": 0
+        },
+        "sandbox_server/session_client.py": {
+          "sha256": "1f244580ee653457cb43f8ed84c02f0e795ad25a283ffc9cd9370a2b2b47cfb9",
+          "mode": "0o644",
+          "uid": 0
+        },
+        "sandbox_server/app.py": {
+          "sha256": "55ce04bc641e7d1a3e953368919f69f49d7d9e7b59894cc2a0bdf30e5a543d18",
+          "mode": "0o644",
+          "uid": 0
+        }
+      },
+      "packages": {
+        "deepagents": "0.7.32",
+        "fastapi": "0.162.0",
+        "uvicorn": "0.54.0"
+      }
+    },
+    "productionChanged": false
+  },
+  "fullLocalGates": [
+    {
+      "gate": "lint",
+      "command": [
+        "make",
+        "ci-lint"
+      ],
+      "exitCode": 0,
+      "seconds": 29.951
+    },
+    {
+      "gate": "python",
+      "command": [
+        "uv",
+        "run",
+        "--frozen",
+        "--extra",
+        "mcp",
+        "--extra",
+        "openshell",
+        "pytest",
+        "-n",
+        "4",
+        "--cov",
+        "--cov-report=term",
+        "--cov-fail-under=60",
+        "-q"
+      ],
+      "exitCode": 0,
+      "seconds": 79.545
+    }
+  ],
+  "fullPythonPassed": 6244,
+  "fullPythonSkipped": 7,
+  "skipDisposition": {
+    "missingPlaywright": 3,
+    "missingTransformers": 1,
+    "WindowsOnly": 3
+  },
+  "coverageSummary": "TOTAL                                                                          34490   7586  10586   1509    75%",
+  "fullLintWithMaintainedValidator": {
+    "exitCode": 0,
+    "formattedFiles": 894,
+    "typeErrors": 0,
+    "typeWarnings": 972
+  },
+  "focusedCases": 269,
+  "actualImageSourceClient": {
+    "image": "sha256:c7fa8b8a648813f6a24a29cd8495636fc9ae2be9841d58b3aaea1631fd444191",
+    "nativeOpenShell": false,
+    "admission": "synthetic local transport fixture only",
+    "productionEquivalent": false,
+    "productionChanged": false,
+    "ownedContainersRemoved": [
+      true,
+      true
+    ],
+    "coldDaemonReadySeconds": 0.933,
+    "realExecuteUid1000": true,
+    "realTmux": true,
+    "scopeAndFileRoundtrip": true,
+    "concurrentReattaches": 8,
+    "sameProcessAndDataRetained": true,
+    "workspaceShadowIgnored": true,
+    "runtimeBundleReadOnly": true,
+    "legacyHttp200RejectedWithoutKillingLegacyService": true,
+    "passed": true,
+    "seconds": 10.132
+  },
+  "actualInstalledWheel": {
+    "exitCode": 0,
+    "seconds": 16.642,
+    "realInstalledWheel": true,
+    "sourceModules": {
+      "decepticon/backends/openshell_local.py": "ccc476f3df6abab40e9b3b1ef1f96c8d2f43340b7d902851b219b4fe689f3466",
+      "decepticon/backends/openshell_sandbox.py": "190d86021e6bc1f1069a5b41f0146b7b491fe9eeea2588aee8c4d619a310fa8b",
+      "decepticon/sandbox_server/managed_start.py": "e47497c1882757795960252873bf72029bdbb354d39d72ba70e38395153f0502",
+      "decepticon/sandbox_server/session_client.py": "1f244580ee653457cb43f8ed84c02f0e795ad25a283ffc9cd9370a2b2b47cfb9",
+      "decepticon/sandbox_server/app.py": "55ce04bc641e7d1a3e953368919f69f49d7d9e7b59894cc2a0bdf30e5a543d18"
+    },
+    "artifacts": {
+      "decepticon-0.0.0-py3-none-any.whl": "ce5a87ed569979d3e1311b316e9951bcc5757d7476ae63bc4d85d742be3a6645",
+      "decepticon-0.0.0.tar.gz": "7cdcdc87294d424a66cabb197c5d0d5fcbec5324210ce232233e64e94147f311"
+    },
+    "nativeOpenShellKernel": false,
+    "published": false
+  },
+  "installedWheelImage": {
+    "image": "sha256:c7fa8b8a648813f6a24a29cd8495636fc9ae2be9841d58b3aaea1631fd444191",
+    "nativeOpenShell": false,
+    "admission": "synthetic local transport fixture only",
+    "productionEquivalent": false,
+    "productionChanged": false,
+    "ownedContainersRemoved": [
+      true,
+      true
+    ],
+    "coldDaemonReadySeconds": 1.68,
+    "realExecuteUid1000": true,
+    "realTmux": true,
+    "scopeAndFileRoundtrip": true,
+    "concurrentReattaches": 8,
+    "sameProcessAndDataRetained": true,
+    "workspaceShadowIgnored": true,
+    "runtimeBundleReadOnly": true,
+    "legacyHttp200RejectedWithoutKillingLegacyService": true,
+    "passed": true,
+    "seconds": 10.78
+  },
+  "semgrep": {
+    "exitCode": 0,
+    "seconds": 2.952,
+    "findings": 0,
+    "scannedFiles": 777,
+    "newManagedStartScanned": true,
+    "parseOrRuntimeErrors": [],
+    "metrics": false
+  },
+  "configScan": {
+    "results": [
+      {
+        "role": "baseline",
+        "exitCode": 0,
+        "seconds": 0.667,
+        "findings": [
+          {
+            "id": "DS-0002",
+            "severity": "HIGH",
+            "title": "Image user should not be 'root'"
+          },
+          {
+            "id": "DS-0013",
+            "severity": "MEDIUM",
+            "title": "'RUN cd ...' to change directory"
+          }
+        ]
+      },
+      {
+        "role": "candidate",
+        "exitCode": 0,
+        "seconds": 0.72,
+        "findings": [
+          {
+            "id": "DS-0002",
+            "severity": "HIGH",
+            "title": "Image user should not be 'root'"
+          },
+          {
+            "id": "DS-0013",
+            "severity": "MEDIUM",
+            "title": "'RUN cd ...' to change directory"
+          }
+        ]
+      }
+    ],
+    "newFindingIds": [],
+    "allFindingsEliminated": false,
+    "policyExceptionsAdded": false,
+    "interpretation": "Workflow config reporting comparison, not a release waiver or a native kernel/security certificate"
+  },
+  "failedAttemptsRetained": [
+    "PID-record storage failure initially left an unadmitted child; atomic record and cleanup fix passes.",
+    "Full suite initially failed an exact0444 assertion under inherited077umask; final two-umask test requires owner readability/no write bits.",
+    "Two actual r2 default image runs fail tmux env-sync; fresh bash/home-only experiment succeeds. r3 defaults fix without fixture environment overrides.",
+    "First Semgrep invocation did not establish new-file coverage; final scan explicitly proves the staged managed_start.py target was scanned."
+  ],
+  "sourceHashes": {
+    "containers/sandbox.Dockerfile": "7f5c2d34b7bb5c7eb116a99b9c466d420a6895ce09e4b65e09a1b3e1536ccf53",
+    "packages/decepticon/decepticon/backends/openshell_local.py": "ccc476f3df6abab40e9b3b1ef1f96c8d2f43340b7d902851b219b4fe689f3466",
+    "packages/decepticon/decepticon/backends/openshell_sandbox.py": "190d86021e6bc1f1069a5b41f0146b7b491fe9eeea2588aee8c4d619a310fa8b",
+    "packages/decepticon/decepticon/sandbox_server/managed_start.py": "e47497c1882757795960252873bf72029bdbb354d39d72ba70e38395153f0502",
+    "packages/decepticon/decepticon/sandbox_server/app.py": "55ce04bc641e7d1a3e953368919f69f49d7d9e7b59894cc2a0bdf30e5a543d18",
+    "packages/decepticon/decepticon/sandbox_server/session_client.py": "1f244580ee653457cb43f8ed84c02f0e795ad25a283ffc9cd9370a2b2b47cfb9",
+    "uv.lock": "f871950ab4e0b524969a33872d96da8c0bfc2c1a784c0922cc33ccaab82ef315"
+  },
+  "remaining": [
+    "Native selected OpenShell gateway/kernel, launcher and versioned distribution/release gates remain unqualified.",
+    "SaaS normal trusted template/provisioning/resolver/custody wiring and actual VM qualification still required.",
+    "Old-framework/old-image mix is unsupported: update matching framework and sandbox image; no /opt or HTTP fallback.",
+    "Inherited DS-0002HIGH root default and DS-0013MEDIUM RUNcd findings remain reported; no rule exception/waiver added. Native managed identity/confinement still requires actual proof before release.",
+    "VM memory/rollout attribution, final active-run recovery/clock, operator prod connection/catalog/quota and standalone entitlement remain open."
+  ],
+  "pullRequest": "https://github.com/BitterSecurity/Decepticon/pull/1162"
+}

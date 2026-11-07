@@ -109,7 +109,11 @@ def live():
         deadline = time.monotonic() + 30
         while True:
             bridge = session.exec(
-                ["/usr/bin/python3", "/opt/decepticon/sandbox_server/session_client.py"],
+                [
+                    "/usr/bin/python3",
+                    "-I",
+                    "/usr/local/lib/decepticon-sandbox/decepticon/sandbox_server/session_client.py",
+                ],
                 stdin=json.dumps(
                     {"path": "/poll_completion", "body": {"session": "none"}}
                 ).encode(),

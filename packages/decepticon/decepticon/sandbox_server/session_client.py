@@ -14,8 +14,13 @@ import urllib.error
 import urllib.request
 
 MAX_MESSAGE_BYTES = 8 * 1024 * 1024
+MANAGED_PACKAGE_ROOT = "/usr/local/lib/decepticon-sandbox"
+MANAGED_BRIDGE = MANAGED_PACKAGE_ROOT + "/decepticon/sandbox_server/session_client.py"
+MANAGED_START = MANAGED_PACKAGE_ROOT + "/decepticon/sandbox_server/managed_start.py"
+MANAGED_LOG = "/tmp/decepticon-session/daemon.log"
 SESSION_PATHS = frozenset(
     {
+        "/healthz",
         "/execute",
         "/upload_files",
         "/download_files",
@@ -51,9 +56,9 @@ def exchange(message: dict) -> dict:
         headers["Authorization"] = f"Bearer {token}"
     request = urllib.request.Request(
         "http://127.0.0.1:9999" + path,
-        data=payload,
+        data=None if path == "/healthz" else payload,
         headers=headers,
-        method="POST",
+        method="GET" if path == "/healthz" else "POST",
     )
     # Never use an environment-configured HTTP proxy for local control traffic.
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))

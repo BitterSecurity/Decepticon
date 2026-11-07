@@ -2,7 +2,7 @@
 
 `DaemonSandbox` is what `decepticon.sandbox_server` instantiates inside
 the sandbox container itself. It inherits every method of
-:class:`~decepticon.sandbox_kernel.base.SandboxBase` (tmux session
+:class:`~decepticon.sandbox_kernel.base.SandboxKernel` (tmux session
 management, background-job + log-offset trackers, ``execute``,
 ``execute_tmux``, ``start_background``, ``poll_completion``,
 ``kill_session``, ``read_session_log_diff``, …) but swaps the
@@ -49,7 +49,7 @@ Class-level state inheritance
 -----------------------------
 ``_jobs``, ``_log_offsets``, ``_log_offsets_lock``,
 ``TmuxSessionManager._initialized``, and ``TmuxSessionManager._init_lock``
-are inherited from :class:`SandboxBase` and :class:`TmuxSessionManager`
+are inherited from :class:`SandboxKernel` and :class:`TmuxSessionManager`
 as-is. Inside the daemon process there's only ever one sandbox instance,
 so the class vars are effectively instance-scoped — but keeping the
 class-level contract means ``SandboxNotificationMiddleware`` (which
@@ -71,24 +71,23 @@ import threading
 from pathlib import Path
 from typing import ClassVar
 
-from deepagents.backends.protocol import (
+from decepticon.sandbox_kernel.core import SandboxKernel
+from decepticon.sandbox_kernel.jobs import BackgroundJobTracker
+from decepticon.sandbox_kernel.protocol import (
     FileDownloadResponse,
     FileUploadResponse,
 )
 
-from decepticon.sandbox_kernel.base import SandboxBase
-from decepticon.sandbox_kernel.jobs import BackgroundJobTracker
 
-
-class DaemonSandbox(SandboxBase):
-    """SandboxBase configured for direct, in-container execution.
+class DaemonSandbox(SandboxKernel):
+    """SandboxKernel configured for direct, in-container execution.
 
     Args:
         container_name: Cosmetic identifier surfaced via ``.id`` and
             embedded in tmux session names / log files. Defaults to
             ``daemon`` because in the daemon's address space there is
             no docker-container concept to reach into.
-        default_timeout: As :class:`SandboxBase`.
+        default_timeout: As :class:`SandboxKernel`.
         workspace_path: Root of the agent-visible filesystem — set
             from ``SANDBOX_ROOT_DIR`` env (default ``/workspace``). In
             silo plane the gcsfuse mount narrows the actual filesystem

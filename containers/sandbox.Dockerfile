@@ -387,6 +387,13 @@ RUN cd /opt/decepticon/sandbox_web/templates \
 # without importing decepticon-core (which isn't installed here).
 ENV DECEPTICON_SKIP_BOOT=1
 
+# The admitted runtime's /usr baseline is read-only. Keep /opt compatibility
+# for the existing daemon image, and place its managed counterpart in the
+# immutable tree rather than allowing a writable workspace to supply code.
+RUN mkdir -p /usr/local/lib/decepticon-sandbox /workspace \
+    && cp -a /opt/decepticon /opt/decepticon_core /usr/local/lib/decepticon-sandbox/ \
+    && chmod 1777 /workspace
+
 # Working directory for the agent's virtual filesystem.
 # Runs as root — security boundary is the container, not the user.
 # Root access is required for raw sockets (nmap SYN scans), packet capture,

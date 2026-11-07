@@ -1,0 +1,124 @@
+{
+  "baseMain": "44eb9032651c18df3f40e9f19a09e860d74ab43e",
+  "stackedOnPR": 1162,
+  "selectedOpenShell": "0.1.6",
+  "selectedSource": "ac7f615cd12d5cc49cb16eb1f5f10ffeb1e90f47",
+  "nativeRuntime": "Docker29.6.1 on WSL2 Linux6.18.54.1; not managed E2B",
+  "gateway": "Dedicated127.0.0.1:18782, mTLS with anonymous users disabled, private fresh SQLite/state/certs; exact owned process stopped after qualification",
+  "trustedImages": {
+    "sandbox": "ghcr.io/nvidia/openshell/sandbox@sha256:1038eb5c1f191fa3c34684fd7041b891c78ec570979d487f36e06e08f91bfb63",
+    "supervisor": "ghcr.io/nvidia/openshell/supervisor@sha256:ce859a7d77ee515d3fe0b3c7dc61286516f402eb1d25c761d806d9ae5ed96c0b"
+  },
+  "releaseArchiveHashes": {
+    "openshell-x86_64-unknown-linux-musl.tar.gz": "2951c67366f3e3584ed9cec8d49b9f0b0eefc8cacea8b0582ac164590492f136",
+    "openshell-gateway-x86_64-unknown-linux-gnu.tar.gz": "811265a55993beb333905a5b560764a40aa9177250171f711dce8ba820f7eff8"
+  },
+  "measurements": {
+    "source": {
+      "receipt": {
+        "nativeOpenShell": true,
+        "syntheticAdmission": false,
+        "trustedClientInjection": "Real mTLS SDK client supplied to OSS local resolver",
+        "saasTenantQualified": false,
+        "e2bQualified": false,
+        "productionEquivalent": false,
+        "modelCalls": 0,
+        "externalTargetRequests": 0,
+        "image": "sha256:c7fa8b8a648813f6a24a29cd8495636fc9ae2be9841d58b3aaea1631fd444191",
+        "passed": true,
+        "cleanedSandboxes": [
+          "dcpt-wve7wbg54ivxzq",
+          "dcpt-obuucbno5afe4r"
+        ],
+        "checks": {
+          "differentRuntimeIds": true,
+          "identity": "1000\n6.18.54.1-microsoft-standard-WSL2\n",
+          "scopeAndRuntimeFilesIsolated": true,
+          "tmuxStateAndSessionIsolation": true,
+          "ownedNetworkAllowDeny": true,
+          "ownedListenerHits": {
+            "allowed": 1,
+            "denied": 0
+          },
+          "supervisorPolicyDenialObserved": true,
+          "syntheticDnsMappingBoundToOwnedListener": true,
+          "fourNativeReattachmentsKeepProcessAndData": true,
+          "changedApprovedBytesRefuseNewExecution": true
+        },
+        "seconds": 25.277
+      },
+      "privateReceiptSha256": "5123f80d5caaa9db5783e05117274369f92e4ae6776cc31c9b782aa04d259796",
+      "exitCode": 0
+    },
+    "installedWheel": {
+      "receipt": {
+        "nativeOpenShell": true,
+        "syntheticAdmission": false,
+        "trustedClientInjection": "Real mTLS SDK client supplied to OSS local resolver",
+        "saasTenantQualified": false,
+        "e2bQualified": false,
+        "productionEquivalent": false,
+        "modelCalls": 0,
+        "externalTargetRequests": 0,
+        "image": "sha256:c7fa8b8a648813f6a24a29cd8495636fc9ae2be9841d58b3aaea1631fd444191",
+        "passed": true,
+        "cleanedSandboxes": [
+          "dcpt-uxwkpw3upclggm",
+          "dcpt-jdouifrw3likxo"
+        ],
+        "checks": {
+          "differentRuntimeIds": true,
+          "identity": "1000\n6.18.54.1-microsoft-standard-WSL2\n",
+          "scopeAndRuntimeFilesIsolated": true,
+          "tmuxStateAndSessionIsolation": true,
+          "ownedNetworkAllowDeny": true,
+          "ownedListenerHits": {
+            "allowed": 1,
+            "denied": 0
+          },
+          "supervisorPolicyDenialObserved": true,
+          "syntheticDnsMappingBoundToOwnedListener": true,
+          "fourNativeReattachmentsKeepProcessAndData": true,
+          "changedApprovedBytesRefuseNewExecution": true
+        },
+        "seconds": 23.969
+      },
+      "privateReceiptSha256": "92bad8e1ef5e134f8d9d34d9edd399b45495728551fa0161a3354d3996fe1c6c",
+      "exitCode": 0
+    },
+    "cleanup": {
+      "receipt": {
+        "atUnix": 1793885654.6819603,
+        "actualGatewayDefaultWorkspaceSandboxes": 0,
+        "ownedTaskContainersRemaining": 0,
+        "ownedGatewayStopped": true,
+        "productionChanged": false,
+        "e2bAffected": false,
+        "firstCleanupObserverFailure": "Counted Pager pages instead of page items; stopped before mutation. Corrected with documented Pager.all(), actual resource count0."
+      },
+      "privateReceiptSha256": "a4e62262c343ae85531a100cc640782aee7dc086164c6714792aca96152aa56a",
+      "exitCode": 0
+    }
+  },
+  "localGates": {
+    "finalCiLintExitCode": 0,
+    "pythonFormattedFiles": 895,
+    "typeErrors": 0,
+    "existingTypeWarnings": 972,
+    "productionCodeChanged": false,
+    "full6244CaseSuite": "Qualified in parent1162; not rerun for this validation-only change",
+    "hostedCiPassClaimed": false
+  },
+  "limitations": [
+    "Local OSS operator/workspace binding is not SaaS tenant/custody authority",
+    "No E2B, real model, external target, SaaS deployment, tag or publication qualification",
+    "Real CIDR+defaultOSINT policy combination rejected by selected gateway before create; unresolved and retained as failed source-r1",
+    "R3/R4 observer expected original hostname in denial; native transparent TCP uses synthetic IP. Final observer binds trusted per-sandbox DNS mapping to the exact denial; both failed attempts retained",
+    "SourceR5 passed before adding defensive empty-log initialization; final installed-wheel run executes maintained final validator",
+    "First cleanup observer counted Pager pages rather than items, failed before mutation; corrected Pager.all() and provider/container checks pass"
+  ],
+  "aggregateProductionGo": false,
+  "frameworkWheelSha256": "ce5a87ed569979d3e1311b316e9951bcc5757d7476ae63bc4d85d742be3a6645",
+  "validatorSha256": "8aa39a156173f5ef5b6b527c6a648490d1fe00ed66c9f426884c1994d46c91b5",
+  "pullRequest": "https://github.com/BitterSecurity/Decepticon/pull/1163"
+}

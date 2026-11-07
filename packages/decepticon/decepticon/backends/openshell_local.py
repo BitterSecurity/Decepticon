@@ -1,8 +1,8 @@
 """Local trusted OpenShell admission resolver for self-hosted OSS flows.
 
-In a self-hosted OSS deployment the operator *is* the trusted host. Setting
-``DECEPTICON_SANDBOX_PROVIDER=openshell`` plus the explicit
-``DECEPTICON_OPENSHELL_LOCAL=1`` opt-in installs this resolver, which:
+In a self-hosted OSS deployment the operator *is* the trusted host. The default
+OpenShell provider installs this local resolver unless the host explicitly
+disables it through ``DECEPTICON_OPENSHELL_LOCAL``. The resolver:
 
 1. reads the engagement's ``plan/roe.json`` (never agent-supplied input),
 2. compiles it into an OpenShell sandbox policy
@@ -18,19 +18,21 @@ In a self-hosted OSS deployment the operator *is* the trusted host. Setting
    whose admission binds ``effective_policy_hash`` to the compiled RoE
    policy hash and ``approval_hash`` to the RoE file bytes.
 
-The sandbox name embeds the RoE hash (``dcpt-<slug>-<roe8>``), so a
-changed RoE provisions a fresh sandbox instead of mutating a running one
-underneath live sessions. One admitted backend is cached per
-``(workspace, roe hash)`` binding so every agent in the engagement shares
-one job view, matching the factory's host-cached-binding contract.
+The sandbox locator hashes the full canonical workspace, compiled policy and
+approved document. The complete binding digest is checked through gateway
+metadata before and after policy/ACK reads; a short-name collision never grants
+access. A changed approved document gets a fresh binding. One backend is cached
+per complete binding so agents in the same engagement share one job view.
 
-Without ``DECEPTICON_OPENSHELL_LOCAL=1`` nothing is installed and the
-factory keeps demanding an operator-provided resolver — the env flag is
-the operator's trust decision, never something agent config can set.
+An explicit false value disables automatic local installation; the host must
+then configure its own resolver. Agent configuration cannot install a resolver
+or replace this trusted-host decision. Actual admission requires the optional
+OpenShell SDK and the approved machine scope; there is no host-execution fallback.
 """
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 import logging
@@ -43,16 +45,32 @@ from decepticon.backends.http_transport import SandboxError
 from decepticon.middleware.policy_compiler import (
     CompiledRoePolicy,
     compile_openshell_policy,
+    sandbox_binding_digest,
     sandbox_name,
+)
+from decepticon.sandbox_server.session_client import (
+    MANAGED_BRIDGE,
+    MANAGED_LOG,
+    MANAGED_START,
+    MAX_MESSAGE_BYTES,
 )
 
 log = logging.getLogger(__name__)
 
 _ADMISSION_TTL_SECONDS = 3600.0
 _READY_TIMEOUT_SECONDS = 120.0
-_DAEMON_START_TIMEOUT_SECONDS = 15.0
+_DAEMON_START_TIMEOUT_SECONDS = 15
 _DAEMON_READY_TIMEOUT_SECONDS = 30.0
 _BRIDGE_POLL_SECONDS = 0.5
+_BINDING_LABEL = "decepticon-binding"
+
+# OpenShell v0.1.6 supervisor, ac7f615cd12d5cc49cb16eb1f5f10ffeb1e90f47,
+# crates/openshell-supervisor/src/lib.rs, PROXY_BASELINE_{READ_ONLY,READ_WRITE}.
+# Permit only these runtime additions, not an arbitrary filesystem superset.
+_PROXY_BASELINE_READ_ONLY = frozenset(
+    ("/usr", "/lib", "/etc", "/app", "/var/log", "/proc", "/dev/urandom")
+)
+_PROXY_BASELINE_READ_WRITE = frozenset(("/tmp", "/dev/null"))
 
 # The sandbox image is the same artifact the compose daemon deployment
 # ships; the managed runtime ignores its ENTRYPOINT lifecycle, so the
@@ -60,20 +78,13 @@ _BRIDGE_POLL_SECONDS = 0.5
 # test does.
 _DEFAULT_OPENSHELL_IMAGE = "ghcr.io/bittersecurity/decepticon-sandbox:latest"
 
-_DAEMON_START_COMMAND = (
-    "mkdir -p /workspace; "
-    "PYTHONPATH=/opt DECEPTICON_SKIP_BOOT=1 SANDBOX_ROOT_DIR=/workspace "
-    "SANDBOX_DAEMON_HOST=127.0.0.1 "
-    "/usr/bin/python3 -m decepticon.sandbox_server >/tmp/session-daemon.log 2>&1 </dev/null & "
-    "sleep 1; cat /tmp/session-daemon.log"
-)
-
 _bridge_command = [
     "/usr/bin/python3",
-    "/opt/decepticon/sandbox_server/session_client.py",
+    "-I",
+    MANAGED_BRIDGE,
 ]
 
-_backends: dict[tuple[str, str], Any] = {}
+_backends: dict[tuple[str, str, str], Any] = {}
 
 
 def local_resolver_enabled() -> bool:
@@ -145,7 +156,6 @@ def _apply_enum_symbols(node: Any) -> Any:
             "enforce": "NETWORK_ENFORCEMENT_MODE_ENFORCE",
             "audit": "NETWORK_ENFORCEMENT_MODE_AUDIT",
         },
-        "protocol": {"rest": "NETWORK_PROTOCOL_REST", "tcp": "NETWORK_PROTOCOL_TCP"},
         "access": {
             "full": "NETWORK_ACCESS_PRESET_FULL",
             "read-write": "NETWORK_ACCESS_PRESET_READ_WRITE",
@@ -174,20 +184,11 @@ def _generation_token(ref: Any) -> str:
 
 
 def _assert_effective_policy_matches(effective, compiled_spec):
-    """Verify the admitted policy against the compiled RoE, tolerating runtime enrichment.
+    """Compare the full protobuf except selected supervisor baseline additions.
 
-    Raw protobuf equality cannot hold against a real gateway: the supervisor
-    enriches the filesystem at admission with its proxy-mode baseline mounts
-    (``openshell-supervisor`` PROXY_BASELINE_* — /usr /lib /etc /var/log /proc
-    /dev/urandom read-only; /tmp /dev/null read-write; nonexistent paths
-    skipped). That enrichment is runtime infrastructure, not scope. Verified
-    live on the verification stack: raw equality failed while the compiled
-    rules were present verbatim in the effective policy.
-
-    So compare the operator-authored parts exactly — the network rules (the
-    actual scope) and the process/landlock blocks — and treat the filesystem
-    as a superset check: every compiled grant must survive; gateway-added
-    baseline paths are tolerated. Anything the gateway DROPPED fails closed.
+    The supervisor adds existing baseline paths without dropping authored
+    grants. Arbitrary extra paths, permission upgrades, changed flags and
+    unrelated/unknown protobuf content are not runtime normalization.
     """
     if effective.network_policies != compiled_spec.network_policies:
         raise SandboxError("OpenShell effective policy does not match compiled RoE")
@@ -202,9 +203,21 @@ def _assert_effective_policy_matches(effective, compiled_spec):
         raise SandboxError("OpenShell effective policy dropped operator read-only grants")
     if not set(lfs.read_write) <= set(efs.read_write):
         raise SandboxError("OpenShell effective policy dropped operator read-write grants")
+    if not set(efs.read_only) - set(lfs.read_only) <= _PROXY_BASELINE_READ_ONLY:
+        raise SandboxError("OpenShell effective policy added unauthorized read-only grants")
+    if not set(efs.read_write) - set(lfs.read_write) <= _PROXY_BASELINE_READ_WRITE:
+        raise SandboxError("OpenShell effective policy added unauthorized read-write grants")
+    normalized = type(effective)()
+    normalized.CopyFrom(effective)
+    normalized.filesystem.read_only[:] = lfs.read_only
+    normalized.filesystem.read_write[:] = lfs.read_write
+    if normalized != compiled_spec:
+        raise SandboxError("OpenShell effective policy does not match compiled RoE")
 
 
-def _verified_runtime(client: Any, name: str, workspace: str, compiled: CompiledRoePolicy):
+def _verified_runtime(
+    client: Any, name: str, workspace: str, compiled: CompiledRoePolicy, *, binding_digest: str
+):
     """Read effective policy and loaded ACK, bracketing them with runtime identity.
 
     Expected compiler output is never an observation. Both new and reused
@@ -217,6 +230,8 @@ def _verified_runtime(client: Any, name: str, workspace: str, compiled: Compiled
     before = client.get(name, workspace=workspace)
     if before.status.phase != openshell_pb2.SANDBOX_PHASE_READY:
         raise SandboxError("OpenShell sandbox is not ready")
+    if not binding_digest or before.labels.get(_BINDING_LABEL) != binding_digest:
+        raise SandboxError("OpenShell binding does not match owned workspace and policy")
     before_generation = _generation_token(before)
     before_id = before.id
     before_version = before.current_policy_version
@@ -251,6 +266,7 @@ def _verified_runtime(client: Any, name: str, workspace: str, compiled: Compiled
         and after.status.phase == openshell_pb2.SANDBOX_PHASE_READY
         and after.current_policy_version == config.version == before_version
         and _generation_token(after) == before_generation
+        and after.labels.get(_BINDING_LABEL) == binding_digest
     ):
         raise SandboxError("OpenShell runtime changed during policy verification")
     return after
@@ -273,26 +289,59 @@ def _receipt(
     )
 
 
-def _wait_for_session_daemon(session: Any) -> None:
+def _wait_for_session_daemon(session: Any, *, approved_roe: bytes) -> None:
+    wire = json.dumps(
+        {
+            "roe_b64": base64.b64encode(approved_roe).decode(),
+            "roe_sha256": hashlib.sha256(approved_roe).hexdigest(),
+        }
+    ).encode()
+    if len(wire) > MAX_MESSAGE_BYTES:
+        raise SandboxError("Approved scope exceeds the session message limit")
     daemon = session.exec(
-        ["/bin/sh", "-c", _DAEMON_START_COMMAND],
+        ["/usr/bin/python3", "-I", MANAGED_START],
+        stdin=wire,
         timeout_seconds=_DAEMON_START_TIMEOUT_SECONDS,
         no_login_shell=True,
     )
     if daemon.exit_code != 0:
         raise RuntimeError(f"OpenShell session daemon failed to start: {daemon.stderr[:400]}")
+    try:
+        started = json.loads(daemon.stdout)
+        if (
+            not isinstance(started, dict)
+            or isinstance(started.get("pid"), bool)
+            or not isinstance(started.get("pid"), int)
+            or started["pid"] <= 1
+            or not isinstance(started.get("start"), str)
+            or not started["start"]
+            or not isinstance(started.get("reused"), bool)
+        ):
+            raise ValueError("Incomplete startup identity")
+    except (ValueError, TypeError) as exc:
+        raise SandboxError("OpenShell session daemon returned invalid startup identity") from exc
     deadline = time.monotonic() + _DAEMON_READY_TIMEOUT_SECONDS
     while True:
         bridge = session.exec(
             _bridge_command,
-            stdin=json.dumps({"path": "/poll_completion", "body": {"session": "none"}}).encode(),
+            stdin=json.dumps({"path": "/healthz", "body": {}, "timeout": 3}).encode(),
             timeout_seconds=_DAEMON_START_TIMEOUT_SECONDS,
             no_login_shell=True,
         )
         if bridge.exit_code == 0:
-            return
+            try:
+                health = json.loads(bridge.stdout)
+            except (ValueError, TypeError) as exc:
+                raise SandboxError("OpenShell session daemon returned invalid readiness") from exc
+            if health == {
+                "status": 200,
+                "body": {"status": "ok", "pid": started["pid"], "start": started["start"]},
+            }:
+                return
+            if isinstance(health, dict) and health.get("status") in (401, 403):
+                raise SandboxError("OpenShell session daemon refused readiness authentication")
         if time.monotonic() >= deadline:
-            logs = session.exec(["/bin/cat", "/tmp/session-daemon.log"], no_login_shell=True)
+            logs = session.exec(["/bin/cat", MANAGED_LOG], no_login_shell=True)
             raise RuntimeError(
                 "OpenShell session daemon did not become ready: "
                 f"{(logs.stdout + logs.stderr)[:400]}"
@@ -300,18 +349,25 @@ def _wait_for_session_daemon(session: Any) -> None:
         time.sleep(_BRIDGE_POLL_SECONDS)
 
 
-def _attach_or_create(client: Any, name: str, workspace: str, compiled: CompiledRoePolicy) -> Any:
+def _attach_or_create(
+    client: Any, name: str, workspace: str, compiled: CompiledRoePolicy, *, binding_digest: str
+) -> Any:
     try:
         client.get(name, workspace=workspace)
-        return _verified_runtime(client, name, workspace, compiled)
+        return _verified_runtime(client, name, workspace, compiled, binding_digest=binding_digest)
     except Exception as exc:  # noqa: BLE001 - get() raises gateway errors for absent sandboxes
         if "not found" not in str(exc).lower() and "NOT_FOUND" not in str(exc):
             raise
-    client.create(workspace=workspace, name=name, spec=_policy_spec(compiled))
+    client.create(
+        workspace=workspace,
+        name=name,
+        spec=_policy_spec(compiled),
+        labels={_BINDING_LABEL: binding_digest},
+    )
     ready = client.wait_ready(name, workspace=workspace, timeout_seconds=_READY_TIMEOUT_SECONDS)
     if ready.current_policy_version < 1:
         raise RuntimeError("OpenShell sandbox became ready without a loaded policy")
-    return _verified_runtime(client, name, workspace, compiled)
+    return _verified_runtime(client, name, workspace, compiled, binding_digest=binding_digest)
 
 
 def resolve_local_binding(run_config: Any):
@@ -338,8 +394,9 @@ def resolve_local_binding(run_config: Any):
         raise RuntimeError(
             "OpenShell binding requires the run's workspace_path; no engagement context"
         )
+    workspace_path = str(Path(workspace_path).resolve())
 
-    cache_key: tuple[str, str] | None = None
+    cache_key: tuple[str, str, str] | None = None
     cached = None
     if not (Path(workspace_path) / "plan" / "roe.json").is_file():
         raise RuntimeError("OpenShell binding requires a materialized plan/roe.json")
@@ -356,7 +413,7 @@ def resolve_local_binding(run_config: Any):
         )
     # The binding is one engagement scoped to ONE compiled RoE; a changed RoE
     # is a new binding (fresh sandbox name), never an in-place policy swap.
-    cache_key = (workspace_path, compiled.canonical_hash)
+    cache_key = (workspace_path, compiled.canonical_hash, initial_approval_hash)
     cached = _backends.get(cache_key)
     if cached is not None:
         try:
@@ -365,15 +422,21 @@ def resolve_local_binding(run_config: Any):
         except SandboxError:
             _backends.pop(cache_key, None)  # stale receipt: re-resolve below
 
-    name = sandbox_name(workspace_path, compiled.canonical_hash)
     workspace = _openshell_workspace()
     approval_hash = _approval_hash(workspace_path)
     if approval_hash != initial_approval_hash:
         raise SandboxError("OpenShell RoE changed while preparing admission")
+    approved_roe = (Path(workspace_path) / "plan" / "roe.json").read_bytes()
+    if hashlib.sha256(approved_roe).hexdigest() != approval_hash:
+        raise SandboxError("OpenShell RoE changed before startup payload capture")
+    name = sandbox_name(workspace_path, compiled.canonical_hash, approval_hash=approval_hash)
+    binding_digest = sandbox_binding_digest(
+        workspace_path, compiled.canonical_hash, approval_hash=approval_hash
+    )
     client = _client()
-    ref = _attach_or_create(client, name, workspace, compiled)
+    ref = _attach_or_create(client, name, workspace, compiled, binding_digest=binding_digest)
     session = client.get_session(name, workspace=workspace)
-    _wait_for_session_daemon(session)
+    _wait_for_session_daemon(session, approved_roe=approved_roe)
     binding_id = (
         configurable.get("openshell_binding_id")
         if isinstance(configurable.get("openshell_binding_id"), str)
@@ -396,7 +459,9 @@ def resolve_local_binding(run_config: Any):
         try:
             if _approval_hash(workspace_path) != approval_hash:
                 raise SandboxError("OpenShell approved RoE changed")
-            live = _verified_runtime(client, name, workspace, compiled)
+            live = _verified_runtime(
+                client, name, workspace, compiled, binding_digest=binding_digest
+            )
         except Exception as exc:  # noqa: BLE001 - admission must fail closed
             raise SandboxError("OpenShell admission source is unavailable") from exc
         return _receipt(
@@ -416,7 +481,9 @@ def resolve_local_binding(run_config: Any):
         try:
             if _approval_hash(workspace_path) != approval_hash:
                 raise SandboxError("OpenShell approved RoE changed")
-            live = _verified_runtime(client, name, workspace, compiled)
+            live = _verified_runtime(
+                client, name, workspace, compiled, binding_digest=binding_digest
+            )
         except Exception as exc:  # noqa: BLE001 - admission must fail closed
             raise SandboxError("OpenShell admission source is unavailable") from exc
         if _generation_token(live) == holder["receipt"].runtime_generation:
@@ -457,7 +524,7 @@ def resolve_local_binding(run_config: Any):
 
 
 def maybe_install_local_resolver() -> bool:
-    """Install the local resolver when the operator opted in via env."""
+    """Install the default local resolver unless the host explicitly disables it."""
     if not local_resolver_enabled():
         return False
     from decepticon.backends import factory

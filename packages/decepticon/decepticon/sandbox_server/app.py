@@ -1,6 +1,6 @@
 """FastAPI application for the sandbox HTTP daemon.
 
-Wraps a `DaemonSandbox` (the `SandboxBase` subclass that runs every
+Wraps a `DaemonSandbox` (the `SandboxKernel` subclass that runs every
 subprocess without the `docker exec <container>` prefix because the
 daemon already lives *inside* the sandbox container) and exposes its
 methods over HTTP. The wire surface mirrors the in-process surface 1:1:
@@ -8,13 +8,13 @@ methods over HTTP. The wire surface mirrors the in-process surface 1:1:
   - `/execute`                  → BaseSandbox.execute
   - `/upload_files`             → BaseSandbox.upload_files
   - `/download_files`           → BaseSandbox.download_files
-  - `/execute_tmux`             → SandboxBase.execute_tmux
-  - `/start_background`         → SandboxBase.start_background
-  - `/poll_completion`          → SandboxBase.poll_completion
-  - `/kill_session`             → SandboxBase.kill_session
-  - `/read_session_log_diff`    → SandboxBase.read_session_log_diff
-  - `/reset_session_log_offset` → SandboxBase.reset_session_log_offset
-  - `/session_log_path`         → SandboxBase.session_log_path
+  - `/execute_tmux`             → SandboxKernel.execute_tmux
+  - `/start_background`         → SandboxKernel.start_background
+  - `/poll_completion`          → SandboxKernel.poll_completion
+  - `/kill_session`             → SandboxKernel.kill_session
+  - `/read_session_log_diff`    → SandboxKernel.read_session_log_diff
+  - `/reset_session_log_offset` → SandboxKernel.reset_session_log_offset
+  - `/session_log_path`         → SandboxKernel.session_log_path
 
 The agent's tmux session state lives inside this daemon process (via
 the shared `TmuxSessionManager._initialized` + `DaemonSandbox._jobs`
@@ -237,7 +237,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # survive but no live manager tracks them); without this reap they
     # accumulate forever and can collide with new session names on the
     # next engagement attempt. Scoped to decepticon-named sockets
-    # only — see SandboxBase.reap_orphaned_tmux_sessions docstring.
+    # only — see SandboxKernel.reap_orphaned_tmux_sessions docstring.
     try:
         reaped = backend.reap_orphaned_tmux_sessions()
         if reaped:
@@ -267,11 +267,16 @@ app = FastAPI(
 
 
 @app.get("/healthz")
-def healthz() -> dict[str, str]:
+def healthz() -> dict[str, str | int]:
     """Cheap liveness probe. Cloud Run / Kubernetes startup probes
     should target this — it doesn't touch the backend so it stays
     green even during a long-running command."""
-    return {"status": "ok"}
+    result: dict[str, str | int] = {"status": "ok"}
+    if os.environ.get("DECEPTICON_MANAGED_SESSION") == "1":
+        from decepticon.sandbox_server.managed_start import process_identity
+
+        result.update(pid=os.getpid(), start=process_identity(os.getpid()) or "")
+    return result
 
 
 # ── BaseSandbox surface ───────────────────────────────────────────────
