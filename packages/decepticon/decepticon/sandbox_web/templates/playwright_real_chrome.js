@@ -159,7 +159,12 @@ async function main() {
       ctxOpts.viewport = viewport;
     }
     ctx = await chromium.launchPersistentContext(profileDir, ctxOpts);
-    const page = await ctx.newPage();
+    // Persistent Chromium normally opens a blank page during launch. Reuse
+    // only that blank page in this newly created context; a restored/navigated
+    // page must never inherit this request's navigation guard or authority.
+    const page = ctx.pages().find((candidate) =>
+      !candidate.isClosed() && candidate.url() === 'about:blank'
+    ) || await ctx.newPage();
     await installSafetyGuard(page, allowPrivate);
     // Single shared deadline across warmup + main + reload navigations so the
     // first nav can't eat the whole budget and starve the rest.
