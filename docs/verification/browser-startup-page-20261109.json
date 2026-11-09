@@ -1,0 +1,165 @@
+{
+  "recordedUtc": "2026-11-09T14:10:31.105770+00:00",
+  "baseMain": "df879550544d36b6b1e69062f05adae28537adf2",
+  "cloudBuild": {
+    "id": "f02dfc56-c776-45ab-b879-01b51faaac40",
+    "status": "SUCCESS",
+    "verifiedEvidenceObjects": 10
+  },
+  "sourceInputs": [
+    {
+      "name": "candidate.js",
+      "sha256": "8c085328a4ae15c6663ec6676e07b090174728ff3d430fee0e0a78d9229d502a"
+    },
+    {
+      "name": "fixture.cjs",
+      "sha256": "6f5a4afdb338e64f3c835ec6601a16ef508439f89fe644a6ea340062bba044df"
+    }
+  ],
+  "baseImageDigest": "sha256:b6a440a898556f124e4f7bbd7d02e1ac9c1f73cc63fe9594c06c60940a332e01",
+  "observations": [
+    {
+      "variant": "baseline",
+      "expectedExit": 0,
+      "observations": [
+        {
+          "label": "blank-first-visit",
+          "automation": "playwright-extra",
+          "initialUrls": [
+            "about:blank"
+          ],
+          "newPages": 1,
+          "launchSeconds": 0.7890131510000001,
+          "finalUrls": [
+            "about:blank",
+            "http://127.0.0.1:45725/"
+          ],
+          "code": 0,
+          "signal": null,
+          "seconds": 4.599686627
+        },
+        {
+          "label": "blank-second-visit",
+          "automation": "playwright-extra",
+          "initialUrls": [
+            "about:blank"
+          ],
+          "newPages": 1,
+          "launchSeconds": 0.749999138,
+          "finalUrls": [
+            "about:blank",
+            "http://127.0.0.1:45725/"
+          ],
+          "code": 0,
+          "signal": null,
+          "seconds": 4.529753273
+        }
+      ]
+    },
+    {
+      "variant": "regression",
+      "expectedExit": 1,
+      "observations": []
+    },
+    {
+      "variant": "candidate",
+      "expectedExit": 0,
+      "observations": [
+        {
+          "label": "blank-first-visit",
+          "automation": "playwright-extra",
+          "initialUrls": [
+            "about:blank"
+          ],
+          "newPages": 0,
+          "launchSeconds": 0.820586679,
+          "finalUrls": [
+            "http://127.0.0.1:37401/"
+          ],
+          "code": 0,
+          "signal": null,
+          "seconds": 4.308719365999999
+        },
+        {
+          "label": "blank-second-visit",
+          "automation": "playwright-extra",
+          "initialUrls": [
+            "about:blank"
+          ],
+          "newPages": 0,
+          "launchSeconds": 0.793565335,
+          "finalUrls": [
+            "http://127.0.0.1:37401/"
+          ],
+          "code": 0,
+          "signal": null,
+          "seconds": 4.158945624999999
+        },
+        {
+          "label": "empty-startup",
+          "automation": "playwright-extra",
+          "initialUrls": [],
+          "newPages": 1,
+          "launchSeconds": 0.859915616,
+          "finalUrls": [
+            "http://127.0.0.1:37401/"
+          ],
+          "code": 0,
+          "signal": null,
+          "seconds": 4.870098652
+        },
+        {
+          "label": "navigated-startup",
+          "automation": "playwright-extra",
+          "initialUrls": [
+            "data:text/html,owned-control"
+          ],
+          "newPages": 1,
+          "launchSeconds": 0.7863383289999999,
+          "finalUrls": [
+            "data:text/html,owned-control",
+            "http://127.0.0.1:37401/"
+          ],
+          "code": 0,
+          "signal": null,
+          "seconds": 4.692445108
+        },
+        {
+          "label": "private-address-refused",
+          "automation": "playwright-extra",
+          "initialUrls": [
+            "about:blank"
+          ],
+          "newPages": 0,
+          "launchSeconds": 0.8063235699999999,
+          "finalUrls": [
+            "about:blank"
+          ],
+          "code": 1,
+          "signal": null,
+          "seconds": 1.6865512650000019
+        }
+      ]
+    }
+  ],
+  "localSandboxWeb": {
+    "exit": 0,
+    "passed": 73,
+    "warnings": 3
+  },
+  "actualAutomation": "playwright-extra with existing stealth selection",
+  "network": "none; own HTTP listener inside the container",
+  "uid": 1500,
+  "cpuLimit": 2,
+  "memoryGiB": 4,
+  "readOnlyRoot": true,
+  "capabilitiesDropped": "ALL",
+  "noNewPrivileges": true,
+  "allOwnedContainersRemoved": true,
+  "newImageBuild": false,
+  "nativeConfinementQualified": false,
+  "e2bLatencyQualified": false,
+  "saasRuntimeQualified": false,
+  "published": false,
+  "productionChanged": false
+}
