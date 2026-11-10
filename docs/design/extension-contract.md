@@ -1,9 +1,14 @@
 # Extension contract: capabilities, skills, workflows and clients
 
-Desktop hosts may opt into the proposed [settings policy adapter](desktop-settings-policy.md).
-Its scope and tool approvals come from host-owned read-only custody, not graph
-input; absence of the opt-in preserves the existing client contract. Policy
-validation does not acknowledge runtime tool registration.
+A trusted library host may provision out-of-band authority (per-role model
+selection, approved external tools, dispatch observation) through the
+host-neutral [host integration seam](host-integration.md): the engine core
+consults a provider registered under the `decepticon.host_integration`
+entry-point group, and the null default preserves the existing client contract
+when no host is present. Scope and tool approvals come from host-owned
+read-only custody, not graph input; policy validation does not acknowledge
+runtime tool registration. A concrete host (e.g. the commercial Desktop app)
+ships its provider in its own plugin package, not in this engine.
 
 This is the current contributor entry point for extending agents, knowledge,
 business workflows and client adapters. It describes the source-tree contract;
