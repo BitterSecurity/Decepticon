@@ -81,3 +81,58 @@ def test_planning_digest_matches_cli_and_launcher(tmp_path: Path) -> None:
     assert module.planning_bundle_digest(tmp_path) == (
         "23bb0ad057e96e5098d6c8ef731ce1afadd9e1957f6adf6b720196ad35409418"
     )
+
+
+def test_trusted_document_source_preserves_safety_override_guard(monkeypatch):
+    from decepticon.agents.build import SafetyOverrideViolation, build_tools
+    from decepticon.tools.interaction.complete_planning import create_complete_planning_tool
+
+    monkeypatch.delenv("DECEPTICON_ALLOW_SAFETY_OVERRIDES", raising=False)
+    native = create_complete_planning_tool(lambda runtime: None)
+    with pytest.raises(SafetyOverrideViolation):
+        build_tools(
+            role="soundwave",
+            standard_tools={"complete_engagement_planning": native},
+            overrides={
+                "complete_engagement_planning": SimpleNamespace(name="complete_engagement_planning")
+            },
+        )
+
+
+def test_factory_composes_document_source_without_disabling_guards(monkeypatch):
+    module = import_module("decepticon.agents.standard.soundwave")
+    monkeypatch.delenv("DECEPTICON_ALLOW_SAFETY_OVERRIDES", raising=False)
+    captured = {}
+
+    def create_agent(*args, **kwargs):
+        captured.update(kwargs)
+        return SimpleNamespace(with_config=lambda config: "compiled-fixture")
+
+    monkeypatch.setattr(module, "create_agent", create_agent)
+    monkeypatch.setattr(module, "load_plugin_callbacks", lambda **kwargs: [])
+    result = module.create_soundwave_agent(
+        backend=SimpleNamespace(),
+        llm=SimpleNamespace(),
+        fallback_models=[],
+        planning_document_source=lambda runtime: None,
+        middleware=[planning_filesystem()],
+        system_prompt="owned fixture",
+    )
+    assert result == "compiled-fixture"
+    completion = next(
+        tool for tool in captured["tools"] if tool.name == "complete_engagement_planning"
+    )
+    assert completion is not module._STANDARD_TOOLS["complete_engagement_planning"]
+    assert (
+        module._STANDARD_TOOLS["complete_engagement_planning"]
+        is module.complete_engagement_planning
+    )
+    with pytest.raises(ValueError, match="native planning tool set"):
+        module.create_soundwave_agent(
+            backend=SimpleNamespace(),
+            llm=SimpleNamespace(),
+            fallback_models=[],
+            planning_document_source=lambda runtime: None,
+            tools=[],
+            middleware=[planning_filesystem()],
+        )

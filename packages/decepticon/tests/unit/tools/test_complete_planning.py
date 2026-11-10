@@ -3,9 +3,109 @@
 from __future__ import annotations
 
 import json
+from importlib import import_module
 from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
 
 from decepticon.tools.interaction.complete_planning import validate_planning_bundle
+
+
+def _source_tool(root, monkeypatch, transform=None):
+    module = import_module("decepticon.tools.interaction.complete_planning")
+    events = []
+    calls = []
+
+    class Source:
+        def read_document(self, filename):
+            calls.append(filename)
+            content = (root / "plan" / filename).read_bytes()
+            result = (content, "revision-1")
+            return transform(filename, result, len(calls)) if transform else result
+
+    monkeypatch.setattr(module, "_safe_writer", lambda: events.append)
+    tool = module.create_complete_planning_tool(lambda runtime: Source())
+    runtime = SimpleNamespace(
+        config={
+            "configurable": {
+                "target_value": "https://target.example",
+                "authorization_confirmed": True,
+            }
+        }
+    )
+    return tool, runtime, events, calls
+
+
+def test_remote_source_keeps_native_validation_and_event_ownership(tmp_path, monkeypatch):
+    _write_bundle(tmp_path)
+    tool, runtime, events, calls = _source_tool(tmp_path, monkeypatch)
+    assert "ready. Review" in tool.func(runtime=runtime, tool_call_id="source-call")
+    assert len(calls) == 16 and len(set(calls)) == 8
+    assert events[0]["type"] == "planning_draft_ready"
+    assert events[0]["agent"] == "soundwave"
+    assert events[0]["id"] == "source-call"
+    assert len(events[0]["bundle_digest"]) == 64
+    assert not (tmp_path / ".planning-draft-ready").exists()
+    assert "runtime" not in tool.tool_call_schema.model_json_schema().get("properties", {})
+
+
+@pytest.mark.parametrize(
+    "failure",
+    ["authorization", "target", "missing", "malformed", "oversize", "revision", "utf8", "changed"],
+)
+def test_remote_source_refuses_invalid_or_changing_bundles(tmp_path, monkeypatch, failure):
+    _write_bundle(tmp_path)
+    if failure == "missing":
+        (tmp_path / "plan/cleanup.json").unlink()
+    if failure == "malformed":
+        (tmp_path / "plan/conops.json").write_text("{")
+
+    def transform(filename, result, call):
+        if filename == "roe.json":
+            if failure == "oversize":
+                return (b"x" * (512 * 1024 + 1), result[1])
+            if failure == "revision":
+                return (result[0], "")
+            if failure == "utf8":
+                return (b"\xff", result[1])
+            if failure == "changed" and call > 8:
+                return (result[0], "revision-2")
+        return result
+
+    tool, runtime, events, _ = _source_tool(tmp_path, monkeypatch, transform)
+    if failure == "authorization":
+        runtime.config["configurable"]["authorization_confirmed"] = False
+    if failure == "target":
+        runtime.config["configurable"]["target_value"] = "https://outside.example"
+    assert "ready. Review" not in tool.func(runtime=runtime)
+    assert events == []
+
+
+def test_source_failure_does_not_fall_back_to_host_files_or_expose_credentials(monkeypatch):
+    module = import_module("decepticon.tools.interaction.complete_planning")
+
+    def source(runtime):
+        raise RuntimeError("private-fixture-token-and-url")
+
+    monkeypatch.setattr(module, "_runtime_context", lambda: pytest.fail("must not fall back"))
+    result = module.create_complete_planning_tool(source).func(runtime=SimpleNamespace(config={}))
+    assert "could not be confirmed" in result
+    assert "private-fixture-token-and-url" not in result
+
+
+def test_absent_source_preserves_explicit_local_completion(tmp_path, monkeypatch):
+    module = import_module("decepticon.tools.interaction.complete_planning")
+    _write_bundle(tmp_path)
+    monkeypatch.setattr(
+        module, "_runtime_context", lambda: (str(tmp_path), "https://target.example", True)
+    )
+    monkeypatch.setattr(module, "_safe_writer", lambda: None)
+    result = module.create_complete_planning_tool(lambda runtime: None).func(
+        runtime=SimpleNamespace(config={})
+    )
+    assert "ready. Review" in result
+    assert (tmp_path / ".planning-draft-ready").exists()
 
 
 def _write_bundle(root: Path, *, target: str = "https://target.example") -> None:
