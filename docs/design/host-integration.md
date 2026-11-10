@@ -35,8 +35,19 @@ my-host = "my_pkg.host:PROVIDER"
 
 Resolution is allowlist-gated like plugin bundles: a provider may expose a
 `bundle` attribute (e.g. `bundle = "vendor"`) to require that name in
-`DECEPTICON_PLUGINS`. At most one provider may register; a second is ignored.
-A load failure never degrades pure-OSS startup.
+`DECEPTICON_PLUGINS`. Without an explicit selection, exactly one enabled provider
+may register. Multiple enabled providers, discovery failures, invalid provider
+objects and plugin load failures raise `HostPolicyError`; they never silently
+remove the host's model/tool policy. An absent host preserves the null default.
+
+A host deployment should set `DECEPTICON_HOST_INTEGRATION=my-host` to require its
+registered entry-point name. A missing, duplicate or allowlist-disabled required
+provider refuses startup/composition. Other entry points are not loaded when a
+name is selected. Discovery is cached once under a process lock; deployment
+selection must be established before graph construction. Explicit overrides
+must satisfy the provider protocol. Failed discovery is never cached as a null
+provider. These checks select trusted installed code; they do not authenticate
+an end user or replace the provider's per-request authority checks.
 
 ## What a host provider may do
 

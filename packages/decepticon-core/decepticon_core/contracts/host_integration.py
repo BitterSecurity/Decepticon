@@ -24,9 +24,12 @@ structured value that crosses the seam back into core.
 
 from __future__ import annotations
 
+import os
+import re
 from dataclasses import dataclass
 from importlib.metadata import entry_points
-from typing import Any, Protocol, cast, runtime_checkable
+from threading import RLock
+from typing import Any, Protocol, runtime_checkable
 
 from decepticon_core.plugin_loader import is_bundle_enabled
 
@@ -153,25 +156,28 @@ class NullHostIntegration:
 _NULL: HostIntegration = NullHostIntegration()
 _resolved: HostIntegration | None = None
 _override: HostIntegration | None = None
+_registry_lock = RLock()
 
 
 def _discover_provider() -> HostIntegration:
-    """Resolve the single registered host-integration provider, or the null
-    default. A provider may expose a ``bundle`` attribute to opt into the
-    plugin allowlist (e.g. ``bundle = "vendor"``); without one it loads
-    whenever installed, matching the other entry-point groups. A load failure
-    or a second provider is logged and ignored so a broken or absent plugin
-    never degrades pure-OSS startup.
-    """
-    import logging
+    """No host is optional; broken or ambiguous installed authority is not.
 
-    logger = logging.getLogger(__name__)
+    A deployment may require an entry-point name with
+    ``DECEPTICON_HOST_INTEGRATION``. Missing/disabled required providers and
+    load/discovery failures refuse rather than silently selecting no policy.
+    """
+    required = os.environ.get("DECEPTICON_HOST_INTEGRATION", "").strip()
+    if required and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,127}", required) is None:
+        raise HostPolicyError("invalid_host_integration_selection")
     chosen: HostIntegration | None = None
     try:
         eps = list(entry_points(group=HOST_INTEGRATION_GROUP))
-    except Exception:  # pragma: no cover - importlib quirks
-        logger.exception("host-integration discovery failed")
-        return _NULL
+    except Exception:
+        raise HostPolicyError("host_integration_discovery_failed") from None
+    if required:
+        eps = [ep for ep in eps if ep.name == required]
+        if len(eps) != 1:
+            raise HostPolicyError("required_host_integration_unavailable")
     for ep in eps:
         try:
             obj = ep.load()
@@ -184,36 +190,47 @@ def _discover_provider() -> HostIntegration:
             else:
                 provider = obj
             if not is_bundle_enabled(getattr(provider, "bundle", None)):
+                if required:
+                    raise HostPolicyError("required_host_integration_disabled")
                 continue
+            if not isinstance(provider, HostIntegration):
+                raise HostPolicyError("invalid_host_integration_provider")
+        except HostPolicyError:
+            raise
         except Exception:
-            logger.exception("failed to load host integration %s", ep.name)
-            continue
+            # Plugin failures can contain credential material. Propagate only
+            # the stable refusal code, without logging arbitrary exceptions.
+            raise HostPolicyError("host_integration_load_failed") from None
         if chosen is not None:
-            logger.error("multiple host-integration providers; keeping the first, ignoring %s", ep.name)
-            continue
-        chosen = cast("HostIntegration", provider)
-    return chosen or _NULL
+            raise HostPolicyError("ambiguous_host_integration")
+        chosen = provider
+    return chosen if chosen is not None else _NULL
 
 
 def get_host_integration() -> HostIntegration:
     """The active provider: an explicit override, else the resolved plugin
     provider (cached), else the null default."""
-    if _override is not None:
-        return _override
     global _resolved
-    if _resolved is None:
-        _resolved = _discover_provider()
-    return _resolved
+    with _registry_lock:
+        if _override is not None:
+            return _override
+        if _resolved is None:
+            _resolved = _discover_provider()
+        return _resolved
 
 
 def set_host_integration(provider: HostIntegration | None) -> None:
     """Explicitly set (or clear) the provider, bypassing discovery. For hosts
     that wire the provider directly, and for tests."""
     global _override
-    _override = provider
+    with _registry_lock:
+        if provider is not None and not isinstance(provider, HostIntegration):
+            raise HostPolicyError("invalid_host_integration_provider")
+        _override = provider
 
 
 def reset_host_integration_cache() -> None:
     """Drop the cached discovery result (tests / re-resolution after install)."""
     global _resolved
-    _resolved = None
+    with _registry_lock:
+        _resolved = None
