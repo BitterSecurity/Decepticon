@@ -93,6 +93,19 @@ Plan is optional and is entered
 explicitly; it is not an execution prerequisite. An operator provisions canonical
 `plan/roe.json`; Soundwave reads it and may draft a separate candidate but cannot
 rewrite it. The seven optional planning documents use that approved scope.
+Trusted library hosts may provide `planning_document_source=` to
+`create_soundwave_agent`. Its Python provider receives the current `ToolRuntime`
+and returns a read-only source with `read_document(filename) -> (bytes, revision)`,
+or `None` to preserve local completion. The native tool selects the eight fixed
+filenames, validates the existing schemas and scope, bounds each document to
+512 KiB, and rechecks bytes/revisions before emitting the review notification.
+The provider must authenticate and revalidate current actor/run authority on
+every read; failures are refused without a local-file fallback. This is a
+storage adapter, not a tool override or configuration-selected callable. Full
+`tools=` replacement and this argument cannot be combined. The ordinary
+safety-critical override guard remains enabled. A revision recheck is not an
+atomic multi-document snapshot or permission to execute; hosts must still
+review/capture the current documents and enforce their normal launch authority.
 Publication validates the eight-document bundle (RoE plus seven documents), emits
 `planning_draft_ready`, and leaves the operator in Plan. It neither changes
 scope authorization nor switches modes automatically. OPPLAN is created by the execution

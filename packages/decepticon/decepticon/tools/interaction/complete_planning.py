@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Callable
 from pathlib import Path
-from typing import Annotated, Any
+from tempfile import TemporaryDirectory
+from typing import Annotated, Any, Protocol
 
+from langchain.tools import ToolRuntime
 from langchain_core.tools import InjectedToolCallId, tool
 from langgraph.config import get_config, get_stream_writer
 
@@ -29,6 +32,19 @@ _PLANNING_DOCUMENTS = {
     "abort.json": AbortPlan,
     "cleanup.json": CleanupPlan,
 }
+
+
+class PlanningDocumentSource(Protocol):
+    """Trusted client-owned, read-only source for fixed planning filenames.
+
+    Revalidate current actor/run authority on each read. Revisions must identify
+    immutable content; this interface never admits target execution or writes RoE.
+    """
+
+    def read_document(self, filename: str) -> tuple[bytes, str]: ...
+
+
+PlanningDocumentSourceProvider = Callable[[ToolRuntime], PlanningDocumentSource | None]
 
 
 def planning_bundle_digest(workspace: str | Path) -> str:
@@ -102,6 +118,73 @@ def _safe_writer():
         return get_stream_writer()
     except Exception:
         return None
+
+
+def create_complete_planning_tool(source_provider: PlanningDocumentSourceProvider):
+    """Keep native validation/event ownership while adapting document storage.
+
+    The provider is injected by trusted factory code, never deserialized from
+    graph configuration or model input. Returning None preserves local behavior;
+    provider/read failures are refused, with no fallback to host files.
+    """
+
+    @tool("complete_engagement_planning")
+    def complete_from_source(
+        runtime: ToolRuntime,
+        tool_call_id: Annotated[str, InjectedToolCallId] = "",
+    ) -> Any:
+        """Validate the eight-document planning bundle and announce operator review."""
+        try:
+            source = source_provider(runtime)
+            if source is None:
+                return complete_engagement_planning.func(tool_call_id=tool_call_id)
+            configurable = (runtime.config or {}).get("configurable", {})
+            revisions: dict[str, str] = {}
+            # The upstream validator is Path-based. Only fixed, bounded files
+            # enter this private per-call adapter; it is never an agent workspace.
+            with TemporaryDirectory(prefix="decepticon-planning-validation-") as temporary:
+                root = Path(temporary)
+                (root / "plan").mkdir(mode=0o700)
+                for filename in _PLANNING_DOCUMENTS:
+                    content, revision = source.read_document(filename)
+                    if not isinstance(content, bytes) or len(content) > 512 * 1024:
+                        raise ValueError("Invalid planning document size")
+                    if not isinstance(revision, str) or not revision or len(revision) > 256:
+                        raise ValueError("Missing planning document revision")
+                    content.decode("utf-8")
+                    (root / "plan" / filename).write_bytes(content)
+                    revisions[filename] = revision
+                target = configurable.get("target_value")
+                confirmed = configurable.get("authorization_confirmed")
+                failure = validate_planning_bundle(
+                    root,
+                    target_value=target if isinstance(target, str) else "",
+                    authorization_confirmed=confirmed if isinstance(confirmed, bool) else None,
+                )
+                if failure:
+                    return f"Planning draft blocked: {failure}"
+                digest = planning_bundle_digest(root)
+                for filename, expected in revisions.items():
+                    content, revision = source.read_document(filename)
+                    if revision != expected or content != (root / "plan" / filename).read_bytes():
+                        return "Planning documents changed during validation; review and validate again."
+            writer = _safe_writer()
+            if writer is not None:
+                writer(
+                    {
+                        "type": "planning_draft_ready",
+                        "agent": "soundwave",
+                        "id": tool_call_id,
+                        "bundle_digest": digest,
+                    }
+                )
+            return "Planning draft ready. Review the documents in Plan mode; select Red explicitly when ready."
+        except Exception:
+            # Storage credentials, transport URLs and underlying exception
+            # payloads must not become model-visible tool responses.
+            return "Planning draft validation could not be confirmed; reread the documents before retrying."
+
+    return complete_from_source
 
 
 @tool

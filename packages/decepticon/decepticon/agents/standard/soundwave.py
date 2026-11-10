@@ -55,6 +55,10 @@ from decepticon.middleware.filesystem import FilesystemMiddleware
 from decepticon.middleware.step_budget import StepBudgetMiddleware, effective_recursion_limit
 from decepticon.middleware.workflow import PlanningWorkflowMiddleware
 from decepticon.tools.interaction import ask_user_question, complete_engagement_planning
+from decepticon.tools.interaction.complete_planning import (
+    PlanningDocumentSourceProvider,
+    create_complete_planning_tool,
+)
 from decepticon_core.plugin_loader import is_bundle_enabled, load_plugin_callbacks
 
 # Name-keyed registry of the standard tools. Exposed for library
@@ -112,6 +116,7 @@ def create_soundwave_agent(
     backend: Any = None,
     llm: Any = None,
     fallback_models: list | None = None,
+    planning_document_source: PlanningDocumentSourceProvider | None = None,
     # ── langchain-style composition (full replace when provided) ─────
     tools: list[Any] | None = None,
     middleware: list[Any] | None = None,
@@ -128,6 +133,9 @@ def create_soundwave_agent(
             ``LLMFactory().get_model("soundwave")``.
         fallback_models: passed to ``ModelFallbackMiddleware``. Defaults
             to ``LLMFactory().get_fallback_models("soundwave")``.
+        planning_document_source: trusted read-only document adapter. Native
+            eight-document validation and draft-ready event remain unchanged.
+            Cannot be combined with an explicit full ``tools`` replacement.
         tools: full tool list — when provided, replaces the standard
             registry entirely. When ``None`` (default), the OSS
             baseline is built and plugin overrides (via
@@ -154,8 +162,15 @@ def create_soundwave_agent(
     if backend is None:
         backend = make_agent_backend(build_sandbox_backend())
 
+    if planning_document_source is not None and tools is not None:
+        raise ValueError("planning_document_source requires the native planning tool set")
     if tools is None:
-        tools = build_tools(role=_ROLE, standard_tools=_STANDARD_TOOLS)
+        standard_tools = dict(_STANDARD_TOOLS)
+        if planning_document_source is not None:
+            standard_tools["complete_engagement_planning"] = create_complete_planning_tool(
+                planning_document_source
+            )
+        tools = build_tools(role=_ROLE, standard_tools=standard_tools)
     if middleware is None:
         middleware = build_middleware(
             role=_ROLE,
