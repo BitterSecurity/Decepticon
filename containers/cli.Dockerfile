@@ -30,9 +30,9 @@ RUN npm run build --workspace=@decepticon/cli
 FROM node:24-slim
 WORKDIR /app
 
-# v1.1.8 `/web` slash command: the CLI shells out to
-# `docker compose --profile web up -d web` against the host docker daemon
-# (the docker.sock is bind-mounted in docker-compose.yml). That requires
+# The `/blue` slash command shells out to `docker compose` against the host
+# docker daemon (the docker.sock is bind-mounted in docker-compose.yml) to
+# start and stop the local Blue Cell sensor. That requires
 # the docker CLI + compose plugin inside this image. Pulled from Docker's
 # official Debian repo so we get docker-ce-cli + docker-compose-plugin
 # without dragging in the dockerd daemon (which docker.io would).

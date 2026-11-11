@@ -16,14 +16,13 @@ import resume from "./resume.js";
 import model from "./model.js";
 import plugins from "./plugins.js";
 import agent from "./agent.js";
-import web from "./web.js";
 import blue from "./blue.js";
 import mode from "./mode.js";
 import { scope } from "./scope.js";
 import { convenienceCommands } from "./convenience.js";
 
 /** All registered commands. Add new commands here. */
-const COMMANDS: Command[] = [help, clear, file, quit, resume, model, plugins, mode, scope, agent, web, blue, ...localCommands, ...convenienceCommands, ...terminalCommands];
+const COMMANDS: Command[] = [help, clear, file, quit, resume, model, plugins, mode, scope, agent, blue, ...localCommands, ...convenienceCommands, ...terminalCommands];
 
 /** Get all registered commands. */
 export function getCommands(): Command[] {

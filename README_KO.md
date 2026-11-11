@@ -65,9 +65,8 @@
   의심 이벤트를 조사하고 Red 인게이지먼트와 함께 CLI에 알립니다.
   자동 차단은 수행하지 않습니다. [Blue Cell 설정과 관찰 범위](docs/features/blue-cell.md).
 - **검토 가능한 결과:** 워크스페이스와 지식 그래프에 발견 사항과 공격
-  문맥을 보존합니다. 선택형 웹 대시보드에서는 에이전트 활동을 실시간으로
-  보고 계획·발견 사항·공격 그래프를 검토할 수 있습니다.
-  [웹 대시보드](docs/web-dashboard.md) · [지식 그래프](docs/knowledge-graph.md).
+  문맥을 보존합니다. 터미널 CLI에서 에이전트 활동을 실시간으로 보고
+  계획·발견 사항을 검토할 수 있습니다. [지식 그래프](docs/knowledge-graph.md).
 
 <div align="center">
   <p><strong>상용 제품 데모</strong></p>
@@ -100,7 +99,7 @@ Docker 설치 없이 — 브라우저에서 바로 자율 레드팀 엔게이지
 ```bash
 curl -fsSL https://decepticon.red/install | bash
 decepticon onboard   # 대화형 설정 위자드 (프로바이더, API 키, 모델 프로필)
-decepticon           # 코어 서비스와 터미널 CLI 실행; 웹 대시보드는 CLI에서 /web
+decepticon           # 코어 서비스와 터미널 CLI 실행
 ```
 
 → **[빠른 시작](docs/getting-started.md)** · **[전체 셋업 가이드](docs/setup-guide.md)**
@@ -174,7 +173,7 @@ Red는 생성 시 운영자가 검토한 `plan/roe.json`의 기계 판독 범위
   <img src="assets/decepticon_infra.svg" alt="Decepticon Infrastructure" width="680">
 </div>
 
-두 개의 네트워크로 분리된 설계입니다. 기본 관리 서비스(LiteLLM, PostgreSQL, Skillogy, LangGraph)와 샌드박스는 유지하고, 웹 대시보드는 CLI의 `/web` 명령으로, BloodHound CE·Sliver C2·REA/Ghidra 등 전문 워크로드는 필요할 때 시작합니다. Neo4j는 관리망과 샌드박스망에 연결되어 발견 사항을 영속화합니다.
+두 개의 네트워크로 분리된 설계입니다. 기본 관리 서비스(LiteLLM, PostgreSQL, Skillogy, LangGraph)와 샌드박스는 유지하고, BloodHound CE·Sliver C2·REA/Ghidra 등 전문 워크로드는 필요할 때 시작합니다. Neo4j는 관리망과 샌드박스망에 연결되어 발견 사항을 영속화합니다.
 
 → **[아키텍처 상세](docs/architecture.md)** · **[지식 그래프](docs/knowledge-graph.md)**
 
@@ -222,7 +221,6 @@ Tier 기반 자격증명-aware 폴백 체인. 사용 가능한 자격증명을 �
 | 로컬 방어 관찰 | [Blue Cell](docs/features/blue-cell.md) |
 | 모델 프로필과 폴백 체인 | [모델](docs/models.md) |
 | 스킬 시스템과 포맷 스펙 | [스킬](docs/skills.md) |
-| 웹 대시보드 기능 및 설정 | [웹 대시보드](docs/web-dashboard.md) |
 | 시스템 아키텍처와 네트워크 격리 | [아키텍처](docs/architecture.md) |
 | Neo4j 지식 그래프 | [지식 그래프](docs/knowledge-graph.md) |
 | 엔드투엔드 인게이지먼트 워크플로 | [인게이지먼트 워크플로](docs/engagement-workflow.md) |

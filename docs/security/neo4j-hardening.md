@@ -50,7 +50,7 @@ NEO4J_dbms_security_procedures_allowlist: >-
 # re-introduce `_unrestricted`.
 NEO4J_server_config_strict__validation_enabled: "true"
 
-# Lock the HTTP API to no cross-origin access. The dashboard talks to
+# Lock the HTTP API to no cross-origin access. The orchestrator talks to
 # Neo4j over Bolt; HTTP browser access is operator-only on loopback.
 NEO4J_dbms_security_http__access__control__allow__origin: ""
 ```

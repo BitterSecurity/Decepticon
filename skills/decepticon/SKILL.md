@@ -47,7 +47,7 @@ information. Saved scopes are retained. There is no separate
 `/mode red approve` command or approval marker. Plan is optional. Enter `/help` inside
 the terminal for commands supported by that running version.
 
-Slash commands such as `/status`, `/sessions`, `/mode`, `/blue`, `/web`, and
+Slash commands such as `/status`, `/sessions`, `/mode`, `/blue`, and
 `/export` are terminal input, not shell subcommands. Do not invent shell forms
 like `decepticon scan`, `decepticon blue up`, or `decepticon start --target`.
 See [examples.md](examples.md) for terminal, service, and result workflows.

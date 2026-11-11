@@ -7,8 +7,7 @@ import (
 
 // registryEntry is one in-memory record of a workload the daemon has
 // touched in this session. The map is process-local — Sprint 1 does
-// not persist across daemon restart. Restart-survival belongs to
-// Sprint 4 (Web Dashboard + status panel).
+// not persist across daemon restart.
 type registryEntry struct {
 	State        WorkloadState
 	EngagementID string

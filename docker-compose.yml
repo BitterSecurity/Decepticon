@@ -69,7 +69,7 @@ services:
   postgres:
     image: postgres:17-alpine
     container_name: decepticon${DECEPTICON_STACK_NAME:+-${DECEPTICON_STACK_NAME}}-postgres
-    # Working set is tiny (LiteLLM spend logs + web state, shared_buffers=32MB).
+    # Working set is tiny (LiteLLM spend logs, shared_buffers=32MB).
     # Cap so a runaway query can't starve the host; 2g leaves ample headroom.
     mem_limit: 2g
     environment:
@@ -77,7 +77,7 @@ services:
       POSTGRES_USER: decepticon
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-decepticon}
       # Keep shared_buffers small — Decepticon stores only LiteLLM spend
-      # logs and web dashboard state; the working set fits in 32MB.
+      # logs here; the working set fits in 32MB.
       # Default (128MB) wastes RAM in this context. work_mem is lowered
       # from the 4MB default because queries are simple key-value lookups.
       POSTGRES_INITDB_ARGS: "--data-checksums"
@@ -94,8 +94,7 @@ services:
 
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      # Auto-create decepticon_web DB on first startup (empty volume only).
-      # Existing deployments: run the SQL manually or `docker volume rm postgres_data`.
+      # Init scripts run on first startup only (empty data volume).
       - ./containers/postgres-init:/docker-entrypoint-initdb.d:ro
     ports:
       - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
@@ -162,8 +161,8 @@ services:
       # sandbox→management bridge.
       NEO4J_server_config_strict__validation_enabled: "true"
       # Lock HTTP API access to localhost (the orchestrator talks to
-      # Neo4j over Bolt, not HTTP). The web dashboard's Neo4j browser
-      # binding lives on 127.0.0.1 below; this disables the HTTP API for
+      # Neo4j over Bolt, not HTTP). The Neo4j browser binding lives on
+      # 127.0.0.1 below; this disables the HTTP API for
       # any other origin.
       NEO4J_server_http_listen__address: "0.0.0.0:7474"
       NEO4J_dbms_security_http__access__control__allow__origin: ""
@@ -431,67 +430,6 @@ services:
     logging: *default-logging
 
 
-  # Web Dashboard — Next.js UI
-  # Migrations run automatically at startup via web-entrypoint.sh (prisma migrate deploy).
-  web:
-    image: ghcr.io/bittersecurity/decepticon-web:${DECEPTICON_VERSION:-latest}
-    build:
-      context: .
-      dockerfile: containers/web.Dockerfile
-      args:
-        VERSION: ${VERSION:-0.0.0}
-    container_name: decepticon${DECEPTICON_STACK_NAME:+-${DECEPTICON_STACK_NAME}}-web
-    ports:
-      - "127.0.0.1:${WEB_PORT:-3000}:3000"
-      - "127.0.0.1:${TERMINAL_PORT:-3003}:3003"
-    env_file: .env
-    environment:
-      - DECEPTICON_RUNTIME_ENGAGEMENT=${DECEPTICON_RUNTIME_ENGAGEMENT:-}
-      - NEXT_PUBLIC_DECEPTICON_EDITION=oss
-      - LANGGRAPH_API_URL=http://langgraph:2024
-      - NEXT_PUBLIC_LANGGRAPH_API_URL=http://localhost:${LANGGRAPH_PORT:-2024}
-      - NEXT_PUBLIC_TERMINAL_WS_URL=ws://localhost:${TERMINAL_PORT:-3003}
-      # .env carries host publications. The PTY server must still listen on
-      # container port 3003 while accepting the selected web host origin.
-      - TERMINAL_PORT=3003
-      - WEB_PORT=${WEB_PORT:-3000}
-      - DATABASE_URL=postgresql://decepticon:${POSTGRES_PASSWORD:-decepticon}@postgres:5432/decepticon_web
-      - WORKSPACE_PATH=/workspace
-      - BLUE_SENSOR_URL=http://blue-receiver:8082
-      - BLUE_MONITOR_URL=http://blue-monitor:8085
-    volumes:
-      - ${DECEPTICON_HOME:-~/.decepticon}/workspace:/workspace
-      - web_state:/var/lib/decepticon-web
-    depends_on:
-      langgraph:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
-    # node http.get — Next.js standalone images include node but not curl/wget.
-    # `r.resume()` drains the body so the request finishes; without it the
-    # callback can resolve before close, leaving the process hanging until
-    # docker's healthcheck timeout fires. start_period covers prisma migrate
-    # + Next.js boot; retries is post-cushion grace.
-    healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/', r => { r.resume(); process.exit(r.statusCode < 500 ? 0 : 1); }).on('error', () => process.exit(1))"]
-      interval: 5s
-      timeout: 5s
-      retries: 12
-      start_period: 90s
-    networks:
-      - decepticon-net
-    restart: unless-stopped
-    logging: *default-logging
-    # v1.1.8: web dashboard is no longer brought up by default `decepticon
-    # start`. The CLI exposes a `/web` slash command that runs
-    # `docker compose --profile web up -d web` against the operator's
-    # docker daemon (the CLI container has the host docker.sock mounted
-    # in OSS), so the web tier only spins up when the operator actually
-    # asks for it. Keeps idle cost low and removes the postgres-migration
-    # latency hit from cold starts.
-    profiles:
-      - web
-
   # Ink CLI — Interactive terminal UI
   # Runs via: docker compose run --rm cli
   cli:
@@ -504,11 +442,11 @@ services:
     container_name: decepticon${DECEPTICON_STACK_NAME:+-${DECEPTICON_STACK_NAME}}-cli
     stdin_open: true
     tty: true
-    # v1.1.8 `/web` slash command: the CLI shells out to `docker compose
-    # --profile web up -d web` against the host docker daemon. To do
-    # that it needs (a) the docker.sock so commands reach the host
-    # daemon and (b) the on-host compose project directory mounted at a
-    # known in-container path so `-f` and `--env-file` resolve.
+    # `/blue` slash command: the CLI shells out to `docker compose` for the
+    # local Blue sensor against the host docker daemon. To do that it
+    # needs (a) the docker.sock so commands reach the host daemon and
+    # (b) the on-host Decepticon home mounted at a known in-container path
+    # so `--env-file` resolves.
     #
     # OSS scope: user == host owner. Multi-tenant deployments never
     # expose the docker socket to a tenant CLI — those deployments
@@ -524,10 +462,8 @@ services:
       - DECEPTICON_STACK_NAME=${DECEPTICON_STACK_NAME:-}
       - DECEPTICON_HOME=/decepticon-home
       - DECEPTICON_HOST_HOME=${DECEPTICON_HOME:-}
-      - DECEPTICON_COMPOSE_FILE=/decepticon-home/docker-compose.yml
       - DECEPTICON_COMPOSE_ENV_FILE=/decepticon-home/.env
       - DECEPTICON_COMPOSE_PROJECT=decepticon${DECEPTICON_STACK_NAME:+-${DECEPTICON_STACK_NAME}}
-      - WEB_PORT=${WEB_PORT:-3000}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ${DECEPTICON_HOME:-~/.decepticon}:/decepticon-home
@@ -785,7 +721,6 @@ services:
       - ad
 
 volumes:
-  web_state:
   langgraph_data:
   postgres_data:
   sliver_data:

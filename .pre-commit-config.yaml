@@ -53,8 +53,7 @@ repos:
             benchmark/results/.*|
             packages/decepticon/decepticon/skills/_corpus/.*|
             .*\.snap|
-            .*\.lock|
-            clients/web/public/.*\.svg
+            .*\.lock
           )$
       - id: check-yaml
       - id: check-toml

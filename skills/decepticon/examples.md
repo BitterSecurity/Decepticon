@@ -61,16 +61,13 @@ decepticon cancel <name-or-thread-id>
 Cancellation requests do not shut down services. For a stack shutdown requested
 by the user, use `decepticon stop`.
 
-## Blue Cell and web dashboard
+## Blue Cell
 
 Inside the interactive conversation, use `/blue status` to inspect a local
 Blue Cell. `/blue up` and `/blue stop` control its lifecycle. `/blue verify`
 and `/blue analyze` inspect coverage and request analysis. Read `/help` for the
 version's supported arguments. No events with an unhealthy collector is not a
 clean security result.
-
-`/web` controls the optional local web dashboard; it does not start with the
-core services by default. Read the displayed URL rather than assuming a port.
 
 ## Results
 

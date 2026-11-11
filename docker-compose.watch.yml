@@ -41,20 +41,6 @@ services:
         - action: rebuild
           path: ./containers/langgraph.Dockerfile
 
-  web:
-    develop:
-      watch:
-        - action: sync
-          path: ./clients/web/src
-          target: /app/clients/web/src
-        - action: sync
-          path: ./clients/web/public
-          target: /app/clients/web/public
-        - action: rebuild
-          path: ./clients/web/package.json
-        - action: rebuild
-          path: ./containers/web.Dockerfile
-
   cli:
     develop:
       watch:

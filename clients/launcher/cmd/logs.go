@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var documentedLogServices = []string{"langgraph", "litellm", "postgres", "neo4j", "sandbox", "web"}
+var documentedLogServices = []string{"langgraph", "litellm", "postgres", "neo4j", "sandbox"}
 
 var logsCmd = &cobra.Command{
 	Use:   "logs [service]",
@@ -20,7 +20,7 @@ var logsCmd = &cobra.Command{
 
 Service mode (default): follow logs for one service in the current Compose
 stack. The default service is langgraph. Documented services: langgraph,
-litellm, postgres, neo4j, sandbox, web. Additional stack services (such as
+litellm, postgres, neo4j, sandbox. Additional stack services (such as
 cli or c2-sliver) are accepted when present in Compose configuration.
 
 Engagement mode (--engagement): replay the conversation transcript of a

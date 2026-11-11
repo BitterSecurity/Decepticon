@@ -347,10 +347,6 @@ const blue: Command = {
     const [action = "status", value = ""] = args.trim().split(/\s+/);
     try {
       if (action === "up") {
-        if (process.env.DECEPTICON_WEB_TERMINAL === "true") {
-          context.addSystemEvent("Start the local Blue sensor from the host CLI with /blue up, then select Blue in the web dashboard.");
-          return;
-        }
         await blueUp(args, context);
         return;
       }
@@ -369,23 +365,11 @@ const blue: Command = {
         return;
       }
       if (action === "stop" || action === "down") {
-        if (process.env.DECEPTICON_WEB_TERMINAL === "true") {
-          context.addSystemEvent("Stop the Blue sensor from the host CLI with /blue stop.");
-          return;
-        }
         await runCompose(["down"], process.env);
         context.addSystemEvent("Blue sensor stopped. Stored events and bodies remain in Docker volumes.");
         return;
       }
       if (action === "status") {
-        if (process.env.DECEPTICON_WEB_TERMINAL === "true") {
-          const [monitor, sensor] = await Promise.all([
-            queryMonitor<{ watch_enabled: boolean; watch_backlog: number }>("/metrics"),
-            query<SensorMetrics>("/metrics"),
-          ]);
-          context.addSystemEvent(`Blue sensor: connected; events=${sensor.events_total}; AI watch=${monitor.watch_enabled ? "running" : "disabled"}; backlog=${monitor.watch_backlog}. Use /blue metrics for collection health.`);
-          return;
-        }
         const output = await runCompose(["ps"], process.env);
         let watch = "";
         let coverage: string;

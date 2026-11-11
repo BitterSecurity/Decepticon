@@ -77,8 +77,8 @@ DUAL_HOMED_SERVICES: frozenset[str] = frozenset(
 )
 
 # The only services permitted to mount the host docker socket. `cli` needs
-# it for the /web slash command, which shells out to
-# `docker compose --profile web up -d web` against the host daemon (#625).
+# it for the /blue slash command, which shells out to `docker compose`
+# against the host daemon to manage the local Blue Cell sensor.
 # It is a client, not an agent: it executes operator keystrokes, never
 # model-directed commands, so it is not the container-escape surface this
 # guard exists for. Multi-tenant deployments drop the mount via a compose

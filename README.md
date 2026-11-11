@@ -82,7 +82,7 @@ decepticon onboard   # Interactive setup wizard (provider, API key, model profil
 decepticon           # Start the core stack and drop into the terminal CLI
 ```
 
-The default start brings up the core management plane (LiteLLM, PostgreSQL, Neo4j, Skillogy, LangGraph, sandbox) and launches the terminal CLI. Specialist workloads (BloodHound CE, Sliver C2, REA/Ghidra, …) and the web dashboard come up on demand — the orchestrator spawns specialists via `ops_start("ad")` etc., and you bring up the dashboard from inside the CLI with `/web` (see [Web Dashboard](docs/web-dashboard.md)).
+The default start brings up the core management plane (LiteLLM, PostgreSQL, Neo4j, Skillogy, LangGraph, sandbox) and launches the terminal CLI. Specialist workloads (BloodHound CE, Sliver C2, REA/Ghidra, …) come up on demand — the orchestrator spawns them via `ops_start("ad")` etc. The terminal CLI is the OSS operator interface; the hosted web console is part of [Decepticon Cloud](https://decepticon.red).
 
 **Windows (PowerShell, native)**
 ```powershell
@@ -116,7 +116,7 @@ of the current line. Use `/queue` to review waiting messages before `/new`.
 
 `/new` preserves saved conversations and terminal scrollback; it does not create
 another engagement or change target authorization. `/plan` and `/new` take no
-arguments. In the web terminal, use the dashboard's mode controls.
+arguments.
 
 The new shortcuts and slash conveniences above describe current `main`, including
 unreleased changes. A source merge does not update installed images. See
@@ -206,7 +206,7 @@ Every Red engagement starts with an operator-approved target and RoE. Optional P
   <img src="assets/decepticon_infra.svg" alt="Decepticon Infrastructure" width="680">
 </div>
 
-Two-network design. The **always-on** management plane (LiteLLM, PostgreSQL, Skillogy, LangGraph) and the always-on sandbox plane stay up across the whole engagement; everything else is **dynamic-spawn** — the Web dashboard comes up on `/web` from the CLI, and specialist workloads (BloodHound CE, Sliver C2, REA/Ghidra, …) come up only when the orchestrator calls `ops_start(...)` (see [ADR-0006](docs/adr/0006-agent-driven-container-lifecycle.md)). Networks: management on `decepticon-net`; sandbox + C2 server + targets on `sandbox-net`. Neo4j is dual-homed so the agent (on management) can persist findings written from inside the sandbox.
+Two-network design. The **always-on** management plane (LiteLLM, PostgreSQL, Skillogy, LangGraph) and the always-on sandbox plane stay up across the whole engagement; everything else is **dynamic-spawn** — specialist workloads (BloodHound CE, Sliver C2, REA/Ghidra, …) come up only when the orchestrator calls `ops_start(...)` (see [ADR-0006](docs/adr/0006-agent-driven-container-lifecycle.md)). Networks: management on `decepticon-net`; sandbox + C2 server + targets on `sandbox-net`. Neo4j is dual-homed so the agent (on management) can persist findings written from inside the sandbox.
 
 → **[Architecture deep dive](docs/architecture.md)** · **[Knowledge graph](docs/knowledge-graph.md)**
 
@@ -244,7 +244,7 @@ Configure via `decepticon onboard`. → **[Full model reference & fallback examp
 | Topic | Doc |
 |-------|-----|
 | Installation and first engagement | [Getting Started](docs/getting-started.md) |
-| Complete setup, OAuth, providers, dashboard | [Setup Guide](docs/setup-guide.md) |
+| Complete setup, OAuth and providers | [Setup Guide](docs/setup-guide.md) |
 | Coding-agent CLI wrapper | [Decepticon skill](skills/decepticon/SKILL.md) |
 | Documentation and repository map | [Documentation index](docs/README.md) |
 | All CLI commands and keyboard shortcuts | [CLI Reference](docs/cli-reference.md) |
@@ -254,7 +254,6 @@ Configure via `decepticon onboard`. → **[Full model reference & fallback examp
 | Local defensive monitoring | [Blue Cell](docs/features/blue-cell.md) |
 | Model profiles and fallback chain | [Models](docs/models.md) |
 | Skill system and format spec | [Skills](docs/skills.md) |
-| Web dashboard features and setup | [Web Dashboard](docs/web-dashboard.md) |
 | Extending capabilities, skills, workflows and clients | [Extension contract](docs/design/extension-contract.md) |
 | System architecture and network isolation | [Architecture](docs/architecture.md) |
 | Neo4j knowledge graph | [Knowledge Graph](docs/knowledge-graph.md) |

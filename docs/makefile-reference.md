@@ -26,7 +26,6 @@ The primary purpose of this Makefile. Run these before tagging a release.
 |--------|-------------|
 | `make dev` | Build all Docker images and start with hot-reload (`docker compose watch`) — source changes sync into containers automatically |
 | `make cli-dev` | Open the interactive terminal UI locally with hot-reload (Node) — backend stays in Docker |
-| `make web-dev` | Run the Next.js dev server locally with infra services in Docker |
 
 Typical contributor workflow:
 
@@ -41,8 +40,6 @@ make quality
 make smoke      # fast check
 make dogfood    # full OSS UX
 ```
-
-The Web dashboard is optional. Start it from the CLI with `/web`; it is then reachable at <http://localhost:3000>.
 
 ---
 
@@ -68,19 +65,6 @@ CLI tests are part of `make quality-cli`. To run them in isolation: `npm run tes
 
 ---
 
-## Web Dashboard
-
-| Target | Description |
-|--------|-------------|
-| `make web-dev` | Start the Next.js dev server locally; brings up infra in Docker |
-| `make web-build` | Build the web dashboard (also generates the Prisma client) |
-| `make web-lint` | Lint the web dashboard (ESLint) |
-| `make web-migrate [NAME=name]` | Run a Prisma dev migration |
-
-To regenerate just the Prisma client (without a full build): `cd clients/web && npx prisma generate`.
-
----
-
 ## Operations
 
 | Target | Description |
@@ -102,7 +86,7 @@ To regenerate just the Prisma client (without a full build): `cd clients/web && 
 
 ## Versioning (no manual step)
 
-There is no `make sync-version` or pre-tag commit. Source-tree version fields carry a `"0.0.0"` sentinel in `pyproject.toml`, `clients/cli/package.json`, and `clients/web/package.json`. The release workflow stamps the real tag into the images at Docker build time via `--build-arg VERSION=<tag>`. The Go launcher is similarly stamped via GoReleaser ldflags.
+There is no `make sync-version` or pre-tag commit. Source-tree version fields carry a `"0.0.0"` sentinel in `pyproject.toml`, and `clients/cli/package.json`. The release workflow stamps the real tag into the images at Docker build time via `--build-arg VERSION=<tag>`. The Go launcher is similarly stamped via GoReleaser ldflags.
 
 Release channel policy (see [update-channels.md](./update-channels.md) for the user-facing view):
 

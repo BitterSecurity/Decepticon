@@ -136,10 +136,8 @@ jobs:
           gh release upload "${GITHUB_REF_NAME}" config-checksums.txt agent-skill-checksums.txt --clobber
 
   # Multi-arch images that build well under QEMU (Python wheels, simple
-  # binaries). Web is split out below — its arm64 emulation cost dominated
-  # the release (~21 min for web alone). Sandbox + c2-sliver are also split
-  # out (docker-heavy) for the same reason: their Kali base + ~25-package
-  # apt layers turned out to be even worse under QEMU.
+  # binaries). Sandbox + c2-sliver are split out (docker-heavy) because
+  # their Kali base + ~25-package apt layers are too slow under QEMU.
   docker:
     name: Build & push ${{ matrix.image }}
     runs-on: ubuntu-latest
@@ -297,9 +295,8 @@ jobs:
           name: sbom-${{ matrix.image }}
           path: sbom-${{ matrix.image }}.cdx.json
 
-  # Sandbox + c2-sliver: split per platform onto native runners. Same
-  # rationale as docker-web below — these images sit on Kali rolling
-  # with heavy apt layers (Python, Node, sliver, ~25 dpkg postinst
+  # Sandbox + c2-sliver: split per platform onto native runners. These
+  # images sit on Kali rolling with heavy apt layers (Python, Node, sliver, ~25 dpkg postinst
   # scripts), which under QEMU emulation pushed sandbox's arm64 build
   # over 25 minutes. Native runners drop it to ~5 min. Per-image,
   # per-platform digests are stitched into a manifest by
@@ -375,7 +372,7 @@ jobs:
           retention-days: 1
 
   # Per-image manifest assembly. Same retry+warning policy on the SBOM
-  # attestation as docker / docker-web-merge — see those for context.
+  # attestation as docker — see that job for context.
   # The sandbox-specific --tlog-upload=false fall-through (Rekor entry
   # size cap on the Kali SBOM) is preserved here too.
   docker-heavy-merge:
@@ -476,161 +473,6 @@ jobs:
           name: sbom-${{ matrix.image }}
           path: sbom-${{ matrix.image }}.cdx.json
 
-  # Web image: split per platform onto native runners. arm64 emulation
-  # used to dominate the release (~21 min for web alone vs <5 min for
-  # everything else). Each runner builds and pushes by digest only;
-  # docker-web-merge stitches the digests into a multi-arch manifest.
-  # Pattern: https://docs.docker.com/build/ci/github-actions/multi-platform/
-  docker-web:
-    name: Build & push decepticon-web (${{ matrix.platform }})
-    environment: pypi-release
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: amd64
-            runs-on: ubuntu-latest
-          - platform: arm64
-            runs-on: ubuntu-24.04-arm
-    runs-on: ${{ matrix.runs-on }}
-    steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-
-      - uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
-
-      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract version from tag
-        id: version
-        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
-
-      - name: Build & push by digest
-        id: build
-        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
-        with:
-          context: .
-          file: containers/web.Dockerfile
-          platforms: linux/${{ matrix.platform }}
-          provenance: mode=max
-          sbom: true
-          # Stamps web + cli package.json with the release version at build
-          # time (web image embeds clients/cli for the terminal-server PTY).
-          build-args: |
-            VERSION=${{ steps.version.outputs.version }}
-          outputs: type=image,name=ghcr.io/bittersecurity/decepticon-web,push-by-digest=true,name-canonical=true,push=true
-          cache-from: type=gha,scope=web-${{ matrix.platform }}
-          cache-to: type=gha,mode=max,scope=web-${{ matrix.platform }}
-
-      - name: Export digest
-        run: |
-          mkdir -p ${{ runner.temp }}/digests
-          digest='${{ steps.build.outputs.digest }}'
-          touch "${{ runner.temp }}/digests/${digest#sha256:}"
-
-      - name: Upload digest
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: web-digest-${{ matrix.platform }}
-          path: ${{ runner.temp }}/digests/*
-          if-no-files-found: error
-          retention-days: 1
-
-  docker-web-merge:
-    name: Merge web manifest + sign + SBOM
-    needs: docker-web
-    runs-on: ubuntu-latest
-    environment: pypi-release
-    steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-
-      - uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
-
-      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract version from tag
-        id: version
-        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
-
-      - name: Install cosign
-        uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3.9.1
-
-      - name: Download digests
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-        with:
-          path: ${{ runner.temp }}/digests
-          pattern: web-digest-*
-          merge-multiple: true
-
-      - name: Create multi-arch manifest
-        id: manifest
-        working-directory: ${{ runner.temp }}/digests
-        run: |
-          # Same rule as the docker matrix: only the version tag here.
-          # `:latest` is promoted by publish-release after verification.
-          # shellcheck disable=SC2046  # intentional word-split: one image ref arg per digest file
-          docker buildx imagetools create \
-            --tag ghcr.io/bittersecurity/decepticon-web:${{ steps.version.outputs.version }} \
-            $(printf 'ghcr.io/bittersecurity/decepticon-web@sha256:%s ' *)
-          digest=$(docker buildx imagetools inspect \
-            ghcr.io/bittersecurity/decepticon-web:${{ steps.version.outputs.version }} \
-            --format '{{json .Manifest}}' | jq -r '.digest')
-          echo "digest=$digest" >> "$GITHUB_OUTPUT"
-
-      - name: Cosign sign manifest (keyless)
-        env:
-          COSIGN_EXPERIMENTAL: "true"
-          DIGEST: ${{ steps.manifest.outputs.digest }}
-        run: |
-          cosign sign --yes \
-            "ghcr.io/bittersecurity/decepticon-web@${DIGEST}"
-
-      - name: Generate CycloneDX SBOM
-        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
-        with:
-          image: ghcr.io/bittersecurity/decepticon-web:${{ steps.version.outputs.version }}
-          format: cyclonedx-json
-          output-file: sbom-decepticon-web.cdx.json
-
-      # Same retry+warning policy as the matrix attest step above; see comment there.
-      - name: Attest SBOM with cosign
-        env:
-          COSIGN_EXPERIMENTAL: "true"
-          DIGEST: ${{ steps.manifest.outputs.digest }}
-        run: |
-          set -uo pipefail
-          target="ghcr.io/bittersecurity/decepticon-web@${DIGEST}"
-          predicate="sbom-decepticon-web.cdx.json"
-          for attempt in 1 2 3 4 5; do
-            echo "Attestation attempt ${attempt}/5 for ${target}"
-            if cosign attest --yes \
-                --predicate "${predicate}" \
-                --type cyclonedx \
-                "${target}"; then
-              echo "Attestation succeeded on attempt ${attempt}."
-              exit 0
-            fi
-            if [ "${attempt}" -lt 5 ]; then
-              delay=$((30 * attempt))
-              echo "Attestation attempt ${attempt} failed; sleeping ${delay}s..."
-              sleep "${delay}"
-            fi
-          done
-          echo "::warning title=SBOM attestation skipped::cosign attest failed after 5 retries (Sigstore Rekor unavailable). Image is signed and SBOM artifact uploaded; transparency-log entry for the SBOM is missing and can be re-attested manually."
-
-      - name: Upload SBOM artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: sbom-decepticon-web
-          path: sbom-decepticon-web.cdx.json
-
   # Atomic release gate. Waits until every Docker image AND the launcher
   # binaries are pushed, verifies each :<version> manifest exists on GHCR,
   # then promotes :<version> → channel tags (:stable for finals, :latest
@@ -642,7 +484,7 @@ jobs:
   #     fallback keeps resolving to the previous (working) release.
   publish-release:
     name: Verify images & publish release
-    needs: [launcher, docker, docker-heavy-merge, docker-web-merge]
+    needs: [launcher, docker, docker-heavy-merge]
     runs-on: ubuntu-latest
     environment: pypi-release
     steps:
@@ -680,7 +522,6 @@ jobs:
             decepticon-skillogy
             decepticon-c2-sliver
             decepticon-rea
-            decepticon-web
           )
           for img in "${images[@]}"; do
             ref="ghcr.io/bittersecurity/${img}:${VERSION}"
@@ -710,7 +551,6 @@ jobs:
             decepticon-skillogy
             decepticon-c2-sliver
             decepticon-rea
-            decepticon-web
           )
           for img in "${images[@]}"; do
             src="ghcr.io/bittersecurity/${img}:${VERSION}"
@@ -733,7 +573,6 @@ jobs:
             decepticon-skillogy
             decepticon-c2-sliver
             decepticon-rea
-            decepticon-web
           )
           : > image-digests.txt
           for img in "${images[@]}"; do

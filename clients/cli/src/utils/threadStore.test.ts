@@ -105,11 +105,11 @@ it("adopts a legacy session only after explicit confirmation and refuses foreign
   }
 });
 
-it("keeps canonical and pre-upgrade web sessions in their original server namespaces", async () => {
+it("resumes only sessions bound to the current engagement and runtime workspace", async () => {
   const writes: Record<string, unknown>[] = [];
   const server = createServer(async (request, response) => {
     response.setHeader("Content-Type", "application/json");
-    const path = request.url?.includes("legacy") ? "/workspace/owned-case" : request.url?.includes("foreign") ? "/workspace/sibling" : "/workspace";
+    const path = request.url?.includes("nested") ? "/workspace/owned-case" : request.url?.includes("foreign") ? "/workspace/sibling" : "/workspace";
     if (request.method === "PATCH") {
       let body = "";
       for await (const chunk of request) body += chunk;
@@ -124,21 +124,19 @@ it("keeps canonical and pre-upgrade web sessions in their original server namesp
   vi.resetModules();
   vi.stubEnv("DECEPTICON_API_URL", `http://127.0.0.1:${address.port}`);
   vi.stubEnv("DECEPTICON_ENGAGEMENT", "owned-case");
-  vi.stubEnv("DECEPTICON_RUNTIME_ENGAGEMENT", "owned-case");
-  vi.stubEnv("DECEPTICON_WEB_TERMINAL", "true");
   vi.stubEnv("DECEPTICON_WORKSPACE_PATH", "/host-view/owned-case");
   vi.stubEnv("DECEPTICON_RUNTIME_WORKSPACE_PATH", "/workspace");
   try {
     const { validateThread, readThreadSnapshot, saveThread } = await import("./threadStore.js");
     expect((await validateThread("canonical")).workspacePath).toBe("/workspace");
-    expect((await validateThread("legacy")).workspacePath).toBe("/workspace/owned-case");
-    await expect(readThreadSnapshot("legacy")).resolves.toBeTruthy();
+    await expect(readThreadSnapshot("canonical")).resolves.toBeTruthy();
+    // A session bound to another path is refused, even under the same engagement.
+    await expect(validateThread("nested")).rejects.toThrow("different engagement or workspace");
     await expect(validateThread("foreign")).rejects.toThrow("different engagement or workspace");
     await saveThread("canonical", "decepticon", "new");
-    await saveThread("legacy", "decepticon", "old", "/workspace/owned-case");
-    expect(writes.map(write => (write.metadata as Record<string, unknown>).workspace_path)).toEqual(["/workspace", "/workspace/owned-case"]);
-    vi.stubEnv("DECEPTICON_RUNTIME_ENGAGEMENT", "sibling");
-    await expect(validateThread("legacy")).rejects.toThrow("different engagement or workspace");
+    expect(writes.map(write => (write.metadata as Record<string, unknown>).workspace_path)).toEqual(["/workspace"]);
+    vi.stubEnv("DECEPTICON_ENGAGEMENT", "sibling");
+    await expect(validateThread("canonical")).rejects.toThrow("different engagement or workspace");
   } finally {
     vi.unstubAllEnvs();
     server.closeAllConnections();

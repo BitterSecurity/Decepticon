@@ -50,18 +50,14 @@ Configuration is saved to `~/.decepticon/.env`. Run `decepticon onboard --reset`
 decepticon
 ```
 
-Starts the core management and sandbox services, then opens the interactive terminal UI. Specialist services such as the C2 server and web dashboard start on demand.
-
-**Web Dashboard** (browser, optional):
-
-From the terminal UI, run `/web` (or `/web up`) to start the dashboard. It is then reachable at `http://localhost:3000`.
+Starts the core management and sandbox services, then opens the interactive terminal UI. Specialist services such as the C2 server start on demand.
 
 ---
 
 ## First Real Engagement
 
-1. Launch Decepticon (`decepticon`). To use the browser UI, run `/web` and open <http://localhost:3000>.
-2. In the CLI, choose **New engagement**, enter its name, in-scope targets and exclusions, then review the normalized scope. Optional discovery suggestions are included only when selected. The launcher writes the machine RoE and opens Red. No prewritten scope file or Plan session is required for this path. For an existing engagement with missing scope, import a reviewed RoE with `/scope import <file> --confirm`. There is no separate `/mode red approve` command. The web dashboard uses its own engagement setup form.
+1. Launch Decepticon (`decepticon`).
+2. In the CLI, choose **New engagement**, enter its name, in-scope targets and exclusions, then review the normalized scope. Optional discovery suggestions are included only when selected. The launcher writes the machine RoE and opens Red. No prewritten scope file or Plan session is required for this path. For an existing engagement with missing scope, import a reviewed RoE with `/scope import <file> --confirm`. There is no separate `/mode red approve` command.
 3. Direct approved Red does not require planning documents. Use `/plan` (or `/mode plan`) explicitly for optional Soundwave discussion and planning, then send your planning message; publication leaves you in Plan. See [engagement workflow](engagement-workflow.md) and [RoE provisioning](roe-provisioning.md).
 4. Use `/mode plan`, `/mode red`, or `/mode blue` within the CLI session, or the web live-view selector. Red runs specialist operations under the approved RoE; Blue investigation needs a connected local sensor.
 
@@ -129,5 +125,4 @@ decepticon kg-health     # Diagnose the Neo4j knowledge graph
 | Agent roles and middleware | [Agents](agents.md) |
 | Model profiles and fallback chain | [Models](models.md) |
 | Engagement workflow (RoE → Execution) | [Engagement Workflow](engagement-workflow.md) |
-| Web dashboard features | [Web Dashboard](web-dashboard.md) |
 | Contributing to Decepticon | [Contributing](contributing.md) |

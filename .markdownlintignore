@@ -4,5 +4,4 @@ dist/
 build/
 .next/
 **/CHAGELOG.md
-clients/web/public/
 packages/decepticon/decepticon/skills/standard/decepticon/engagement-bundle/
