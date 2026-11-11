@@ -145,8 +145,9 @@ _iter_override_bundles = iter_override_bundles
 def resolve_role_model(role: str) -> str | None:
     """Composed override for a role's PRIMARY model.
 
-    Precedence: ``DECEPTICON_DESKTOP_MODEL`` for Desktop Local, then
-    ``DECEPTICON_MODEL_<ROLE>`` (operator env), then a
+    Precedence: a host-provisioned policy, then ``DECEPTICON_FORCED_MODEL``
+    (legacy alias ``DECEPTICON_DESKTOP_MODEL``) for a single host-selected
+    model, then ``DECEPTICON_MODEL_<ROLE>`` (operator env), then a
     ``PluginBundle.models`` entry (plugin), then the tier default
     (returned as ``None`` here — the factory keeps the default when this
     yields nothing). This is the model analogue of ``build_middleware`` /
@@ -154,17 +155,23 @@ def resolve_role_model(role: str) -> str | None:
     rather than editing the OSS tier map. Returns the winning model id
     or ``None`` when neither an env nor a bundle override is set.
     """
-    from decepticon.desktop_policy import read_desktop_policy
+    from decepticon_core.contracts.host_integration import get_host_integration
 
-    policy = read_desktop_policy()
+    host = get_host_integration()
+    policy = host.read_policy()
     if policy is not None:
-        return policy.selection(role).model
-    # Desktop Local selects one model for this invocation.  The proxy's
+        return host.model_selection(policy, role).model
+    # A host may select one model for this invocation.  The proxy's
     # DECEPTICON_MODEL route alone does not change the framework's per-role
     # assignments, so apply the selection at the factory boundary too.
-    desktop_model = os.environ.get("DECEPTICON_DESKTOP_MODEL", "").strip()
-    if desktop_model:
-        return desktop_model
+    # ``DECEPTICON_DESKTOP_MODEL`` is the deprecated alias of the host-neutral
+    # ``DECEPTICON_FORCED_MODEL``; the new name wins when both are set.
+    forced_model = (
+        os.environ.get("DECEPTICON_FORCED_MODEL", "").strip()
+        or os.environ.get("DECEPTICON_DESKTOP_MODEL", "").strip()
+    )
+    if forced_model:
+        return forced_model
     env = os.environ.get(f"DECEPTICON_MODEL_{role.upper()}", "").strip()
     if env:
         return env
@@ -525,10 +532,10 @@ def build_tools(
     else:
         base = {_tool_name(t): t for t in standard_tools}
 
-    from decepticon.desktop_policy import read_desktop_policy
-    from decepticon.desktop_tools import policy_tools
+    from decepticon_core.contracts.host_integration import get_host_integration
 
-    if read_desktop_policy() is not None:
+    host = get_host_integration()
+    if host.read_policy() is not None:
         _check_safety_gate(
             role=role,
             mw_replace={},
@@ -539,7 +546,7 @@ def build_tools(
         for name in disabled_tools or ():
             base.pop(name, None)
         base.update(overrides or {})
-        return [*base.values(), *policy_tools(role)]
+        return [*base.values(), *host.policy_tools(role)]
 
     resolved = _resolve_overrides(
         role=role,

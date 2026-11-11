@@ -129,18 +129,18 @@ def prepare_runtime_request(request: Any, role: str | None, *, host_policy: bool
 def _must_propagate(error: Exception) -> bool:
     from langgraph.errors import GraphBubbleUp
 
-    from decepticon.desktop_policy import DesktopPolicyError
     from decepticon.middleware.budget import (
         BudgetCredentialCheckUnavailable,
         BudgetExceeded,
         BudgetSpendUntracked,
     )
+    from decepticon_core.contracts.host_integration import HostPolicyError
 
     return isinstance(
         error,
         (
             GraphBubbleUp,
-            DesktopPolicyError,
+            HostPolicyError,
             BudgetExceeded,
             BudgetSpendUntracked,
             BudgetCredentialCheckUnavailable,

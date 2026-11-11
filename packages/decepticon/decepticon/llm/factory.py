@@ -1801,17 +1801,20 @@ class LLMFactory:
         apply_role_overrides: bool = True,
     ):
         self._proxy = proxy or self._resolve_proxy_config()
-        desktop_model = os.environ.get("DECEPTICON_DESKTOP_MODEL", "").strip()
+        forced_model = (
+            os.environ.get("DECEPTICON_FORCED_MODEL", "").strip()
+            or os.environ.get("DECEPTICON_DESKTOP_MODEL", "").strip()
+        )
         if mapping is not None:
             self._mapping = mapping
-        elif desktop_model and apply_role_overrides:
+        elif forced_model and apply_role_overrides:
             # Desktop Local selects one route for this run.  Building the
             # mapping directly also supports providers without every tier in
             # the profile; no unrelated credential chain can be inherited.
             self._mapping = LLMModelMapping(
                 assignments={
                     role: ModelAssignment(
-                        primary=desktop_model,
+                        primary=forced_model,
                         fallbacks=[],
                         temperature=AGENT_TEMPERATURES.get(role, 0.7),
                     )
@@ -1842,10 +1845,13 @@ class LLMFactory:
         """
         from decepticon.agents.build import resolve_role_model
 
-        desktop_model = os.environ.get("DECEPTICON_DESKTOP_MODEL", "").strip()
-        if desktop_model:
+        forced_model = (
+            os.environ.get("DECEPTICON_FORCED_MODEL", "").strip()
+            or os.environ.get("DECEPTICON_DESKTOP_MODEL", "").strip()
+        )
+        if forced_model:
             return ModelAssignment(
-                primary=desktop_model,
+                primary=forced_model,
                 fallbacks=[],
                 temperature=assignment.temperature,
                 max_tokens=assignment.max_tokens,
