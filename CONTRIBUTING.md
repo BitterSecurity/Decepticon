@@ -96,7 +96,6 @@ packages/            Python core, framework, and SDK packages
 clients/launcher/    Go launcher (installed decepticon command)
 clients/cli/         Ink.js terminal UI (TypeScript)
 clients/shared/      Shared TypeScript streaming support
-clients/web/         Optional Next.js dashboard
 benchmark/           Benchmark harnesses and adapters
 containers/          Dockerfiles
 config/              Runtime configuration

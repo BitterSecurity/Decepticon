@@ -65,10 +65,6 @@ const agent: Command = {
   argumentHint: "[<name> | clear]",
   async execute(args, ctx) {
     const arg = args.trim();
-    if (process.env.DECEPTICON_WEB_TERMINAL === "true" && arg) {
-      ctx.addSystemEvent("Use the Plan, Red, or Blue controls above the web terminal to switch modes.");
-      return;
-    }
 
     // No arg → list orchestrators + current override
     if (!arg) {

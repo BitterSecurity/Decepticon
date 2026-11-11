@@ -7,7 +7,7 @@
 # Common workflows:
 #   make dogfood      Full OSS UX (launcher → onboard → CLI) on local code
 #   make smoke        Compose-only smoke (no launcher) — fast pre-release check
-#   make quality      PR gate (Python + CLI + Web)
+#   make quality      PR gate (Python + CLI)
 #   make dev          Backend hot-reload (compose watch) — daily dev loop
 #   make help         List all targets
 
@@ -21,7 +21,6 @@ COMPOSE       := docker compose
 COMPOSE_DEV   := docker compose -f docker-compose.yml -f docker-compose.dev.yml
 COMPOSE_WATCH := docker compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.watch.yml
 PROFILES_ALL  := --profile cli --profile c2-sliver
-WEB_DIR       := clients/web
 
 # Dogfood: isolated $DECEPTICON_HOME so the launcher can onboard, write .env,
 # and stand up the stack without touching the user's real ~/.decepticon. The
@@ -55,12 +54,11 @@ export CODEX_AUTH_VOLUME ?= $(shell test -f $(HOME)/.codex/auth.json && echo $(H
 
 .PHONY: help \
         dogfood launcher smoke \
-        dev cli-dev web-dev infra \
+        dev cli-dev infra \
         quality quality-strict quality-cli test test-local lint lint-fix \
         ci-lint ci-test ci-test-coverage ci-test-coverage-report \
-        web-build web-hotswap web-lint web-test web-migrate \
         status logs health clean clean-dev-images \
-        node-install web-db-ensure \
+        node-install \
         benchmark terminal-bench terminal-bench-full recreate-litellm
 
 # ── Help (default target) ────────────────────────────────────────
@@ -76,7 +74,6 @@ help:
 	@echo "Development (build the thing being released):"
 	@echo "  make dev          Backend hot-reload (compose watch)"
 	@echo "  make cli-dev      CLI locally + backend hot-reload"
-	@echo "  make web-dev      Web (Next.js) locally + backend hot-reload"
 	@echo ""
 	@echo "Quality gates (PR readiness):"
 	@echo "  make quality        PR gate — mirrors CI PR lane (fast, no slow tests, errors-only typecheck)"
@@ -90,16 +87,10 @@ help:
 	@echo "  make lint           Python lint + format check + basedpyright (all levels, local exploratory)"
 	@echo "  make lint-fix       Auto-fix Python lint + format"
 	@echo ""
-	@echo "Web dashboard (single checks):"
-	@echo "  make web-build    Prisma generate + Next build"
-	@echo "  make web-hotswap  Build + inject into running container (~15s)"
-	@echo "  make web-lint     ESLint"
-	@echo "  make web-migrate [NAME=]   Prisma migrate dev"
-	@echo ""
 	@echo "Ops:"
 	@echo "  make status       docker compose ps"
 	@echo "  make logs [SVC=]  Follow logs (default: langgraph)"
-	@echo "  make health       KG + Neo4j; Web when running"
+	@echo "  make health       KG + Neo4j"
 	@echo "  make clean        Full teardown (compose volumes + .dogfood/)"
 	@echo "  make clean-dev-images  Remove :dev images + dangling layers (release-verify leftovers)"
 	@echo ""
@@ -164,7 +155,6 @@ smoke:
 	@$(MAKE) -s health
 	@echo ""
 	@echo "=== smoke OK — stack mirrors OSS user state ==="
-	@echo "  Web:          optional (/web from CLI)"
 	@echo "  LangGraph:    http://localhost:$${LANGGRAPH_PORT:-2024}"
 	@echo "  Run dogfood:  make dogfood"
 	@echo "  Teardown:     make clean"
@@ -187,19 +177,8 @@ cli-dev: infra
 	cd clients/cli && npm run build
 	cd clients/cli && (npm run dev & DECEPTICON_API_URL=$${DECEPTICON_API_URL:-http://localhost:2024} node --watch dist/index.js & wait)
 
-## Next.js dev server locally — infra stays in Docker with hot-reload.
-web-dev: infra web-db-ensure node-install
-	# Build streaming first: both the Next dev server and the PTY-spawned CLI
-	# import @decepticon/streaming, which resolves to its dist/ build.
-	npm run build --workspace=@decepticon/streaming
-	@$(COMPOSE_WATCH) watch --no-up --quiet langgraph &
-	@echo "[web-dev] Starting terminal server (ws://localhost:3003)..."
-	@cd $(WEB_DIR) && npx tsx server/terminal-server.ts &
-	@echo "[web-dev] Starting Next.js dev server (http://localhost:3000)..."
-	cd $(WEB_DIR) && npm run dev
-
 # Internal: bring up backend infra (built from local code).
-# Chains the dev override so local-dev workflows (cli-dev, web-dev) pick up
+# Chains the dev override so local-dev workflows (cli-dev) pick up
 # the skills bind mount alongside the base stack. The OSS launcher path
 # (smoke + dogfood) keeps ``$(COMPOSE)`` to mirror what end users run.
 infra:
@@ -308,44 +287,20 @@ telemetry-build: telemetry-install
 
 quality-telemetry: telemetry-check telemetry-build
 
-## PR gate — mirrors CI PR lane (errors-only typecheck + fast pytest + CLI + Web).
+## PR gate — mirrors CI PR lane (errors-only typecheck + fast pytest + CLI).
 ## Use before opening a PR; passing this guarantees CI will pass.
-quality: ci-lint ci-test quality-cli quality-telemetry web-lint web-test web-build
+quality: ci-lint ci-test quality-cli quality-telemetry
 	@echo ""
 	@echo "OK — PR gates passed (mirrors CI PR lane)"
 
 ## Release gate — mirrors CI main-push lane (coverage 60%) + full basedpyright
 ## audit (warnings + info). Run before tagging a release.
-quality-strict: ci-lint ci-test-coverage quality-cli quality-telemetry web-lint web-test web-build
+quality-strict: ci-lint ci-test-coverage quality-cli quality-telemetry
 	@echo ""
 	@echo "==> basedpyright (full — warning + info audit, non-blocking)"
 	uv run basedpyright
 	@echo ""
 	@echo "OK — release gate passed (mirrors CI main lane + warning audit)"
-
-# ── Web Dashboard (single checks) ────────────────────────────────
-# All web targets share the root `node-install` so workspace deps hoist
-# into the root node_modules — no separate clients/web/node_modules tree.
-
-web-build: node-install
-	# streaming workspace first — the web resolves @decepticon/streaming to its
-	# dist/ via package exports (no src path alias), so next build needs it.
-	npm run build --workspace=@decepticon/streaming
-	cd $(WEB_DIR) && npx prisma generate && npm run build
-
-## Hot-swap web dashboard into running container (~15s vs ~5min docker build).
-## Builds Next.js on host, injects via tar pipe, restarts container.
-web-hotswap: node-install web-build
-	./scripts/web-hotswap.sh --skip-build
-
-web-lint: node-install
-	cd $(WEB_DIR) && npx eslint src/ --max-warnings 0
-
-web-test: node-install
-	npm run test --workspace=web
-
-web-migrate: node-install
-	cd $(WEB_DIR) && npx prisma migrate dev --name $(or $(NAME),init)
 
 # ── Status / Logs / Health / Clean ───────────────────────────────
 
@@ -356,19 +311,12 @@ status:
 logs:
 	$(COMPOSE) logs -f $(or $(SVC),langgraph)
 
-## Health checks: KG backend + Neo4j + Web (parity with `decepticon health`).
+## Health checks: KG backend + Neo4j (parity with `decepticon health`).
 health:
 	@$(COMPOSE) exec -T langgraph python -m decepticon.tools.research.health >/dev/null 2>&1 \
 		&& echo "kg:    OK" || (echo "kg:    FAIL" && exit 1)
 	@$(COMPOSE) exec -T neo4j cypher-shell -u neo4j -p "$${NEO4J_PASSWORD:-decepticon-graph}" "RETURN 1 AS ok;" >/dev/null 2>&1 \
 		&& echo "neo4j: OK" || (echo "neo4j: FAIL" && exit 1)
-	@if $(COMPOSE) ps --status running --services | grep -qx web; then \
-		curl -sf http://localhost:$${WEB_PORT:-3000} >/dev/null 2>&1 \
-			&& echo "web:   OK (http://localhost:$${WEB_PORT:-3000})" \
-			|| (echo "web:   FAIL — not reachable on port $${WEB_PORT:-3000}" && exit 1); \
-	else \
-		echo "web:   SKIP (optional profile not running)"; \
-	fi
 
 ## Full teardown: containers + volumes + .dogfood/. Destructive — also
 ## wipes the dogfood .env (API keys) so the next `make dogfood` starts
@@ -397,17 +345,6 @@ clean-dev-images:
 
 node-install:
 	@test -d node_modules || npm install
-
-# postgres-init/01-create-web-db.sql auto-creates decepticon_web on fresh
-# volumes. This target only waits for postgres readiness and applies
-# Prisma migrations.
-web-db-ensure:
-	@echo "[web-db-ensure] Waiting for PostgreSQL..."
-	@for i in 1 2 3 4 5 6 7 8 9 10; do \
-		docker exec decepticon$${DECEPTICON_STACK_NAME:+-$${DECEPTICON_STACK_NAME}}-postgres pg_isready -U decepticon -q 2>/dev/null && break; \
-		sleep 1; \
-	done
-	@cd $(WEB_DIR) && npx prisma migrate deploy 2>&1 | tail -1
 
 # ── Benchmark ────────────────────────────────────────────────────
 

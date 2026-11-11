@@ -103,7 +103,6 @@ of the lanes it needs failed or was cancelled:
 - **Python (lint + typecheck + test)** — `make ci-lint` + `make ci-test`
 - **CLI (ubuntu-latest)** / **CLI (macos-latest)** — typecheck + build +
   test for the Ink CLI
-- **Web (lint + build)** — Prisma generate, ESLint, Next.js build
 - **Launcher** — `go vet` + `go test`
 - **Compose validate**, **Docker build** (amd64 + arm64)
 - **Security (pip-audit + gitleaks)** — dependency CVE scan + leaked

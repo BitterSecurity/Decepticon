@@ -16,7 +16,7 @@ The default OSS deployment is defined by [docker-compose.yml](../docker-compose.
 | LiteLLM, PostgreSQL | `decepticon-net` | Model routing, credentials, spend and application persistence |
 | Engagement Neo4j | Both networks | Attack graph and the Skillogy catalog, separated by graph schema/provenance |
 | Skillogy REST service | `decepticon-net` | Graph-backed skill discovery and retrieval |
-| Optional web dashboard and CLI container | `decepticon-net` | Operator interfaces |
+| Optional CLI container | `decepticon-net` | Operator interface |
 | Optional Sliver and REA workloads | `sandbox-net` | C2 and reversing services |
 | Optional BloodHound services | `decepticon-net` | AD analysis; BHCE has a separate Neo4j |
 
@@ -77,8 +77,6 @@ of model context summarization.
 
 ## Optional capabilities
 
-- The web dashboard starts through `/web`; it is not part of the normal core
-  startup. Its default host port is 3000, configurable with `WEB_PORT`.
 - The orchestrator receives `ops_start`, `ops_status`, `ops_stop` and
   `ops_cleanup_engagement` only when the host opscontrol socket is available.
   An allowlisted workload name does not establish that a corresponding Compose

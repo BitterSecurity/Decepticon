@@ -50,7 +50,6 @@ packages/decepticon/decepticon/skills/  # Reusable capability knowledge
 clients/
 ├── launcher/        # Installed Go launcher
 ├── cli/             # TypeScript/Ink terminal UI
-├── web/             # Next.js 16 web dashboard
 └── shared/          # Shared streaming utilities (@decepticon/streaming)
 
 config/              # LiteLLM proxy config (litellm.yaml)
@@ -69,7 +68,6 @@ make quality         # Full gate: Python + CLI + Web (run before opening a PR)
 make lint            # Python only: ruff check + ruff format --check + basedpyright
 make lint-fix        # Auto-fix Python lint and formatting
 make quality-cli     # CLI: typecheck + build + vitest
-make web-lint        # Web dashboard ESLint
 
 make test            # Python tests in Docker
 make test-local      # Python tests locally (requires uv sync --dev)
@@ -190,7 +188,6 @@ When adding a new agent or tool, add corresponding tests in `packages/decepticon
 |------|--------------|
 | **New skills** | More OSINT, cloud attack, and post-exploitation skill coverage |
 | **C2 profiles** | Havoc framework support (`c2-havoc` profile) |
-| **Web dashboard** | UX improvements, new views, mobile responsiveness |
 | **Documentation** | Tutorials, walkthroughs, translated READMEs |
 | **Bug reports** | Open an issue with reproduction steps |
 

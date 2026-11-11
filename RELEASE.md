@@ -35,8 +35,8 @@ must pass the same gates; a preview is not permission to skip verification.
 
 ## 2. Version source and immutable artifacts
 
-Source version fields in workspace `pyproject.toml` files and CLI/web
-`package.json` files remain the `0.0.0` sentinel. The git tag supplies build-time
+Source version fields in workspace `pyproject.toml` files and the CLI
+`package.json` file remain the `0.0.0` sentinel. The git tag supplies build-time
 versions; do not make unrelated version-bump commits. The three PyPI packages
 (`decepticon-core`, `decepticon`, `decepticon-sdk`) ship in lockstep with the OSS
 launcher and versioned images; sibling dependency pins are stamped by CI.
@@ -59,7 +59,7 @@ authorization to publish; follow the user's or maintainer's actual release scope
    claim all security findings or all feature work are solved. The owned worktree
    is clean and the candidate tree matches the tested tree. Review/test any delta.
 2. **CI.** Required CI/security jobs pass for the final source. Exercise affected
-   Python, CLI, launcher, web, Compose and architecture boundaries. Use the full
+   Python, CLI, launcher, Compose and architecture boundaries. Use the full
    relevant suites; capture expected skips separately. A cancelled, timed-out or
    skipped job is not an executed test. Resolve new actionable scanner findings;
    a justified false positive needs a documented boundary and evidence, not a
@@ -83,7 +83,7 @@ authorization to publish; follow the user's or maintainer's actual release scope
    this check; they do not replace the distribution test. Retain terminal/log or
    screenshot evidence without credentials, tokens or private target data.
 6. **Publication readiness.** Verify all three PyPI packages, launcher assets,
-   config and skill checksums, eight image versions/platforms, image digests and
+   config and skill checksums, seven image versions/platforms, image digests and
    image signing/SBOM job results. Review any attestation warning explicitly;
    attach evidence of what succeeded and what did not. Do not bypass failed
    gates. Drafts/tags alone are not a release.
@@ -128,7 +128,7 @@ authorization to publish; follow the user's or maintainer's actual release scope
 See [update-channels.md](docs/update-channels.md) for implemented behavior:
 
 - **latest** is the default and selects the newest published final. It does not
-  track `main`. The release publish job moves the eight `:latest` image tags.
+  track `main`. The release publish job moves the seven `:latest` image tags.
 - **stable** is opt-in and normally waits at least **seven days** after publication.
   The scheduled promotion workflow enforces a seven-day minimum. Client-side
   resolution has documented first-release/fallback exceptions; a channel is not
@@ -177,8 +177,7 @@ Do not shorten the seven-day floor to expedite a hotfix; users can opt into late
 | `launcher` | Six platform binaries, draft release, binary/config/agent-skill checksums. |
 | `docker` | Multi-arch LiteLLM, LangGraph, CLI and Skillogy. |
 | `docker-heavy` / `docker-heavy-merge` | Native amd64/arm64 sandbox and c2-sliver; REA amd64. |
-| `docker-web` / `docker-web-merge` | Native amd64/arm64 web image and manifest. |
-| `publish-release` | Verify eight images, promote final `:latest`, attach `image-digests.txt`, undraft. |
+| `publish-release` | Verify seven images, promote final `:latest`, attach `image-digests.txt`, undraft. |
 | `promote-stable.yml` | Promote the newest age-eligible final to `:stable`, separately. |
 
 Images are signed with Cosign and have CycloneDX SBOM jobs. Consult workflow

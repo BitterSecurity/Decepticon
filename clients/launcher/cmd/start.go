@@ -347,7 +347,7 @@ func runStartMode(cmd *cobra.Command, args []string, existingEngagement string, 
 	if err := os.Setenv("DECEPTICON_ENGAGEMENT_WORKSPACE", choice.WorkspacePath); err != nil {
 		return fmt.Errorf("set engagement workspace env: %w", err)
 	}
-	// Bind the service namespace independently of the web container host view.
+	// Bind the service namespace independently of the host workspace view.
 	runtimeEngagement := ""
 	if desktopRuntime == nil {
 		runtimeEngagement = choice.Engagement
@@ -505,9 +505,6 @@ func runStartMode(cmd *cobra.Command, args []string, existingEngagement string, 
 	}
 	if choice.AuthorizationConfirmed {
 		cliEnv["DECEPTICON_AUTHORIZATION_CONFIRMED"] = "true"
-	}
-	if port := config.Get(env, "WEB_PORT", "3000"); port != "" {
-		cliEnv["WEB_PORT"] = port
 	}
 
 	// Background mode: services are up and the engagement workspace is bound;

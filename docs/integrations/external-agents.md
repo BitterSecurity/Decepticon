@@ -3,7 +3,7 @@
 Decepticon ships an **engagement MCP server** so external agent runtimes can
 discover and observe engagements, launch a background run, send follow-up
 messages, inspect state, and cancel runs. The installed CLI also manages
-services, local Blue Cell sensors, plugin bundles, and the web dashboard.
+services, local Blue Cell sensors and plugin bundles.
 Plugin bundle listing and runtime toggling are also exposed through MCP;
 service and sensor lifecycle remain CLI operations.
 

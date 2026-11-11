@@ -9,7 +9,7 @@ const CATEGORIES: ReadonlyArray<readonly [string, readonly string[]]> = [
   ["Mode & scope", ["mode", "scope"]],
   ["Blue monitoring", ["blue", "alerts", "status"]],
   ["Diagnostics", ["doctor"]],
-  ["Stack & plugins", ["web", "plugins", "mcp"]],
+  ["Stack & plugins", ["plugins", "mcp"]],
   ["Meta", ["help", "quit"]],
 ];
 

@@ -95,12 +95,4 @@ describe("CLI run modes", () => {
     expect(selected).toEqual(["decepticon"]);
     expect(getAssistantOverride()).toBe("decepticon");
   });
-
-  it("keeps web terminal mode routing with the web selector", async () => {
-    vi.stubEnv("DECEPTICON_WEB_TERMINAL", "true");
-    const { ctx, messages, selected } = context();
-    await mode.execute("plan", ctx);
-    expect(selected).toEqual([]);
-    expect(messages.at(-1)).toContain("controls above the web terminal");
-  });
 });
