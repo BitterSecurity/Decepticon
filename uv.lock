@@ -772,6 +772,9 @@ dependencies = [
 fixtures = [
     { name = "decepticon" },
 ]
+host = [
+    { name = "decepticon" },
+]
 testing = [
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -780,12 +783,13 @@ testing = [
 [package.metadata]
 requires-dist = [
     { name = "decepticon", marker = "extra == 'fixtures'", editable = "packages/decepticon" },
+    { name = "decepticon", marker = "extra == 'host'", editable = "packages/decepticon" },
     { name = "decepticon-core", editable = "packages/decepticon-core" },
     { name = "pytest", marker = "extra == 'testing'", specifier = ">=8.0.0" },
     { name = "pytest-asyncio", marker = "extra == 'testing'", specifier = ">=0.23.0" },
     { name = "typer", specifier = ">=0.9.0" },
 ]
-provides-extras = ["testing", "fixtures"]
+provides-extras = ["testing", "fixtures", "host"]
 
 [[package]]
 name = "decepticon-workspace"
