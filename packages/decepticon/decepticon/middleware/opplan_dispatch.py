@@ -24,7 +24,12 @@ from decepticon.middleware.workflow_opplan import validate_workflow_transition
 from decepticon.tools.opplan import _evidence_error
 from decepticon.tools.opplan_graph import inspect_plan, unmet_prerequisites
 from decepticon.workflows import WorkflowError, WorkflowSnapshot
-from decepticon_core.types.engagement import Objective, ObjectiveStatus, PlanFact
+from decepticon_core.types.engagement import (
+    ACTIONABLE_OBJECTIVE_STATUSES,
+    Objective,
+    ObjectiveStatus,
+    PlanFact,
+)
 
 
 class PlannedTaskSchema(BaseModel):
@@ -71,7 +76,7 @@ def validate_task_plan(
         return f"unknown OPPLAN objective {task_id}"
     if any(row.parent_id == task_id for row in objectives):
         return f"objective {task_id} is not a leaf"
-    if target.status not in {ObjectiveStatus.PENDING, ObjectiveStatus.IN_PROGRESS}:
+    if target.status not in ACTIONABLE_OBJECTIVE_STATUSES:
         return f"objective {task_id} is not executable ({target.status})"
     if target.owner and target.owner != subagent_type:
         return f"objective {task_id} is owned by {target.owner}, not {subagent_type}"
