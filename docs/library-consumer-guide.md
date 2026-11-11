@@ -77,6 +77,19 @@ The module paths behind them are internal and may move. `HostRunConfigurable`
 lists only keys the framework actually reads; values are trusted input, so a
 host must authenticate and validate anything it forwards from end users.
 
+A service host must install its trusted admission resolver before constructing
+or executing agents. Set `DECEPTICON_OPENSHELL_LOCAL=0` when the service must not
+use the bundled local CLI resolver: resetting the hook to `None` alone permits
+that default resolver to be installed again. This does not grant access without
+an admitted workspace. `is_openshell_sandbox` also recognizes the unbound
+placeholder; `True` identifies a transport type, not successful admission.
+
+Importing `decepticon_sdk.host` alone does not build Soundwave. Accessing its
+`create_soundwave_agent` attribute, including a named `from ... import`, loads
+the existing Soundwave module and its default graph initialization. Import only
+the building blocks needed by a host; resolving the factory is not an inert
+module-only import.
+
 Plugin contracts come from `decepticon-core` (or via the
 `decepticon-sdk` re-export):
 
