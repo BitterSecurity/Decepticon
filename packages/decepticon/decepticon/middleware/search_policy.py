@@ -7,6 +7,8 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue
 
+from decepticon_core.types.engagement import ACTIONABLE_OBJECTIVE_STATUSES, ObjectiveStatus
+
 Disposition = Literal[
     "goal_met", "budget_exhausted", "search_exhausted", "blocked", "operator_stopped"
 ]
@@ -53,7 +55,7 @@ class SearchReceipt(BaseModel):
 class SearchObjective(BaseModel):
     model_config = ConfigDict(frozen=True, extra="ignore")
     id: str
-    status: Literal["pending", "in-progress", "completed", "blocked", "cancelled"]
+    status: ObjectiveStatus
     parent_id: str | None = None
     blocked_by: tuple[str, ...] = ()
     any_of: tuple[tuple[str, ...], ...] = ()
@@ -106,7 +108,7 @@ def ready_objectives(
         row.id
         for row in objectives
         if row.id not in parents
-        and row.status in {"pending", "in-progress"}
+        and row.status in ACTIONABLE_OBJECTIVE_STATUSES
         and all(key in by_id and by_id[key].status == "completed" for key in row.blocked_by)
         and all(
             any(key in by_id and by_id[key].status == "completed" for key in group)
