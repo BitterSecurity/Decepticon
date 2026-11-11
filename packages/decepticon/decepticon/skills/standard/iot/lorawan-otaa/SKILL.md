@@ -24,7 +24,8 @@ metadata:
   RAK831 / RAK2247 gateway concentrator, or HackRF One with gr-lora.
   RTL-SDR is receive-only (works for capture on EU 868 MHz).
 - **Software**: ChirpStack (rogue gateway NS), `lorawansniffer` / `gr-lora`,
-  LoRaWAN Auditing Framework (LAF), Scapy-LoRa, `lorawan-parser`.
+  LoRaWAN Auditing Framework (LAF), Scapy-LoRa. The offline JoinRequest
+  example below uses only the Python standard library.
 
 ```bash
 # Install LoRaWAN Auditing Framework:
@@ -35,8 +36,6 @@ cd laf && pip install -r requirements.txt
 git clone https://github.com/rpp0/gr-lora
 cd gr-lora && mkdir build && cd build && cmake .. && make && sudo make install
 
-# lorawan-parser for offline frame analysis:
-pip install lorawan-parser
 ```
 
 ## LoRaWAN Frequency Reference
@@ -79,14 +78,23 @@ and DevNonce (2 bytes), all in plaintext. Only the **MIC** is keyed with AppKey.
 ```bash
 # Parse a captured JoinRequest frame:
 python3 - <<'EOF'
-from lorawan import LoRaWANMessage
-# hex of a raw captured PHY payload:
-payload_hex = "00AABBCCDDEEFF001122334455667701234501"
-msg = LoRaWANMessage.from_hex(payload_hex)
-print(f"MType: {msg.mhdr.mtype}")
-print(f"AppEUI: {msg.join_request.app_eui.hex()}")
-print(f"DevEUI: {msg.join_request.dev_eui.hex()}")
-print(f"DevNonce: {msg.join_request.dev_nonce.hex()}")
+def parse_join_request(payload_hex):
+    payload = bytes.fromhex(payload_hex)
+    if len(payload) != 23 or payload[0] != 0:
+        raise ValueError("Expected a 23-byte LoRaWAN JoinRequest with MHDR 0x00")
+    return {
+        "JoinEUI/AppEUI": payload[1:9][::-1].hex(),
+        "DevEUI": payload[9:17][::-1].hex(),
+        "DevNonce": int.from_bytes(payload[17:19], "little"),
+        "MIC (unverified)": payload[19:23].hex(),
+    }
+
+# Synthetic fixture; replace with a captured PHY payload (not a radio header).
+# EUI fields and DevNonce are transmitted least-significant byte first.
+payload_hex = "0008070605040302018877665544332211010000000000"
+for field, value in parse_join_request(payload_hex).items():
+    print(f"{field}: {value}")
+# This decodes fields only; it does not authenticate the MIC or derive keys.
 EOF
 ```
 

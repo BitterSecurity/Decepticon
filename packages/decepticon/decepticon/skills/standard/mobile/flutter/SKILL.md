@@ -179,19 +179,15 @@ snapshot dump section below).
 adb shell "run-as com.target.app cat /data/data/com.target.app/app_flutter/snapshot_blob.bin" \
   > /tmp/snapshot_blob.bin 2>/dev/null
 
-# Option 2: use Dart VM snapshot reader tools
-# dart_snapshot_parser (community; partial support for Dart 2.x-3.x)
-pip install dart-snapshot-parser 2>/dev/null || true
-
-# Option 3: reFlutter's snapshot output
+# Option 2: reFlutter's snapshot output
 # After running reFlutter and launching the patched app once,
 # reFlutter dumps snapshot_hash.txt which can seed symbol recovery tools
 ```
 
 **Caveats**: Dart snapshot format changed in Dart 2.15, 3.0, and 3.4.
-Community parsers (snapshot_inspector, etc.) are often version-specific
-and may produce partial or no output on latest Flutter. Treat snapshot
-dump as a best-effort step; static string analysis is more reliable.
+Use tools documented by their publisher for the exact Flutter/Dart version;
+if no compatible tool is available, skip snapshot decoding and use static
+string analysis. Do not guess package names or suppress installation errors.
 
 ## Step 6: Flutter Plugin Identification
 
