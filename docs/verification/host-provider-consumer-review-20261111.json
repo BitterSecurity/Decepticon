@@ -1,0 +1,342 @@
+{
+  "kind": "independent-oss-host-consumer-review",
+  "recordedAt": "2026-11-10T21:32:54.879075+00:00",
+  "testedHead": "820858495f9705cd278d35bde496ba34357fd192",
+  "baseMain": "d26ddaa1e3b0ccaffd50b982fcc2debeb650c840",
+  "paths": [
+    {
+      "status": "M",
+      "path": "CHAGELOG.md",
+      "sha256": "2bc9185931206f701309d2b31edfc565d464da05bc39fea235e4b719c6be1303"
+    },
+    {
+      "status": "D",
+      "path": "docs/design/desktop-settings-policy.md",
+      "previousSha256": "60a3ef2ce3c2a5718f85ddfc4abb6417906491944c87b225a2f1b9f86285c038"
+    },
+    {
+      "status": "M",
+      "path": "docs/design/extension-contract.md",
+      "sha256": "3a05d8931c4f498f8789a8cf65bac0f9839eb8c0730589e837836128d36dae6c"
+    },
+    {
+      "status": "A",
+      "path": "docs/design/host-integration.md",
+      "sha256": "a394c3e6095c6be9959f00ccde8f7de3c923059c1c116aa518f0800d24449f9b"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/README.md",
+      "previousSha256": "141babb0ea758e3883f046fa26e0a88169f3ff3e6ad46b3770cef2c626ba71a9"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/baseline/oss-default-pin.log",
+      "previousSha256": "698932610d7f7a9b019c3df8ee4040496c57babd44f3929e0fcc179016f74a16"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/baseline/oss-install-offline.log",
+      "previousSha256": "a76e747dd23f91baf3904d538b6ca298e4cb98154ff6cd8cb280fe02338ed2af"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/baseline/oss-install-online.log",
+      "previousSha256": "53827029115135f24a0d534b99c56eb07ffe9d5b7b8413df6837e29febc28250"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/baseline/oss-policy-red.log",
+      "previousSha256": "88cfa072c220d9c1bfb5d6345d37d8a123fe6d067f44c32f228cb568bf3ec8a0"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/baseline/receipt.json",
+      "previousSha256": "c3f7bf5c1f0cb9b5670d6d9349fda0e4a79d700d8f714bd1e0bb91c1c7970fb1"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/custody/go-green.log",
+      "previousSha256": "a7575f2f87c42f7d9ad41a0237fe0fab077a4d1587bfe948b2e729b726b70622"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/custody/go-pin.log",
+      "previousSha256": "1d42d85f37d45cb318801365c62735dcacdc76784f7b3bdc5c7374b288577798"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/custody/go-red.log",
+      "previousSha256": "bddaafeeb08277dc08696d840fcdaa6645a300e0ce2dd6cf72837c717c14e9e2"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/custody/receipt.json",
+      "previousSha256": "ef25c0375e076aae4d528c3d38cdc024fddf79cee4ece15cb1a5c26bf36db3a1"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/dispatch/green.log",
+      "previousSha256": "5c22f08cd45314bcf96ea2292fba4a8bfa46daee3378d07bf46ba14724882eaa"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/dispatch/http-green/inflight-revocation.http.json",
+      "previousSha256": "fe8c3bd9254714c59e4ac1f8087665eb1886b3b96703c3e9f053933ccbacdd68"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/dispatch/http-green/invalid-credential.http.json",
+      "previousSha256": "1e9897ec44df32b1d3febad0fdc5ceaa92d67c848e477413daf74dda0951a15e"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/dispatch/http-green/selected-model-tool.http.json",
+      "previousSha256": "c83d7c063274a102d45cc07c28674f4ea893960d6cacd984779027e0b3d8e961"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/dispatch/http-green/unavailable-selected-model.http.json",
+      "previousSha256": "2008e1871e5156dee0d6f801551527a147865ba7a7983590a2a06c195a6ebadc"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/dispatch/http-red/selected-model-tool.http.json",
+      "previousSha256": "c83d7c063274a102d45cc07c28674f4ea893960d6cacd984779027e0b3d8e961"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/dispatch/lint.log",
+      "previousSha256": "8c85d0c9e11a7d68bdc83e1bb411c688dcf3025f06195d2bab096da46c0cfd67"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/dispatch/receipt.json",
+      "previousSha256": "685696861195559a6b7b34113cf3402361d26b2432b9bd3980c23626c1a4dd98"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/dispatch/red.log",
+      "previousSha256": "65f4e6513789bb9a17e5c3ccd2396e2811f570a1833a2fc0c5ea119ae8c9a2d9"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/dispatch/types.log",
+      "previousSha256": "470141b2e50974dcf141b75bcc4c2d0364789d742f08d240ca0329666b2fa617"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/green/http-final/inflight-revocation.http.json",
+      "previousSha256": "fe8c3bd9254714c59e4ac1f8087665eb1886b3b96703c3e9f053933ccbacdd68"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/green/http-final/invalid-credential.http.json",
+      "previousSha256": "1e9897ec44df32b1d3febad0fdc5ceaa92d67c848e477413daf74dda0951a15e"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/green/http-final/selected-model-tool.http.json",
+      "previousSha256": "c83d7c063274a102d45cc07c28674f4ea893960d6cacd984779027e0b3d8e961"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/green/http-final/unavailable-selected-model.http.json",
+      "previousSha256": "2008e1871e5156dee0d6f801551527a147865ba7a7983590a2a06c195a6ebadc"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/green/http-first.log",
+      "previousSha256": "ce8a9f61519fb405ef12db55c557a87efe5dae39b57a0f7657d361d7ee039877"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/green/http/inflight-revocation.http.json",
+      "previousSha256": "fe8c3bd9254714c59e4ac1f8087665eb1886b3b96703c3e9f053933ccbacdd68"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/green/http/invalid-credential.http.json",
+      "previousSha256": "1e9897ec44df32b1d3febad0fdc5ceaa92d67c848e477413daf74dda0951a15e"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/green/http/selected-model-tool.http.json",
+      "previousSha256": "c83d7c063274a102d45cc07c28674f4ea893960d6cacd984779027e0b3d8e961"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/green/http/unavailable-selected-model.http.json",
+      "previousSha256": "2008e1871e5156dee0d6f801551527a147865ba7a7983590a2a06c195a6ebadc"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/green/oss-final.log",
+      "previousSha256": "1ed6e306da02ae978db3240007dc8d3a396b8e916975ff9ca89684e023a2a81e"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/green/receipt.json",
+      "previousSha256": "55cd2b4e93d9e59b5865a1f1539af933608e43d2f19b1fa319b7fa4cd36af387"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/green/ruff-final.log",
+      "previousSha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/green/ruff-first.log",
+      "previousSha256": "928038d1590f16cc5d1fd08f4bce197cdfd76f5645337eb1bb059f040e838dc9"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/green/types-final.log",
+      "previousSha256": "56882e01cb80173ef053c4096e4ee43e3123a15f5c0a06715f96988d48fbd91c"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/green/types-first.log",
+      "previousSha256": "b6e123485a489729fcb8be3fcc11a93c59deda93fc7aca9fad8d82b8cbe550d4"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/green/unit-first.log",
+      "previousSha256": "bf4d1007fe378366aee9a66677d52aaa474f88ecd75f19b4f96347395d2c3a85"
+    },
+    {
+      "status": "A",
+      "path": "docs/verification/host-integration-seam-20261111.md",
+      "sha256": "e6114df1db9060a1885e666ab188d328ab74e36cee9fec4ad863e85649479b55"
+    },
+    {
+      "status": "A",
+      "path": "docs/verification/required-host-discovery-20261111.md",
+      "sha256": "8bc77f75063f1148d07185b1e0f56d0400c115285e9c2afd3ab1d06f70541da5"
+    },
+    {
+      "status": "A",
+      "path": "packages/decepticon-core/decepticon_core/contracts/host_integration.py",
+      "sha256": "5a08f38574ecb3bf7aa22b761e3a4cb4f1d3cfd5a7c2b1253c030fb251fac3d6"
+    },
+    {
+      "status": "A",
+      "path": "packages/decepticon-core/tests/test_host_integration.py",
+      "sha256": "2b80c6109516938b79aada6442f78c2348427ba19e8b6617f3ef4db960ececc9"
+    },
+    {
+      "status": "M",
+      "path": "packages/decepticon/decepticon/agents/build.py",
+      "sha256": "442dab4abe1a65bb412a53ca44acaecc3635f539d8549f5c120dd91c347c3437"
+    },
+    {
+      "status": "M",
+      "path": "packages/decepticon/decepticon/agents/middleware_slots.py",
+      "sha256": "abe063f0255e2b28191224533f6ad04513014e1c46dfcdcd5c0fd0fb7c82fa48"
+    },
+    {
+      "status": "D",
+      "path": "packages/decepticon/decepticon/desktop_dispatch.py",
+      "previousSha256": "a05b8e0779616c5c970e1f5f7bef58e96d728eeb09c30ec26808df9600f4bb70"
+    },
+    {
+      "status": "D",
+      "path": "packages/decepticon/decepticon/desktop_policy.py",
+      "previousSha256": "7a1c0c0dde629693039d22863c04ec8f4ccd0fb864d2e44bf4040f4339178d18"
+    },
+    {
+      "status": "D",
+      "path": "packages/decepticon/decepticon/desktop_tools.py",
+      "previousSha256": "711cf942b2d420f0f83dce6c5fd9637c4266348f6bdff085186536d3452e71fc"
+    },
+    {
+      "status": "M",
+      "path": "packages/decepticon/decepticon/llm/factory.py",
+      "sha256": "129ae424560089e12e911968d31ecc04b13e0037e4b58afe374ac7c5de2f4dd1"
+    },
+    {
+      "status": "M",
+      "path": "packages/decepticon/decepticon/middleware/model_override.py",
+      "sha256": "c6ad95f22ab639f374c03d481b198232b47c2cf96062c1fca71f00b37e3e6e12"
+    },
+    {
+      "status": "M",
+      "path": "packages/decepticon/decepticon/middleware/run_controls.py",
+      "sha256": "98c8f230960d5afe6334bdb7563b0cd228ba093309ee1223e8d642c535d02bb1"
+    },
+    {
+      "status": "D",
+      "path": "packages/decepticon/decepticon/server/desktop_settings.py",
+      "previousSha256": "af6cf4442f9b1f4ca97db44098b262d92b9922855bb53307b3973969b983cffe"
+    },
+    {
+      "status": "M",
+      "path": "packages/decepticon/decepticon/server/plugins_api.py",
+      "sha256": "cafa0e89941c71694e5f24bf351448ca20016c64fb54b2cb240ab91f5313e7d6"
+    },
+    {
+      "status": "M",
+      "path": "packages/decepticon/decepticon/tools/mcp/registry.py",
+      "sha256": "7a66c29e7e0d223145bda8a80eafc7eb88e6f38424f13dfd20d0f02394d0fc8d"
+    },
+    {
+      "status": "D",
+      "path": "packages/decepticon/tests/integration/desktop_settings_fixture.py",
+      "previousSha256": "6fed92c49c1674fb756babc8766fd3bed84cc281f28b2834f5cdbdfc8f388ada"
+    },
+    {
+      "status": "D",
+      "path": "packages/decepticon/tests/integration/test_desktop_settings_runtime.py",
+      "previousSha256": "481526f6c3c0f71a50d0f780c25032f99f98518f349d78df714aba575a5dcbd3"
+    },
+    {
+      "status": "A",
+      "path": "packages/decepticon/tests/unit/agents/test_host_integration_refusal.py",
+      "sha256": "d8eee71a4845adf70e99dfbd8b27a382e81a019982717295aecfe298048de520"
+    },
+    {
+      "status": "M",
+      "path": "packages/decepticon/tests/unit/llm/test_role_model_override.py",
+      "sha256": "f3fc9d7e93062133d6df0497ac95f569f829aa991e0d49ba9628de2c03d0c527"
+    },
+    {
+      "status": "D",
+      "path": "packages/decepticon/tests/unit/middleware/test_desktop_settings_policy.py",
+      "previousSha256": "185b8d7c1a1f0bb9e7f980017be7859a41f977fcbb003f6ccc90dfdc1582f6ef"
+    }
+  ],
+  "passed": 2844,
+  "skipped": [
+    {
+      "test": "test_injection_detector.py:357",
+      "reason": "optional transformers not installed"
+    }
+  ],
+  "processExit": 0,
+  "artifacts": [
+    {
+      "file": "oss1170-full-consumer-review-r1-process.json",
+      "sha256": "1713614b9c7bb9017ec3331907515357d7917ba0b86931f7725d06f0db928e8c"
+    },
+    {
+      "file": "oss1170-full-consumer-review-r1.xml",
+      "sha256": "8fa2b8d2e4c55e4f597e8184729e103d5846abb558cd221ee2dc48469b5ae547"
+    },
+    {
+      "file": "oss1170-full-consumer-review-r1.log",
+      "sha256": "5b9f11daf40cf8403e6ba455083d8685d827ddab8fb09720b9e14734664d9392"
+    }
+  ],
+  "vendorProvider": {
+    "pr": 1709,
+    "mergedSaas": "111a7b3c860d4fc7d9e604dcbc26a9ff6c5838ae",
+    "sourceCases": 59,
+    "wheelCases": 5,
+    "actualHttpProfiles": 4
+  },
+  "limitations": [
+    "Source-qualified core/consumers with read-only reused dependencies, not a new installed runtime image.",
+    "One optional ML detector integration skipped; not counted as passed.",
+    "Vendor cohort adoption and Desktop bundled runtime acceptance remain separate; no production activation."
+  ]
+}

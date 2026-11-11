@@ -25,6 +25,17 @@ class TestResolveRoleModel:
         assert assignment.primary == "openai/gpt-5.5"
         assert assignment.fallbacks == []
 
+    def test_forced_model_env_reaches_role_factory(self, monkeypatch):
+        # Host-neutral name — the replacement for DECEPTICON_DESKTOP_MODEL.
+        monkeypatch.delenv("DECEPTICON_DESKTOP_MODEL", raising=False)
+        monkeypatch.setenv("DECEPTICON_FORCED_MODEL", "openai/gpt-5.5")
+        assert resolve_role_model("exploit") == "openai/gpt-5.5"
+
+    def test_forced_model_wins_over_legacy_desktop_alias(self, monkeypatch):
+        monkeypatch.setenv("DECEPTICON_FORCED_MODEL", "openai/gpt-5.5")
+        monkeypatch.setenv("DECEPTICON_DESKTOP_MODEL", "ollama/qwen3")
+        assert resolve_role_model("exploit") == "openai/gpt-5.5"
+
     def test_desktop_selection_works_with_single_credential_and_no_cloud_fallback(
         self, monkeypatch
     ):

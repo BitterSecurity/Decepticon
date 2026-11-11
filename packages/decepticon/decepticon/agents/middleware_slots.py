@@ -255,9 +255,9 @@ def _make_model_fallback(*, fallback_models: list | None = None, **_: Any):
     fallback simply skips the slot, mirroring the legacy
     ``if fallback_models: middleware.append(...)`` branch.
     """
-    from decepticon.desktop_policy import read_desktop_policy
+    from decepticon_core.contracts.host_integration import get_host_integration
 
-    if read_desktop_policy() is not None or not fallback_models:
+    if get_host_integration().read_policy() is not None or not fallback_models:
         return None
     from decepticon.middleware.run_controls import VisibleModelFallbackMiddleware
 

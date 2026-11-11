@@ -1,0 +1,756 @@
+{
+  "recordedAt": "2026-11-11T11:07:12.678131+00:00",
+  "pr": 1170,
+  "sourceCommit": "895f649ef40ab86e9efa5480b0700e283417b428",
+  "integratedMain": "fcfc9281e556e4963d578ad895feb75b73c5cf7e",
+  "previousPrHead": "2107a90108ef7be10086b360de491c3953e7be10",
+  "sourcePaths": [
+    {
+      "status": "M",
+      "path": "CHAGELOG.md",
+      "sha256": "3af02d36e0bb103b4e24080befaa2d7a159ad1f0a4ddfabf0a6c2af5c1fcf7be"
+    },
+    {
+      "status": "D",
+      "path": "docs/design/desktop-settings-policy.md",
+      "sha256": "60a3ef2ce3c2a5718f85ddfc4abb6417906491944c87b225a2f1b9f86285c038"
+    },
+    {
+      "status": "M",
+      "path": "docs/design/extension-contract.md",
+      "sha256": "3a05d8931c4f498f8789a8cf65bac0f9839eb8c0730589e837836128d36dae6c"
+    },
+    {
+      "status": "A",
+      "path": "docs/design/host-integration.md",
+      "sha256": "a394c3e6095c6be9959f00ccde8f7de3c923059c1c116aa518f0800d24449f9b"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/README.md",
+      "sha256": "141babb0ea758e3883f046fa26e0a88169f3ff3e6ad46b3770cef2c626ba71a9"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/baseline/oss-default-pin.log",
+      "sha256": "698932610d7f7a9b019c3df8ee4040496c57babd44f3929e0fcc179016f74a16"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/baseline/oss-install-offline.log",
+      "sha256": "a76e747dd23f91baf3904d538b6ca298e4cb98154ff6cd8cb280fe02338ed2af"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/baseline/oss-install-online.log",
+      "sha256": "53827029115135f24a0d534b99c56eb07ffe9d5b7b8413df6837e29febc28250"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/baseline/oss-policy-red.log",
+      "sha256": "88cfa072c220d9c1bfb5d6345d37d8a123fe6d067f44c32f228cb568bf3ec8a0"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/baseline/receipt.json",
+      "sha256": "c3f7bf5c1f0cb9b5670d6d9349fda0e4a79d700d8f714bd1e0bb91c1c7970fb1"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/custody/go-green.log",
+      "sha256": "a7575f2f87c42f7d9ad41a0237fe0fab077a4d1587bfe948b2e729b726b70622"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/custody/go-pin.log",
+      "sha256": "1d42d85f37d45cb318801365c62735dcacdc76784f7b3bdc5c7374b288577798"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/custody/go-red.log",
+      "sha256": "bddaafeeb08277dc08696d840fcdaa6645a300e0ce2dd6cf72837c717c14e9e2"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/custody/receipt.json",
+      "sha256": "ef25c0375e076aae4d528c3d38cdc024fddf79cee4ece15cb1a5c26bf36db3a1"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/dispatch/green.log",
+      "sha256": "5c22f08cd45314bcf96ea2292fba4a8bfa46daee3378d07bf46ba14724882eaa"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/dispatch/http-green/inflight-revocation.http.json",
+      "sha256": "fe8c3bd9254714c59e4ac1f8087665eb1886b3b96703c3e9f053933ccbacdd68"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/dispatch/http-green/invalid-credential.http.json",
+      "sha256": "1e9897ec44df32b1d3febad0fdc5ceaa92d67c848e477413daf74dda0951a15e"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/dispatch/http-green/selected-model-tool.http.json",
+      "sha256": "c83d7c063274a102d45cc07c28674f4ea893960d6cacd984779027e0b3d8e961"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/dispatch/http-green/unavailable-selected-model.http.json",
+      "sha256": "2008e1871e5156dee0d6f801551527a147865ba7a7983590a2a06c195a6ebadc"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/dispatch/http-red/selected-model-tool.http.json",
+      "sha256": "c83d7c063274a102d45cc07c28674f4ea893960d6cacd984779027e0b3d8e961"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/dispatch/lint.log",
+      "sha256": "8c85d0c9e11a7d68bdc83e1bb411c688dcf3025f06195d2bab096da46c0cfd67"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/dispatch/receipt.json",
+      "sha256": "685696861195559a6b7b34113cf3402361d26b2432b9bd3980c23626c1a4dd98"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/dispatch/red.log",
+      "sha256": "65f4e6513789bb9a17e5c3ccd2396e2811f570a1833a2fc0c5ea119ae8c9a2d9"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/dispatch/types.log",
+      "sha256": "470141b2e50974dcf141b75bcc4c2d0364789d742f08d240ca0329666b2fa617"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/green/http-final/inflight-revocation.http.json",
+      "sha256": "fe8c3bd9254714c59e4ac1f8087665eb1886b3b96703c3e9f053933ccbacdd68"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/green/http-final/invalid-credential.http.json",
+      "sha256": "1e9897ec44df32b1d3febad0fdc5ceaa92d67c848e477413daf74dda0951a15e"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/green/http-final/selected-model-tool.http.json",
+      "sha256": "c83d7c063274a102d45cc07c28674f4ea893960d6cacd984779027e0b3d8e961"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/green/http-final/unavailable-selected-model.http.json",
+      "sha256": "2008e1871e5156dee0d6f801551527a147865ba7a7983590a2a06c195a6ebadc"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/green/http-first.log",
+      "sha256": "ce8a9f61519fb405ef12db55c557a87efe5dae39b57a0f7657d361d7ee039877"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/green/http/inflight-revocation.http.json",
+      "sha256": "fe8c3bd9254714c59e4ac1f8087665eb1886b3b96703c3e9f053933ccbacdd68"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/green/http/invalid-credential.http.json",
+      "sha256": "1e9897ec44df32b1d3febad0fdc5ceaa92d67c848e477413daf74dda0951a15e"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/green/http/selected-model-tool.http.json",
+      "sha256": "c83d7c063274a102d45cc07c28674f4ea893960d6cacd984779027e0b3d8e961"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/green/http/unavailable-selected-model.http.json",
+      "sha256": "2008e1871e5156dee0d6f801551527a147865ba7a7983590a2a06c195a6ebadc"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/green/oss-final.log",
+      "sha256": "1ed6e306da02ae978db3240007dc8d3a396b8e916975ff9ca89684e023a2a81e"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/green/receipt.json",
+      "sha256": "55cd2b4e93d9e59b5865a1f1539af933608e43d2f19b1fa319b7fa4cd36af387"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/green/ruff-final.log",
+      "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/green/ruff-first.log",
+      "sha256": "928038d1590f16cc5d1fd08f4bce197cdfd76f5645337eb1bb059f040e838dc9"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/green/types-final.log",
+      "sha256": "56882e01cb80173ef053c4096e4ee43e3123a15f5c0a06715f96988d48fbd91c"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/green/types-first.log",
+      "sha256": "b6e123485a489729fcb8be3fcc11a93c59deda93fc7aca9fad8d82b8cbe550d4"
+    },
+    {
+      "status": "D",
+      "path": "docs/verification/desktop-settings-policy-20261020/raw/green/unit-first.log",
+      "sha256": "bf4d1007fe378366aee9a66677d52aaa474f88ecd75f19b4f96347395d2c3a85"
+    },
+    {
+      "status": "A",
+      "path": "docs/verification/host-integration-seam-20261111.md",
+      "sha256": "e6114df1db9060a1885e666ab188d328ab74e36cee9fec4ad863e85649479b55"
+    },
+    {
+      "status": "A",
+      "path": "docs/verification/host-provider-consumer-review-20261111.json",
+      "sha256": "fca04c3130c073c4d2e0ff84774a82e7f565779c3092929f2f5955dfccf865bb"
+    },
+    {
+      "status": "A",
+      "path": "docs/verification/host-provider-consumer-review-20261111.md",
+      "sha256": "7efe7e66f3afebb388e12457c6882b911cdd420d0309df55cd2a19ebb5fc39e4"
+    },
+    {
+      "status": "A",
+      "path": "docs/verification/required-host-discovery-20261111.md",
+      "sha256": "8bc77f75063f1148d07185b1e0f56d0400c115285e9c2afd3ab1d06f70541da5"
+    },
+    {
+      "status": "A",
+      "path": "packages/decepticon-core/decepticon_core/contracts/host_integration.py",
+      "sha256": "5a08f38574ecb3bf7aa22b761e3a4cb4f1d3cfd5a7c2b1253c030fb251fac3d6"
+    },
+    {
+      "status": "A",
+      "path": "packages/decepticon-core/tests/test_host_integration.py",
+      "sha256": "2b80c6109516938b79aada6442f78c2348427ba19e8b6617f3ef4db960ececc9"
+    },
+    {
+      "status": "M",
+      "path": "packages/decepticon/decepticon/agents/build.py",
+      "sha256": "442dab4abe1a65bb412a53ca44acaecc3635f539d8549f5c120dd91c347c3437"
+    },
+    {
+      "status": "M",
+      "path": "packages/decepticon/decepticon/agents/middleware_slots.py",
+      "sha256": "abe063f0255e2b28191224533f6ad04513014e1c46dfcdcd5c0fd0fb7c82fa48"
+    },
+    {
+      "status": "D",
+      "path": "packages/decepticon/decepticon/desktop_dispatch.py",
+      "sha256": "a05b8e0779616c5c970e1f5f7bef58e96d728eeb09c30ec26808df9600f4bb70"
+    },
+    {
+      "status": "D",
+      "path": "packages/decepticon/decepticon/desktop_policy.py",
+      "sha256": "7a1c0c0dde629693039d22863c04ec8f4ccd0fb864d2e44bf4040f4339178d18"
+    },
+    {
+      "status": "D",
+      "path": "packages/decepticon/decepticon/desktop_tools.py",
+      "sha256": "711cf942b2d420f0f83dce6c5fd9637c4266348f6bdff085186536d3452e71fc"
+    },
+    {
+      "status": "M",
+      "path": "packages/decepticon/decepticon/llm/factory.py",
+      "sha256": "129ae424560089e12e911968d31ecc04b13e0037e4b58afe374ac7c5de2f4dd1"
+    },
+    {
+      "status": "M",
+      "path": "packages/decepticon/decepticon/middleware/model_override.py",
+      "sha256": "c6ad95f22ab639f374c03d481b198232b47c2cf96062c1fca71f00b37e3e6e12"
+    },
+    {
+      "status": "M",
+      "path": "packages/decepticon/decepticon/middleware/run_controls.py",
+      "sha256": "98c8f230960d5afe6334bdb7563b0cd228ba093309ee1223e8d642c535d02bb1"
+    },
+    {
+      "status": "D",
+      "path": "packages/decepticon/decepticon/server/desktop_settings.py",
+      "sha256": "af6cf4442f9b1f4ca97db44098b262d92b9922855bb53307b3973969b983cffe"
+    },
+    {
+      "status": "M",
+      "path": "packages/decepticon/decepticon/server/plugins_api.py",
+      "sha256": "cafa0e89941c71694e5f24bf351448ca20016c64fb54b2cb240ab91f5313e7d6"
+    },
+    {
+      "status": "M",
+      "path": "packages/decepticon/decepticon/tools/mcp/registry.py",
+      "sha256": "7a66c29e7e0d223145bda8a80eafc7eb88e6f38424f13dfd20d0f02394d0fc8d"
+    },
+    {
+      "status": "D",
+      "path": "packages/decepticon/tests/integration/desktop_settings_fixture.py",
+      "sha256": "6fed92c49c1674fb756babc8766fd3bed84cc281f28b2834f5cdbdfc8f388ada"
+    },
+    {
+      "status": "D",
+      "path": "packages/decepticon/tests/integration/test_desktop_settings_runtime.py",
+      "sha256": "481526f6c3c0f71a50d0f780c25032f99f98518f349d78df714aba575a5dcbd3"
+    },
+    {
+      "status": "A",
+      "path": "packages/decepticon/tests/unit/agents/test_host_integration_refusal.py",
+      "sha256": "d8eee71a4845adf70e99dfbd8b27a382e81a019982717295aecfe298048de520"
+    },
+    {
+      "status": "M",
+      "path": "packages/decepticon/tests/unit/llm/test_role_model_override.py",
+      "sha256": "f3fc9d7e93062133d6df0497ac95f569f829aa991e0d49ba9628de2c03d0c527"
+    },
+    {
+      "status": "D",
+      "path": "packages/decepticon/tests/unit/middleware/test_desktop_settings_policy.py",
+      "sha256": "185b8d7c1a1f0bb9e7f980017be7859a41f977fcbb003f6ccc90dfdc1582f6ef"
+    }
+  ],
+  "directGates": {
+    "fastPython": {
+      "passed": 6261,
+      "skipped": 3,
+      "warnings": 17,
+      "exitCode": 0,
+      "skips": "explicit Windows-only paths"
+    },
+    "focusedHost": {
+      "passed": 92,
+      "exitCode": 0
+    },
+    "cliTests": {
+      "passed": 294,
+      "exitCode": 0
+    },
+    "cliAndStreamingProductionBuilds": 0,
+    "cliTypes": 0,
+    "launcherLinuxTestAndVet": 0,
+    "composeConfigs": {
+      "passed": 3,
+      "startedServices": false
+    },
+    "ruffCheck": 0,
+    "ruffFormat": 0,
+    "basedpyright": {
+      "exitCode": 0,
+      "errors": 0,
+      "warnings": 969
+    },
+    "pipAudit": {
+      "requirements": 191,
+      "activeFindings": 0,
+      "existingIgnorePolicyUnchanged": true,
+      "exitCode": 0
+    },
+    "strictSkillsCapabilitiesStixFrozenGraphActionlint": 0,
+    "introducedCommitGitleaks": 0
+  },
+  "remoteImages": {
+    "recordedAt": "2026-11-11T11:06:09.745464+00:00",
+    "build": "3ac96732-3d40-43b6-9331-af69b93aa43e",
+    "sourceCommit": "895f649ef40ab86e9efa5480b0700e283417b428",
+    "sourceFullReadbackSha256": "01a777007af79ceca47a4694c0697b59dceac8392bfa4bc1a4d6db55d1421451",
+    "sourceBytes": 28446988,
+    "manifest": {
+      "uri": "gs://decepticon-501702_cloudbuild/review-evidence/oss1170-main-sync/895f649ef40ab86e9efa5480b0700e283417b428/3ac96732-3d40-43b6-9331-af69b93aa43e/artifacts-3ac96732-3d40-43b6-9331-af69b93aa43e.json",
+      "generation": "1794395127688346",
+      "bytes": 5148,
+      "md5": "KtKYt71v2z7MxmQYGeYQdw==",
+      "sha256": "130fbf268969d4162d87422936eacff9d23fe094deec33ae3cb3a2e2b8268fad"
+    },
+    "artifactReceipts": [
+      {
+        "uri": "gs://decepticon-501702_cloudbuild/review-evidence/oss1170-main-sync/895f649ef40ab86e9efa5480b0700e283417b428/3ac96732-3d40-43b6-9331-af69b93aa43e/cli-arm64.image-id.txt",
+        "generation": "1794395099820324",
+        "bytes": 72,
+        "md5": "dwVQcAfF4OGfXn3r1cz/cw==",
+        "sha256": "b60eb74c7874d13b38d5133a5b4f4162c540f378edb112c64e6b60223574c98a"
+      },
+      {
+        "uri": "gs://decepticon-501702_cloudbuild/review-evidence/oss1170-main-sync/895f649ef40ab86e9efa5480b0700e283417b428/3ac96732-3d40-43b6-9331-af69b93aa43e/cli-amd64.architecture.txt",
+        "generation": "1794395099892699",
+        "bytes": 6,
+        "md5": "RrN6vABOJ2TsTN9ObAOvgA==",
+        "sha256": "d54d20eadbec9c9cc5ac6e0e371abc96d64a0d724d1cf45297fab6098026a69d"
+      },
+      {
+        "uri": "gs://decepticon-501702_cloudbuild/review-evidence/oss1170-main-sync/895f649ef40ab86e9efa5480b0700e283417b428/3ac96732-3d40-43b6-9331-af69b93aa43e/cli-amd64.image-id.txt",
+        "generation": "1794395099935247",
+        "bytes": 72,
+        "md5": "+lXL+CNilogTbpHVFMSKww==",
+        "sha256": "0b1ea876656c47cfb90f1c0380a6704743a7ace3995ce1be75af159aef2fc499"
+      },
+      {
+        "uri": "gs://decepticon-501702_cloudbuild/review-evidence/oss1170-main-sync/895f649ef40ab86e9efa5480b0700e283417b428/3ac96732-3d40-43b6-9331-af69b93aa43e/cli-amd64.log",
+        "generation": "1794395099963108",
+        "bytes": 33717,
+        "md5": "oygsvwKoN38x46KxAT4uhg==",
+        "sha256": "c6e3a9a50dd1577f0cbb18e16a37ab6084c8a0c662f95803c2142b50391de698"
+      },
+      {
+        "uri": "gs://decepticon-501702_cloudbuild/review-evidence/oss1170-main-sync/895f649ef40ab86e9efa5480b0700e283417b428/3ac96732-3d40-43b6-9331-af69b93aa43e/langgraph-amd64.log",
+        "generation": "1794395100021560",
+        "bytes": 30964,
+        "md5": "My/mzAdQ2uYIKHibuRc/8g==",
+        "sha256": "c2e823bf210da384cfa19b84a6435fb592d2705aea725e86c94b1d95d0b56b2a"
+      },
+      {
+        "uri": "gs://decepticon-501702_cloudbuild/review-evidence/oss1170-main-sync/895f649ef40ab86e9efa5480b0700e283417b428/3ac96732-3d40-43b6-9331-af69b93aa43e/cli-amd64.runtime.log",
+        "generation": "1794395100051025",
+        "bytes": 97,
+        "md5": "XaDvLEsi7k1sC6I5gwn7ww==",
+        "sha256": "e7888190dcfac581110f8602745d4d9b1e7b38356b236e2d7617ea2cbe9c065c"
+      },
+      {
+        "uri": "gs://decepticon-501702_cloudbuild/review-evidence/oss1170-main-sync/895f649ef40ab86e9efa5480b0700e283417b428/3ac96732-3d40-43b6-9331-af69b93aa43e/langgraph-amd64.runtime.log",
+        "generation": "1794395100105199",
+        "bytes": 63,
+        "md5": "/FYlN4OIqeAvCpQjygNzpw==",
+        "sha256": "17abb270ce9f9ea75dc11695ab3eaf10d31c0289f7f5e7323e1f3f7a60bff533"
+      },
+      {
+        "uri": "gs://decepticon-501702_cloudbuild/review-evidence/oss1170-main-sync/895f649ef40ab86e9efa5480b0700e283417b428/3ac96732-3d40-43b6-9331-af69b93aa43e/cli-arm64.architecture.txt",
+        "generation": "1794395100105264",
+        "bytes": 6,
+        "md5": "NOb+zEx7yXl1XzmUum4oYg==",
+        "sha256": "c1669e1d8edca98769c37d494b76442a1d6e5ffffd7b4da1fb63aef8ebaf6f01"
+      },
+      {
+        "uri": "gs://decepticon-501702_cloudbuild/review-evidence/oss1170-main-sync/895f649ef40ab86e9efa5480b0700e283417b428/3ac96732-3d40-43b6-9331-af69b93aa43e/langgraph-arm64.architecture.txt",
+        "generation": "1794395100159379",
+        "bytes": 6,
+        "md5": "NOb+zEx7yXl1XzmUum4oYg==",
+        "sha256": "c1669e1d8edca98769c37d494b76442a1d6e5ffffd7b4da1fb63aef8ebaf6f01"
+      },
+      {
+        "uri": "gs://decepticon-501702_cloudbuild/review-evidence/oss1170-main-sync/895f649ef40ab86e9efa5480b0700e283417b428/3ac96732-3d40-43b6-9331-af69b93aa43e/langgraph-amd64.sarif",
+        "generation": "1794395100159207",
+        "bytes": 48703,
+        "md5": "7gTVQzgGbANha7x1CGvQmw==",
+        "sha256": "137b6d6e153147a08f91c83297b912b4d0e0199c91b25876d5397aed5cfff94c"
+      },
+      {
+        "uri": "gs://decepticon-501702_cloudbuild/review-evidence/oss1170-main-sync/895f649ef40ab86e9efa5480b0700e283417b428/3ac96732-3d40-43b6-9331-af69b93aa43e/langgraph-arm64.image-id.txt",
+        "generation": "1794395100202933",
+        "bytes": 72,
+        "md5": "DwFawOKJPxdZpEUAfMxKDg==",
+        "sha256": "2f2579bf36c05f4f9659d4a5ab23c90bb8beea235b43eb16822035721b78bbaf"
+      },
+      {
+        "uri": "gs://decepticon-501702_cloudbuild/review-evidence/oss1170-main-sync/895f649ef40ab86e9efa5480b0700e283417b428/3ac96732-3d40-43b6-9331-af69b93aa43e/langgraph-amd64.architecture.txt",
+        "generation": "1794395100222195",
+        "bytes": 6,
+        "md5": "RrN6vABOJ2TsTN9ObAOvgA==",
+        "sha256": "d54d20eadbec9c9cc5ac6e0e371abc96d64a0d724d1cf45297fab6098026a69d"
+      },
+      {
+        "uri": "gs://decepticon-501702_cloudbuild/review-evidence/oss1170-main-sync/895f649ef40ab86e9efa5480b0700e283417b428/3ac96732-3d40-43b6-9331-af69b93aa43e/langgraph-arm64.log",
+        "generation": "1794395100256805",
+        "bytes": 31437,
+        "md5": "5YocQdeLf8520EIlbqNvnA==",
+        "sha256": "054a17d9657f0de5bf23f6bcfd3baae8b11b199c89b1d88d69453d85adef14e2"
+      },
+      {
+        "uri": "gs://decepticon-501702_cloudbuild/review-evidence/oss1170-main-sync/895f649ef40ab86e9efa5480b0700e283417b428/3ac96732-3d40-43b6-9331-af69b93aa43e/trivy-version.txt",
+        "generation": "1794395100312313",
+        "bytes": 16,
+        "md5": "yRUSVMvgkHucV3oJqOfHfA==",
+        "sha256": "ea3524df63e27041d6b4a85932a889aba8e3cd3cc2ee01404822111bb673e17c"
+      },
+      {
+        "uri": "gs://decepticon-501702_cloudbuild/review-evidence/oss1170-main-sync/895f649ef40ab86e9efa5480b0700e283417b428/3ac96732-3d40-43b6-9331-af69b93aa43e/langgraph-amd64.image-id.txt",
+        "generation": "1794395100346039",
+        "bytes": 72,
+        "md5": "yzv5AKErdjxT7tyxWDWZYQ==",
+        "sha256": "6d9210bbed78670a78219586514e488b5e8a21b7d08c0c151e1f2515883d6b9e"
+      },
+      {
+        "uri": "gs://decepticon-501702_cloudbuild/review-evidence/oss1170-main-sync/895f649ef40ab86e9efa5480b0700e283417b428/3ac96732-3d40-43b6-9331-af69b93aa43e/langgraph-arm64.runtime.log",
+        "generation": "1794395100349401",
+        "bytes": 212,
+        "md5": "eLOoY0ITrlxQhv22gcomIg==",
+        "sha256": "7ba345db9ee911ede1d292bcb2403c3503d8decc0633117357e3d7c7a505dd6c"
+      },
+      {
+        "uri": "gs://decepticon-501702_cloudbuild/review-evidence/oss1170-main-sync/895f649ef40ab86e9efa5480b0700e283417b428/3ac96732-3d40-43b6-9331-af69b93aa43e/cli-arm64.runtime.log",
+        "generation": "1794395100466936",
+        "bytes": 248,
+        "md5": "p2JA4u5xM+rdbIhWENYVpw==",
+        "sha256": "bd9d72e03e712175a40e51b2bd98f838725989fc6f4c52ec919dee586247a322"
+      },
+      {
+        "uri": "gs://decepticon-501702_cloudbuild/review-evidence/oss1170-main-sync/895f649ef40ab86e9efa5480b0700e283417b428/3ac96732-3d40-43b6-9331-af69b93aa43e/cli-arm64.log",
+        "generation": "1794395100480549",
+        "bytes": 36718,
+        "md5": "1pUc7qYzJb0t8uPFi3zO2g==",
+        "sha256": "2daaf5a1e5a9b811a1048d262d60930e7345099d74c8b414ab9cd0be5724f09f"
+      }
+    ],
+    "images": [
+      {
+        "name": "langgraph-amd64",
+        "image": "us-central1-docker.pkg.dev/decepticon-501702/decepticon-saas/oss-ci-review@sha256:9fd19b35a191bde27595b682c8cc65e14c3078a4d8f110df53597ee4af8632c6",
+        "manifestDigest": "sha256:9fd19b35a191bde27595b682c8cc65e14c3078a4d8f110df53597ee4af8632c6",
+        "configDigest": "sha256:ae2e225049a397e3f0a6cf0c034a1cfb37e1b05f68dcacebfd441a2b5446a857",
+        "architecture": "amd64",
+        "os": "linux",
+        "sourceLabel": "895f649ef40ab86e9efa5480b0700e283417b428",
+        "runtimeSmokeVerified": true
+      },
+      {
+        "name": "cli-amd64",
+        "image": "us-central1-docker.pkg.dev/decepticon-501702/decepticon-saas/oss-ci-review@sha256:336da61d40beff495810852cff1c1e1258573ca4317f39bbc413a437ebe4f77d",
+        "manifestDigest": "sha256:336da61d40beff495810852cff1c1e1258573ca4317f39bbc413a437ebe4f77d",
+        "configDigest": "sha256:2aff36ef32e5cf768d8465d5300804206c2788cfcf2eed06c01510ed2c85a0c8",
+        "architecture": "amd64",
+        "os": "linux",
+        "sourceLabel": "895f649ef40ab86e9efa5480b0700e283417b428",
+        "runtimeSmokeVerified": true
+      },
+      {
+        "name": "cli-arm64",
+        "image": "us-central1-docker.pkg.dev/decepticon-501702/decepticon-saas/oss-ci-review@sha256:807dc47c4f64c28f3c213101b11531c403c098fce9b823db115363a867fcfd93",
+        "manifestDigest": "sha256:807dc47c4f64c28f3c213101b11531c403c098fce9b823db115363a867fcfd93",
+        "configDigest": "sha256:6dc14ff43395540ecb23d8b8b54df7ea33c42767b6df2f93c2e187506a6e283f",
+        "architecture": "arm64",
+        "os": "linux",
+        "sourceLabel": "895f649ef40ab86e9efa5480b0700e283417b428",
+        "runtimeSmokeVerified": true
+      },
+      {
+        "name": "langgraph-arm64",
+        "image": "us-central1-docker.pkg.dev/decepticon-501702/decepticon-saas/oss-ci-review@sha256:11c2690602362ae13e0a29759ab2343e3636207a016fa3be4f032366c73782a1",
+        "manifestDigest": "sha256:11c2690602362ae13e0a29759ab2343e3636207a016fa3be4f032366c73782a1",
+        "configDigest": "sha256:4604ade4e71671013b7ddc61015bdf84dd288bab1855919ba4ad5b211140aeaf",
+        "architecture": "arm64",
+        "os": "linux",
+        "sourceLabel": "895f649ef40ab86e9efa5480b0700e283417b428",
+        "runtimeSmokeVerified": true
+      }
+    ],
+    "sarif": {
+      "results": 19,
+      "uniqueRules": [
+        "CVE-2025-47273",
+        "CVE-2026-114613",
+        "CVE-2026-61732",
+        "CVE-2026-76844",
+        "CVE-2026-85091",
+        "CVE-2026-97687",
+        "CVE-2026-97689",
+        "GHSA-6v7p-g79w-8964",
+        "gcp-service-account"
+      ],
+      "policy": "original informational CRITICAL/HIGH, ignore-unfixed, exit0; not a clean-security assertion"
+    },
+    "localImageBuiltOrPulled": false,
+    "localSourceArchiveRetained": false,
+    "productionChanged": false
+  },
+  "localEvidenceHashes": {
+    "oss1170-main-sync-actionlint-r1.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "oss1170-main-sync-basedpyright-gate-r1.log": {
+      "bytes": 45,
+      "sha256": "7d218138658ab5b14ec7c77dabd11708faf75a137b8b4552f5a25d4ad12cf0c2"
+    },
+    "oss1170-main-sync-basedpyright-r1.json": {
+      "bytes": 753889,
+      "sha256": "a4e4634040b0d67e1049b31c8c9d7d6988f0351e3c63f81d62f13b3f14000f93"
+    },
+    "oss1170-main-sync-capabilities-r1.log": {
+      "bytes": 99,
+      "sha256": "638bd5001be68ffa71fef634ea5df97ee42d74f4dca4675af239f62f784f17c7"
+    },
+    "oss1170-main-sync-cli-build-r2.log": {
+      "bytes": 99,
+      "sha256": "562156267f536e679cceff21fab0cbf2bc699c4a5d7afdc19b6e7fcc1f0446a0"
+    },
+    "oss1170-main-sync-cli-r1-process.json": {
+      "bytes": 334,
+      "sha256": "d467fec83ade512b7cf36a54115cfcc101b671dc6656fb59a7ff2db46f1e6a53"
+    },
+    "oss1170-main-sync-cli-r2-process.json": {
+      "bytes": 1059,
+      "sha256": "a450c0b6bad5105837d1b63d485ad3e013e8fb8863cde3d53c55e1426056dabe"
+    },
+    "oss1170-main-sync-cli-tests-r3-process.json": {
+      "bytes": 241,
+      "sha256": "3bc258ea25eed912869d3cb5d2807e8afde467e32966f59281d11b88e6526675"
+    },
+    "oss1170-main-sync-cli-tests-r3.log": {
+      "bytes": 6511,
+      "sha256": "d73c44b2e77296b5c88ca0e67040e74368b2c7055d13880a37638108655c0b88"
+    },
+    "oss1170-main-sync-cli-types.log": {
+      "bytes": 51,
+      "sha256": "186a73276525825be1f57f1558b7e3933563bbc01490585e06869460e52ba5d6"
+    },
+    "oss1170-main-sync-compose-base.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "oss1170-main-sync-compose-dev.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "oss1170-main-sync-compose-watch.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "oss1170-main-sync-extra-gates-r1.json": {
+      "bytes": 1879,
+      "sha256": "6e9eb6902d0c6aa2805335386d443cd35af7f236a60a3a47133d773b4f304edd"
+    },
+    "oss1170-main-sync-fast-r1-process.json": {
+      "bytes": 556,
+      "sha256": "95ddbe8da44f95dcc6def0c15e9108a84d2d35ddeaf3182d71e0d76ed2da2bb7"
+    },
+    "oss1170-main-sync-fast-r1.log": {
+      "bytes": 11540,
+      "sha256": "885ee6e649000db65570338e4abcb86579ee8948e8d679db11f9d35f13c19e03"
+    },
+    "oss1170-main-sync-fast-r1.xml": {
+      "bytes": 2044993,
+      "sha256": "c8106a3eeb37b0b3417e137980cacf708abab1a29dadd34ac62fc8e99a425844"
+    },
+    "oss1170-main-sync-final-local-gates.json": {
+      "bytes": 1106,
+      "sha256": "a16e6ae1db7e3591b705582bd92e37539bd8dcc9a17d63eea6118b869c66d1c9"
+    },
+    "oss1170-main-sync-focused-r1-process.json": {
+      "bytes": 860,
+      "sha256": "4878197f8321a9e067471d1ee8b6247d1d1947cc0f6e55eb030975651fef1e90"
+    },
+    "oss1170-main-sync-focused-r1.log": {
+      "bytes": 1137,
+      "sha256": "168fee62f73781df0d42c968f1b3a9b90b55cbc3eb7c9d979c03a01399d358b4"
+    },
+    "oss1170-main-sync-focused-r1.xml": {
+      "bytes": 15735,
+      "sha256": "3f3352ed8d05a50a6a83edd2bdab1fc31ec29517f9dba7668f3e0133b3b51ea5"
+    },
+    "oss1170-main-sync-format-r1.log": {
+      "bytes": 28,
+      "sha256": "bc620c93e5c84c1b02bbab5903154038bfbe9bd23ecf71ac061bcb95a03ae493"
+    },
+    "oss1170-main-sync-gitleaks-process.json": {
+      "bytes": 321,
+      "sha256": "2c32f423ea9c284e8c744c681d44e27ed2b42a11db82d5bf90163b438e9573ba"
+    },
+    "oss1170-main-sync-gitleaks.json": {
+      "bytes": 3,
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    "oss1170-main-sync-gitleaks.log": {
+      "bytes": 108,
+      "sha256": "242f00090dc89c511ab26e60fa1bb3103dd3877ea532b8a26988be36f3931fbb"
+    },
+    "oss1170-main-sync-launcher-r1-process.json": {
+      "bytes": 331,
+      "sha256": "0c2c629a268261fb25080f54b53c081b407e58bc7b912624fdad437399e517ed"
+    },
+    "oss1170-main-sync-launcher-r1.log": {
+      "bytes": 1296,
+      "sha256": "c930ffd19058c1a9bad59eb46672c03cfa0c8c72e049f346195340ea0fc76fbd"
+    },
+    "oss1170-main-sync-launcher-vet.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "oss1170-main-sync-npm-ci-r1.log": {
+      "bytes": 402,
+      "sha256": "f426cdb122c96001c3ce0ddfaa73b0624e9dd4a52e56fa1d60c8f5ff1f6e3c0b"
+    },
+    "oss1170-main-sync-pip-audit-r1-process.json": {
+      "bytes": 609,
+      "sha256": "77e98f034194e8a307590cce20e26d88fd43285dfbe099d8f787d0bd74263e8e"
+    },
+    "oss1170-main-sync-pip-audit-r1.json": {
+      "bytes": 11198,
+      "sha256": "ae39c91efe629117b8519a5e7127d75c7194e2dbdfcee410ceff45b4fa731fa2"
+    },
+    "oss1170-main-sync-pip-audit-r1.log": {
+      "bytes": 265,
+      "sha256": "79d30422388543b2563e1dde76bb7e7857d7ef0c6fdf05c8c71598633ca07e1e"
+    },
+    "oss1170-main-sync-quality-r1.json": {
+      "bytes": 1235,
+      "sha256": "a60a5dc6353c2a758e5957323d9479deca60ff642dd64cde87cc8e9adf978bb7"
+    },
+    "oss1170-main-sync-ruff-r1.log": {
+      "bytes": 19,
+      "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    "oss1170-main-sync-shared-build-r1.log": {
+      "bytes": 103,
+      "sha256": "f1c7d138bea52491339b723eb13a2c605e765045287215596348fe3ede049b47"
+    },
+    "oss1170-main-sync-shared-build-r2.log": {
+      "bytes": 128,
+      "sha256": "73449dfa2693ba5dbe9745b69cf508d5e1793ea762fa14bb564ddd7609767d65"
+    },
+    "oss1170-main-sync-shared-tests-r2.log": {
+      "bytes": 339,
+      "sha256": "d9f5365680e5975ed0e2f1d8db378764302daa871e405e13da1988076fbb5568"
+    },
+    "oss1170-main-sync-skill-graph-r1.log": {
+      "bytes": 109,
+      "sha256": "39ae027bfe556859bf323f030a196716788fbad2bee8ed949828d1acd5c5b480"
+    },
+    "oss1170-main-sync-skills-r1.log": {
+      "bytes": 35,
+      "sha256": "1ed9c4191e671d8778514109d6e95318dbb4db64a708de654983a81cd0d5e047"
+    },
+    "oss1170-main-sync-stix-r1.log": {
+      "bytes": 90,
+      "sha256": "a02b2df5fe7ad44db4e72e06e39e2026cb8c306d7b90d2818b326bcd2fded8c7"
+    },
+    "oss1170-main-sync-uv-extras-r1.log": {
+      "bytes": 173,
+      "sha256": "59640c396b321a2390654e68dc2f5ebf5f45a27b976eeacf9f3b1523bdb093cc"
+    },
+    "oss1170-main-sync-uv-r1.log": {
+      "bytes": 4852,
+      "sha256": "4a8e318fd2f2348ff3fd558f35ff309205fd2d8abb1e19dc52cf2057781352e3"
+    }
+  },
+  "retainedHarnessFailures": [
+    "npm wrapper missing DBus session before compilation; retry with nonsecret session coordination env succeeds",
+    "attempted shared test script does not exist; actual workflow builds shared and tests CLI; no shared-test pass claimed"
+  ],
+  "codeqlThreads": {
+    "count": 10,
+    "rule": "Statement has no effect",
+    "disposition": "HostIntegration Protocol ellipsis declarations; intended typing stubs, not NullHostIntegration or provider runtime implementations",
+    "reference": "https://typing.python.org/en/latest/spec/protocol.html#defining-a-protocol",
+    "scannerAlertSuppressed": false
+  },
+  "governance": {
+    "oldRequiredStatusBlockerObsolete": true,
+    "previousExactHeadActualRequiredCheck": "github-actions CI OK (required status) completed success",
+    "recheckNewPublishedHeadBeforeMerge": true,
+    "rulesOrStatusesChanged": false,
+    "hostedWorkflowTriggeredExplicitly": false
+  },
+  "scopeLimits": [
+    "Local Linux launcher only; no Windows/macOS qualification claimed",
+    "image import/compiled registry smoke only; not licensed API/model execution or full SaaS native acceptance",
+    "19 informational SARIF results retained, same rule histogram as prior image; no security clean assertion and no additional vulnerability waiver",
+    "SaaS latest OSS adoption, private provider, old checkpoints, native E2B, rollout/postprod remain release gates"
+  ],
+  "localImageBuiltOrPulled": false,
+  "productionChanged": false
+}
