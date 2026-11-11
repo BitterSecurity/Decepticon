@@ -15,7 +15,7 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed [installation-source correction](https://github.com/BitterSecurity/Decepticon/compare/main...fix/skill-install-sources-20261111): correct installation sources in five standard skills. Pin NetExec to its publisher release commit, retain documented asyncua/Scapy paths, decode LoRaWAN JoinRequests without an extra dependency, and remove unsupported Flutter parser installation. Existing installed packages and deployed skill catalogs require a separate update; no release or deployment is implied. [Verification](docs/verification/skill-install-sources-20261111.md).
+- Proposed [installation-source correction #1175](https://github.com/BitterSecurity/Decepticon/pull/1175): correct installation sources in five standard skills. Pin NetExec to its publisher release commit, retain documented asyncua/Scapy paths, decode LoRaWAN JoinRequests without an extra dependency, and remove unsupported Flutter parser installation. Existing installed packages and deployed skill catalogs require a separate update; no release or deployment is implied. [Verification](docs/verification/skill-install-sources-20261111.md).
 
 - Source-qualified [#1174](https://github.com/BitterSecurity/Decepticon/pull/1174), not released: reconcile SDK/objective API additions as97unique stable entries, preserving both histories. Full6,347fast cases, actual three-wheel/seven-provider profiles and ten legacy/current installed-wheel codec shapes pass; no new status value, runtime permission or package publication. [Evidence and limits](docs/verification/objective-lifecycle-integration-20261111.md).
 
