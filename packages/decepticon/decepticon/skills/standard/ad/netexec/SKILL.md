@@ -16,10 +16,12 @@ Windows / AD pentest.
 
 ## 1. Install
 ```bash
-pipx install netexec      # preferred — isolates deps
-# Or:
-git clone https://github.com/Pennyw0rth/NetExec && cd NetExec && pipx install .
+# Publisher repository, pinned to the v1.5.1 release commit (not a PyPI name):
+pipx install "git+https://github.com/Pennyw0rth/NetExec.git@c7dc286ba65daf10402cdc470e531b84e6d3d911"
 ```
+
+Follow the [publisher installation guide](https://www.netexec.wiki/getting-started/installation/installation-on-unix)
+for platform prerequisites. Review a new release before changing the commit pin.
 
 ## 2. Protocol auth sweep
 ```bash
