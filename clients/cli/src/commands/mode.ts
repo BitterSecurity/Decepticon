@@ -24,10 +24,6 @@ const mode: Command = {
   argumentHint: "[plan | red | blue]",
   complete: (args) => ["plan", "red", "blue"].filter((value) => value.startsWith(args)),
   async execute(args, ctx) {
-    if (process.env.DECEPTICON_WEB_TERMINAL === "true") {
-      ctx.addSystemEvent("Use the Plan, Red, or Blue controls above the web terminal to switch modes.");
-      return;
-    }
     const selected = args.trim().toLowerCase();
     if (!selected) {
       if (ctx.openPicker) {

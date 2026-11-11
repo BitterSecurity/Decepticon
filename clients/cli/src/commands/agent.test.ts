@@ -21,7 +21,6 @@ describe("/agent catalog discovery", () => {
     errorOffset = -1;
     delayMs = 0;
     setAssistantOverride("previous");
-    vi.stubEnv("DECEPTICON_WEB_TERMINAL", "false");
     vi.stubEnv("DECEPTICON_ASSISTANT_ID", "launcher-default");
     server = createServer(async (request, response) => {
       if (request.method !== "POST" || request.url !== "/assistants/search") {

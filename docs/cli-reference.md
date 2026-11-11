@@ -22,8 +22,6 @@
 | `decepticon remove --preserve-workspace` | Back up engagement data before removing the installation |
 | `decepticon --version` | Show installed version |
 
-> **Web dashboard** is *dynamic-spawn* — it does **not** come up with the default stack. Start it from inside the CLI with the `/web` slash command (which runs `docker compose --profile web up -d web`), then open `http://localhost:3000` (configurable via `WEB_PORT` in `.env`). See [Web Dashboard](web-dashboard.md).
-
 ### Scope and workflow selection
 
 New engagements ask for a name, in-scope targets and exclusions, then preview
@@ -68,7 +66,6 @@ decepticon logs litellm     # LiteLLM proxy
 decepticon logs postgres    # PostgreSQL
 decepticon logs neo4j       # Neo4j graph database
 decepticon logs sandbox     # Kali Linux sandbox
-decepticon logs web         # Web dashboard
 ```
 
 ---
@@ -163,7 +160,6 @@ remain available through `/blue incidents` and the monitor's APIs.
 | `/queue [clear]` | Manage waiting messages; `/queue edit N <message>` edits one |
 | `/alerts [incident-id]` | Inspect retained Blue incidents and full investigation details |
 | `/export [markdown \| json] [path]` | Write the current conversation to a new private file |
-| `/web [up \| down \| url]` | Manage the optional web dashboard |
 | `/blue up 127.0.0.1:3000` | Connect the local sensor to a running service |
 | `/blue status \| verify \| sources \| events \| incidents \| metrics \| analyze \| stop` | Inspect or manage Blue collection |
 | `/quit`, `/exit` | Exit the chat; services stay running |
@@ -307,8 +303,6 @@ backup contains secrets and is written with owner-only permissions.
 | `LANGGRAPH_PORT` | `2024` | LangGraph API server port |
 | `LITELLM_PORT` | `4000` | LiteLLM proxy port |
 | `POSTGRES_PORT` | `5432` | PostgreSQL port |
-| `WEB_PORT` | `3000` | Web dashboard port |
-| `TERMINAL_PORT` | `3003` | Terminal WebSocket bridge for the embedded CLI |
 
 Neo4j host ports are configurable with `NEO4J_HTTP_PORT` (default `7474`) and
 `NEO4J_BOLT_PORT` (default `7687`); both bind to loopback in Compose.

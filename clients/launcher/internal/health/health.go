@@ -19,7 +19,6 @@ const (
 	DefaultLangGraphPort = "2024"
 	DefaultLiteLLMPort   = "4000"
 	DefaultNeo4jHTTPPort = "7474"
-	DefaultWebPort       = "3000"
 	MaxCatalogBytes      = 1 << 20
 )
 
@@ -33,7 +32,6 @@ var (
 	// Reserved for ad-hoc diagnostics commands.
 	LiteLLMTimeout = 90 * time.Second
 	Neo4jTimeout   = 90 * time.Second
-	WebTimeout     = 60 * time.Second
 
 	PollInterval = 2 * time.Second
 )
@@ -201,32 +199,10 @@ func CheckNeo4j(env map[string]string) error {
 	return fmt.Errorf("Neo4j not ready after %s (port %s)", Neo4jTimeout, port)
 }
 
-// CheckWeb polls the web dashboard. Kept for diagnostics.
-func CheckWeb(env map[string]string) error {
-	port := config.Get(env, "WEB_PORT", DefaultWebPort)
-	url := fmt.Sprintf("http://localhost:%s", port)
-
-	deadline := time.Now().Add(WebTimeout)
-	client := &http.Client{Timeout: 5 * time.Second}
-
-	for time.Now().Before(deadline) {
-		resp, err := client.Get(url)
-		if err == nil {
-			resp.Body.Close()
-			if resp.StatusCode == http.StatusOK {
-				return nil
-			}
-		}
-		time.Sleep(PollInterval)
-	}
-
-	return fmt.Errorf("web dashboard not ready after %s (port %s)", WebTimeout, port)
-}
-
 // WaitForServices verifies the agent stack is functionally ready.
 //
-// Infrastructure readiness (postgres, neo4j, litellm, langgraph http server,
-// web) is delegated to Docker Compose healthchecks via `compose up --wait`,
+// Infrastructure readiness (postgres, neo4j, litellm, langgraph http server)
+// is delegated to Docker Compose healthchecks via `compose up --wait`,
 // so by the time this runs every container is already healthy. The remaining
 // gap is graph-compile readiness inside LangGraph: /ok answers before the
 // decepticon graph finishes compiling, so we probe /assistants/search until

@@ -28,7 +28,6 @@ indefinitely "pending":
 |-------|---------|-----------|
 | **Python (lint + typecheck + test)** | Ruff lint + format, basedpyright (errors), pytest | yes |
 | **CLI (ubuntu / macOS)** | TypeScript CLI typecheck + tests | yes |
-| **Web (lint + build)** | ESLint (`--max-warnings 0`) + Next.js build | yes |
 | **Launcher (ubuntu / macOS / windows)** | `go vet` + `go test` | yes |
 | **Security (pip-audit + gitleaks)** | Python dependency + secret sweep | report |
 | **Docker build (per image)** | Buildx build + Trivy image scan (SARIF) | build hard-gates |

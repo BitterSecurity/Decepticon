@@ -22,13 +22,12 @@ var publishedPortKeys = map[string]map[int]string{
 	"postgres":  {5432: "POSTGRES_PORT"},
 	"neo4j":     {7474: "NEO4J_HTTP_PORT", 7687: "NEO4J_BOLT_PORT"},
 	"langgraph": {2024: "LANGGRAPH_PORT"},
-	"web":       {3000: "WEB_PORT", 3003: "TERMINAL_PORT"},
 	"skillogy":  {9100: "SKILLOGY_REST_PORT"},
 }
 
 // Recover from the effective Compose configuration, including overrides and
 // shell interpolation. Internal service DNS/ports never change; re-running up
-// rewires host URLs interpolated into consumers (web, CLI) from the saved keys.
+// rewires host URLs interpolated into consumers (the CLI) from the saved keys.
 func (c *Compose) recoverAllocatedPort(args []string, port string) error {
 	var rendered struct {
 		Services map[string]struct {

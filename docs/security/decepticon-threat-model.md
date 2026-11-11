@@ -13,7 +13,7 @@ Three trust planes:
    their Claude/OpenAI/Codex OAuth tokens, the `.env` file with API
    keys.
 2. **Management plane.** Everything on `decepticon-net`: LangGraph,
-   LiteLLM, PostgreSQL, Neo4j, the Next.js web dashboard.
+   LiteLLM, PostgreSQL, Neo4j.
 3. **Operational plane.** Everything on `sandbox-net`: the Kali
    sandbox, Sliver C2 server (when active), target infrastructure.
 
@@ -59,7 +59,6 @@ The following bridges are relevant to the threat model (not a proof of current i
 | **Neo4j dual-homing** | Cypher / APOC procedures | sandbox → mgmt plane RCE if APOC procedures are unrestricted |
 | **LiteLLM** | OAuth files + provider API keys | full LLM-provider compromise; engagement spend; cross-customer cred theft |
 | **Plugin entry-points** | Arbitrary Python on `import decepticon` | `pip install` of one malicious bundle → agent-startup RCE |
-| **Web dashboard** | OPPLAN edits, operator overrides, engagement state | full agent control if web is exposed without auth (PR #338) |
 
 LangGraph also joins `sandbox-net` to reach the HTTP daemon. The diagram above
 omits that direct network membership; Neo4j is not the only cross-plane network
@@ -82,7 +81,6 @@ Per-asset analysis.
 | **Tampering** | Cypher injection via interpolated label | `_apoc_safety.ensure_safe` + parameter-bound queries | Done ([apoc-safety](../../packages/decepticon/decepticon/tools/research/_apoc_safety.py)) |
 | **Repudiation** | No audit of Cypher writes per engagement | RoE audit ledger covers tool calls; KG-internal writes not yet logged | Partial |
 | **Information disclosure** | `apoc.cypher.runFile('file:///proc/self/environ')` reads mgmt env | APOC allowlist + file-I/O procedures disabled | Done ([hardening](./neo4j-hardening.md)) |
-| **Information disclosure** | Web `engagements/[id]/graph` route returned full graph | Per-engagement label scoping + Prisma ownership check | Done |
 | **Denial of service** | Heavy `MATCH (n)` traversal | `cypher.statistics_divergence` heuristic + query timeouts | Partial — Neo4j's default tx timeout applies; no per-tool timeout |
 | **Elevation of privilege** | `apoc.systemdb.execute` reaches system DB | Procedure denylist | Done |
 
@@ -90,7 +88,7 @@ Per-asset analysis.
 
 | Threat | Vector | Mitigation | Status |
 |--------|--------|-----------|--------|
-| **Spoofing** | Default master key `sk-decepticon-master` documented | `.env.example` warns; web health route refuses to fall back | Partial — operator must rotate |
+| **Spoofing** | Default master key `sk-decepticon-master` documented | `.env.example` warns | Partial — operator must rotate |
 | **Tampering** | LiteLLM admin UI mutates routing | Master key never exposed to sandbox network | Done |
 | **Information disclosure** | OAuth credential files bind-mounted (Claude/Codex) | Bind RO; LiteLLM container itself is on `decepticon-net` only | Done |
 | **Information disclosure** | Health endpoint hardcoded master key as fallback | Removed; health refuses without explicit `LITELLM_API_KEY` | Done |
@@ -120,17 +118,13 @@ Per-asset analysis.
 | **Denial of service** | Infinite recursion via `task()` -> orchestrator -> `task()` | Per-agent `recursion_limit` defaults (200-1000 depending on role) | Done |
 | **Elevation of privilege** | Compromised orchestrator dispatches arbitrary subagents | SubAgent allowlist via `decepticon.subagents` entry-point group | Partial — relies on operator trust of installed plugins |
 
-### Asset: Web dashboard (Next.js)
+### Asset: Web dashboard (removed)
 
-| Threat | Vector | Mitigation | Status |
-|--------|--------|-----------|--------|
-| **Spoofing** | No auth on non-localhost deploys | PR #338 (open) adds password / bind-restriction | Open |
-| **Tampering** | OPPLAN edits via API | API requires `requireAuth()` (currently no-op in OSS) | Partial |
-| **Information disclosure** | `engagements/[id]/graph` route ignored `[id]`, returned full graph | Prisma ownership + per-engagement scoped Cypher | Done |
-| **Information disclosure** | `engagements/[id]/graph` fell back to public Neo4j password | Refuses to query with `decepticon-graph` | Done |
-| **Information disclosure** | Health route hardcoded `LITELLM_API_KEY = "sk-decepticon-master"` | Removed; refuses without explicit env | Done |
-| **Denial of service** | `MATCH (n)` cypher dump on every dashboard render | Per-engagement filtering bounds the query | Done |
-| **Elevation of privilege** | Operator override without audit | Audit trail logs OPERATOR_OVERRIDE event class | Partial |
+The OSS Next.js web dashboard (`clients/web`) was removed. Its attack surface
+(unauthenticated non-localhost deploys, the `engagements/[id]/graph` route, the
+health route's LiteLLM key fallback) no longer ships in the OSS stack. The
+officially supported dashboard is the separate Decepticon SaaS UI, which is
+assessed under its own threat model.
 
 ### Asset: Plugin author surface
 
@@ -149,7 +143,7 @@ The chains that matter, ranked by realistic damage:
 
 1. **Hostile banner → APOC → mgmt env exfil.** A target webpage returns text that influences the agent's next `kg_query` call. Pre-hardening, agent issues `CALL apoc.cypher.runFile('file:///proc/self/environ')`; the response carries PostgreSQL creds, LiteLLM master key, OAuth tokens. The APOC allowlist reduces the procedure surface; output quarantine reduces instruction confusion. Neither is proof that every injection/pivot chain is closed.
 
-2. **Cross-engagement data leak via web dashboard.** Any authenticated user opens `engagements/<their-id>/graph`; the route ran `MATCH (n) OPTIONAL MATCH (n)-[r]->(m)` against the shared Neo4j. Hostile customer reads competitor's findings. **Closed** by Prisma ownership + per-engagement label scoping (Tier 4b).
+2. **Cross-engagement data leak via web dashboard (historical — dashboard removed).** Any authenticated user opens `engagements/<their-id>/graph`; the route ran `MATCH (n) OPTIONAL MATCH (n)-[r]->(m)` against the shared Neo4j. Hostile customer reads competitor's findings. **Closed** by Prisma ownership + per-engagement label scoping (Tier 4b).
 
 3. **Operator workstation → LiteLLM OAuth file read.** Operator's `~/.claude/.credentials.json` is bind-mounted RO into LiteLLM. Compromised host with read on that file gets the OAuth token. **Mitigation**: the file is RO mounted into LiteLLM and LangGraph, not into the sandbox; standard OS file perms (600) apply to operator host. **Status**: partial — relies on operator host hygiene.
 

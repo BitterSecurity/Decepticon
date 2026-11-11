@@ -38,12 +38,3 @@ it("selects a model through the no-argument model picker", async () => {
   expect(getModelOverride()).toBe("auth/gpt-6-astra");
 });
 
-it("preserves web terminal mode restrictions when a picker callback exists", async () => {
-  // Given a web terminal with the same context contract
-  vi.stubEnv("DECEPTICON_WEB_TERMINAL", "true");
-  const requests: ChoicePickerRequest[] = [];
-  // When /mode is invoked
-  await mode.execute("", context(requests));
-  // Then the terminal cannot open its own mode picker
-  expect(requests).toEqual([]);
-});

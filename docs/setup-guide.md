@@ -14,7 +14,6 @@ Complete installation, authentication, and configuration reference.
   - [ChatGPT Pro/Plus Subscription (OAuth)](#chatgpt-proplus-subscription-oauth)
 - [Supported Providers](#supported-providers)
 - [Model Profiles](#model-profiles)
-- [Web Dashboard](#web-dashboard)
 - [CLI Reference](#cli-reference)
 - [Agentic Setup — End-to-End Walkthrough](#agentic-setup--end-to-end-walkthrough)
 - [Advanced Configuration](#advanced-configuration)
@@ -722,33 +721,6 @@ See [Models](models.md) for the full role-to-model mapping.
 
 ---
 
-## Web Dashboard
-
-The web dashboard is optional. Start it from the interactive CLI with `/web`, then open:
-
-```
-http://localhost:3000
-```
-
-**Features:**
-
-- Real-time engagement monitoring
-- Agent activity and conversation timeline
-- Attack chain visualization (Neo4j knowledge graph)
-- Model usage and cost tracking
-- Terminal access to the sandbox environment
-
-**Custom port:**
-
-```bash
-# In ~/.decepticon/.env
-WEB_PORT=8080
-```
-
-See [Web Dashboard](web-dashboard.md) for the full feature reference.
-
----
-
 ## CLI Reference
 
 ### Core Commands
@@ -829,8 +801,8 @@ This single command:
 
 1. **Validates** your `.env` configuration
 2. **Pulls** Docker images (first run only, ~2 GB)
-3. **Starts** 7 services in dependency order:
-   - PostgreSQL → LiteLLM proxy → Neo4j → Sandbox → LangGraph → Web Dashboard → CLI
+3. **Starts** the core services in dependency order:
+   - PostgreSQL → LiteLLM proxy → Neo4j → Sandbox → LangGraph → CLI
 4. **Waits** for all healthchecks to pass (~60-120s first run, ~10s subsequent)
 5. **Shows** the engagement picker
 6. **Launches** the interactive terminal CLI
@@ -845,13 +817,11 @@ Once running, you have:
 | **LangGraph** | 2024 | Agent runtime — hosts all 17 agents as a streaming API |
 | **Neo4j** | 7474/7687 | Knowledge graph — persistent attack chain memory |
 | **Sandbox** | (internal) | Isolated Kali Linux — runs all offensive tools |
-| **Web Dashboard** | 3000 | Browser UI — real-time monitoring, graph visualization |
-| **Terminal Server** | 3003 | WebSocket bridge — embeds CLI in the web dashboard |
-| **PostgreSQL** | 5432 | Persistence — LiteLLM usage logs, web dashboard data |
+| **PostgreSQL** | 5432 | Persistence — LiteLLM usage logs |
 
 ### Step 5: Create Your First Engagement
 
-**Option A — Terminal CLI:**
+Start Decepticon from the terminal:
 
 ```bash
 # Decepticon shows the engagement picker after launch
@@ -861,13 +831,6 @@ Once running, you have:
 # Existing workspaces with missing scope can use /scope import <file> --confirm
 # Inside the session, use /mode plan, /mode red, or /mode blue
 ```
-
-**Option B — Web Dashboard:**
-
-1. Open `http://localhost:3000`
-2. Click "New Engagement"
-3. Enter a name, one root URL or IP/CIDR target, and an authorization reference
-4. Confirm authorization, choose Red, Plan, or Blue, and click "Create"
 
 ### Step 6: Optional Soundwave Plan
 
@@ -910,13 +873,6 @@ All commands execute inside the **sandboxed Kali container** — zero host expos
 - Live streaming of agent activity, tool calls, sub-agent dispatch
 - `Ctrl+O` to toggle transcript mode (full event history)
 - `Ctrl+C` to pause (resume with `/resume`)
-
-**Web Dashboard (`http://localhost:3000`):**
-- Live attack graph visualization (Neo4j-backed)
-- Agent activity timeline
-- OPPLAN progress tracker
-- Findings table with severity ratings
-- Embedded terminal (same CLI, in-browser)
 
 ### Step 9: Post-Engagement
 
@@ -967,7 +923,6 @@ decepticon kg-health    # Knowledge graph diagnostics (LangGraph + Neo4j connect
 decepticon logs              # LangGraph (default)
 decepticon logs litellm      # LLM proxy
 decepticon logs neo4j        # Knowledge graph
-decepticon logs web          # Web dashboard
 ```
 
 ---
@@ -1011,7 +966,6 @@ LANGSMITH_PROJECT=decepticon
 LANGGRAPH_PORT=2024   # Agent runtime
 LITELLM_PORT=4000     # LLM proxy
 POSTGRES_PORT=5432    # Database
-WEB_PORT=3000         # Dashboard
 ```
 
 ### Debug Mode

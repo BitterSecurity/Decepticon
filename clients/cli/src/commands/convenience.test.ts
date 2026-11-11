@@ -33,17 +33,6 @@ it("uses the guarded mode transition when /plan is selected", async () => {
   expect(ctx.submit).not.toHaveBeenCalled();
 });
 
-it("retains web terminal restrictions when /plan is selected", async () => {
-  // Given a web terminal whose mode controls live outside the CLI
-  vi.stubEnv("DECEPTICON_WEB_TERMINAL", "true");
-  const ctx = context();
-  // When the shortcut is executed
-  await findCommand("plan")?.execute("", ctx);
-  // Then it cannot change the assistant
-  expect(ctx.selectAssistant).not.toHaveBeenCalled();
-  expect(ctx.addSystemEvent).toHaveBeenCalledWith(expect.stringContaining("controls above the web terminal"));
-});
-
 it.each(["new", "plan"])("rejects unsupported arguments instead of dropping the /%s prompt", async (name) => {
   // Given a prompt supplied after a no-argument convenience command
   const ctx = context();

@@ -21,8 +21,6 @@
 .env
 .env.local
 .env.*.local
-clients/web/.env
-clients/web/.env.*
 *.pem
 *.key
 
@@ -49,6 +47,3 @@ reference
 assets
 tests
 workspace
-
-# ── Client package caches ───────────────────────────────────
-clients/web/.next

@@ -77,7 +77,6 @@ demo.tape
 .decepticon/
 .dogfood/
 workspace/
-!clients/web/src/app/api/workspace/
 .bg-shell/
 
 # Local reference corpus — dev-only, ~34 MB (PayloadsAllTheThings + OWASP WSTG).

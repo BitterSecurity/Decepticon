@@ -104,7 +104,6 @@ jobs:
             decepticon-skillogy
             decepticon-c2-sliver
             decepticon-rea
-            decepticon-web
           )
           for img in "${images[@]}"; do
             src="ghcr.io/bittersecurity/${img}:${VERSION}"

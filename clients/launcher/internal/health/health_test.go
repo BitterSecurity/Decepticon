@@ -189,21 +189,6 @@ func TestCheckNeo4j_Success(t *testing.T) {
 	}
 }
 
-func TestCheckWeb_Success(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer server.Close()
-
-	port := server.Listener.Addr().String()
-	env := map[string]string{"WEB_PORT": port[len("127.0.0.1:"):]}
-
-	err := CheckWeb(env)
-	if err != nil {
-		t.Errorf("CheckWeb() unexpected error: %v", err)
-	}
-}
-
 func TestProbeLangGraphUsesComposeProcessPort(t *testing.T) {
 	var requests atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

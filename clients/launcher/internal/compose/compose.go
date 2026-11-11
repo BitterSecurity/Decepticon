@@ -232,7 +232,7 @@ func (c *Compose) UpDatabases() error {
 }
 
 // Desktop owns its UI and terminal. Start only the agent services and their
-// Compose dependencies; the web dashboard and interactive CLI are unnecessary.
+// Compose dependencies; the interactive CLI is unnecessary.
 func (c *Compose) UpDesktop() error {
 	return c.upWithNetworkRecovery([]string{"up", "-d", "--no-build", "--wait", "--wait-timeout", startupTimeoutSeconds(), "langgraph", "skillogy"})
 }

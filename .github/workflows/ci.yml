@@ -47,7 +47,6 @@ jobs:
     outputs:
       python: ${{ steps.app.outputs.python }}
       cli: ${{ steps.app.outputs.cli }}
-      web: ${{ steps.app.outputs.web }}
       launcher: ${{ steps.app.outputs.launcher }}
       compose: ${{ steps.app.outputs.compose }}
       telemetry: ${{ steps.app.outputs.telemetry }}
@@ -81,12 +80,6 @@ jobs:
               - '.github/todo-python-language.json'
             cli:
               - 'clients/cli/**'
-              - 'clients/shared/**'
-              - 'package.json'
-              - 'package-lock.json'
-              - '.github/workflows/ci.yml'
-            web:
-              - 'clients/web/**'
               - 'clients/shared/**'
               - 'package.json'
               - 'package-lock.json'
@@ -127,14 +120,6 @@ jobs:
               - '.github/workflows/ci.yml'
             cli:
               - 'containers/cli.Dockerfile'
-              - 'clients/cli/**'
-              - 'clients/shared/**'
-              - 'package.json'
-              - 'package-lock.json'
-              - '.github/workflows/ci.yml'
-            web:
-              - 'containers/web.Dockerfile'
-              - 'clients/web/**'
               - 'clients/cli/**'
               - 'clients/shared/**'
               - 'package.json'
@@ -416,9 +401,9 @@ jobs:
             Windows-X64) npm install --no-save @rollup/rollup-win32-x64-msvc ;;
           esac
       # @decepticon/streaming now ships as a built ESM package
-      # (package.json main → dist/index.js). cli's tsc + web's next build
-      # resolve the workspace by walking that main, so the dist has to
-      # exist before either downstream build runs.
+      # (package.json main → dist/index.js). cli's tsc resolves the
+      # workspace by walking that main, so the dist has to exist before
+      # the downstream build runs.
       - name: Build shared streaming workspace
         if: needs.changes.outputs.cli == 'true'
         run: npm run build --workspace=@decepticon/streaming
@@ -427,45 +412,6 @@ jobs:
       - name: Run CLI tests
         if: needs.changes.outputs.cli == 'true'
         run: cd clients/cli && npm test --if-present
-
-  web:
-    name: Web (lint + build)
-    needs: changes
-    # See the ``cli`` job for the rationale on job-level ``if`` removal +
-    # per-step ``if`` gating: the ruleset requires this status, so it must
-    # always succeed/fail rather than be skipped.
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - if: needs.changes.outputs.web != 'true'
-        run: 'echo "No Web-relevant changes — emitting success."'
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-        if: needs.changes.outputs.web == 'true'
-      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
-        if: needs.changes.outputs.web == 'true'
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: package-lock.json
-      - if: needs.changes.outputs.web == 'true'
-        run: npm ci
-      - name: Build shared streaming workspace
-        if: needs.changes.outputs.web == 'true'
-        run: npm run build --workspace=@decepticon/streaming
-      - name: Generate Prisma client
-        if: needs.changes.outputs.web == 'true'
-        run: cd clients/web && npx prisma generate
-      - name: Lint
-        if: needs.changes.outputs.web == 'true'
-        run: cd clients/web && npx eslint src/ --max-warnings 0
-      - name: Web unit tests
-        if: needs.changes.outputs.web == 'true'
-        run: make web-test
-      - name: Build
-        if: needs.changes.outputs.web == 'true'
-        run: cd clients/web && npm run build
-        env:
-          NEXT_PUBLIC_DECEPTICON_EDITION: oss
 
   # Go launcher: vet + test. Mirrors what release.yml runs before GoReleaser
   # builds the binaries on tag push, so a broken `go test ./...` is caught
@@ -561,7 +507,7 @@ jobs:
   # Apple Silicon targets. Releases already build multi-arch images, but
   # we want PR-time signal so an arm64 break doesn't only surface at
   # release time. Limited to the two images that are smallest under
-  # QEMU (cli + langgraph build in ~3-5 min; sandbox/web take 20+ min
+  # QEMU (cli + langgraph build in ~3-5 min; sandbox takes 20+ min
   # under QEMU and would dominate PR CI wall time — they're validated
   # via the release pipeline only).
   #
@@ -685,7 +631,6 @@ jobs:
       - compose-validate
       - python
       - cli
-      - web
       - launcher
       - docker-build
       - docker-build-arm64
