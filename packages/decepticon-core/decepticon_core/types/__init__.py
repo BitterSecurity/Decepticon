@@ -25,6 +25,9 @@ Four submodules:
     (``EventPage``, ``SourceInfo``, ``StoreMetrics``, ``IngestResult``,
     ``SEARCHABLE_FIELDS``). Callable surface is
     ``protocols.event_store.EventStoreProtocol``.
+  * ``host`` — the per-run ``config["configurable"]`` keys a trusted host
+    passes to the framework (``HostRunConfigurable``). Callable surface is
+    ``decepticon_sdk.host``.
 
 These modules import only ``pydantic`` + stdlib + ``typing_extensions`` —
 no ``langchain`` / ``langgraph`` / ``deepagents`` / ``httpx`` /
@@ -33,6 +36,6 @@ no ``langchain`` / ``langgraph`` / ``deepagents`` / ``httpx`` /
 
 from __future__ import annotations
 
-from decepticon_core.types import engagement, event_store, kg, llm, ocsf_event, roe
+from decepticon_core.types import engagement, event_store, host, kg, llm, ocsf_event, roe
 
-__all__ = ["engagement", "llm", "kg", "ocsf_event", "event_store", "roe"]
+__all__ = ["engagement", "llm", "kg", "ocsf_event", "event_store", "roe", "host"]

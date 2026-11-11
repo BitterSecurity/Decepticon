@@ -1,8 +1,8 @@
 """Stability snapshot — every public ``decepticon-sdk`` name imports.
 
 Spec §6.3 lists the SDK single-import surface that plugin authors
-rely on. This test locks in the 23 stable symbols + the testing
-fakes so a removed re-export fails CI.
+rely on. This test locks in the plugin-author symbols, the testing fakes and the
+``decepticon_sdk.host`` integration surface so a removed re-export fails CI.
 
 See ``packages/decepticon-core/tests/test_public_api_stability.py``
 for the corresponding core-layer snapshot.
@@ -53,6 +53,34 @@ SDK_PUBLIC_API: tuple[tuple[str, str], ...] = (
     ("decepticon_sdk.testing", "FakeSandbox"),
     # Scaffold entry (CLI also wired via [project.scripts])
     ("decepticon_sdk.scaffold", "app"),
+    # Host integration surface (decepticon-sdk[host]) — runtime integration
+    # for hosts that run agents in-process. Re-exports framework code.
+    ("decepticon_sdk.host", "HOST_RUN_CONFIGURABLE_KEYS"),
+    ("decepticon_sdk.host", "HostRunConfigurable"),
+    ("decepticon_sdk.host", "SKILLS_LOCAL_PATH"),
+    ("decepticon_sdk.host", "HTTPTransportSandbox"),
+    ("decepticon_sdk.host", "OpenShellSandbox"),
+    ("decepticon_sdk.host", "build_sandbox_backend"),
+    ("decepticon_sdk.host", "configure_openshell_resolver"),
+    ("decepticon_sdk.host", "get_sandbox"),
+    ("decepticon_sdk.host", "is_openshell_sandbox"),
+    ("decepticon_sdk.host", "make_agent_backend"),
+    ("decepticon_sdk.host", "set_sandbox"),
+    ("decepticon_sdk.host", "EngagementFilesystemBackend"),
+    ("decepticon_sdk.host", "rebind_sandbox_per_run"),
+    ("decepticon_sdk.host", "workspace_from_runtime"),
+    ("decepticon_sdk.host", "LLMFactory"),
+    ("decepticon_sdk.host", "SafetyOverrideViolation"),
+    ("decepticon_sdk.host", "build_middleware"),
+    ("decepticon_sdk.host", "build_tools"),
+    ("decepticon_sdk.host", "create_soundwave_agent"),
+    ("decepticon_sdk.host", "iter_override_bundles"),
+    ("decepticon_sdk.host", "resolve_prompt_overrides"),
+    ("decepticon_sdk.host", "resolve_role_model"),
+    ("decepticon_sdk.host", "ModelOverridesState"),
+    ("decepticon_sdk.host", "ProxyKeyState"),
+    ("decepticon_sdk.host", "SubagentTranscriptState"),
+    ("decepticon_sdk.host", "reduce_converging_value"),
 )
 
 
@@ -68,7 +96,7 @@ def test_sdk_public_name_importable(module_name: str, attr: str) -> None:
 
 def test_sdk_manifest_count_unchanged() -> None:
     """Snapshot the manifest size."""
-    expected = 30
+    expected = 56
     actual = len(SDK_PUBLIC_API)
     assert actual == expected, (
         f"SDK_PUBLIC_API has {actual} entries, expected {expected}. "

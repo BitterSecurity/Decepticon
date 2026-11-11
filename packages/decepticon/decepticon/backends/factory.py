@@ -107,6 +107,19 @@ def configure_openshell_resolver(resolver: Callable[[Any], HTTPTransportSandbox]
     _openshell_resolver = resolver
 
 
+def is_openshell_sandbox(backend: object) -> bool:
+    """Return whether ``backend`` is an OpenShell-transport sandbox.
+
+    True for an admitted :class:`~decepticon.backends.openshell_sandbox.OpenShellSandbox`
+    and for the pre-admission placeholder this factory returns before a scope is
+    imported. The check is by type, never by an attribute a caller could set, so
+    a host can use it to decide which backends sit behind the kernel boundary.
+    """
+    from decepticon.backends.openshell_sandbox import OpenShellSandbox
+
+    return isinstance(backend, (OpenShellSandbox, _UnboundOpenShellSandbox))
+
+
 def _run_config(config: Any = None) -> dict:
     if config is not None:
         return config if isinstance(config, dict) else {}

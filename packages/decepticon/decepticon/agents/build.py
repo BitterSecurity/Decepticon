@@ -93,7 +93,7 @@ class SafetyOverrideViolation(RuntimeError):
 # ─────────────────────────────────────────────────────────────────────
 
 
-def _iter_override_bundles(role: str) -> Iterator[PluginBundle]:
+def iter_override_bundles(role: str) -> Iterator[PluginBundle]:
     """Yield every ``PluginBundle`` registered under
     ``decepticon.bundles`` that is enabled AND scoped to ``role``."""
     try:
@@ -135,6 +135,11 @@ def _iter_override_bundles(role: str) -> Iterator[PluginBundle]:
         if not bundle.matches_role(role):
             continue
         yield bundle
+
+
+# Former private name. Internal callers keep using it so tests that patch
+# ``decepticon.agents.build._iter_override_bundles`` still take effect.
+_iter_override_bundles = iter_override_bundles
 
 
 def resolve_role_model(role: str) -> str | None:
