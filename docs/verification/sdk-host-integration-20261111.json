@@ -1,0 +1,308 @@
+{
+  "recordedAt": "2026-11-11T11:19:50.996149+00:00",
+  "pr": 1173,
+  "reviewedHead": "280bda87f3f023d1a2e79e55e2a7d25cb8f71776",
+  "integratedSource": "5930b2c724d8e42f281c30092613e1ec60bc1a9a",
+  "fastSuiteSource": "592846a1",
+  "sameTreeVerified": true,
+  "main": "4b24db95d42df462337a91fc7e9ed75bf2011333",
+  "paths": [
+    {
+      "status": "M",
+      "path": "CHAGELOG.md",
+      "sha256": "342c358f51dec7a2bc65499daafa0d92f9811796664bec294c5bcca38aad6e67"
+    },
+    {
+      "status": "M",
+      "path": "docs/library-consumer-guide.md",
+      "sha256": "f50ea67321755f748c779ce084e2ebe9720377ead2bd76ea31ca42b0aec21471"
+    },
+    {
+      "status": "M",
+      "path": "packages/decepticon-core/decepticon_core/types/__init__.py",
+      "sha256": "7f517c246e7ab681d8f00758f6680ded8403d5a19f89032e802854398c88f85d"
+    },
+    {
+      "status": "A",
+      "path": "packages/decepticon-core/decepticon_core/types/host.py",
+      "sha256": "c51e3a84fce0559c0bb87d2f9afe31a6f8156f7affa87123c90b4698a3678a1b"
+    },
+    {
+      "status": "M",
+      "path": "packages/decepticon-core/tests/test_public_api_stability.py",
+      "sha256": "7f496d10dcdbd0955028b0713047156dc9622f2cba7fcacd057d7424466e1d2c"
+    },
+    {
+      "status": "A",
+      "path": "packages/decepticon-sdk/decepticon_sdk/host.py",
+      "sha256": "71120fe6e64431b4558de9f38cce6bc4deb55b5536ebe9f0665867be5ecc07d1"
+    },
+    {
+      "status": "M",
+      "path": "packages/decepticon-sdk/pyproject.toml",
+      "sha256": "c9a66a2d749809f0ad6e22315065acb0a21ede5749b0ddabd71e8b77f1f170f3"
+    },
+    {
+      "status": "A",
+      "path": "packages/decepticon-sdk/tests/test_host_surface.py",
+      "sha256": "5794f75664bcf519012f992c566de806ef286640127ea61fa8692d85303b4a4b"
+    },
+    {
+      "status": "M",
+      "path": "packages/decepticon-sdk/tests/test_sdk_api_stability.py",
+      "sha256": "5707da0ad8e3af7584842acbba39904f90f99a3df00475713281cf1e14eae17c"
+    },
+    {
+      "status": "M",
+      "path": "packages/decepticon/decepticon/agents/build.py",
+      "sha256": "2914e0fa4fbdc8aa06e3e84611bbd535ecb0a748f42dee167ed93f3927773140"
+    },
+    {
+      "status": "M",
+      "path": "packages/decepticon/decepticon/backends/__init__.py",
+      "sha256": "bcb43dbf3747d1d298ded8ddc0fc79ea14c157c72271c3ced3be5a5b82241049"
+    },
+    {
+      "status": "M",
+      "path": "packages/decepticon/decepticon/backends/factory.py",
+      "sha256": "89629279279f7bb6b7f16ba705ac34687e9bf87fe34a180bfe46b7b85f352a52"
+    },
+    {
+      "status": "M",
+      "path": "packages/decepticon/decepticon/middleware/filesystem.py",
+      "sha256": "14de0dc7c46506cd9e31fb172afe7b13f943af9a432eb8d8f384c5cd4a1833c4"
+    },
+    {
+      "status": "M",
+      "path": "uv.lock",
+      "sha256": "4395d948e08561d3e8441e1479d488462be6c6f341ac95d18bb71646cb866bbe"
+    }
+  ],
+  "gates": {
+    "fastTests": {
+      "passed": 6326,
+      "skipped": 3,
+      "warnings": 17,
+      "exitCode": 0
+    },
+    "ruffCheck": 0,
+    "ruffFormat": 0,
+    "basedpyright": {
+      "errors": 0,
+      "warnings": 969,
+      "exitCode": 0
+    },
+    "saasPrivateVendor": {
+      "source": "dc7dc9999ec015586eaee49458ea76342765d9aa",
+      "passed": 27,
+      "warnings": 2,
+      "exitCode": 0
+    },
+    "packageVersionsChanged": [],
+    "wheelBuild": {
+      "packages": 3,
+      "exitCode": 0,
+      "buildSlotUsed": true
+    }
+  },
+  "builtWheels": {
+    "sourceCommit": "5930b2c724d8e42f281c30092613e1ec60bc1a9a",
+    "wheels": [
+      {
+        "name": "decepticon",
+        "version": "0.0.0",
+        "bytes": 3823851,
+        "sha256": "4d275bd59add86280755f2dc56bdaf89e6853a23d65f72833ce96300f4063207",
+        "members": 793,
+        "recordVerified": true
+      },
+      {
+        "name": "decepticon-core",
+        "version": "0.0.0",
+        "bytes": 377402,
+        "sha256": "a34acc76dde6a3a079918a716405553e2b89f55b681dca02c29694fb86b2d318",
+        "members": 41,
+        "recordVerified": true
+      },
+      {
+        "name": "decepticon-sdk",
+        "version": "0.0.0",
+        "bytes": 11211,
+        "sha256": "2614d786704e626ac4912828e21159ee3c03faa6198f3bebfb92df2dd16c6075",
+        "members": 11,
+        "recordVerified": true
+      }
+    ],
+    "profiles": [
+      {
+        "profile": "pure-sdk",
+        "exitCode": 0
+      },
+      {
+        "profile": "host-module",
+        "exitCode": 0
+      },
+      {
+        "profile": "http-per-run",
+        "exitCode": 0
+      },
+      {
+        "profile": "openshell-downgrade-refusal",
+        "exitCode": 0
+      },
+      {
+        "profile": "no-resolver-refusal",
+        "exitCode": 0
+      },
+      {
+        "profile": "optional-provider",
+        "exitCode": 0
+      },
+      {
+        "profile": "required-provider-refusal",
+        "exitCode": 0
+      }
+    ],
+    "allNetworkConnectionsRefused": true,
+    "versionSentinel": "QA0.0.0; no package publication or final SaaS source-cohort version pin",
+    "productionChanged": false
+  },
+  "localEvidence": {
+    "oss1173-built-wheels-verified-r2.json": {
+      "sha256": "1c2f0479e631fd411ebf0c6df93517d5c1ec437e9defca28e0b10fcb4538f8f3",
+      "bytes": 1448
+    },
+    "oss1173-built-wheels-verified.json": {
+      "sha256": "86bcc8cb31d23f3afca1b762404b9549cd10502deb8868bf2d73f953bf2565e5",
+      "bytes": 1448
+    },
+    "oss1173-integrated-fast-r1-process.json": {
+      "sha256": "0d87fd66e18546d4699a8b230e5c76ece60a96ea6fe00307363fce0b45b17619",
+      "bytes": 530
+    },
+    "oss1173-integrated-fast-r1.log": {
+      "sha256": "a661d13f3c72c23c29265261683f68cb9e093c7d8cbad7b4496c1cd70cce40b4",
+      "bytes": 11666
+    },
+    "oss1173-integrated-fast-r1.xml": {
+      "sha256": "1eda595badcf0ab74f26129af8d8ab75239cbaa2089a91826396196e9accd654",
+      "bytes": 2055288
+    },
+    "oss1173-integrated-format-r1.log": {
+      "sha256": "85ccab2471bbdfff4d40a53ee02f75dd576964a70e754e403739c661a3097fdb",
+      "bytes": 28
+    },
+    "oss1173-integrated-quality-r1.json": {
+      "sha256": "c9a49ba1c763116dc9a6e7c010a8d22d52e38c0f8c2ea02bef5ff1ae2c28bbcd",
+      "bytes": 556
+    },
+    "oss1173-integrated-ruff-r1.log": {
+      "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+      "bytes": 19
+    },
+    "oss1173-integrated-types-r1.log": {
+      "sha256": "57f2bcbf71b36059f7e4b97b4cda306a1e6500b9037cdc2ac812ae4c7951cbe5",
+      "bytes": 759702
+    },
+    "oss1173-integrated-uv-sync-process.json": {
+      "sha256": "2c582bad29b70d826c4a8caa35437a493d613d2fbb07eddffa81857f49c5a182",
+      "bytes": 277
+    },
+    "oss1173-integrated-uv-sync.log": {
+      "sha256": "c458cf78e6c736194590120494270620405aea0be632ef9a3e7cc3a264777e8a",
+      "bytes": 5022
+    },
+    "oss1173-integrated-wheel-build-r1-process.json": {
+      "sha256": "3bc1067df64ee4361462436185cb5c80141f3dfbb0404f7392787ab20765f579",
+      "bytes": 366
+    },
+    "oss1173-integrated-wheel-build-r1.log": {
+      "sha256": "5d462ce295f39f7391f3f31eb8f32a2a88bc93bbd1fee29c047bd873031b0d89",
+      "bytes": 556
+    },
+    "oss1173-saas-vendor-r1-process.json": {
+      "sha256": "f4367537d356576b12f91881683630108eb1ec2cfb8a03a35c6a913e3df11911",
+      "bytes": 564
+    },
+    "oss1173-saas-vendor-r1.log": {
+      "sha256": "c72f94e049ef0b9fddc12e43e91617b7f3d7b9d60405ad8ab9cc527590265b5e",
+      "bytes": 1166
+    },
+    "oss1173-saas-vendor-r1.xml": {
+      "sha256": "adcaa0bc292644689cbdba8a3f63cb69dd4ad137b3b2f4957812832669f31488",
+      "bytes": 3936
+    },
+    "oss1173-wheel-host-module-r2.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "oss1173-wheel-host-module.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "oss1173-wheel-http-per-run-r2.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "oss1173-wheel-http-per-run.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "oss1173-wheel-no-resolver-refusal-r2.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "oss1173-wheel-no-resolver-refusal.log": {
+      "sha256": "76bda808ad751f9579031858374f32e0643e4aad0fe15dd4c70ef940a50a35e8",
+      "bytes": 1127
+    },
+    "oss1173-wheel-openshell-downgrade-refusal-r2.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "oss1173-wheel-openshell-downgrade-refusal.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "oss1173-wheel-optional-provider-r2.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "oss1173-wheel-optional-provider.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "oss1173-wheel-pure-sdk-r2.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "oss1173-wheel-pure-sdk.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "oss1173-wheel-required-provider-refusal-r2.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "oss1173-wheel-required-provider-refusal.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  },
+  "harnessFailureRetained": "First built-wheel no-resolver profile expected missing resolver but bundled local default was enabled; it refused missing workspace as designed. r2 explicitly disables local resolver; seven profiles pass with same verified installed payloads. No product change to obtain pass.",
+  "reviewDecisions": [
+    "All26SDKhost names and14trustedconfigkeys mapped to actual consumers; no new authorization from TypedDict or type classification",
+    "Private aliases preserve identity; state-first workspace rebinding unchanged",
+    "Plain module import avoids Soundwave; named lazy attribute access loads existing module/default graph; documented explicitly",
+    "None clears host resolver but does not disable bundled local resolver; service flag and actual admission required",
+    "uv.lock adds SDK host extra metadata without changing any resolved package versions"
+  ],
+  "saasReleaseDependency": "Existing SaaS build_oss_cohort.py requires fixtures-only sibling marker; new SDK host extra requires isolated consumer verifier/packaging change, exact sibling pin retention and actual final built cohort. Stable SDK public APIs should replace existing private SaaS imports.",
+  "scopeLimits": [
+    "No selected final SaaS image/cohort, model execution or real E2B acceptance",
+    "Pure wheel sentinel0.0.0 is QA only, not public publication or version selection",
+    "Cloud Build images from1170 qualify only unchanged inputs; no claim that they contain SDK1173",
+    "Only documentation follows integrated source; review new exact-head required checks before normal merge"
+  ],
+  "productionChanged": false
+}

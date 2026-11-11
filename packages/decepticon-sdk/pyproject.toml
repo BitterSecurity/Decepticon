@@ -41,6 +41,9 @@ testing = ["pytest>=8.0.0", "pytest-asyncio>=0.23.0"]
 # framework in as an opt-in extra — keeps `pip install decepticon-sdk`
 # lean for the pure-protocols path.
 fixtures = ["decepticon"]
+# ``decepticon_sdk.host`` re-exports framework runtime integration for hosts
+# that run agents in-process (sandbox routing, agent assembly, state channels).
+host = ["decepticon"]
 
 [project.scripts]
 # ``decepticon-sdk plugin new --kind=... --name=... --path=...`` —

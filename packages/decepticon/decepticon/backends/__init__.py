@@ -4,7 +4,7 @@ from typing import Any
 
 from deepagents.backends import CompositeBackend, FilesystemBackend
 
-from .factory import build_sandbox_backend
+from .factory import build_sandbox_backend, configure_openshell_resolver, is_openshell_sandbox
 from .http_transport import (
     HTTPSandbox,  # back-compat alias re-export
     HTTPTransportSandbox,
@@ -122,5 +122,7 @@ __all__ = [
     "HTTPSandbox",
     "SKILLS_LOCAL_PATH",
     "build_sandbox_backend",
+    "configure_openshell_resolver",
+    "is_openshell_sandbox",
     "make_agent_backend",
 ]

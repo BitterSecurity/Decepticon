@@ -73,6 +73,9 @@ CORE_PUBLIC_API: tuple[tuple[str, str], ...] = (
     ("decepticon_core.types.event_store", "StoreMetrics"),
     ("decepticon_core.types.event_store", "IngestResult"),
     ("decepticon_core.types.event_store", "SEARCHABLE_FIELDS"),
+    # decepticon_core.types.host — per-run configuration a trusted host passes
+    ("decepticon_core.types.host", "HostRunConfigurable"),
+    ("decepticon_core.types.host", "HOST_RUN_CONFIGURABLE_KEYS"),
     # decepticon_core.protocols
     ("decepticon_core.protocols", "BackendProtocol"),
     ("decepticon_core.protocols", "MiddlewareProtocol"),
@@ -158,7 +161,7 @@ def test_manifest_count_unchanged() -> None:
     # (EventStoreProtocol + EventPage, SourceInfo, StoreMetrics, IngestResult,
     # SEARCHABLE_FIELDS). See CHANGELOG.
     # 2026-10-23: 86 -> 87, AutoBot CoverageAdapterProtocol added. See CHANGELOG.
-    expected = 87
+    expected = 89
     actual = len(CORE_PUBLIC_API)
     assert actual == expected, (
         f"CORE_PUBLIC_API has {actual} entries, expected {expected}. "
