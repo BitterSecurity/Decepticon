@@ -17,8 +17,7 @@ from typing import Any
 
 from langchain_core.tools import tool
 
-from decepticon import desktop_tools
-from decepticon.desktop_policy import read_desktop_policy
+from decepticon_core.contracts.host_integration import get_host_integration
 
 
 def _json(data: Any) -> str:
@@ -79,9 +78,10 @@ def list_mcps() -> str:
     WHEN TO USE: To discover what MCP servers are available for tool
     discovery. Shows connection status and tool counts.
     """
-    policy = read_desktop_policy()
+    host = get_host_integration()
+    policy = host.read_policy()
     if policy is not None:
-        return desktop_tools.connections(policy)
+        return host.mcp_list_connections(policy)
     _ensure_loaded()
     connections = []
     for name, info in _registry.items():
@@ -109,9 +109,10 @@ def search_mcp_tools(connection: str = "", query: str = "", limit: int = 20) -> 
         query: Search in tool names and descriptions
         limit: Max results (default 20)
     """
-    policy = read_desktop_policy()
+    host = get_host_integration()
+    policy = host.read_policy()
     if policy is not None:
-        return desktop_tools.search(policy, connection, query, limit)
+        return host.mcp_search(policy, connection, query, limit)
     _ensure_loaded()
     results = []
 
@@ -147,17 +148,10 @@ def get_mcp_tool_schema(connection: str, tool_name: str) -> str:
     WHEN TO USE: Before calling an MCP tool, get its schema to
     understand required parameters.
     """
-    policy = read_desktop_policy()
+    host = get_host_integration()
+    policy = host.read_policy()
     if policy is not None:
-        approved = desktop_tools.approved_tool(policy, connection, tool_name)
-        return _json(
-            {
-                "connection": approved.connection,
-                "tool": approved.name,
-                "schema": {"type": "object"},
-                "description": approved.description,
-            }
-        )
+        return host.mcp_tool_schema(policy, connection, tool_name)
     _ensure_loaded()
     info = _registry.get(connection)
     if not info:
@@ -191,10 +185,10 @@ def call_mcp(connection: str, tool_name: str, arguments_json: str = "{}") -> str
         tool_name: The tool to call
         arguments_json: JSON string of tool arguments
     """
-    policy = read_desktop_policy()
+    host = get_host_integration()
+    policy = host.read_policy()
     if policy is not None:
-        approved = desktop_tools.approved_tool(policy, connection, tool_name)
-        return desktop_tools.execute_approved_tool(policy, approved, arguments_json)
+        return host.mcp_call(policy, connection, tool_name, arguments_json)
     _ensure_loaded()
     info = _registry.get(connection)
     if not info:
