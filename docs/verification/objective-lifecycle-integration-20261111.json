@@ -1,0 +1,386 @@
+{
+  "recordedAt": "2026-11-11T11:29:07.787560+00:00",
+  "pr": 1174,
+  "originalHead": "9f35a68b4bef8ffc259918168cac24e20c15ebad",
+  "integratedSource": "6b7d15c88c704a4c017bd6650fa0479888e21a8b",
+  "fastSuiteSource": "0d253a95",
+  "sameTreeVerified": true,
+  "main": "16c6b66d97620c17b31a3d7449a35ce71340d050",
+  "paths": [
+    {
+      "status": "M",
+      "path": "CHAGELOG.md",
+      "sha256": "46ef043caa514c7744cfec91560e85830c75ae63966eb3a4457eebad78bd6144"
+    },
+    {
+      "status": "M",
+      "path": "packages/decepticon-core/decepticon_core/types/engagement.py",
+      "sha256": "87a14b795279d52dabc3f1d85f07e5eae966e0216a9a77ed799e5d6d248c4468"
+    },
+    {
+      "status": "A",
+      "path": "packages/decepticon-core/tests/test_objective_lifecycle.py",
+      "sha256": "2e0b148deb289f091f3770ad757d7ad0242fc516e0167171665c078d64b7f031"
+    },
+    {
+      "status": "M",
+      "path": "packages/decepticon-core/tests/test_public_api_stability.py",
+      "sha256": "280f528c3248fb0f20c79da3ae94284e9ade050e5fdf71bab80c5363235faadf"
+    },
+    {
+      "status": "M",
+      "path": "packages/decepticon/decepticon/middleware/opplan.py",
+      "sha256": "06ed5e4c26c5ca2600518ba5c582604e5a5619c86b5c07ebac5a8196029f9935"
+    },
+    {
+      "status": "M",
+      "path": "packages/decepticon/decepticon/middleware/opplan_dispatch.py",
+      "sha256": "d8df7bea5ec522a980aecf57cb96f730c06949ffc395ee6a4c93af68403aaf25"
+    },
+    {
+      "status": "M",
+      "path": "packages/decepticon/decepticon/middleware/search_policy.py",
+      "sha256": "1228d0d97d3c4fa399b2ba3a360675617429abbf1eb08027a8d3d6816580f630"
+    },
+    {
+      "status": "M",
+      "path": "packages/decepticon/decepticon/middleware/search_tools.py",
+      "sha256": "2550e70f1b66c8190b2e04bb985b487dc924574a97cef53d5063f46d2e2017c9"
+    },
+    {
+      "status": "M",
+      "path": "packages/decepticon/decepticon/middleware/workflow_opplan.py",
+      "sha256": "08be334020c0c3bc59fe75bcfd29237cbc88c40541e87f55ba8c6df98521dd4a"
+    },
+    {
+      "status": "M",
+      "path": "packages/decepticon/decepticon/tools/opplan.py",
+      "sha256": "a6cca8cb5b9de7d3807a1ee4b36d4fd5eef8519e1c83fc634c5496492dbe09fa"
+    },
+    {
+      "status": "M",
+      "path": "packages/decepticon/decepticon/tools/opplan_graph.py",
+      "sha256": "bfef801f963671931b928a5df1e1e47e4301d5d9b639c31133fe008b327bb77c"
+    },
+    {
+      "status": "A",
+      "path": "packages/decepticon/tests/unit/workflows/test_objective_status_refusals.py",
+      "sha256": "2d21e6335c7ffde5d41fa82cf927cbdb6ec3ec6d56fdc81cfc897ba8b1701d76"
+    }
+  ],
+  "integrationCorrection": {
+    "publicApiCount": 97,
+    "allEntriesUnique": true,
+    "retainedBothChangelogHistories": true,
+    "runtimeRulesRelaxed": false
+  },
+  "gates": {
+    "fastTests": {
+      "passed": 6347,
+      "skipped": 3,
+      "warnings": 17,
+      "exitCode": 0
+    },
+    "ruffCheck": 0,
+    "ruffFormat": 0,
+    "basedpyright": {
+      "errors": 0,
+      "warnings": 969,
+      "exitCode": 0
+    },
+    "packageVersionsChanged": [],
+    "wheelBuild": {
+      "packages": 3,
+      "exitCode": 0,
+      "buildSlotUsed": true
+    }
+  },
+  "builtWheels": {
+    "sourceCommit": "6b7d15c88c704a4c017bd6650fa0479888e21a8b",
+    "wheels": [
+      {
+        "name": "decepticon",
+        "version": "0.0.0",
+        "bytes": 3824399,
+        "sha256": "c10e838015f23886cdea588d8977d651cda1283b496b4e6616995c2c96062b07",
+        "members": 793,
+        "recordVerified": true
+      },
+      {
+        "name": "decepticon-core",
+        "version": "0.0.0",
+        "bytes": 378317,
+        "sha256": "ac6a31dcccaecc06cf58ec97c22f3725ee970f902e6ed9621fb7d6c830ff31ce",
+        "members": 41,
+        "recordVerified": true
+      },
+      {
+        "name": "decepticon-sdk",
+        "version": "0.0.0",
+        "bytes": 11211,
+        "sha256": "2614d786704e626ac4912828e21159ee3c03faa6198f3bebfb92df2dd16c6075",
+        "members": 11,
+        "recordVerified": true
+      }
+    ],
+    "profiles": [
+      {
+        "profile": "pure-sdk",
+        "exitCode": 0
+      },
+      {
+        "profile": "host-module",
+        "exitCode": 0
+      },
+      {
+        "profile": "http-per-run",
+        "exitCode": 0
+      },
+      {
+        "profile": "openshell-downgrade-refusal",
+        "exitCode": 0
+      },
+      {
+        "profile": "no-resolver-refusal",
+        "exitCode": 0
+      },
+      {
+        "profile": "optional-provider",
+        "exitCode": 0
+      },
+      {
+        "profile": "required-provider-refusal",
+        "exitCode": 0
+      }
+    ],
+    "allNetworkConnectionsRefused": true,
+    "versionSentinel": "QA0.0.0; no package publication or final SaaS source-cohort version pin",
+    "productionChanged": false
+  },
+  "builtWheelCodec": {
+    "profiles": [
+      {
+        "status": "pending",
+        "legacyShape": "plain-checkpoint-state",
+        "legacyRestore": true,
+        "currentRoundtrip": true,
+        "jsonWirePreserved": true,
+        "readinessPreserved": true
+      },
+      {
+        "status": "pending",
+        "legacyShape": "legacy-search-model",
+        "legacyRestore": true,
+        "currentRoundtrip": true,
+        "jsonWirePreserved": true,
+        "readinessPreserved": true
+      },
+      {
+        "status": "in-progress",
+        "legacyShape": "plain-checkpoint-state",
+        "legacyRestore": true,
+        "currentRoundtrip": true,
+        "jsonWirePreserved": true,
+        "readinessPreserved": true
+      },
+      {
+        "status": "in-progress",
+        "legacyShape": "legacy-search-model",
+        "legacyRestore": true,
+        "currentRoundtrip": true,
+        "jsonWirePreserved": true,
+        "readinessPreserved": true
+      },
+      {
+        "status": "blocked",
+        "legacyShape": "plain-checkpoint-state",
+        "legacyRestore": true,
+        "currentRoundtrip": true,
+        "jsonWirePreserved": true,
+        "readinessPreserved": true
+      },
+      {
+        "status": "blocked",
+        "legacyShape": "legacy-search-model",
+        "legacyRestore": true,
+        "currentRoundtrip": true,
+        "jsonWirePreserved": true,
+        "readinessPreserved": true
+      },
+      {
+        "status": "completed",
+        "legacyShape": "plain-checkpoint-state",
+        "legacyRestore": true,
+        "currentRoundtrip": true,
+        "jsonWirePreserved": true,
+        "readinessPreserved": true
+      },
+      {
+        "status": "completed",
+        "legacyShape": "legacy-search-model",
+        "legacyRestore": true,
+        "currentRoundtrip": true,
+        "jsonWirePreserved": true,
+        "readinessPreserved": true
+      },
+      {
+        "status": "cancelled",
+        "legacyShape": "plain-checkpoint-state",
+        "legacyRestore": true,
+        "currentRoundtrip": true,
+        "jsonWirePreserved": true,
+        "readinessPreserved": true
+      },
+      {
+        "status": "cancelled",
+        "legacyShape": "legacy-search-model",
+        "legacyRestore": true,
+        "currentRoundtrip": true,
+        "jsonWirePreserved": true,
+        "readinessPreserved": true
+      }
+    ],
+    "producerSource": "5930b2c724d8e42f281c30092613e1ec60bc1a9a built wheels",
+    "consumerSource": "0d253a95 combined objective/SDK source",
+    "scope": "real installed LangGraph serde, synthetic owned legacy values; not production Postgres/API historical thread replay",
+    "productionChanged": false
+  },
+  "localEvidence": {
+    "oss1174-built-wheel-codec-process.json": {
+      "sha256": "0a6ce2d05e21bc83aac416c671b1b4e9b52f2c297b0431665de550bd13b4c13b",
+      "bytes": 228
+    },
+    "oss1174-built-wheel-codec-verified.json": {
+      "sha256": "f72cc0e74467b9d06ba213f7afc4c0622d4a741c9e21a30b9d2a385fcf759012",
+      "bytes": 2463
+    },
+    "oss1174-built-wheel-codec.log": {
+      "sha256": "89272cec2cbaffe7f0f24af3f857dcfe7744271dbf051e2423fa39bb77042ce3",
+      "bytes": 650
+    },
+    "oss1174-built-wheels-verified-r2.json": {
+      "sha256": "b531b0cc275e6086fae826026fc8b73700da054d452ee93544a9d909ba2bad4d",
+      "bytes": 1448
+    },
+    "oss1174-codec-consumer-r1.log": {
+      "sha256": "8e7a3a54fe05a6e3c1b515d839ff19ab5f04fd7b0932e6b9fdf2d05e78ece187",
+      "bytes": 356
+    },
+    "oss1174-codec-consumer-r2-process.json": {
+      "sha256": "2f4d6bc35c39c9c1eb592c8b21839e0db480871a66687ba816040d14bc6f8aa1",
+      "bytes": 216
+    },
+    "oss1174-codec-consumer-r2.log": {
+      "sha256": "89272cec2cbaffe7f0f24af3f857dcfe7744271dbf051e2423fa39bb77042ce3",
+      "bytes": 650
+    },
+    "oss1174-codec-consumer.log": {
+      "sha256": "8e7a3a54fe05a6e3c1b515d839ff19ab5f04fd7b0932e6b9fdf2d05e78ece187",
+      "bytes": 356
+    },
+    "oss1174-codec-process.json": {
+      "sha256": "c93cbcba93465131d752bc7866ba03c30a2527c6327cecf1f4b71cfb550f26a8",
+      "bytes": 75
+    },
+    "oss1174-codec-producer.log": {
+      "sha256": "e06c0b6248773a8cf12560235b45b6bbc4b310bc2264ba10f8d7d339e54abf3d",
+      "bytes": 44
+    },
+    "oss1174-codec-verified.json": {
+      "sha256": "f72cc0e74467b9d06ba213f7afc4c0622d4a741c9e21a30b9d2a385fcf759012",
+      "bytes": 2463
+    },
+    "oss1174-integrated-fast-r1-process.json": {
+      "sha256": "9494698965690d7d2b114a9cfc07f7e8ab94be0fac5c077dc5f7d2816a357004",
+      "bytes": 531
+    },
+    "oss1174-integrated-fast-r1.log": {
+      "sha256": "da6702fda1d664ad755c6725f6fb4257f0193b61f4501bdf3d46327f5b8b5cfa",
+      "bytes": 11752
+    },
+    "oss1174-integrated-fast-r1.xml": {
+      "sha256": "95d1deb66598b6051a4efe844afaf63788934e764d25583a49041cd800e3748a",
+      "bytes": 2058808
+    },
+    "oss1174-integrated-format-r1.log": {
+      "sha256": "de04e74d0b179993037752080a3c2a701ee59572cc7e489900f5350155acdca8",
+      "bytes": 28
+    },
+    "oss1174-integrated-quality-r1.json": {
+      "sha256": "2508bb475d0c03148790b04ae3f5093396cb4a16f7b112c95a4eea490331e7de",
+      "bytes": 559
+    },
+    "oss1174-integrated-ruff-r1.log": {
+      "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+      "bytes": 19
+    },
+    "oss1174-integrated-types-r1.log": {
+      "sha256": "a63564bd034a235ba57b19c5fdeed8287a877e7a834a18db5505d854dc8f2788",
+      "bytes": 760671
+    },
+    "oss1174-integrated-uv-sync-process.json": {
+      "sha256": "bae1332b2212174f23e015a4eda9f64d38e2616aef3a13e63a5410695b33c069",
+      "bytes": 178
+    },
+    "oss1174-integrated-uv-sync.log": {
+      "sha256": "fc5ad2a9f25128df38b29939cf96c13d0772dfb1fc11b547ea74a3353a08076d",
+      "bytes": 5030
+    },
+    "oss1174-integrated-wheel-build-r1-process.json": {
+      "sha256": "dec06e3679c69868d51724a6c3900b3e513cd7dcb7e5714c8daeb6733f5f3548",
+      "bytes": 318
+    },
+    "oss1174-integrated-wheel-build-r1.log": {
+      "sha256": "b75a77cab21449110971ae3f320099f51786d7466e94cdefd16cd03f97284637",
+      "bytes": 556
+    },
+    "oss1174-legacy-codec-blobs.json": {
+      "sha256": "bace7e3d7bca10b4d8bea50e345ee67633b4d0aee7763e939c16e8a730871a00",
+      "bytes": 3923
+    },
+    "oss1174-wheel-host-module-r2.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "oss1174-wheel-http-per-run-r2.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "oss1174-wheel-no-resolver-refusal-r2.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "oss1174-wheel-openshell-downgrade-refusal-r2.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "oss1174-wheel-optional-provider-r2.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "oss1174-wheel-pure-sdk-r2.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "oss1174-wheel-required-provider-refusal-r2.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  },
+  "harnessFailureRetained": "First consumer call omitted existing required facts argument; TypeError/process1 retained. Corrected facts=() passes same frozen legacy blobs on current source and actual built wheels, without product changes or serializer allowlist weakening.",
+  "reviewDecisions": [
+    "All12original paths reviewed as one OPPLAN/search/workflow/dispatch lifecycle",
+    "Immutable tables preserve every original requested transition and prerequisite/resolved/actionable classification",
+    "SearchObjective enum uses same five JSON string values; schema uses enum reference rather than former Literal; local adapter only",
+    "Original old string-shaped private helper aliases preserve compatibility",
+    "Refusal from final state retains stored objective and offers correct framework operation, not a forced status change"
+  ],
+  "scopeLimits": [
+    "Owned synthetic old/current installed LangGraph serde fixtures, not production PostgreSQL historical thread replay",
+    "No selected final SaaS cohort/image, model execution or real E2B/desktop acceptance",
+    "QA sentinel0.0.0 wheels are not publication/version selection",
+    "No claim1170remoteimages contain1173/1174",
+    "Normal exact-head required checks must pass before merge"
+  ],
+  "productionChanged": false
+}
