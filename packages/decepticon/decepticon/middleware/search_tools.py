@@ -26,6 +26,7 @@ from decepticon.middleware.search_policy import (
     ready_objectives,
     review_plan,
 )
+from decepticon_core.types.engagement import ACTIONABLE_OBJECTIVE_STATUSES
 
 _OBJECTIVES = TypeAdapter(tuple[SearchObjective, ...])
 
@@ -126,7 +127,7 @@ def build_search_tools(backend: BackendProtocol) -> list[BaseTool]:
             if set(events) - set(session.reviewed_task_ids):
                 raise SearchContractError("New specialist results require search review")
             objectives = _OBJECTIVES.validate_python(runtime.state.get("objectives", []))
-            if any(row.status in {"pending", "in-progress"} for row in objectives):
+            if any(row.status in ACTIONABLE_OBJECTIVE_STATUSES for row in objectives):
                 raise SearchContractError("Reconcile all pending/active objectives before closing")
             if not reason.strip():
                 raise SearchContractError("An evidence-based stopping reason is required")

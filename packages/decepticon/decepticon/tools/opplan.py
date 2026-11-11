@@ -24,11 +24,16 @@ from decepticon.tools.opplan_graph import PlanInspection, inspect_plan, unmet_pr
 from decepticon.workflows import WorkflowError, WorkflowSnapshot
 from decepticon_core.types.attack_catalog import canonical_attack_annotation
 from decepticon_core.types.engagement import (
+    OBJECTIVE_STATUS_TRANSITIONS,
     OPPLAN,
+    PREREQUISITE_BOUND_OBJECTIVE_STATUSES,
+    RESOLVED_OBJECTIVE_STATUSES,
     Objective,
     ObjectiveOutcome,
     ObjectiveStatus,
     PlanFact,
+    can_transition_objective,
+    next_objective_statuses,
 )
 
 log = logging.getLogger(__name__)
@@ -80,12 +85,13 @@ OPPLAN_TOOL_NAMES: frozenset[str] = frozenset(
     }
 )
 
+# Derived from the core objective lifecycle model (the single source of truth);
+# kept in its former string-keyed shape for existing importers. Final statuses
+# have no entry, exactly as before.
 _VALID_TRANSITIONS: dict[str, set[str]] = {
-    "pending": {"in-progress", "cancelled"},
-    "in-progress": {"completed", "blocked", "cancelled"},
-    "blocked": {"in-progress", "completed", "cancelled"},  # retry, abandon, drop
-    # completed is terminal
-    # cancelled is terminal
+    status.value: {target.value for target in targets}
+    for status, targets in OBJECTIVE_STATUS_TRANSITIONS.items()
+    if targets
 }
 
 
@@ -854,12 +860,12 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
                     changed = True
             facts_by_id = {fact.id: fact for fact in facts}
             for index, objective in enumerate(objectives):
-                if objective.status not in {ObjectiveStatus.IN_PROGRESS, ObjectiveStatus.COMPLETED}:
+                if objective.status not in PREREQUISITE_BOUND_OBJECTIVE_STATUSES:
                     continue
                 unmet = unmet_prerequisites(objective, by_id, facts_by_id)
                 incomplete_children = any(
                     child.parent_id == objective.id
-                    and child.status not in {ObjectiveStatus.COMPLETED, ObjectiveStatus.CANCELLED}
+                    and child.status not in RESOLVED_OBJECTIVE_STATUSES
                     for child in objectives
                 )
                 if not unmet and not incomplete_children:
@@ -1140,7 +1146,7 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
                 )
             if not (notes or target.get("notes")):
                 return _tool_error(tool_call_id, "Blocked objectives require a reason in notes.")
-        if versioned and status in {"in-progress", "completed"}:
+        if versioned and status in PREREQUISITE_BOUND_OBJECTIVE_STATUSES:
             by_id = {row["id"]: row for row in objectives}
             facts = {row["id"]: row for row in state.get("plan_facts", [])}
             unmet = [
@@ -1219,10 +1225,7 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
                     update={
                         "messages": [
                             ToolMessage(
-                                content=(
-                                    f"Invalid transition: {current} → {status}. "
-                                    f"Valid from '{current}': {_valid_next(current)}"
-                                ),
+                                content=_transition_refusal(current, status),
                                 tool_call_id=tool_call_id,
                                 status="error",
                             )
@@ -1231,13 +1234,13 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
                 )
 
             # Parents cannot complete until every child is done.
-            if status == "completed":
+            if status == ObjectiveStatus.COMPLETED:
                 children = [o for o in objectives if o.get("parent_id") == objective_id]
                 if children:
                     unresolved_kids = [
                         c.get("id", "<?>")
                         for c in children
-                        if c.get("status") not in {"completed", "cancelled"}
+                        if c.get("status") not in RESOLVED_OBJECTIVE_STATUSES
                     ]
                     if unresolved_kids:
                         return Command(
@@ -1275,7 +1278,7 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
             target["owner"] = owner
             updated_fields.append("owner")
 
-        if target.get("status") in {"in-progress", "completed"}:
+        if target.get("status") in PREREQUISITE_BOUND_OBJECTIVE_STATUSES:
             unresolved = [
                 predecessor
                 for predecessor in target.get("blocked_by", [])
@@ -1485,13 +1488,33 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
 
 
 def _is_valid_transition(current: str, new: str) -> bool:
-    """Check if a status transition is allowed."""
-    return new in _VALID_TRANSITIONS.get(current, set())
+    """Check if a status transition is allowed (see ``can_transition_objective``)."""
+    return can_transition_objective(current, new)
 
 
 def _valid_next(current: str) -> str:
     """Return comma-separated valid next statuses."""
-    return ", ".join(sorted(_VALID_TRANSITIONS.get(current, set())))
+    return ", ".join(status.value for status in next_objective_statuses(current))
+
+
+def _transition_refusal(current: str, requested: str) -> str:
+    """Tell the agent why a status change was refused and what it can do instead."""
+    head = f"Invalid transition: {current} → {requested}. "
+    allowed = _valid_next(current)
+    if allowed:
+        return head + f"Valid from '{current}': {allowed}"
+    if current == ObjectiveStatus.COMPLETED:
+        return head + (
+            "'completed' is final. It reopens only when evidence it relied on is "
+            "invalidated: revoke_plan_fact marks dependent objectives blocked for rework."
+        )
+    if current == ObjectiveStatus.CANCELLED:
+        return head + (
+            "'cancelled' is final and cannot be rewritten. To do this work, add a new "
+            "objective with commit_opplan."
+        )
+    valid = ", ".join(status.value for status in ObjectiveStatus)
+    return head + f"Current status '{current}' is not a known status. Valid statuses: {valid}"
 
 
 __all__ = [

@@ -4,7 +4,12 @@ from collections.abc import Callable, Mapping, Sequence
 from pathlib import PurePosixPath
 
 from decepticon.workflows import WorkflowSnapshot, WorkflowStage
-from decepticon_core.types.engagement import Objective, ObjectiveStatus, PlanFact
+from decepticon_core.types.engagement import (
+    PREREQUISITE_BOUND_OBJECTIVE_STATUSES,
+    Objective,
+    ObjectiveStatus,
+    PlanFact,
+)
 
 ArtifactCheck = Callable[[list[str]], str | None]
 
@@ -221,7 +226,7 @@ def validate_workflow_plan(
     if error:
         return error
     for objective in objectives:
-        if objective.status in {ObjectiveStatus.IN_PROGRESS, ObjectiveStatus.COMPLETED}:
+        if objective.status in PREREQUISITE_BOUND_OBJECTIVE_STATUSES:
             error = validate_workflow_transition(
                 snapshot,
                 objectives,

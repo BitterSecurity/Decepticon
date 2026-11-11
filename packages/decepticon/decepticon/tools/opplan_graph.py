@@ -4,7 +4,13 @@ from dataclasses import dataclass
 from graphlib import CycleError, TopologicalSorter
 from typing import Literal, Sequence
 
-from decepticon_core.types.engagement import Objective, ObjectiveStatus, PlanFact
+from decepticon_core.types.engagement import (
+    PREREQUISITE_BOUND_OBJECTIVE_STATUSES,
+    RESOLVED_OBJECTIVE_STATUSES,
+    Objective,
+    ObjectiveStatus,
+    PlanFact,
+)
 
 type GraphIssueCode = Literal[
     "duplicate_id",
@@ -181,7 +187,7 @@ def inspect_plan(objectives: Sequence[Objective], facts: Sequence[PlanFact] = ()
         return PlanInspection(issues=tuple(issues), status_ready_ids=())
 
     for objective in objectives:
-        if objective.status in {ObjectiveStatus.IN_PROGRESS, ObjectiveStatus.COMPLETED}:
+        if objective.status in PREREQUISITE_BOUND_OBJECTIVE_STATUSES:
             unmet = unmet_prerequisites(objective, by_id, facts_by_id)
             if unmet:
                 issues.append(
@@ -192,8 +198,7 @@ def inspect_plan(objectives: Sequence[Objective], facts: Sequence[PlanFact] = ()
                     )
                 )
         if objective.status == ObjectiveStatus.COMPLETED and any(
-            child.parent_id == objective.id
-            and child.status not in {ObjectiveStatus.COMPLETED, ObjectiveStatus.CANCELLED}
+            child.parent_id == objective.id and child.status not in RESOLVED_OBJECTIVE_STATUSES
             for child in objectives
         ):
             issues.append(GraphIssue(code="parent_incomplete_children", objective_id=objective.id))

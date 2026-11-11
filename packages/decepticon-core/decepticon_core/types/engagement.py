@@ -18,8 +18,11 @@ autonomous loop, with each objective checked off as it passes validation.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import datetime
 from enum import StrEnum
+from types import MappingProxyType
+from typing import Final
 
 from pydantic import BaseModel, Field
 
@@ -67,11 +70,88 @@ class C2Tier(StrEnum):
 
 
 class ObjectiveStatus(StrEnum):
+    """Lifecycle state of an OPPLAN objective.
+
+    ``pending → in-progress → completed`` is the normal path. ``blocked`` means
+    work started but cannot continue; it can be retried, completed or dropped.
+    ``completed`` and ``cancelled`` resolve the objective. The moves an agent or
+    operator may request are :data:`OBJECTIVE_STATUS_TRANSITIONS`; the only way a
+    resolved objective reopens is :data:`OBJECTIVE_INVALIDATION_TRANSITIONS`.
+    """
+
     PENDING = "pending"
     IN_PROGRESS = "in-progress"
     COMPLETED = "completed"
     BLOCKED = "blocked"
     CANCELLED = "cancelled"
+
+
+OBJECTIVE_STATUS_TRANSITIONS: Final[Mapping[ObjectiveStatus, frozenset[ObjectiveStatus]]] = (
+    MappingProxyType(
+        {
+            ObjectiveStatus.PENDING: frozenset(
+                {ObjectiveStatus.IN_PROGRESS, ObjectiveStatus.CANCELLED}
+            ),
+            ObjectiveStatus.IN_PROGRESS: frozenset(
+                {ObjectiveStatus.COMPLETED, ObjectiveStatus.BLOCKED, ObjectiveStatus.CANCELLED}
+            ),
+            # Retry, finish after all, or drop.
+            ObjectiveStatus.BLOCKED: frozenset(
+                {ObjectiveStatus.IN_PROGRESS, ObjectiveStatus.COMPLETED, ObjectiveStatus.CANCELLED}
+            ),
+            ObjectiveStatus.COMPLETED: frozenset(),
+            ObjectiveStatus.CANCELLED: frozenset(),
+        }
+    )
+)
+"""Status changes an agent or operator may request, keyed by the current status."""
+
+PREREQUISITE_BOUND_OBJECTIVE_STATUSES: Final[frozenset[ObjectiveStatus]] = frozenset(
+    {ObjectiveStatus.IN_PROGRESS, ObjectiveStatus.COMPLETED}
+)
+"""Statuses that require every prerequisite to hold. Entering one is refused while a
+prerequisite is unmet, and an objective in one is invalidated when one stops holding."""
+
+OBJECTIVE_INVALIDATION_TRANSITIONS: Final[Mapping[ObjectiveStatus, frozenset[ObjectiveStatus]]] = (
+    MappingProxyType(
+        {
+            status: frozenset({ObjectiveStatus.BLOCKED})
+            for status in PREREQUISITE_BOUND_OBJECTIVE_STATUSES
+        }
+    )
+)
+"""Changes the framework applies when a prerequisite of an objective stops holding
+(for example a plan fact it relied on is revoked).
+
+Never requested directly: the objective is marked ``blocked`` with outcome
+``invalidated`` so the work is redone. This is how ``completed`` reopens."""
+
+RESOLVED_OBJECTIVE_STATUSES: Final[frozenset[ObjectiveStatus]] = frozenset(
+    {ObjectiveStatus.COMPLETED, ObjectiveStatus.CANCELLED}
+)
+"""Statuses that close an objective; a parent completes only when every child is resolved."""
+
+ACTIONABLE_OBJECTIVE_STATUSES: Final[frozenset[ObjectiveStatus]] = frozenset(
+    {ObjectiveStatus.PENDING, ObjectiveStatus.IN_PROGRESS}
+)
+"""Statuses of objectives that can still be dispatched or worked (not resolved, not blocked)."""
+
+
+def can_transition_objective(current: str, new: str) -> bool:
+    """Return whether an agent or operator may move an objective from ``current`` to ``new``."""
+    try:
+        return ObjectiveStatus(new) in OBJECTIVE_STATUS_TRANSITIONS[ObjectiveStatus(current)]
+    except ValueError:
+        return False
+
+
+def next_objective_statuses(current: str) -> tuple[ObjectiveStatus, ...]:
+    """Statuses reachable from ``current`` by request, in a stable order (empty when final)."""
+    try:
+        allowed = OBJECTIVE_STATUS_TRANSITIONS[ObjectiveStatus(current)]
+    except ValueError:
+        return ()
+    return tuple(sorted(allowed, key=lambda status: status.value))
 
 
 class AttackTechnique(BaseModel):

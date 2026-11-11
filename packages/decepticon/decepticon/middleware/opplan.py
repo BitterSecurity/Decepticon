@@ -51,7 +51,7 @@ from decepticon.tools.opplan import (
     _upgrade_unversioned_plan,
     build_opplan_tools,
 )
-from decepticon_core.types.engagement import OPPLAN, Objective
+from decepticon_core.types.engagement import OPPLAN, RESOLVED_OBJECTIVE_STATUSES, Objective
 
 _PLAN_MUTATION_TOOLS = frozenset(
     {
@@ -273,7 +273,7 @@ _STATUS_MARKERS = {
     "pending": "pending",
 }
 
-_TERMINAL_STATUSES = {"completed", "cancelled"}
+_TERMINAL_STATUSES = RESOLVED_OBJECTIVE_STATUSES
 
 
 def _format_opplan_status(
