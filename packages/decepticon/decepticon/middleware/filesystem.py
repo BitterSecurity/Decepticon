@@ -329,7 +329,13 @@ class EngagementFilesystemBackend(BackendProtocol):
         ]
 
 
-def _workspace_from_runtime(runtime: Any) -> str | None:
+def workspace_from_runtime(runtime: Any) -> str | None:
+    """Return the run's engagement workspace path, or ``None`` when unbound.
+
+    Agent state wins over ``config.configurable.workspace_path`` because the
+    engagement middleware hydrates the configurable value into state on the
+    first step and the checkpointer then carries it across runs.
+    """
     state = getattr(runtime, "state", {}) or {}
     if hasattr(state, "get") and state.get("workspace_path"):
         return str(state["workspace_path"])
@@ -339,7 +345,7 @@ def _workspace_from_runtime(runtime: Any) -> str | None:
     return None
 
 
-def _rebind_sandbox_per_run(backend: BackendProtocol, runtime: Any = None) -> BackendProtocol:
+def rebind_sandbox_per_run(backend: BackendProtocol, runtime: Any = None) -> BackendProtocol:
     """Re-resolve the workspace sandbox transport from THIS run's config.
 
     The agent backend is composed ONCE at construction
@@ -385,6 +391,12 @@ def _rebind_sandbox_per_run(backend: BackendProtocol, runtime: Any = None) -> Ba
             artifacts_root=backend.artifacts_root,
         )
     return backend
+
+
+# Former private names, kept so existing importers keep working. Prefer the
+# public names (also exported from ``decepticon_sdk.host``).
+_workspace_from_runtime = workspace_from_runtime
+_rebind_sandbox_per_run = rebind_sandbox_per_run
 
 
 class _RunScopedFilesystemBackend(BackendProtocol):
