@@ -52,6 +52,7 @@ from decepticon.llm import LLMFactory
 from decepticon.middleware.step_budget import StepBudgetMiddleware, effective_recursion_limit
 from decepticon.tools.bash import BASH_TOOLS
 from decepticon.tools.bash.bash import set_sandbox
+from decepticon.tools.browser.agent_tools import agent_browser_tools
 from decepticon.tools.references.tools import killchain_lookup, oneliner_search
 from decepticon.tools.web.search import web_fetch, web_search
 from decepticon_core.plugin_loader import SubAgentSpec, is_bundle_enabled, load_plugin_callbacks
@@ -73,6 +74,8 @@ _STANDARD_TOOLS: dict[str, Any] = {
         web_fetch,
         # Execution
         *BASH_TOOLS,
+        # Engagement browser (provider-selected, docs/design/browser-providers.md)
+        *agent_browser_tools(),
     ]
 }
 
