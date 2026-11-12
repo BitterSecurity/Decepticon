@@ -28,7 +28,6 @@ re-inspect a session it already saw), not the primary delivery path.
 """
 
 import logging
-import os
 import re
 import threading
 from collections import OrderedDict
@@ -139,11 +138,9 @@ class SandboxNotificationMiddleware(AgentMiddleware):
 
         config = _run_config(getattr(runtime, "config", None))
         configurable = config.get("configurable", {})
-        requested = configurable.get("sandbox_provider") if isinstance(configurable, dict) else None
-        if (
-            os.environ.get("DECEPTICON_SANDBOX_PROVIDER", "").strip() != "openshell"
-            and requested != "openshell"
-        ):
+        from decepticon.backends.providers import uses_openshell
+
+        if not uses_openshell(configurable):
             return self
         sandbox = build_sandbox_backend(config or None)
         if sandbox is self._sandbox:

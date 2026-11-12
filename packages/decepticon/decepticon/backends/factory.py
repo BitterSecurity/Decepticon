@@ -1,24 +1,19 @@
-"""Backend factory — HTTP-transport sandbox builder.
+"""Backend factory — builds the agent sandbox for the selected provider.
 
-The agent code shouldn't know how the sandbox is deployed; it just asks
-for a sandbox object. ``build_sandbox_backend()`` returns an
-``HTTPTransportSandbox`` that talks to a sandbox daemon over HTTP, which works in
-every deployment target Decepticon supports today:
+The provider is chosen once per host in :mod:`decepticon.backends.providers`
+(``DECEPTICON_SANDBOX_PROVIDER``):
 
-  - Dev / local-docker: sandbox container exposes the FastAPI daemon
-    on ``http://sandbox:9999`` over the shared ``sandbox-net`` network.
-  - Per-VM silo plane: sandbox sibling container on the VM, daemon
-    reachable on loopback.
-  - Cloud Run pool plane: sandbox runs as a sidecar in the same
-    Cloud Run revision, reachable on ``localhost:9999`` via the shared
-    network namespace.
+  - ``openshell`` (default): the trusted admission resolver returns an
+    ``OpenShellSandbox`` born confined by the policy compiled from the RoE.
+  - ``docker`` (``http`` is a deprecated alias): an ``HTTPTransportSandbox``
+    talking to the plain sandbox daemon — compose ``http://sandbox:9999``, a
+    sidecar on loopback, or a run's ``configurable.sandbox_url``. No network
+    boundary.
+  - plugins registered under ``decepticon.sandbox_providers``: the entry
+    point's factory receives the run config.
 
-There is no longer a docker-exec transport: the previous DockerSandbox
-path required mounting ``/var/run/docker.sock`` into the langgraph
-container, which is a host-escape vector for any prompt-injection-driven
-RCE inside the agent process. HTTP-only consolidates on a single tested
-code path and keeps the sandbox blast radius bounded by the container
-boundary + the ``sandbox-net`` network.
+There is no docker-exec transport: mounting ``/var/run/docker.sock`` into the
+langgraph container would be a host-escape vector.
 """
 
 from __future__ import annotations
@@ -237,22 +232,23 @@ def build_sandbox_backend(config: Any = None) -> HTTPTransportSandbox:
             Optional bearer token for daemon auth — recommended even on
             loopback as defence-in-depth.
     """
+    from decepticon.backends.providers import (
+        BUILTIN_PROVIDERS,
+        host_provider,
+        plugin_factory,
+        requested_provider,
+    )
+
     run_config = _run_config(config)
     configurable = run_config.get("configurable", {})
     # OpenShell is the only network-boundary authority since the nftables
-    # retirement (#1144): the default provider is openshell. HTTP remains an
-    # EXPLICIT escape hatch for non-engagement contexts (tests, benchmarks,
-    # pre-scope file ops) — under a materialized RoE the RoE middleware still
-    # refuses it loudly, by design.
-    host_provider = (
-        os.environ.get("DECEPTICON_SANDBOX_PROVIDER", "openshell").strip() or "openshell"
-    )
-    if host_provider not in ("http", "openshell"):
-        raise RuntimeError("Unsupported host sandbox provider")
-    requested = configurable.get("sandbox_provider") if isinstance(configurable, dict) else None
-    if host_provider == "openshell" and requested not in (None, "openshell"):
+    # retirement (#1144) and the default provider. ``docker`` (formerly
+    # ``http``) and plugin providers serve non-OpenShell runtimes.
+    host = host_provider()
+    requested = requested_provider(configurable)
+    if host == "openshell" and requested not in (None, "openshell"):
         raise RuntimeError("Host requires OpenShell; provider downgrade is disabled")
-    if host_provider == "openshell" or requested == "openshell":
+    if host == "openshell" or requested == "openshell":
         if _openshell_resolver is None:
             # The operator's explicit env opt-in is what makes the local
             # resolver trusted — agent config can never install one.
@@ -284,6 +280,11 @@ def build_sandbox_backend(config: Any = None) -> HTTPTransportSandbox:
         if not isinstance(backend, OpenShellSandbox):
             raise RuntimeError("OpenShell resolver did not return an admitted OpenShell backend")
         backend.check_admission()
+        return backend
+    if host not in BUILTIN_PROVIDERS:
+        backend = plugin_factory(host)(run_config)
+        if backend is None:
+            raise RuntimeError(f"sandbox provider {host!r} returned no backend")
         return backend
     base_url, token = _resolve_endpoint(config)
     return _shared_sandbox(base_url, token)
