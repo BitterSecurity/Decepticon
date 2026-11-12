@@ -268,10 +268,9 @@ def build_sandbox_backend(config: Any = None) -> HTTPTransportSandbox:
             # graph construction runs before any engagement scope exists, and
             # the binding refuses to admit a workspace without a materialized
             # plan/roe.json. Booting must not crash-loop on that — an
-            # unbound placeholder keeps the daemon up, the RoE guard fails
-            # loudly if a run is attempted before /scope import, and the
-            # binding resolves for real once the operator imports a scope.
-            # A real run (has a thread_id) still fails loudly.
+            # unbound placeholder keeps the daemon up and refuses every
+            # execution, and the binding resolves for real once the operator
+            # imports a scope. A real run (has a thread_id) fails loudly here.
             if "materialized plan/roe.json" in str(exc) and not (
                 isinstance(configurable, dict) and configurable.get("thread_id")
             ):
