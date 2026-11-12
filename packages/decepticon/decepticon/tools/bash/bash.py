@@ -276,9 +276,15 @@ def _sandbox_from_config(config: RunnableConfig | None) -> BashSandboxProtocol |
 
     configurable = (config or {}).get("configurable", {})
     if uses_openshell(configurable):
-        from decepticon.backends.factory import build_sandbox_backend
+        from decepticon.backends.factory import _run_config, build_sandbox_backend
 
-        return build_sandbox_backend(config)
+        run_config = _run_config(config)
+        if not run_config:
+            # Outside a run (library calls, CLI one-shots, tests) the
+            # explicitly installed sandbox (set_sandbox) wins; inside a run
+            # the run's admitted OpenShell binding does.
+            return None
+        return build_sandbox_backend(run_config)
     if not isinstance(configurable, dict):
         return None
     url = configurable.get("sandbox_url")

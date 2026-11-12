@@ -16,14 +16,49 @@ from __future__ import annotations
 import ipaddress
 import os
 import socket
+from typing import Any
 from urllib.parse import urljoin, urlsplit
 
 ALLOWED_SCHEMES = {"http", "https"}
 DEFAULT_MAX_REDIRECTS = 10
 
 
+def http_version_for(url: str) -> Any:
+    """Force HTTP/1.1 for cleartext ``http://`` requests.
+
+    curl's HTTP/2 mode sends an ``Upgrade: h2c`` header on cleartext URLs,
+    which browsers never do and which the OpenShell L7 proxy rejects
+    (``unsupported_l7_protocol``). TLS URLs keep the impersonation default.
+    """
+    if not url.lower().startswith("http://"):
+        return None
+    try:
+        from curl_cffi import CurlHttpVersion
+    except ImportError:
+        return None
+    return CurlHttpVersion.V1_1
+
+
+def kernel_enforced() -> bool:
+    """True inside a managed OpenShell session.
+
+    There the sandbox's OpenShell policy (compiled from the RoE) is the network
+    authority and always blocks cloud metadata; its policy DNS also answers
+    in-scope hosts with synthetic addresses from 198.18.0.0/15, which this
+    module's private/reserved check would wrongly refuse. The managed daemon
+    sets ``DECEPTICON_MANAGED_SESSION=1`` for every command it runs.
+    """
+    return os.environ.get("DECEPTICON_MANAGED_SESSION") == "1"
+
+
 def allow_private_default() -> bool:
-    return os.environ.get("INSANE_ALLOW_PRIVATE", "") in ("1", "true", "yes")
+    """Skip the private/reserved address refusal (schemes are still checked).
+
+    On by explicit opt-in (``INSANE_ALLOW_PRIVATE``) or when the OpenShell policy
+    enforces scope (:func:`kernel_enforced`). In a non-OpenShell sandbox this
+    module remains the engine's only private-address guard.
+    """
+    return kernel_enforced() or os.environ.get("INSANE_ALLOW_PRIVATE", "") in ("1", "true", "yes")
 
 
 def _resolve_fail_open() -> bool:

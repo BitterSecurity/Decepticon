@@ -20,7 +20,7 @@ tiny or challenge body is treated as suspect, not success.
 
 The engine (`decepticon/sandbox_web/`) runs **inside the sandbox**; the tools
 dispatch it over the existing bash execution surface
-(`python3 -m decepticon.sandbox_web …`). Every byte of egress therefore happens
+(`python3 -I /usr/local/lib/decepticon-sandbox/decepticon/sandbox_web/__main__.py …`). Every byte of egress therefore happens
 in `sandbox-net`, behind the nftables/DNS allowlist compiled from the
 engagement's `roe.json` — there is no management-side egress and no new
 transport.
