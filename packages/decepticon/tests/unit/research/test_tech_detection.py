@@ -280,11 +280,3 @@ def test_tool_registered_in_research_tools() -> None:
     from decepticon.tools.research.tools import RESEARCH_TOOLS
 
     assert detect_tech_stack in RESEARCH_TOOLS
-
-
-def test_tool_is_roe_gated() -> None:
-    from decepticon.middleware.roe import GATED_TOOL_NAMES, NETWORK_TARGET_EXTRACTORS
-
-    assert "detect_tech_stack" in GATED_TOOL_NAMES
-    extractor = NETWORK_TARGET_EXTRACTORS["detect_tech_stack"]
-    assert extractor({"url": "https://target.test/path"}) == ["target.test"]

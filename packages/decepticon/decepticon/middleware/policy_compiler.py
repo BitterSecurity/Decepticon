@@ -1,8 +1,8 @@
 """Compile a machine RoE block into an OpenShell sandbox policy.
 
 This is the OpenShell half of the Layer-2 egress guardrail. It turns the
-**same** ``roe.json:machine_enforcement`` block the parser reads
-(:mod:`decepticon.middleware.roe`) into a kernel-enforced OpenShell
+**same** ``roe.json:machine_enforcement`` block
+(:mod:`decepticon.middleware._roe_rules`) into a kernel-enforced OpenShell
 ``network_policies`` mapping, so the sandbox refuses out-of-scope network
 contact even when the command parser never sees the target. See
 ``docs/design/2026-11-03-roe-openshell-boundary.md`` for the boundary map.
@@ -44,6 +44,7 @@ import base64
 import hashlib
 import ipaddress
 import json
+import logging
 import os
 from dataclasses import dataclass, replace
 from pathlib import Path
@@ -63,6 +64,8 @@ from decepticon_core.types.roe import (
 # the documented residual narrowing. Extend via
 # DECEPTICON_OPENSHELL_ROE_PORTS (comma-separated ints).
 _DEFAULT_ROE_PORTS = ("80", "443", "8000", "8080", "8443")
+
+log = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -298,6 +301,25 @@ def _coverage_errors(rules: MachineEnforcement, errors: list[str]) -> None:
                 )
 
 
+def _unenforced_control_warnings(rules: MachineEnforcement) -> list[str]:
+    """RoE controls that no runtime component enforces any more.
+
+    Network scope is enforced only by this compiled policy and time windows by
+    TimeWindowMiddleware. Command patterns and request pacing/concurrency
+    have no enforcer; they are reported, not silently dropped.
+    """
+    unenforced = [
+        ("forbidden_command_patterns", bool(rules.forbidden_command_patterns)),
+        ("max_concurrent_connections", bool(rules.max_concurrent_connections)),
+        ("min_inter_request_delay_ms", bool(rules.min_inter_request_delay_ms)),
+    ]
+    return [
+        f"machine_enforcement.{name} is set but not enforced; remove it"
+        for name, present in unenforced
+        if present
+    ]
+
+
 def compile_openshell_policy(rules: MachineEnforcement) -> CompiledRoePolicy:
     """Compile a machine RoE into the OpenShell sandbox policy mapping.
 
@@ -356,7 +378,10 @@ def compile_openshell_policy(rules: MachineEnforcement) -> CompiledRoePolicy:
     }
     canonical = json.dumps(policy, sort_keys=True, separators=(",", ":")).encode()
     digest = hashlib.sha256(canonical).hexdigest()
-    return CompiledRoePolicy(policy=policy, canonical_hash=digest, errors=())
+    warnings = tuple(_unenforced_control_warnings(rules))
+    for message in warnings:
+        log.warning("roe policy: %s", message)
+    return CompiledRoePolicy(policy=policy, canonical_hash=digest, errors=(), warnings=warnings)
 
 
 def sandbox_binding_digest(workspace_path: str, roe_hash: str, *, approval_hash: str) -> str:

@@ -376,7 +376,9 @@ def resolve_local_binding(run_config: Any):
         OpenShellAdmission,
         OpenShellSandbox,
     )
-    from decepticon.middleware.roe import _load_rules_for_workspace
+    from decepticon.middleware._roe_rules import (
+        load_machine_enforcement as _load_rules_for_workspace,
+    )
 
     try:
         from openshell import SandboxClient  # noqa: F401

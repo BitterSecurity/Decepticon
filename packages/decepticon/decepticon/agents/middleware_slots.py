@@ -44,8 +44,8 @@ from decepticon.middleware import (
     FilesystemMiddleware,
     KGMiddleware,
     OPPLANMiddleware,
-    RoEGuardrailMiddleware,
     SkillsMiddleware,
+    TimeWindowMiddleware,
     UntrustedOutputMiddleware,
 )
 from decepticon.middleware.budget import BudgetEnforcementMiddleware
@@ -61,7 +61,6 @@ from decepticon.middleware.opscontrol_notifications import (
 )
 from decepticon.middleware.prompt_injection_shield import PromptInjectionShieldMiddleware
 from decepticon.middleware.proxy_key_override import ProxyKeyOverrideMiddleware
-from decepticon.middleware.roe import build_default_sink
 from decepticon.middleware.subagent_transcript_state import SubagentTranscriptState
 
 # Slot enum + per-role applicability mapping + safety-critical set
@@ -126,18 +125,8 @@ def _make_engagement_context(**_: Any):
     return EngagementContextMiddleware()
 
 
-def _make_roe_guardrail(*, role: str, **_: Any):
-    """Build the RoE guardrail middleware with a per-engagement sink.
-
-    The sink path defaults to ``<workspace>/audit/roe-decisions.jsonl``
-    and is resolved lazily on first tool call (workspace_path is not
-    yet hydrated at slot-build time). Operators can pin a path with
-    ``DECEPTICON_ROE_AUDIT_PATH``.
-    """
-    import os
-
-    sink = build_default_sink(os.environ.get("DECEPTICON_WORKSPACE_PATH"))
-    return RoEGuardrailMiddleware(sink=sink)
+def _make_time_window(**_: Any):
+    return TimeWindowMiddleware()
 
 
 def _make_untrusted_output(*, role: str, **_: Any):
@@ -508,7 +497,7 @@ SlotFactory = Callable[..., Any]
 
 DEFAULT_SLOT_FACTORIES: dict[MiddlewareSlot, SlotFactory] = {
     MiddlewareSlot.ENGAGEMENT_CONTEXT: _make_engagement_context,
-    MiddlewareSlot.ROE_GUARDRAIL: _make_roe_guardrail,
+    MiddlewareSlot.TIME_WINDOW: _make_time_window,
     MiddlewareSlot.HITL_APPROVAL: _make_hitl,
     MiddlewareSlot.UNTRUSTED_OUTPUT: _make_untrusted_output,
     MiddlewareSlot.PROMPT_INJECTION_SHIELD: _make_prompt_injection_shield,

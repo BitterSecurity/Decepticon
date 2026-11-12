@@ -25,12 +25,12 @@ from openshell._proto import openshell_pb2 as pb
 
 from decepticon.backends import openshell_local
 from decepticon.backends.daemon_client import SandboxError
+from decepticon.middleware._roe_rules import load_machine_enforcement as _load_rules_for_workspace
 from decepticon.middleware.policy_compiler import (
     compile_openshell_policy,
     sandbox_binding_digest,
     sandbox_name,
 )
-from decepticon.middleware.roe import _load_rules_for_workspace
 from decepticon.sandbox_server.session_client import MANAGED_START
 
 
@@ -44,6 +44,11 @@ def main():
     parser.add_argument("--report", type=Path, required=True)
     parser.add_argument(
         "--browser", action="store_true", help="Qualify actual desktop Node template"
+    )
+    parser.add_argument(
+        "--agent-browser",
+        action="store_true",
+        help="Qualify the agent browser_* tool path with the image's provider (Obscura)",
     )
     args = parser.parse_args()
     if not re.fullmatch(r"127\.0\.0\.1:[0-9]{1,5}", args.endpoint):
@@ -77,6 +82,24 @@ def main():
         class Handler(BaseHTTPRequestHandler):
             def do_GET(self):
                 hits[kind] += 1
+                if args.agent_browser and kind == "allowed" and self.path == "/agent-browser":
+                    hits["agentBrowserAllowed"] = hits.get("agentBrowserAllowed", 0) + 1
+                    self.send_response(200)
+                    self.send_header("Content-Type", "text/html; charset=utf-8")
+                    self.end_headers()
+                    self.wfile.write(
+                        (
+                            "<title>agent browser fixture</title>"
+                            '<output id="proof">agent browser fixture</output><script>'
+                            'const p=document.querySelector("#proof");'
+                            'fetch("http://host.docker.internal:'
+                            + str(denied.server_port)
+                            + '/agent-browser-denied").then(()=>p.setAttribute("data-network",'
+                            '"unexpected")).catch(()=>p.setAttribute("data-network","denied"));'
+                            "</script>"
+                        ).encode()
+                    )
+                    return
                 self.send_response(200)
                 if args.browser and kind == "allowed" and self.path == "/browser":
                     self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -281,6 +304,57 @@ def main():
                 "javascriptExecuted": True,
                 "cookieReturned": True,
                 "localStorageSurvivesContextRestart": True,
+                "ownedDeniedListenerHits": hits["denied"],
+            }
+        if args.agent_browser:
+            import asyncio
+
+            from decepticon.tools.bash.bash import set_sandbox
+            from decepticon.tools.browser.agent_tools import run_browser_action
+
+            set_sandbox(a)
+            run_config = {"configurable": {"workspace_path": "/workspace"}}
+
+            def act(action, **values):
+                return asyncio.run(run_browser_action(action, values, run_config))
+
+            base = f"http://host.docker.internal:{allowed.server_port}"
+            started = time.monotonic()
+            observations = {
+                "navigate": act("navigate", url=f"{base}/agent-browser"),
+                "wait": act("wait", selector="#proof[data-network]", timeout_s=10),
+                "network": act(
+                    "evaluate",
+                    expression='document.querySelector("#proof").getAttribute("data-network")',
+                ),
+                "snapshot": act("snapshot", max_chars=500),
+                "screenshot": act("screenshot", width=640, height=360),
+                "outOfScopeNavigate": act(
+                    "navigate", url=f"http://host.docker.internal:{denied.server_port}/direct"
+                ),
+            }
+            observations["seconds"] = round(time.monotonic() - started, 3)
+            stop = a.execute(
+                "python3 -I /usr/local/lib/decepticon-sandbox/decepticon/sandbox_browser/__main__.py "
+                "shutdown --workspace /workspace",
+                timeout=30,
+            )
+            observations["shutdown"] = stop.output[-500:]
+            observations["listenerHits"] = dict(hits)
+            checks["agentBrowserObservations"] = observations
+            assert "] OK" in observations["navigate"], observations["navigate"]
+            assert "] OK" in observations["wait"], observations["wait"]
+            assert "denied" in observations["network"], observations["network"]
+            assert "agent browser fixture" in observations["snapshot"]
+            assert "artifact: /workspace/evidence/browser/" in observations["screenshot"]
+            assert "] ERROR" in observations["outOfScopeNavigate"]
+            assert hits.get("agentBrowserAllowed", 0) >= 1 and hits["denied"] == 0
+            checks["agentBrowser"] = {
+                "provider": "obscura",
+                "inScopeNavigation": True,
+                "pageScriptEgressDenied": True,
+                "outOfScopeNavigationDenied": True,
+                "screenshotEvidence": True,
                 "ownedDeniedListenerHits": hits["denied"],
             }
         audit = pb.GetSandboxLogsRequest(sandbox=next(iter(owned)), lines=500)

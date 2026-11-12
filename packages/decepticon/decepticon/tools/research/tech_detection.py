@@ -18,9 +18,8 @@ redirects) and runs two independent signature engines against it:
 Egress is gated on the engagement's Rules of Engagement: the target host is
 evaluated against ``plan/roe.json:machine_enforcement`` and, in ``enforce``
 mode, an out-of-scope / forbidden host is refused *before* any socket is
-opened. This mirrors :class:`decepticon.middleware.roe.RoEEnforcementMiddleware`
-so the tool is safe when invoked directly (CLI one-shots, tests) as well as
-behind the agent's middleware gate.
+opened, so the tool is safe when invoked directly (CLI one-shots, tests) as
+well as inside an OpenShell-confined sandbox.
 """
 
 from __future__ import annotations

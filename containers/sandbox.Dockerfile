@@ -91,6 +91,40 @@ RUN set -eu; \
         "gobuster_${GOBUSTER_VERSION#v}_checksums.txt" gobuster; \
     ls -la /out
 
+# ── Obscura browser provider build stage (docs/design/browser-providers.md) ──
+# Obscura (Apache-2.0, https://github.com/h4ckf0r0day/obscura) is the default
+# provider behind the agent browser tools. Upstream release archives carry no
+# checksums or signatures, so the binary is built here from an exact commit:
+# the fetched HEAD must equal OBSCURA_COMMIT and Cargo.lock is enforced
+# (--locked). The `render` feature provides screenshots/PDF. The `stealth`
+# feature is intentionally off: it adds tracker blocking that silently
+# rewrites target responses. Disable with --build-arg INSTALL_OBSCURA=false
+# (the stage then emits an empty /out and the provider reports
+# "obscura binary not installed").
+FROM rust:1-slim-bookworm@sha256:f2c004e3d2d8b547e8cf7ffbc29205385f4e71d23e53e4e383065db5e9f822cd AS obscura-build
+ARG INSTALL_OBSCURA=true
+ARG OBSCURA_REPO=https://github.com/h4ckf0r0day/obscura.git
+ARG OBSCURA_COMMIT=3bae60909615ed5a2ca263a12c300a4a545ed3ce
+RUN --mount=type=cache,target=/usr/local/cargo/registry,id=obscura-cargo-registry \
+    --mount=type=cache,target=/build/target,id=obscura-target \
+    set -eu; \
+    mkdir -p /out; \
+    if [ "$INSTALL_OBSCURA" != "true" ]; then \
+        echo "INSTALL_OBSCURA=false — skipping Obscura build"; exit 0; \
+    fi; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends git ca-certificates curl perl make pkg-config; \
+    git init -q /build/src; \
+    cd /build/src; \
+    git remote add origin "$OBSCURA_REPO"; \
+    git fetch -q --depth 1 origin "$OBSCURA_COMMIT"; \
+    git checkout -q FETCH_HEAD; \
+    test "$(git rev-parse HEAD)" = "$OBSCURA_COMMIT"; \
+    CARGO_TARGET_DIR=/build/target cargo build --release --locked \
+        --features render --bin obscura; \
+    install -m 0755 /build/target/release/obscura /out/obscura; \
+    /out/obscura --version
+
 FROM kalilinux/kali-rolling@sha256:ab7f9873e9d976d62f59e172350604dd980339f567bfb2eaa5c2bdfaa2dc42b7
 
 # Consolidated package install — one RUN layer to maximize cache hits
@@ -199,6 +233,9 @@ COPY --from=go-tools --chmod=0755 /out/katana /usr/local/bin/katana
 COPY --from=go-tools --chmod=0755 /out/nuclei /usr/local/bin/nuclei
 COPY --from=go-tools --chmod=0755 /out/naabu /usr/local/bin/naabu
 COPY --from=go-tools --chmod=0755 /out/gobuster /usr/local/bin/gobuster
+
+# Obscura browser provider (empty when INSTALL_OBSCURA=false).
+COPY --from=obscura-build /out/ /usr/local/bin/
 
 # ── Tools NOT yet wired into apt-install ──
 # Deliberately deferred to follow-up PRs because they need either a
@@ -367,6 +404,9 @@ COPY packages/decepticon/decepticon/sandbox_server /opt/decepticon/sandbox_serve
 # per-hop RoE scope_check. decepticon-core imports only pydantic + stdlib
 # (never langchain/langgraph), so it is safe to ship to the lean sandbox.
 COPY packages/decepticon/decepticon/sandbox_web /opt/decepticon/sandbox_web
+# Agent browser runner + provider adapters (docs/design/browser-providers.md).
+# Standard library only; the default provider binary is /usr/local/bin/obscura.
+COPY packages/decepticon/decepticon/sandbox_browser /opt/decepticon/sandbox_browser
 COPY packages/decepticon-core/decepticon_core /opt/decepticon_core
 ENV PYTHONPATH=/opt
 

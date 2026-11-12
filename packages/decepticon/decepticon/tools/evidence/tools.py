@@ -12,7 +12,7 @@ from typing import Any
 
 from langchain_core.tools import tool
 
-from decepticon.middleware._audit_sink import (
+from decepticon.tools.evidence._chain import (
     _GENESIS_PREV_HASH,
     _record_hash,
     _record_hmac,
