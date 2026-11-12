@@ -1,7 +1,7 @@
 """Browser provider interface and registry (sandbox side).
 
 A provider owns one browser per engagement workspace inside the sandbox and
-translates :mod:`decepticon.sandbox_browser.contract` actions into its native
+translates :mod:`decepticon_sandbox.browser.contract` actions into its native
 interface. Network scope is NOT a provider responsibility: the sandbox's
 OpenShell network policy (compiled from ``plan/roe.json``) enforces every
 connection the browser makes, including redirects and subresources. Providers
@@ -21,13 +21,13 @@ from importlib.metadata import entry_points
 from pathlib import Path
 from typing import Protocol, runtime_checkable
 
-from decepticon.sandbox_browser.contract import BrowserRequest, BrowserResult
+from decepticon_sandbox.browser.contract import BrowserRequest, BrowserResult
 
 DEFAULT_PROVIDER = "obscura"
 ENTRY_POINT_GROUP = "decepticon.browser_providers"
 
 _BUILTIN: dict[str, str] = {
-    "obscura": "decepticon.sandbox_browser.providers.obscura:ObscuraProvider",
+    "obscura": "decepticon_sandbox.browser.providers.obscura:ObscuraProvider",
 }
 
 

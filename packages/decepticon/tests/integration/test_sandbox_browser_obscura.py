@@ -17,9 +17,8 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
-
-from decepticon.sandbox_browser.contract import BrowserRequest
-from decepticon.sandbox_browser.providers.obscura import ObscuraProvider, _pid_alive
+from decepticon_sandbox.browser.contract import BrowserRequest
+from decepticon_sandbox.browser.providers.obscura import ObscuraProvider, _pid_alive
 
 pytestmark = pytest.mark.skipif(
     not (os.environ.get("DECEPTICON_OBSCURA_BIN") or shutil.which("obscura")),

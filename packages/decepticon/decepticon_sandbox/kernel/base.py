@@ -7,7 +7,7 @@ not initialize the agent graph just to use process/file response records.
 from deepagents.backends.protocol import ExecuteResponse, FileDownloadResponse
 from deepagents.backends.sandbox import BaseSandbox
 
-from decepticon.sandbox_kernel.core import SandboxKernel
+from decepticon_sandbox.kernel.core import SandboxKernel
 
 
 class SandboxBase(SandboxKernel, BaseSandbox):

@@ -32,7 +32,7 @@ import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
 
-log = logging.getLogger("decepticon.sandbox_kernel.tmux")
+log = logging.getLogger("decepticon_sandbox.kernel.tmux")
 
 # ─── Tunable timing constants (patched in tests) ────────────────────────
 

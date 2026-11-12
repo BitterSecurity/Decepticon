@@ -305,7 +305,7 @@ integrates, and learns from.
 | [REA](https://github.com/morluto/rea) and [Ghidra](https://github.com/NationalSecurityAgency/ghidra) | Optional reverse engineering workload and evidence-backed binary analysis. [Integration details](docs/features/rea-reversing.md). |
 | [Deep Agents](https://github.com/langchain-ai/deepagents) and [LangGraph](https://github.com/langchain-ai/langgraph) | Agent harness, orchestration, streaming and persistent execution state. |
 | [LiteLLM](https://github.com/BerriAI/litellm) | Model gateway and provider routing. |
-| [insane-search](https://github.com/fivetaku/insane-search) | Upstream engine adapted for sandbox web access. [Adaptation notice](packages/decepticon/decepticon/sandbox_web/NOTICE.md). |
+| [insane-search](https://github.com/fivetaku/insane-search) | Upstream engine adapted for sandbox web access. [Adaptation notice](packages/decepticon/decepticon_sandbox/web/NOTICE.md). |
 | [Playwright](https://github.com/microsoft/playwright) | Browser automation for web investigation. |
 | [Caddy](https://github.com/caddyserver/caddy) and [Fluent Bit](https://github.com/fluent/fluent-bit) | Local Blue sensor ingress and log collection. [Blue Cell architecture](docs/features/blue-cell.md). |
 | [Ink](https://github.com/vadimdemedes/ink), [Bubble Tea](https://github.com/charmbracelet/bubbletea) and [Huh](https://github.com/charmbracelet/huh) | Interactive CLI rendering and launcher forms. |

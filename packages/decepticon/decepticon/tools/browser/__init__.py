@@ -3,7 +3,7 @@
 * ``AGENT_BROWSER_TOOLS`` (``agent_tools``): the bound, typed ``browser_*``
   tools. They run the configured provider (``DECEPTICON_BROWSER_PROVIDER``,
   default ``obscura``) inside the engagement sandbox through
-  ``decepticon.sandbox_browser``. See ``docs/design/browser-providers.md``.
+  ``decepticon_sandbox.browser``. See ``docs/design/browser-providers.md``.
 * ``browser_action`` (``tools``): the legacy multiplex Playwright /
   owned-browser-v1 tool, kept for library consumers. It is not bound to any
   standard agent.

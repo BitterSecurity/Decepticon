@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import pytest
-
-from decepticon.sandbox_web import safety
+from decepticon_sandbox.web import safety
 
 
 def _resolve_to(monkeypatch: pytest.MonkeyPatch, ip: str) -> None:

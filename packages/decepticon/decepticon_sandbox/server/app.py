@@ -22,7 +22,7 @@ class vars). `HTTPTransportSandbox` on the agent side just forwards calls; the
 PS1 marker / size watchdog / auto-background semantics all happen here
 where they always did, just no longer behind a docker socket.
 
-Layering: the daemon imports only from `decepticon.sandbox_kernel.*` so
+Layering: the daemon imports only from `decepticon_sandbox.kernel.*` so
 the sandbox container image ships zero agent-side transport code
 (`backends/` package). See `sandbox_kernel/__init__.py` for the full
 layering rationale.
@@ -49,9 +49,9 @@ from typing import Annotated, AsyncIterator
 from fastapi import Depends, FastAPI, Header, HTTPException, status
 from pydantic import BaseModel, Field
 
-from decepticon.sandbox_kernel.daemon import DaemonSandbox
+from decepticon_sandbox.kernel.daemon import DaemonSandbox
 
-log = logging.getLogger("decepticon.sandbox_server")
+log = logging.getLogger("decepticon_sandbox.server")
 
 # ── Wire models. Mirror the in-process types one-to-one so the daemon
 # stays a thin transport layer over the canonical DockerSandbox API. ──
@@ -273,7 +273,7 @@ def healthz() -> dict[str, str | int]:
     green even during a long-running command."""
     result: dict[str, str | int] = {"status": "ok"}
     if os.environ.get("DECEPTICON_MANAGED_SESSION") == "1":
-        from decepticon.sandbox_server.managed_start import process_identity
+        from decepticon_sandbox.server.managed_start import process_identity
 
         result.update(pid=os.getpid(), start=process_identity(os.getpid()) or "")
     return result

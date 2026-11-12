@@ -1,6 +1,6 @@
 # Vendored: insane-search engine
 
-`decepticon/sandbox_web/` is adapted from **insane-search** by fivetaku
+`decepticon_sandbox/web/` is adapted from **insane-search** by fivetaku
 (https://github.com/fivetaku/insane-search), MIT-licensed — see <!-- NOTE-BIAS-OK -->
 `INSANE_SEARCH_LICENSE`.
 

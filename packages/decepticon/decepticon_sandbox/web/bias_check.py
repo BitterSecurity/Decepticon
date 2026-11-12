@@ -78,7 +78,7 @@ URL_ALLOWLIST = {
 }
 
 # Files / dirs that must be clean. In Decepticon the engine lives at
-# decepticon/sandbox_web/ (upstream insane-search used engine/).
+# decepticon_sandbox/web/ (upstream insane-search used engine/).
 SCAN_ROOTS_STRICT_OFF = ["sandbox_web"]
 SCAN_ROOTS_STRICT_ON = ["sandbox_web"]
 
@@ -115,11 +115,11 @@ EXPLICIT_ALLOW_FILES = {
     # NOTE: rel paths are computed against skill_root.parent, so they include the
     # skill dir name (e.g. "insane-search/engine/phase0.py").
     "insane-search/engine/phase0.py",
-    # Decepticon layout: the engine lives at decepticon/sandbox_web/, so the
+    # Decepticon layout: the engine lives at decepticon_sandbox/web/, so the
     # sanctioned router resolves here. Both forms are kept so the linter works
     # whether run from the upstream skill tree or the Decepticon package.
     "sandbox_web/phase0.py",
-    "decepticon/sandbox_web/phase0.py",
+    "decepticon_sandbox/web/phase0.py",
 }
 
 

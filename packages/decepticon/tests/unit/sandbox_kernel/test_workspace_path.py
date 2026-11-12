@@ -10,8 +10,7 @@ callers did not). The sanitizer must fail closed to ``/workspace``.
 from __future__ import annotations
 
 import pytest
-
-from decepticon.sandbox_kernel.base import SandboxBase
+from decepticon_sandbox.kernel.base import SandboxBase
 
 _norm = SandboxBase._normalize_workspace_path
 

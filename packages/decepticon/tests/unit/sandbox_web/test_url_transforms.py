@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import pytest
-
-from decepticon.sandbox_web.url_transforms import (
+from decepticon_sandbox.web.url_transforms import (
     apply_transform,
     iter_transformed,
 )

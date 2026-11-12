@@ -71,7 +71,7 @@ that those tools are registered on a live role.
 The four bash tools run sandbox terminal sessions. Output bounds, completion,
 background jobs and log reads are implemented in
 [tools/bash](../packages/decepticon/decepticon/tools/bash/) and
-[sandbox_kernel](../packages/decepticon/decepticon/sandbox_kernel/), rather than
+[sandbox_kernel](../packages/decepticon/decepticon_sandbox/kernel/), rather than
 a retired DockerSandbox class. Files and durable evidence survive independently
 of model context summarization.
 

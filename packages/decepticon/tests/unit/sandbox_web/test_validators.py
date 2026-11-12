@@ -5,8 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 import pytest
-
-from decepticon.sandbox_web.validators import (
+from decepticon_sandbox.web.validators import (
     SMALL_BODY_THRESHOLD,
     ValidationResult,
     Verdict,

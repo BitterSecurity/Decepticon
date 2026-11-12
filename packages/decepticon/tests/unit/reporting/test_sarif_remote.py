@@ -11,6 +11,7 @@ from typing import Annotated, Any, TypedDict
 
 import httpx
 import pytest
+from decepticon_sandbox.kernel.daemon import DaemonSandbox
 from fastapi.testclient import TestClient
 from langchain_core.messages import AIMessage, BaseMessage
 from langgraph.graph import END, START, StateGraph
@@ -20,7 +21,6 @@ from langgraph.prebuilt import ToolNode
 from decepticon.backends.factory import _shared_sandbox, build_sandbox_backend
 from decepticon.middleware.kg_internal.store import KGStore
 from decepticon.middleware.kg_internal.tools import build_kg_tools
-from decepticon.sandbox_kernel.daemon import DaemonSandbox
 from decepticon.tools.reporting.tools import report_sarif
 from decepticon_core.types.kg import KnowledgeGraph, Node, NodeKind
 
@@ -85,8 +85,8 @@ def remote(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[dict]:
     # These tests exercise the plain-HTTP daemon transport: pin the explicit
     # escape hatch (the default provider is openshell).
     monkeypatch.setenv("DECEPTICON_SANDBOX_PROVIDER", "http")
-    server = importlib.import_module("decepticon.sandbox_server.app")
-    daemon = importlib.import_module("decepticon.sandbox_kernel.daemon")
+    server = importlib.import_module("decepticon_sandbox.server.app")
+    daemon = importlib.import_module("decepticon_sandbox.kernel.daemon")
     report_module = importlib.import_module("decepticon.tools.reporting.tools")
     if hasattr(report_module, "Path"):
 
@@ -376,7 +376,7 @@ def test_large_report_refused_before_upload(remote: dict) -> None:
 def test_http_auth_failure_propagates(remote: dict, monkeypatch: pytest.MonkeyPatch) -> None:
     from decepticon.backends.http_transport import SandboxError
 
-    server = importlib.import_module("decepticon.sandbox_server.app")
+    server = importlib.import_module("decepticon_sandbox.server.app")
     monkeypatch.setattr(server, "_required_token", "fixture-only-token")
     state, config = scope("/workspace/owned-run")
     with pytest.raises(SandboxError, match="401"):

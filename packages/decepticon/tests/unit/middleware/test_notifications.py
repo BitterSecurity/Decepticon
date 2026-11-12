@@ -5,12 +5,12 @@ import threading
 from unittest.mock import MagicMock
 
 import pytest
+from decepticon_sandbox.kernel import BackgroundJobTracker
 from langchain_core.messages import AIMessage, HumanMessage
 
 from decepticon.middleware.notifications import (
     SandboxNotificationMiddleware,
 )
-from decepticon.sandbox_kernel import BackgroundJobTracker
 
 
 def _state(*messages):

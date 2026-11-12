@@ -10,7 +10,8 @@ mechanically enforced rather than left as prompt advice.
 import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
-from decepticon.sandbox_kernel import BackgroundJobTracker
+from decepticon_sandbox.kernel import BackgroundJobTracker
+
 from decepticon.tools.bash.bash import (
     _STALE_PASSIVE_READS,
     _passive_read_state,

@@ -162,7 +162,6 @@ def main() -> None:
         # All children load the immutable image bundle, not workspace/PYTHONPATH.
         sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
         os.environ.update(
-            DECEPTICON_SKIP_BOOT="1",
             SANDBOX_ROOT_DIR=str(ROOT),
             SANDBOX_DAEMON_HOST="127.0.0.1",
             SANDBOX_DAEMON_PORT="9999",
@@ -172,7 +171,7 @@ def main() -> None:
         )
         import runpy
 
-        runpy.run_module("decepticon.sandbox_server", run_name="__main__")
+        runpy.run_module("decepticon_sandbox.server", run_name="__main__")
         return
     if sys.argv[1:]:
         raise ValueError("Unsupported managed startup operation")

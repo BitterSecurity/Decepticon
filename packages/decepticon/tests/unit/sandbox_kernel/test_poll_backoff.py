@@ -15,9 +15,8 @@ from __future__ import annotations
 import asyncio
 
 import pytest
-
-from decepticon.sandbox_kernel import tmux as tmux_mod
-from decepticon.sandbox_kernel.tmux import TmuxSessionManager, _next_poll_interval
+from decepticon_sandbox.kernel import tmux as tmux_mod
+from decepticon_sandbox.kernel.tmux import TmuxSessionManager, _next_poll_interval
 
 _BASE = 0.01
 _MARKER_SCREEN = "output line\n[DCPTN:0:/workspace]"

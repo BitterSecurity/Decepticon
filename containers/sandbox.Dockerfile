@@ -259,7 +259,7 @@ COPY --from=obscura-build /out/ /usr/local/bin/
 # per-session RSS by ~60% vs the previous 50K.
 RUN echo "set-option -g history-limit 20000" > /root/.tmux.conf
 
-# Optional HTTP sandbox daemon — see decepticon/sandbox_server/.
+# Optional HTTP sandbox daemon — see decepticon_sandbox/server/.
 #
 # The daemon is OFF by default. The existing dev / local-docker / GCE
 # Spot deployments use this image as before (host docker daemon
@@ -280,7 +280,7 @@ RUN pip3 install --break-system-packages --no-cache-dir --ignore-installed \
     "deepagents>=0.5.0"
 
 # ── Open-web acquisition engine (insane-search port, ADR-0010) ───────
-# decepticon/sandbox_web runs HERE, inside the sandbox; its open-web
+# decepticon_sandbox/web runs HERE, inside the sandbox; its open-web
 # egress is scope-checked by the per-hop RoE gate. Python deps:
 #   * curl_cffi>=0.15 — TLS-impersonation fetch tier. 0.15 is REQUIRED by the
 #                    engine: it ships the current Chrome (146+) JA3/JA4
@@ -308,7 +308,7 @@ RUN pip3 install --break-system-packages --no-cache-dir --ignore-installed \
 
 # Playwright browser tier — the engine's last escalation rung for JS/WAF
 # challenges (Cloudflare Turnstile, Akamai, DataDome) that the curl_cffi grid
-# can't clear. The node templates in `decepticon/sandbox_web/templates/` launch
+# can't clear. The node templates in `decepticon_sandbox/web/templates/` launch
 # Chromium with the puppeteer-extra stealth stack; their npm deps are installed
 # LOCALLY in that dir AFTER the package is COPYed in (see below) — a global
 # install does not resolve the stealth plugin's nested evasion deps. node/npm
@@ -378,60 +378,31 @@ ENV GHIDRA_INSTALL_DIR=/opt/ghidra \
     GHIDRA_MCP_URL=http://127.0.0.1:8089 \
     JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
 
-# Ship only the modules the daemon actually imports:
-#   - decepticon/__init__.py     — package marker (light-weight, just reads __version__)
-#   - decepticon/sandbox_kernel/ — shared sandbox primitives: TmuxSessionManager,
-#                                  BackgroundJobTracker, SandboxBase, and DaemonSandbox.
-#                                  The daemon instantiates `DaemonSandbox` (exec_prefix=[],
-#                                  pathlib upload/download) — no `docker exec`, no
-#                                  agent-side transport, so the sandbox image stays
-#                                  free of the `backends/` package on purpose.
-#   - decepticon/sandbox_server/ — the FastAPI app + uvicorn entry point.
-# `backends/` (DockerSandbox + HTTPSandbox + factory) is deliberately
-# absent — that's agent-side code, lives in the langgraph image. Other
-# subtrees (agents / llm / middleware / tools / core) are left out too
-# so the sandbox image doesn't bloat for the >95% of users who never
-# enable the daemon and so the dependency surface stays minimal.
-# Phase 0 of the core/framework/sdk split relocated the framework
-# source tree to packages/decepticon/decepticon/. The sandbox
-# image stays an exec-only daemon — it only needs ``sandbox_kernel``
-# + ``sandbox_server`` + the bare ``__init__.py`` so they can be
-# imported as a Python package under PYTHONPATH=/opt.
-COPY packages/decepticon/decepticon/__init__.py /opt/decepticon/__init__.py
-COPY packages/decepticon/decepticon/sandbox_kernel /opt/decepticon/sandbox_kernel
-COPY packages/decepticon/decepticon/sandbox_server /opt/decepticon/sandbox_server
-# Open-web engine (ADR-0010) + the pure contract layer it uses for the
-# per-hop RoE scope_check. decepticon-core imports only pydantic + stdlib
-# (never langchain/langgraph), so it is safe to ship to the lean sandbox.
-COPY packages/decepticon/decepticon/sandbox_web /opt/decepticon/sandbox_web
-# Agent browser runner + provider adapters (docs/design/browser-providers.md).
-# Standard library only; the default provider binary is /usr/local/bin/obscura.
-COPY packages/decepticon/decepticon/sandbox_browser /opt/decepticon/sandbox_browser
-COPY packages/decepticon-core/decepticon_core /opt/decepticon_core
-ENV PYTHONPATH=/opt
+# Sandbox runtime: decepticon_sandbox (kernel / server / web / browser) plus the
+# pure contract layer it uses for the per-hop RoE scope_check (decepticon_core,
+# pydantic + stdlib only). Agent-side code (backends, agents, middleware, tools)
+# stays in the langgraph image. The runtime never imports the management-side
+# ``decepticon`` package, so no framework boot runs here.
+#
+# It is installed root-owned under /usr/local/lib/decepticon-sandbox — inside the
+# read-only /usr baseline of an admitted OpenShell runtime — and registered on
+# sys.path with a .pth file. ``python3 -I -m decepticon_sandbox.<module>`` then
+# resolves in every session (managed OpenShell sessions inherit no PYTHONPATH)
+# while workspace files cannot shadow it.
+COPY packages/decepticon/decepticon_sandbox /usr/local/lib/decepticon-sandbox/decepticon_sandbox
+COPY packages/decepticon-core/decepticon_core /usr/local/lib/decepticon-sandbox/decepticon_core
+RUN python3 -c "import pathlib, sysconfig; pathlib.Path(sysconfig.get_paths()['purelib'], 'decepticon-sandbox.pth').write_text('/usr/local/lib/decepticon-sandbox\n')" \
+    && python3 -I -c "import decepticon_sandbox.server, decepticon_sandbox.web, decepticon_sandbox.browser"
 
 # Install the Playwright templates' node deps LOCALLY (in their own dir) so the
 # stealth plugin's full nested evasion tree (incl. user-preferences) resolves —
 # a global install + NODE_PATH does not. The executor shells `node` here, so node
-# resolves require() from templates/node_modules. Done after the COPY because the
-# templates' package.json ships inside sandbox_web.
-RUN cd /opt/decepticon/sandbox_web/templates \
+# resolves require() from templates/node_modules.
+RUN cd /usr/local/lib/decepticon-sandbox/decepticon_sandbox/web/templates \
     && npm install --no-fund --no-audit --omit=optional \
     && npm cache clean --force
 
-# Skip the framework boot path on this image — the sandbox container
-# ships only sandbox_kernel + sandbox_server, NOT decepticon-core or
-# the rest of the framework. ``decepticon/__init__.py`` checks this
-# env var and short-circuits the RoleRegistry + PluginRegistry setup
-# so the sandbox process can ``python -m decepticon.sandbox_server``
-# without importing decepticon-core (which isn't installed here).
-ENV DECEPTICON_SKIP_BOOT=1
-
-# The admitted runtime's /usr baseline is read-only. Keep /opt compatibility
-# for the existing daemon image, and place its managed counterpart in the
-# immutable tree rather than allowing a writable workspace to supply code.
-RUN mkdir -p /usr/local/lib/decepticon-sandbox /workspace \
-    && cp -a /opt/decepticon /opt/decepticon_core /usr/local/lib/decepticon-sandbox/ \
+RUN mkdir -p /workspace \
     && chmod 1777 /workspace
 
 # Working directory for the agent's virtual filesystem.

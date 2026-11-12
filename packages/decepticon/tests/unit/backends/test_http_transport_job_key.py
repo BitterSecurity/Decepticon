@@ -6,7 +6,7 @@ from decepticon.backends.http_transport import HTTPSandbox, _mirror_key
 
 def _make_sandbox():
     sb = HTTPSandbox.__new__(HTTPSandbox)
-    from decepticon.sandbox_kernel import BackgroundJobTracker
+    from decepticon_sandbox.kernel import BackgroundJobTracker
 
     sb._base_url = "http://localhost:9999"
     sb._token = None

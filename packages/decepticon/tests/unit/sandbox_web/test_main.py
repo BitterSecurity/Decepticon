@@ -6,10 +6,9 @@ import json
 from pathlib import Path
 
 import pytest
-
-from decepticon.sandbox_web import __main__ as cli
-from decepticon.sandbox_web.fetch_chain import FetchResult
-from decepticon.sandbox_web.validators import Verdict
+from decepticon_sandbox.web import __main__ as cli
+from decepticon_sandbox.web.fetch_chain import FetchResult
+from decepticon_sandbox.web.validators import Verdict
 
 
 def _write_roe(tmp_path: Path, machine_enforcement: dict) -> Path:

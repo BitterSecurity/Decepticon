@@ -1,6 +1,6 @@
 """Tests for ``_looks_like_interactive_prompt``.
 
-Stall detection in :mod:`decepticon.sandbox_kernel.tmux` used to label any
+Stall detection in :mod:`decepticon_sandbox.kernel.tmux` used to label any
 3 s no-output window as ``[interactive]``. That confused a silently hung
 process (network deadlock, infinite wait) with a real prompt waiting for
 input. ``_looks_like_interactive_prompt`` inspects the last non-blank
@@ -12,8 +12,7 @@ distinct "may be hung" message for prompt-less stalls.
 from __future__ import annotations
 
 import pytest
-
-from decepticon.sandbox_kernel.tmux import _looks_like_interactive_prompt
+from decepticon_sandbox.kernel.tmux import _looks_like_interactive_prompt
 
 
 @pytest.mark.parametrize(

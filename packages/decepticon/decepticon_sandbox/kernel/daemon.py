@@ -1,8 +1,8 @@
 """In-container sandbox — used by the HTTP daemon, never the agent host.
 
-`DaemonSandbox` is what `decepticon.sandbox_server` instantiates inside
+`DaemonSandbox` is what `decepticon_sandbox.server` instantiates inside
 the sandbox container itself. It inherits every method of
-:class:`~decepticon.sandbox_kernel.base.SandboxKernel` (tmux session
+:class:`~decepticon_sandbox.kernel.base.SandboxKernel` (tmux session
 management, background-job + log-offset trackers, ``execute``,
 ``execute_tmux``, ``start_background``, ``poll_completion``,
 ``kill_session``, ``read_session_log_diff``, …) but swaps the
@@ -71,9 +71,9 @@ import threading
 from pathlib import Path
 from typing import ClassVar
 
-from decepticon.sandbox_kernel.core import SandboxKernel
-from decepticon.sandbox_kernel.jobs import BackgroundJobTracker
-from decepticon.sandbox_kernel.protocol import (
+from decepticon_sandbox.kernel.core import SandboxKernel
+from decepticon_sandbox.kernel.jobs import BackgroundJobTracker
+from decepticon_sandbox.kernel.protocol import (
     FileDownloadResponse,
     FileUploadResponse,
 )

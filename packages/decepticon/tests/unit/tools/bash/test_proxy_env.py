@@ -16,9 +16,8 @@ import shlex
 from unittest.mock import patch
 
 import pytest
-
-from decepticon.sandbox_kernel import tmux as tmux_module
-from decepticon.sandbox_kernel.tmux import (
+from decepticon_sandbox.kernel import tmux as tmux_module
+from decepticon_sandbox.kernel.tmux import (
     TmuxSessionManager,
     _allowed_passthrough_env,
     _shell_export_command,

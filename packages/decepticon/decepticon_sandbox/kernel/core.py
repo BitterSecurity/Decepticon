@@ -19,16 +19,16 @@ import threading
 from collections.abc import Sequence
 from typing import ClassVar
 
-from decepticon.sandbox_kernel.jobs import BackgroundJob, BackgroundJobTracker
-from decepticon.sandbox_kernel.protocol import DownloadResult, ExecuteResponse, ExecutionResult
-from decepticon.sandbox_kernel.tmux import (
+from decepticon_sandbox.kernel.jobs import BackgroundJob, BackgroundJobTracker
+from decepticon_sandbox.kernel.protocol import DownloadResult, ExecuteResponse, ExecutionResult
+from decepticon_sandbox.kernel.tmux import (
     PS1_PATTERN,
     TmuxSessionManager,
     _safe_log,
     strip_terminal_noise,
 )
 
-log = logging.getLogger("decepticon.sandbox_kernel.base")
+log = logging.getLogger("decepticon_sandbox.kernel.base")
 
 # ── Startup orphan-reap ──────────────────────────────────────────────────
 #

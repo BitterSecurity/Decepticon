@@ -97,9 +97,9 @@ def live():
             [
                 "/bin/sh",
                 "-c",
-                "mkdir -p /workspace/live-test; PYTHONPATH=/opt DECEPTICON_SKIP_BOOT=1 "
+                "mkdir -p /workspace/live-test; "
                 "SANDBOX_ROOT_DIR=/workspace/live-test SANDBOX_DAEMON_HOST=127.0.0.1 "
-                "/usr/bin/python3 -m decepticon.sandbox_server >/tmp/session-daemon.log 2>&1 </dev/null & "
+                "/usr/bin/python3 -m decepticon_sandbox.server >/tmp/session-daemon.log 2>&1 </dev/null & "
                 "sleep 1; cat /tmp/session-daemon.log",
             ],
             timeout_seconds=15,
@@ -112,7 +112,7 @@ def live():
                 [
                     "/usr/bin/python3",
                     "-I",
-                    "/usr/local/lib/decepticon-sandbox/decepticon/sandbox_server/session_client.py",
+                    "/usr/local/lib/decepticon-sandbox/decepticon_sandbox/server/session_client.py",
                 ],
                 stdin=json.dumps(
                     {"path": "/poll_completion", "body": {"session": "none"}}

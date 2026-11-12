@@ -8,7 +8,6 @@ import shlex
 import subprocess
 import sys
 from dataclasses import dataclass
-from pathlib import Path
 
 import pytest
 
@@ -16,8 +15,6 @@ from decepticon.agents import build
 from decepticon.middleware.untrusted_output import UNTRUSTED_TOOL_NAMES
 from decepticon.tools.browser import agent_tools
 from decepticon.tools.browser.names import AGENT_BROWSER_TOOL_NAMES
-
-_PKG_ROOT = Path(agent_tools.__file__).resolve().parents[3]
 
 
 @dataclass
@@ -35,10 +32,9 @@ class _ShellSandbox:
     def execute(self, command: str, *, timeout: int | None = None) -> _ExecResp:
         self.commands.append(command)
         argv = shlex.split(command)
-        assert argv[:3] == ["python3", "-I", agent_tools.RUNNER_SCRIPT]
-        local_script = _PKG_ROOT / "decepticon" / "sandbox_browser" / "__main__.py"
+        assert argv[:4] == ["python3", "-I", "-m", agent_tools.RUNNER_MODULE]
         proc = subprocess.run(
-            [sys.executable, "-I", str(local_script), *argv[3:]],
+            [sys.executable, "-I", "-m", agent_tools.RUNNER_MODULE, *argv[4:]],
             capture_output=True,
             text=True,
             timeout=timeout,

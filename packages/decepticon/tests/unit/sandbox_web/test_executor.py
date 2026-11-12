@@ -10,10 +10,9 @@ from __future__ import annotations
 import json
 
 import pytest
-
-from decepticon.sandbox_web import executor
-from decepticon.sandbox_web.executor import _pick_executor, run_playwright_fallback
-from decepticon.sandbox_web.validators import SMALL_BODY_THRESHOLD, Verdict
+from decepticon_sandbox.web import executor
+from decepticon_sandbox.web.executor import _pick_executor, run_playwright_fallback
+from decepticon_sandbox.web.validators import SMALL_BODY_THRESHOLD, Verdict
 
 
 def _envelope(html: str, final_url: str = "https://8.8.8.8/final") -> str:

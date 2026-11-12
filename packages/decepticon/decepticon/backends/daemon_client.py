@@ -2,7 +2,7 @@
 
 Every Decepticon sandbox transport (plain HTTP to the sandbox daemon, an
 admitted OpenShell session bridge, future drivers) reaches the SAME peer:
-the ``decepticon.sandbox_server`` daemon running inside the sandbox
+the ``decepticon_sandbox.server`` daemon running inside the sandbox
 container, over its HTTP API routes. This module implements every
 agent-facing operation against those routes in terms of one abstract seam:
 
@@ -11,7 +11,7 @@ agent-facing operation against those routes in terms of one abstract seam:
 Nothing here opens sockets or knows how the route is reached; the tmux
 session semantics themselves (PS1 markers, size watchdog, auto-background,
 ``TmuxSessionManager``) always lived on the daemon side
-(``decepticon.sandbox_kernel``), so this layer is purely route + local
+(``decepticon_sandbox.kernel``), so this layer is purely route + local
 background-job bookkeeping. Adding a transport means subclassing and
 implementing ``_request`` — see ``HTTPTransportSandbox`` (plain HTTP) and
 ``OpenShellSandbox`` (admitted session bridge).
@@ -25,14 +25,13 @@ import hashlib
 import logging
 import re
 
+from decepticon_sandbox.kernel import BackgroundJob, BackgroundJobTracker
 from deepagents.backends.protocol import (
     ExecuteResponse,
     FileDownloadResponse,
     FileUploadResponse,
 )
 from deepagents.backends.sandbox import BaseSandbox
-
-from decepticon.sandbox_kernel import BackgroundJob, BackgroundJobTracker
 
 log = logging.getLogger(__name__)
 

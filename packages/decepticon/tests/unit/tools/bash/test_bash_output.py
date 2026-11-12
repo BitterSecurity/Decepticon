@@ -3,7 +3,8 @@
 import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
-from decepticon.sandbox_kernel import BackgroundJobTracker
+from decepticon_sandbox.kernel import BackgroundJobTracker
+
 from decepticon.tools.bash.bash import (
     bash,
     bash_kill,
