@@ -45,7 +45,7 @@ def test_exec_uses_only_openshell_stdio_bridge(admitted):
     assert args[0] == [
         "/usr/bin/python3",
         "-I",
-        "/usr/local/lib/decepticon-sandbox/decepticon/sandbox_server/session_client.py",
+        "/usr/local/lib/decepticon-sandbox/decepticon_sandbox/server/session_client.py",
     ]
     assert json.loads(kwargs["stdin"])["body"]["command"] == "printf x; exit 7"
     assert kwargs["no_login_shell"] is True

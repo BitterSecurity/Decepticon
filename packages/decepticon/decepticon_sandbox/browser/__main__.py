@@ -1,12 +1,4 @@
-"""CLI entry for the sandbox browser runner.
-
-Agent tools run it as an isolated script from the immutable image bundle::
-
-    python3 -I /usr/local/lib/decepticon-sandbox/decepticon/sandbox_browser/__main__.py ...
-
-Managed OpenShell sessions do not inherit the image ``PYTHONPATH`` and ``-I``
-keeps a writable workspace from shadowing imports, so the bundle root is put
-on ``sys.path`` explicitly. ``python3 -m decepticon.sandbox_browser`` also works.
+"""CLI entry for the sandbox browser runner: ``python3 -I -m decepticon_sandbox.browser``.
 
     call --workspace W --provider P --request-b64 B   run one action
     shutdown --workspace W --provider P               stop the workspace browser
@@ -21,18 +13,11 @@ import argparse
 import base64
 import binascii
 import json
-import os
 import sys
 from pathlib import Path
 
-if not __package__:
-    # Script mode inside the sandbox bundle: the lean package has no
-    # management-side boot modules (the managed daemon sets the same flag).
-    os.environ.setdefault("DECEPTICON_SKIP_BOOT", "1")
-    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-
-from decepticon.sandbox_browser.contract import BrowserContractError, BrowserRequest, BrowserResult
-from decepticon.sandbox_browser.provider import (
+from decepticon_sandbox.browser.contract import BrowserContractError, BrowserRequest, BrowserResult
+from decepticon_sandbox.browser.provider import (
     DEFAULT_PROVIDER,
     UnknownProviderError,
     available_providers,
@@ -51,7 +36,7 @@ def _workspace(raw: str) -> Path:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="decepticon.sandbox_browser")
+    parser = argparse.ArgumentParser(prog="decepticon_sandbox.browser")
     sub = parser.add_subparsers(dest="command", required=True)
     call = sub.add_parser("call")
     call.add_argument("--workspace", required=True)

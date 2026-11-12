@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from decepticon.sandbox_web import waf_detector
-from decepticon.sandbox_web.waf_detector import (
+from decepticon_sandbox.web import waf_detector
+from decepticon_sandbox.web.waf_detector import (
     _load_profiles,
     detect,
     load_profile,

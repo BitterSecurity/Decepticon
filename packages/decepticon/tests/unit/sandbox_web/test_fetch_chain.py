@@ -12,10 +12,9 @@ from dataclasses import dataclass, field
 from urllib.parse import urlsplit
 
 import pytest
-
-from decepticon.sandbox_web import fetch_chain
-from decepticon.sandbox_web.fetch_chain import fetch
-from decepticon.sandbox_web.validators import SMALL_BODY_THRESHOLD, Verdict
+from decepticon_sandbox.web import fetch_chain
+from decepticon_sandbox.web.fetch_chain import fetch
+from decepticon_sandbox.web.validators import SMALL_BODY_THRESHOLD, Verdict
 
 
 @dataclass

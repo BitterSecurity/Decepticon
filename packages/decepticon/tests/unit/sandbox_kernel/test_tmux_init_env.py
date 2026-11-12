@@ -1,8 +1,7 @@
 from unittest.mock import patch
 
 import pytest
-
-from decepticon.sandbox_kernel.tmux import TmuxCommandError, TmuxSessionManager
+from decepticon_sandbox.kernel.tmux import TmuxCommandError, TmuxSessionManager
 
 
 @pytest.mark.parametrize("late_setup_prompt", [False, True])
@@ -44,9 +43,9 @@ def test_first_command_returns_its_output_when_initial_export_is_delayed(
         patch.object(manager, "_clear_screen"),
         patch.object(manager, "_capture", side_effect=lambda: screen),
         patch.object(manager, "_send", side_effect=send),
-        patch("decepticon.sandbox_kernel.tmux.time.sleep", side_effect=advance_shell),
+        patch("decepticon_sandbox.kernel.tmux.time.sleep", side_effect=advance_shell),
         patch(
-            "decepticon.sandbox_kernel.tmux._allowed_passthrough_env",
+            "decepticon_sandbox.kernel.tmux._allowed_passthrough_env",
             return_value={"DECEPTICON_BROWSER_TEST": "fixture"},
         ),
     ):
@@ -68,9 +67,9 @@ def test_first_command_is_not_sent_when_initial_export_times_out() -> None:
         patch.object(manager, "_inject_ps1_marker"),
         patch.object(manager, "_capture", return_value="[DCPTN:0:/workspace] "),
         patch.object(manager, "_send") as send,
-        patch("decepticon.sandbox_kernel.tmux.time.monotonic", side_effect=[0.0, 10.0]),
+        patch("decepticon_sandbox.kernel.tmux.time.monotonic", side_effect=[0.0, 10.0]),
         patch(
-            "decepticon.sandbox_kernel.tmux._allowed_passthrough_env",
+            "decepticon_sandbox.kernel.tmux._allowed_passthrough_env",
             return_value={"DECEPTICON_BROWSER_TEST": "fixture"},
         ),
     ):

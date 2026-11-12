@@ -20,9 +20,10 @@ from contextlib import contextmanager
 from pathlib import Path
 from types import SimpleNamespace
 
+from decepticon_sandbox.server.session_client import MANAGED_BRIDGE, MANAGED_START
+
 from decepticon.backends import openshell_local
 from decepticon.backends.openshell_sandbox import OpenShellAdmission, OpenShellSandbox
-from decepticon.sandbox_server.session_client import MANAGED_BRIDGE, MANAGED_START
 
 ROE = b'{"machine_enforcement":{"in_scope":["example.invalid"],"mode":"enforce"}}'
 
@@ -204,7 +205,7 @@ def main():
             )
             assert (
                 client.execute(
-                    "test ! -w /usr/local/lib/decepticon-sandbox/decepticon/sandbox_server/session_client.py",
+                    "test ! -w /usr/local/lib/decepticon-sandbox/decepticon_sandbox/server/session_client.py",
                     timeout=10,
                 ).exit_code
                 == 0
@@ -226,7 +227,7 @@ def main():
                     "/usr/bin/python3",
                     "-I",
                     "-c",
-                    "import subprocess,os; e=dict(os.environ); e.update(PYTHONPATH='/opt',DECEPTICON_SKIP_BOOT='1',SANDBOX_DAEMON_HOST='127.0.0.1',SANDBOX_ROOT_DIR='/workspace'); e.pop('DECEPTICON_MANAGED_SESSION',None); f=open('/tmp/legacy.log','ab'); p=subprocess.Popen(['/usr/bin/python3','-m','decepticon.sandbox_server'],env=e,stdin=subprocess.DEVNULL,stdout=f,stderr=subprocess.STDOUT,start_new_session=True); print(p.pid)",
+                    "import subprocess,os; e=dict(os.environ); e.update(SANDBOX_DAEMON_HOST='127.0.0.1',SANDBOX_ROOT_DIR='/workspace'); e.pop('DECEPTICON_MANAGED_SESSION',None); f=open('/tmp/legacy.log','ab'); p=subprocess.Popen(['/usr/bin/python3','-m','decepticon_sandbox.server'],env=e,stdin=subprocess.DEVNULL,stdout=f,stderr=subprocess.STDOUT,start_new_session=True); print(p.pid)",
                 ]
             )
             assert legacy.exit_code == 0, legacy.stderr

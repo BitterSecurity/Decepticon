@@ -10,7 +10,7 @@ stripped — so it leaked to the agent / LangSmith. These pin the cleanup.
 
 from __future__ import annotations
 
-from decepticon.sandbox_kernel.tmux import strip_terminal_noise
+from decepticon_sandbox.kernel.tmux import strip_terminal_noise
 
 
 def test_strips_osc_3008_shell_integration():

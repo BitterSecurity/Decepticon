@@ -2,9 +2,8 @@ from __future__ import annotations
 
 from typing import Protocol
 
+from decepticon_sandbox.kernel.jobs import BackgroundJob, BackgroundJobTracker
 from deepagents.backends.protocol import ExecuteResponse, FileUploadResponse
-
-from decepticon.sandbox_kernel.jobs import BackgroundJob, BackgroundJobTracker
 
 
 class BashSandboxProtocol(Protocol):

@@ -15,7 +15,7 @@ pytest.importorskip("fcntl")
 
 @pytest.fixture
 def managed():
-    return importlib.import_module("decepticon.sandbox_server.managed_start")
+    return importlib.import_module("decepticon_sandbox.server.managed_start")
 
 
 @pytest.fixture
@@ -163,7 +163,7 @@ def test_managed_serve_pins_shell_home_and_immutable_package_root(managed, monke
     monkeypatch.setattr(managed.sys, "path", list(managed.sys.path))
 
     def start(module, run_name):
-        assert module == "decepticon.sandbox_server" and run_name == "__main__"
+        assert module == "decepticon_sandbox.server" and run_name == "__main__"
         assert os.environ["HOME"] == "/workspace"
         assert os.environ["SHELL"] == "/bin/bash"
         assert os.environ["SANDBOX_DAEMON_HOST"] == "127.0.0.1"
@@ -177,7 +177,7 @@ def test_managed_serve_pins_shell_home_and_immutable_package_root(managed, monke
 
 
 def test_managed_health_reports_real_process_identity(managed):
-    from decepticon.sandbox_server.app import healthz
+    from decepticon_sandbox.server.app import healthz
 
     with patch.dict(os.environ, {"DECEPTICON_MANAGED_SESSION": "1"}):
         assert healthz() == {

@@ -9,8 +9,7 @@ flow is tested separately with mocks.
 from __future__ import annotations
 
 import pytest
-
-from decepticon.sandbox_kernel.tmux import (
+from decepticon_sandbox.kernel.tmux import (
     MAX_OUTPUT_CHARS,
     PS1_PATTERN,
     TmuxSessionManager,

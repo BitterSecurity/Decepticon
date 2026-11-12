@@ -16,9 +16,8 @@ import subprocess
 from typing import Any
 
 import pytest
-
-from decepticon.sandbox_kernel import tmux as tmux_mod
-from decepticon.sandbox_kernel.tmux import TmuxSessionManager
+from decepticon_sandbox.kernel import tmux as tmux_mod
+from decepticon_sandbox.kernel.tmux import TmuxSessionManager
 
 _EXCEPTIONS = [
     OSError("docker exec stalled"),

@@ -1,7 +1,7 @@
 """HTTP-transport sandbox backend — the plain-HTTP wire implementation.
 
 `HTTPSandbox` is a `SandboxDaemonClient` subclass whose transport is a
-plain-HTTP client to the `decepticon.sandbox_server` daemon running inside
+plain-HTTP client to the `decepticon_sandbox.server` daemon running inside
 the sandbox container. It carries no routing logic of its own: every
 agent-facing operation (execute, tmux, file transfer, background jobs) is
 inherited from `SandboxDaemonClient`; this class provides only the wire —

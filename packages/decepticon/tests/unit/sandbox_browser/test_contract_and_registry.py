@@ -8,16 +8,15 @@ from importlib.metadata import EntryPoint
 from pathlib import Path
 
 import pytest
-
-from decepticon.sandbox_browser import provider as registry
-from decepticon.sandbox_browser.__main__ import main
-from decepticon.sandbox_browser.contract import (
+from decepticon_sandbox.browser import provider as registry
+from decepticon_sandbox.browser.__main__ import main
+from decepticon_sandbox.browser.contract import (
     ACTIONS,
     BrowserContractError,
     BrowserRequest,
     BrowserResult,
 )
-from decepticon.sandbox_browser.providers.obscura import CAPABILITIES, ObscuraProvider
+from decepticon_sandbox.browser.providers.obscura import CAPABILITIES, ObscuraProvider
 
 
 def _b64(obj: dict) -> str:
@@ -155,7 +154,7 @@ def test_obscura_missing_binary_is_provider_unavailable(
 
 @pytest.mark.parametrize("name", ["../x", "a/b", "x" * 65])
 def test_obscura_storage_name_is_confined(tmp_path: Path, name: str) -> None:
-    from decepticon.sandbox_browser.providers.obscura import ObscuraError
+    from decepticon_sandbox.browser.providers.obscura import ObscuraError
 
     with pytest.raises(ObscuraError):
         ObscuraProvider(tmp_path)._storage_path({"name": name})

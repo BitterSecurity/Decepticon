@@ -20,6 +20,7 @@ from concurrent.futures import ThreadPoolExecutor
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+from decepticon_sandbox.server.session_client import MANAGED_START
 from openshell import SandboxClient, TlsConfig
 from openshell._proto import openshell_pb2 as pb
 
@@ -31,7 +32,6 @@ from decepticon.middleware.policy_compiler import (
     sandbox_binding_digest,
     sandbox_name,
 )
-from decepticon.sandbox_server.session_client import MANAGED_START
 
 
 def main():
@@ -269,7 +269,7 @@ def main():
                 started = time.monotonic()
                 result = a.execute(
                     f"printf %s {shlex.quote(wire)} | base64 -d | node "
-                    "/usr/local/lib/decepticon-sandbox/decepticon/sandbox_web/templates/"
+                    "/usr/local/lib/decepticon-sandbox/decepticon_sandbox/web/templates/"
                     "playwright_real_chrome.js",
                     timeout=40,
                 )
@@ -335,7 +335,7 @@ def main():
             }
             observations["seconds"] = round(time.monotonic() - started, 3)
             stop = a.execute(
-                "python3 -I /usr/local/lib/decepticon-sandbox/decepticon/sandbox_browser/__main__.py "
+                "python3 -I /usr/local/lib/decepticon-sandbox/decepticon_sandbox/browser/__main__.py "
                 "shutdown --workspace /workspace",
                 timeout=30,
             )

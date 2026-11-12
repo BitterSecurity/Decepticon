@@ -75,7 +75,7 @@ async def test_web_fetch_ok(monkeypatch: pytest.MonkeyPatch) -> None:
     # Assert the URL as an exact shlex token (== — not a URL substring test).
     cmd = fake.commands[0]
     argv = shlex.split(cmd)
-    assert f"python3 -I {search.ENGINE_SCRIPT} fetch" in cmd
+    assert f"python3 -I -m {search.ENGINE_MODULE} fetch" in cmd
     assert any(a == "https://x.test/a" for a in argv)
     assert "--workspace" in cmd and "/workspace/eng1" in cmd
     assert "--selector" in cmd
@@ -133,7 +133,7 @@ async def test_web_search_hits(monkeypatch: pytest.MonkeyPatch) -> None:
     lines = [ln.strip() for ln in out.splitlines()]
     assert any(ln == "https://a.test" for ln in lines)
     assert any(ln == "https://b.test" for ln in lines)
-    assert f"python3 -I {search.ENGINE_SCRIPT} search" in fake.commands[0]
+    assert f"python3 -I -m {search.ENGINE_MODULE} search" in fake.commands[0]
 
 
 async def test_web_search_provider_error(monkeypatch: pytest.MonkeyPatch) -> None:

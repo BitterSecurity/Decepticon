@@ -19,7 +19,7 @@ matching cases live in test_tmux_helpers.py.
 
 from __future__ import annotations
 
-from decepticon.sandbox_kernel.tmux import PS1_PATTERN, _extract_output
+from decepticon_sandbox.kernel.tmux import PS1_PATTERN, _extract_output
 
 
 class TestBracketInPayloadDoesNotCorruptCount:

@@ -14,7 +14,7 @@ umask 0000
 # kept as an opt-out for legacy ``docker exec`` workflows: set
 # ``SANDBOX_DAEMON=0`` to disable the daemon.
 if [ "${SANDBOX_DAEMON:-1}" = "1" ]; then
-    exec python3 -m decepticon.sandbox_server
+    exec python3 -m decepticon_sandbox.server
 fi
 
 exec "$@"

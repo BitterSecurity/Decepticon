@@ -17,8 +17,7 @@ from typing import Any
 from unittest.mock import patch
 
 import pytest
-
-from decepticon.sandbox_kernel.tmux import (
+from decepticon_sandbox.kernel.tmux import (
     MAX_OUTPUT_CHARS,
     TmuxSessionManager,
     _extract_interactive_output,
@@ -389,8 +388,8 @@ def test_waiter_rejects_printed_completion_without_owned_native_state(
     with (
         patch.object(mgr, "initialize"),
         patch.object(mgr, "_tmux", side_effect=boundary),
-        patch("decepticon.sandbox_kernel.tmux.POLL_INTERVAL", 0.0),
-        patch("decepticon.sandbox_kernel.tmux.time.monotonic", side_effect=itertools.count(0, 0.1)),
+        patch("decepticon_sandbox.kernel.tmux.POLL_INTERVAL", 0.0),
+        patch("decepticon_sandbox.kernel.tmux.time.monotonic", side_effect=itertools.count(0, 0.1)),
     ):
         output = (
             asyncio.run(mgr.execute_async("printf fixture", False, 1))

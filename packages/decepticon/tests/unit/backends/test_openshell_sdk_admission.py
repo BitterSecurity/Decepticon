@@ -6,11 +6,11 @@ from concurrent.futures import ThreadPoolExecutor
 from types import SimpleNamespace
 
 import pytest
+from decepticon_sandbox.server.session_client import MANAGED_BRIDGE, MANAGED_START
 
 from decepticon.backends import openshell_local
 from decepticon.backends.http_transport import SandboxError
 from decepticon.middleware.policy_compiler import compile_openshell_policy
-from decepticon.sandbox_server.session_client import MANAGED_BRIDGE, MANAGED_START
 from decepticon_core.types.roe import MachineEnforcement, ScopeRule
 
 pytest.importorskip("openshell")

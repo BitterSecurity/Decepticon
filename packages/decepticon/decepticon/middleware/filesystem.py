@@ -9,6 +9,7 @@ from dataclasses import replace
 from types import SimpleNamespace
 from typing import Any
 
+from decepticon_sandbox.kernel.base import SandboxBase
 from deepagents.backends.protocol import (
     BackendProtocol,
     EditResult,
@@ -24,7 +25,6 @@ from deepagents.backends.protocol import (
 from deepagents.backends.utils import validate_path
 from deepagents.middleware.filesystem import FilesystemMiddleware as BaseFilesystemMiddleware
 
-from decepticon.sandbox_kernel.base import SandboxBase
 from decepticon.tools.filesystem import filesystem_tools_without_execute
 
 WORKSPACE = "/workspace"

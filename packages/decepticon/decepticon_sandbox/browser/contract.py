@@ -1,7 +1,7 @@
 """Provider-neutral browser action contract.
 
 Shared by the management-side agent tools (``decepticon.tools.browser``) and
-the sandbox-side runner (``python3 -m decepticon.sandbox_browser``). Standard
+the sandbox-side runner (``python3 -m decepticon_sandbox.browser``). Standard
 library only: this module is copied into the sandbox image.
 
 A provider adapter maps these actions onto its own native interface (Obscura

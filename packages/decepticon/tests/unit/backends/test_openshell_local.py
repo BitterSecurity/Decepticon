@@ -14,6 +14,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from decepticon_sandbox.server.session_client import MANAGED_START
 
 from decepticon.backends import factory, openshell_local
 from decepticon.backends.openshell_local import (
@@ -21,7 +22,6 @@ from decepticon.backends.openshell_local import (
     resolve_local_binding,
 )
 from decepticon.middleware.policy_compiler import compile_openshell_policy
-from decepticon.sandbox_server.session_client import MANAGED_START
 from decepticon_core.types.roe import MachineEnforcement
 
 pytest.importorskip("openshell")

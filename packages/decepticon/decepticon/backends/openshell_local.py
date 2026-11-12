@@ -41,18 +41,19 @@ import time
 from pathlib import Path
 from typing import Any
 
+from decepticon_sandbox.server.session_client import (
+    MANAGED_BRIDGE,
+    MANAGED_LOG,
+    MANAGED_START,
+    MAX_MESSAGE_BYTES,
+)
+
 from decepticon.backends.http_transport import SandboxError
 from decepticon.middleware.policy_compiler import (
     CompiledRoePolicy,
     compile_openshell_policy,
     sandbox_binding_digest,
     sandbox_name,
-)
-from decepticon.sandbox_server.session_client import (
-    MANAGED_BRIDGE,
-    MANAGED_LOG,
-    MANAGED_START,
-    MAX_MESSAGE_BYTES,
 )
 
 log = logging.getLogger(__name__)

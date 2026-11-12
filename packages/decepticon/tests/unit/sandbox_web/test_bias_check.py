@@ -1,14 +1,14 @@
 """Tests for the No-Site-Name bias checker — and the gate itself.
 
 ``test_engine_tree_is_clean`` is the live CI gate: it asserts the shipped
-``decepticon/sandbox_web`` engine has no hardcoded target hosts.
+``decepticon_sandbox/web`` engine has no hardcoded target hosts.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 
-from decepticon.sandbox_web import bias_check
+from decepticon_sandbox.web import bias_check
 
 
 def test_engine_tree_is_clean() -> None:
