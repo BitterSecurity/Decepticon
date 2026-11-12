@@ -77,6 +77,32 @@ Planning, reporting and source-analysis roles (soundwave, finding_reporter,
 detector, vulnresearch, blue_cell) do not carry the slot, so an engagement can
 be planned and reported outside its testing window.
 
+## Scheduled engagements
+
+`decepticon-cli schedule` starts engagement runs on the LangGraph server's
+cron (the server owns the scheduler). Two modes:
+
+- `--mode reassess` (default): each tick starts a fresh thread — periodic
+  re-assessment / continuous monitoring. Pair it with a baseline diff
+  downstream to report only what changed.
+- `--mode campaign`: each tick continues one thread — a long engagement that
+  progresses across scheduled slots. With `TimeWindowMiddleware` and
+  `time-window-resume`, the campaign only works inside its RoE time window and
+  resumes across pauses.
+
+```sh
+decepticon-cli schedule create --assistant recon --schedule "0 2 * * 1" \
+  --engagement acme --workspace /workspace/acme --prompt "weekly external recon"
+decepticon-cli schedule list
+decepticon-cli schedule delete <cron_id>
+```
+
+`--multitask reject` (default) skips a tick while the previous run is still
+active. Align the cron expression with the RoE `authorized_windows` so a run
+does not start only to pause immediately. Scheduling and triggers never widen
+scope: a scheduled run is still bound to the engagement's RoE and OpenShell
+policy.
+
 ## Example machine block
 
 ```json
