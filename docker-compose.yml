@@ -436,6 +436,20 @@ services:
 
   # Ink CLI — Interactive terminal UI
   # Runs via: docker compose run --rm cli
+  # Resumes engagement runs that TimeWindowMiddleware paused outside their RoE
+  # authorized time window, once the window opens (docs/security/roe-machine-enforcement.md).
+  time-window-resumer:
+    image: ghcr.io/bittersecurity/decepticon-langgraph:${DECEPTICON_VERSION:-latest}
+    command: ["python", "-m", "decepticon.cli", "time-window-resume", "--watch", "--url", "http://langgraph:2024"]
+    environment:
+      - DECEPTICON_SKIP_BOOT=1
+    depends_on:
+      langgraph:
+        condition: service_healthy
+    networks:
+      - decepticon-net
+    restart: unless-stopped
+
   cli:
     image: ghcr.io/bittersecurity/decepticon-cli:${DECEPTICON_VERSION:-latest}
     build:
