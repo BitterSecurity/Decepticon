@@ -361,6 +361,10 @@ services:
       # 9999 is the FastAPI daemon baked into the sandbox image (see
       # ``containers/sandbox-entrypoint.sh`` — daemon mode is the default).
       - SANDBOX_URL=http://sandbox:9999
+      # Engagement browser provider run inside the sandbox by the agent
+      # browser_* tools (docs/design/browser-providers.md). `none` removes
+      # the tools; a host/plugin that ships browser_* tools replaces them.
+      - DECEPTICON_BROWSER_PROVIDER=${DECEPTICON_BROWSER_PROVIDER:-obscura}
       - DECEPTICON_REA_URL=http://rea-mcp:8082
       - DECEPTICON_NEO4J_URI=bolt://neo4j:7687
       - DECEPTICON_NEO4J_USER=neo4j
