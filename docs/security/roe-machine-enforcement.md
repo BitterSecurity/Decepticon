@@ -56,20 +56,26 @@ before every execution; a changed RoE revokes the binding.
 
 `TimeWindowMiddleware` runs right after the engagement context in the
 orchestrator and every target-acting specialist (the `time-window` slot). It
-checks the current time:
+checks the current time at the very start of a run (`before_agent`) and before
+every model call (`before_model`).
 
-- at the very start of a run (`before_agent`): outside the window the run ends
-  before any model or tool call;
-- before every model call (`before_model`): when the window closes during a
-  run, the run ends before the next model turn. A tool call that is already
-  executing finishes first.
+Outside the window the run **pauses** with a LangGraph `interrupt` whose payload
+is `{"kind": "decepticon.time_window", "phase", "code", "detail", "resume_at"}`.
+`resume_at` is the next instant the window allows work: the start of the next
+authorized window or the end of the current blackout. A tool call that is
+already executing finishes first, and no model call happens while paused.
 
-A stopped run ends with an `AIMessage` whose `additional_kwargs` carry
-`decepticon_time_window_stop` (`phase`, `code`, `detail`). Codes are
-`OUTSIDE_TESTING_WINDOW` and `BLACKOUT_WINDOW`. Planning, reporting and
-source-analysis roles (soundwave, finding_reporter, detector, vulnresearch,
-blue_cell) do not carry the slot, so an engagement can be planned and reported
-outside its testing window.
+`decepticon-cli time-window-resume` resumes paused threads once `resume_at` has
+passed (`--watch` keeps it running; `--list` shows paused runs). Compose runs it
+as the `time-window-resumer` service. A resumed run re-enters the same hook: if
+the window is open it continues exactly where it stopped, otherwise it pauses
+again. Without a checkpointer, or when no future window exists, the run ends
+instead and its final `AIMessage` carries `decepticon_time_window_stop`. Codes
+are `OUTSIDE_TESTING_WINDOW` and `BLACKOUT_WINDOW`.
+
+Planning, reporting and source-analysis roles (soundwave, finding_reporter,
+detector, vulnresearch, blue_cell) do not carry the slot, so an engagement can
+be planned and reported outside its testing window.
 
 ## Example machine block
 
