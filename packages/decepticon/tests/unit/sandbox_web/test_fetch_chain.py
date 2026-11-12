@@ -165,7 +165,7 @@ def test_to_dict_shape(monkeypatch: pytest.MonkeyPatch) -> None:
         "grid_exhausted",
         "stop_reason",
         "untried_routes",
-        "must_invoke_playwright_mcp",
+        "needs_agent_browser",
     }
     assert required <= set(d)
     assert "content" not in d

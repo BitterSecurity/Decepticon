@@ -5,16 +5,16 @@ punch through (JS challenge, real-TLS detection), this module routes to the
 right browser executor based on the profile's `capabilities_needed` tags:
 
     needs_real_tls_stack + needs_js_exec  → playwright_real_chrome.js
-    needs_js_exec only                    → Playwright MCP (if available)
     needs_mobile_context (+ real_tls)     → playwright_mobile_chrome.js
 
-The JS templates live in `engine/templates/` and accept only generic
-parameters ({{url}}, {{waitSelector}}, {{profileDir}}, {{device}}). No
-site-specific logic.
+The JS templates live in `templates/` and accept only generic parameters
+({{url}}, {{waitSelector}}, {{profileDir}}, {{device}}). No site-specific
+logic.
 
-Playwright MCP invocation requires caller's tool access; this module
-provides the subprocess path for local JS templates but only stubs the MCP
-path (MCP must be driven from the Claude session itself).
+There is no Playwright-MCP in the sandbox; this module only runs the local
+JS templates as subprocesses. When the engine still cannot clear a challenge,
+the failure gate tells the agent to drive the page with its own browser_*
+tools instead (see fetch_chain `_untried_routes`).
 """
 
 from __future__ import annotations
@@ -141,7 +141,9 @@ def run_playwright_fallback(
     force_executor: caller-specified executor name (from a profile's
     `fallback_when_challenge` list). When set, it overrides capability-based
     inference. Recognized values: "playwright_real_chrome",
-    "playwright_mobile_chrome", "playwright_mcp".
+    "playwright_mobile_chrome". A legacy "playwright_mcp" value from an
+    external profile is accepted and remapped to the local Chrome template
+    (there is no Playwright-MCP in the sandbox).
 
     Returns (Attempt, html_content). Attempt.verdict reflects validation.
     """
@@ -149,10 +151,9 @@ def run_playwright_fallback(
     capabilities = profile.get("capabilities_needed") or []
     choice = force_executor or _pick_executor(capabilities, device_class)
 
-    # Decepticon: no Playwright-MCP exists inside the sandbox. A profile's
-    # fallback list may still name an MCP executor (e.g. cloudflare_turnstile →
-    # [playwright_mcp, playwright_real_chrome]); remap it to the local node
-    # real-Chrome template (mobile MCP → mobile template).
+    # Backward-compat: an external/custom profile may still name the legacy
+    # "playwright_mcp" executor. There is no Playwright-MCP in the sandbox, so
+    # remap it to the local node real-Chrome template (mobile → mobile template).
     if choice.startswith("playwright_mcp"):
         choice = "playwright_mobile_chrome" if "mobile" in choice else "playwright_real_chrome"
 
