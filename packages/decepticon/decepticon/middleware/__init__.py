@@ -33,13 +33,10 @@ from decepticon.middleware.parallel_dispatch import ParallelDispatchMiddleware
 from decepticon.middleware.prompt_injection_shield import (
     PromptInjectionShieldMiddleware,
 )
-from decepticon.middleware.roe import (
-    RoEEnforcementMiddleware,  # retained compatibility alias
-    RoEGuardrailMiddleware,
-)
 from decepticon.middleware.scan_resume import ScanResumeManager
 from decepticon.middleware.skillogy import SkillogyMiddleware, maybe_install_skillogy
 from decepticon.middleware.skills import SkillsMiddleware
+from decepticon.middleware.time_window import TimeWindowMiddleware
 from decepticon.middleware.untrusted_output import UntrustedOutputMiddleware
 
 __all__ = [
@@ -58,13 +55,12 @@ __all__ = [
     "KGMiddleware",
     "OPPLANMiddleware",
     "PromptInjectionShieldMiddleware",
-    "RoEEnforcementMiddleware",
-    "RoEGuardrailMiddleware",
     "OperatorSteeringMiddleware",
     "ParallelDispatchMiddleware",
     "SandboxNotificationMiddleware",
     "SkillogyMiddleware",
     "SkillsMiddleware",
+    "TimeWindowMiddleware",
     "UntrustedOutputMiddleware",
     "maybe_install_skillogy",
     "BoundedOutputMiddleware",

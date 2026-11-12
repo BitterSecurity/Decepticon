@@ -39,16 +39,14 @@ Per fetch, the engine runs an escalating chain and records every attempt in a
 4. **browser fallback** — a headless browser tier on JS challenges (optional;
    absent → a clean `unknown`, the curl result stands).
 
-## RoE & safety (three layers)
+## RoE & safety
 
-1. **Management-side gate** — `RoEGuardrailMiddleware` refuses out-of-scope
-   `web_fetch` URLs before the tool runs (fail-closed). `web_search` is gated
-   for audit/throttle but target-exempt (OSINT over an allowlisted provider).
-2. **Engine `scope_check`** — every transformed/redirected hop is re-checked
-   against `roe.json` (`evaluate_target`), so a `www.→m.` transform or a
-   redirect to a new host is skipped if out of scope.
-3. **Sandbox nftables/DNS allowlist** — the authoritative backstop: an
-   out-of-scope connection cannot leave the sandbox regardless of the above.
+1. **Sandbox OpenShell policy** — the only network authority: the engine runs
+   inside the engagement sandbox, whose OpenShell policy (compiled from
+   `plan/roe.json`) refuses every out-of-scope connection.
+2. **Engine `scope_check`** — every transformed URL is re-checked against
+   `roe.json` (`evaluate_target`) before fetching, so a `www.→m.` transform to
+   an out-of-scope host is skipped with a clear `roe_refused` result.
 
 Open-web content is attacker-influenceable, so both tools' output is
 prompt-injection-quarantined (`UNTRUSTED_TOOL_NAMES`). TLS-impersonation and the

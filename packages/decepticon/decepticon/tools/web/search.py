@@ -6,14 +6,9 @@ surface (``HTTPTransportSandbox.execute``), so every byte of egress happens in
 ``sandbox-net`` behind the RoE-compiled nftables allowlist. No new transport,
 no side channel — same pattern as the bash tool reaching the sandbox.
 
-RoE enforcement is layered:
-  1. ``RoEGuardrailMiddleware`` gates these by name (``GATED_TOOL_NAMES`` +
-     ``NETWORK_TARGET_EXTRACTORS``) on the management side, fail-closed —
-     ``web_fetch`` is target-gated on its ``url``; ``web_search`` is OSINT
-     (allowlisted provider) so it is audited but target-exempt.
-  2. The engine re-checks every transformed/redirected hop against
-     ``<workspace>/plan/roe.json`` (defense-in-depth).
-  3. The sandbox nftables/DNS allowlist is the authoritative backstop.
+Network scope is enforced by the engagement sandbox's OpenShell policy compiled
+from ``<workspace>/plan/roe.json``; the engine additionally re-checks
+transformed URLs against the same RoE before fetching.
 
 Tool output is quarantined via ``UNTRUSTED_TOOL_NAMES`` (open-web content is
 attacker-influenceable). See ADR-0010.

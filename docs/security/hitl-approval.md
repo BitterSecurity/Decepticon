@@ -118,9 +118,8 @@ The middleware does not hardcode any event-log format; it talks to an
 
 - [Security Controls](./security-controls.md) — the runtime-guard
   knob/default table, including `DECEPTICON_HITL__ENABLED`.
-- [RoE Machine Enforcement](./roe-machine-enforcement.md) — the gate
-  below HITL; operator approval cannot override an RoE refusal.
-- [Audit Ledger](./audit-ledger.md) — the append-only record of RoE
-  decisions.
+- [RoE Machine Enforcement](./roe-machine-enforcement.md) — network scope
+  (OpenShell policy) and execution time windows; operator approval cannot
+  widen either.
 - [Threat Model](./decepticon-threat-model.md) — HITL as the
   operator-approval control.
