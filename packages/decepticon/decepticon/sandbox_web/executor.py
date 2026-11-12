@@ -183,6 +183,8 @@ def run_playwright_fallback(
         att.elapsed_s = round(time.time() - t0, 3)
         return att, ""
 
+    from . import safety
+
     args: dict = {
         "url": url,
         # Per-host + per-device profile isolation. A single shared profile dir
@@ -196,7 +198,9 @@ def run_playwright_fallback(
         # template runs without xvfb; set INSANE_HEADLESS=0 (with xvfb present)
         # to run headful, which evades headless-detecting WAFs (Akamai/DataDome).
         "headless": os.environ.get("INSANE_HEADLESS", "1") not in ("0", "false", "no"),
-        "allowPrivate": False,
+        # Same decision as the curl tier: off unless the OpenShell policy is the
+        # network authority (managed session) or explicitly opted in.
+        "allowPrivate": safety.allow_private_default(),
     }
     if choice == "playwright_mobile_chrome":
         args["device"] = "iPhone 13 Pro"

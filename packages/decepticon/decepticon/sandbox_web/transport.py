@@ -86,7 +86,12 @@ class SessionPool:
             return False
         ent.warmed = True  # mark first to avoid duplicate warmups under race
         try:
-            ent.session.get(root_url, timeout=timeout, allow_redirects=True)
+            ent.session.get(
+                root_url,
+                timeout=timeout,
+                allow_redirects=True,
+                http_version=safety.http_version_for(root_url),
+            )
             ent.requests_made += 1
             return True
         except Exception:
@@ -169,6 +174,7 @@ class SessionPool:
                     headers=headers,
                     timeout=timeout,
                     allow_redirects=False,
+                    http_version=safety.http_version_for(u),
                 )
 
             return self._fetch_following(_oneshot_get, url, allow_private, max_redirects, None)
@@ -177,7 +183,13 @@ class SessionPool:
             headers.setdefault("User-Agent", ent.injected_ua)
 
         def _do_get(u):
-            return ent.session.get(u, headers=headers, timeout=timeout, allow_redirects=False)
+            return ent.session.get(
+                u,
+                headers=headers,
+                timeout=timeout,
+                allow_redirects=False,
+                http_version=safety.http_version_for(u),
+            )
 
         return self._fetch_following(_do_get, url, allow_private, max_redirects, ent)
 

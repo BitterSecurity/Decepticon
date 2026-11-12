@@ -22,6 +22,14 @@ import sys
 from pathlib import Path
 from urllib.parse import urlsplit
 
+if not __package__:
+    # Script mode from the immutable sandbox bundle (see tools/web/search.py):
+    # managed OpenShell sessions inherit neither PYTHONPATH nor
+    # DECEPTICON_SKIP_BOOT, and the lean bundle lacks the management-side
+    # boot modules.
+    os.environ.setdefault("DECEPTICON_SKIP_BOOT", "1")
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
 from decepticon.sandbox_web.fetch_chain import ScopeCheck, fetch
 from decepticon.sandbox_web.providers import PROVIDERS, SearchResponse, is_allowed_provider
 

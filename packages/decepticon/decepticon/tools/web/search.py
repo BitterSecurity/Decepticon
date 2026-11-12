@@ -26,10 +26,11 @@ from langchain_core.tools import tool
 
 from decepticon.tools.bash.bash import _workspace_path_from_config, get_sandbox
 
-# Engine invocation. ``python3 -m decepticon.sandbox_web`` runs inside the
-# sandbox image (which mounts decepticon + carries curl_cffi); the verb/args
-# follow decepticon/sandbox_web/__main__.py.
-_ENGINE = "python3 -m decepticon.sandbox_web"
+#: Run as an isolated script from the image's immutable bundle: managed
+#: OpenShell sessions do not inherit the image PYTHONPATH, and ``-I`` keeps
+#: workspace files from shadowing imports.
+ENGINE_SCRIPT = "/usr/local/lib/decepticon-sandbox/decepticon/sandbox_web/__main__.py"
+_ENGINE = f"python3 -I {ENGINE_SCRIPT}"
 _FETCH_TIMEOUT = 90
 _SEARCH_TIMEOUT = 60
 
@@ -63,9 +64,11 @@ def _extract_json(output: str) -> dict[str, Any] | None:
     return None
 
 
-async def _dispatch(cmd: str, *, timeout: int) -> tuple[dict[str, Any] | None, str]:
+async def _dispatch(
+    cmd: str, *, timeout: int, config: RunnableConfig | None = None
+) -> tuple[dict[str, Any] | None, str]:
     """Run an engine command in the sandbox. Returns (parsed_json, raw_output)."""
-    sandbox = get_sandbox()
+    sandbox = get_sandbox(config)
     if sandbox is None:
         return None, "[ERROR] no sandbox available"
     try:
@@ -106,7 +109,7 @@ async def web_fetch(
         parts += ["--selector", shlex.quote(selector)]
     if device in ("desktop", "mobile"):
         parts += ["--device", device]
-    data, raw = await _dispatch(" ".join(parts), timeout=_FETCH_TIMEOUT)
+    data, raw = await _dispatch(" ".join(parts), timeout=_FETCH_TIMEOUT, config=config)
     if data is None:
         return raw or "[ERROR] web_fetch: no parseable result from engine"
 
@@ -179,7 +182,7 @@ async def web_search(
         "--workspace",
         shlex.quote(workspace),
     ]
-    data, raw = await _dispatch(" ".join(parts), timeout=_SEARCH_TIMEOUT)
+    data, raw = await _dispatch(" ".join(parts), timeout=_SEARCH_TIMEOUT, config=config)
     if data is None:
         return raw or "[ERROR] web_search: no parseable result from engine"
     if data.get("error"):

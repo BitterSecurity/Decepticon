@@ -86,3 +86,22 @@ def test_bash_uses_the_openshell_binding_when_the_env_is_unset(
     config = {"configurable": {"workspace_path": "/workspace/eng", "thread_id": "t"}}
     assert get_sandbox(config) is sentinel
     assert seen == [config]
+
+
+def test_explicit_sandbox_wins_outside_a_run(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Outside a langgraph run there is no run config: set_sandbox() wins."""
+    import importlib
+
+    bash_mod = importlib.import_module("decepticon.tools.bash.bash")
+    monkeypatch.delenv("DECEPTICON_SANDBOX_PROVIDER", raising=False)
+    monkeypatch.setattr(
+        factory,
+        "build_sandbox_backend",
+        lambda config=None: pytest.fail("no run config: must not build a run binding"),
+    )
+    explicit = object()
+    token = bash_mod.set_sandbox(explicit)
+    try:
+        assert bash_mod.get_sandbox() is explicit
+    finally:
+        bash_mod._sandbox_var.reset(token)

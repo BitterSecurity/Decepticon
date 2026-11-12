@@ -67,6 +67,7 @@ def _cffi_get(
             "Accept-Language": "en-US,en;q=0.9,ko;q=0.8",
         },
         allow_redirects=True,
+        http_version=safety.http_version_for(url),
     )
 
 
