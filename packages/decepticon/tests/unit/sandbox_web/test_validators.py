@@ -122,3 +122,18 @@ def test_to_dict_round_trips_fields() -> None:
     d = r.to_dict()
     assert d["verdict"] == "weak_ok"
     assert d["status"] == 200
+
+
+@pytest.mark.parametrize("status", [403, 406, 418])
+def test_non_2xx_json_error_body_is_never_success(status: int) -> None:
+    """Regression: an OpenShell proxy refusal (403 JSON) validated as weak_ok."""
+    body = '{"error":"unsupported_l7_protocol","detail":"h2c not supported"}'
+    for selectors in (None, ["article"]):
+        r = validate(_FakeResp(status_code=status, text=body), success_selectors=selectors)
+        assert r.verdict == Verdict.BLOCKED
+        assert not r.ok
+
+
+def test_2xx_json_is_still_weak_ok() -> None:
+    r = validate(_FakeResp(status_code=200, text='{"items":[1,2]}'))
+    assert r.verdict == Verdict.WEAK_OK
