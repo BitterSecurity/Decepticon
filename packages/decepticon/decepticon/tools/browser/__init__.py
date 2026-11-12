@@ -1,19 +1,16 @@
-"""Persistent Playwright browser sessions for the Decepticon agent.
+"""Agent browser tools.
 
-Exposes ``browser_action(action, **kwargs)`` — a single multiplex
-LangChain tool covering the operations a specialist needs to drive a
-real browser (SPA auth flows, OAuth callbacks, DOM-XSS verification,
-companion-app inspection). State lives in a per-process session
-manager; the optional Playwright dependency is imported lazily so the
-agent process keeps booting even when Playwright is not installed in
-the current environment.
-
-Sandbox / ``containers/sandbox.Dockerfile`` install of Playwright +
-Chromium and the ``docker-compose.yml`` wiring are intentionally out
-of scope for this initial library PR; a follow-up will install the
-deps in the sandbox image so the tool can be used end-to-end at runtime.
+* ``AGENT_BROWSER_TOOLS`` (``agent_tools``): the bound, typed ``browser_*``
+  tools. They run the configured provider (``DECEPTICON_BROWSER_PROVIDER``,
+  default ``obscura``) inside the engagement sandbox through
+  ``decepticon.sandbox_browser``. See ``docs/design/browser-providers.md``.
+* ``browser_action`` (``tools``): the legacy multiplex Playwright /
+  owned-browser-v1 tool, kept for library consumers. It is not bound to any
+  standard agent.
 """
 
+from decepticon.tools.browser.agent_tools import AGENT_BROWSER_TOOLS, agent_browser_tools
+from decepticon.tools.browser.names import AGENT_BROWSER_TOOL_NAMES
 from decepticon.tools.browser.tools import (
     BROWSER_TOOLS,
     BrowserActionError,
@@ -22,6 +19,9 @@ from decepticon.tools.browser.tools import (
 )
 
 __all__ = [
+    "AGENT_BROWSER_TOOLS",
+    "AGENT_BROWSER_TOOL_NAMES",
+    "agent_browser_tools",
     "BROWSER_TOOLS",
     "BrowserActionError",
     "BrowserSessionManager",

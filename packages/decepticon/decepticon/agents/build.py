@@ -546,7 +546,8 @@ def build_tools(
         for name in disabled_tools or ():
             base.pop(name, None)
         base.update(overrides or {})
-        return [*base.values(), *host.policy_tools(role)]
+        extra = list(host.policy_tools(role))
+        return [*_yield_browser_surface(base, extra).values(), *extra]
 
     resolved = _resolve_overrides(
         role=role,
@@ -568,9 +569,30 @@ def build_tools(
         base.pop(name, None)
     base.update(resolved.tool_replace)
 
-    result = list(base.values())
-    result.extend(load_plugin_tools(role=role))
+    plugin_tools = list(load_plugin_tools(role=role))
+    result = list(_yield_browser_surface(base, plugin_tools).values())
+    result.extend(plugin_tools)
     return result
+
+
+def _yield_browser_surface(base: dict[str, Any], extra_tools: list[Any]) -> dict[str, Any]:
+    """Drop the OSS agent browser tools when a host/plugin ships its own.
+
+    A plugin or host that provides any tool named like an OSS browser tool
+    owns the browser surface for the role: keeping both would duplicate
+    tool names or mix two browser backends. The OSS group is removed as a
+    whole (docs/design/browser-providers.md).
+    """
+    from decepticon.tools.browser.names import AGENT_BROWSER_TOOL_NAMES
+
+    extra_names = {_tool_name(t) for t in extra_tools}
+    if not extra_names & AGENT_BROWSER_TOOL_NAMES:
+        return base
+    logger.info(
+        "browser tools supplied by host/plugin (%s); removing OSS browser provider tools",
+        ", ".join(sorted(extra_names & AGENT_BROWSER_TOOL_NAMES)),
+    )
+    return {name: tool for name, tool in base.items() if name not in AGENT_BROWSER_TOOL_NAMES}
 
 
 def _tool_name(tool: Any) -> str:

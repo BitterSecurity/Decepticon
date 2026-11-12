@@ -52,6 +52,7 @@ from decepticon.middleware._injection_detector import (
     detect_injection,
     neutralize_special_tokens,
 )
+from decepticon.tools.browser.names import AGENT_BROWSER_TOOL_NAMES
 
 log = logging.getLogger(__name__)
 
@@ -92,6 +93,8 @@ UNTRUSTED_TOOL_NAMES: frozenset[str] = frozenset(
         "web_fetch",
         "web_search",
     }
+    # Engagement browser tools return attacker-influenceable page content.
+    | AGENT_BROWSER_TOOL_NAMES
 )
 
 

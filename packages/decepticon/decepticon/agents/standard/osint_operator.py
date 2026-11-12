@@ -35,6 +35,7 @@ from decepticon.llm import LLMFactory
 from decepticon.middleware.step_budget import StepBudgetMiddleware, effective_recursion_limit
 from decepticon.tools.bash import BASH_TOOLS
 from decepticon.tools.bash.bash import set_sandbox
+from decepticon.tools.browser.agent_tools import agent_browser_tools
 from decepticon.tools.references.tools import methodology_lookup, payload_search
 from decepticon.tools.research.tools import (
     cve_lookup,
@@ -62,6 +63,8 @@ _STANDARD_TOOLS: dict[str, Any] = {
         web_search,
         web_fetch,
         *BASH_TOOLS,
+        # Engagement browser (provider-selected, docs/design/browser-providers.md)
+        *agent_browser_tools(),
     ]
 }
 
