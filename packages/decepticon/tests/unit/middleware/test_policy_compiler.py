@@ -279,3 +279,36 @@ def test_osint_allowance_cannot_reintroduce_explicit_denial(denial):
         assert "html.duckduckgo.com" not in hosts
     else:
         assert "duckduckgo.com" not in hosts
+
+
+def test_unenforced_controls_are_reported_not_dropped():
+    from decepticon.middleware.policy_compiler import compile_openshell_policy
+    from decepticon_core.types.roe import MachineEnforcement
+
+    rules = MachineEnforcement.from_dict(
+        {
+            "in_scope": ["example.com"],
+            "forbidden_command_patterns": ["rm -rf"],
+            "max_concurrent_connections": 4,
+            "min_inter_request_delay_ms": 250,
+        }
+    )
+    compiled = compile_openshell_policy(rules)
+    assert compiled.errors == ()
+    assert [w.split(" ")[0] for w in compiled.warnings] == [
+        "machine_enforcement.forbidden_command_patterns",
+        "machine_enforcement.max_concurrent_connections",
+        "machine_enforcement.min_inter_request_delay_ms",
+    ]
+
+
+def test_roe_without_unenforced_controls_has_no_warnings():
+    from decepticon.middleware.policy_compiler import compile_openshell_policy
+    from decepticon_core.types.roe import MachineEnforcement
+
+    assert (
+        compile_openshell_policy(
+            MachineEnforcement.from_dict({"in_scope": ["example.com"]})
+        ).warnings
+        == ()
+    )

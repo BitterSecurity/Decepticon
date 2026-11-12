@@ -69,7 +69,6 @@ middleware, not agents:
 - `events.jsonl` — append-only structured event log (`EventLogMiddleware`,
   `runtime/event_log.py`): engagement start, agent turns, LLM/tool calls,
   findings, OPPLAN updates. Failures here never break the agent.
-- `audit/roe-decisions.jsonl` — HMAC-chained RoE decision ledger (`_audit_sink.py`).
   Every RoE pass/refuse is stamped with `seq`, `hash`, `prev_hash`, `hmac`;
   tampering with record N invalidates all later records.
 

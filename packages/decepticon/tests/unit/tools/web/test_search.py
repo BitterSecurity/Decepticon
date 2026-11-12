@@ -8,7 +8,6 @@ from dataclasses import dataclass
 
 import pytest
 
-from decepticon.middleware.roe import GATED_TOOL_NAMES, NETWORK_TARGET_EXTRACTORS
 from decepticon.middleware.untrusted_output import UNTRUSTED_TOOL_NAMES
 from decepticon.tools.web import search
 
@@ -148,18 +147,6 @@ async def test_web_search_provider_error(monkeypatch: pytest.MonkeyPatch) -> Non
 
 
 # --- middleware wiring -------------------------------------------------------
-
-
-def test_tools_are_roe_gated() -> None:
-    assert "web_fetch" in GATED_TOOL_NAMES
-    assert "web_search" in GATED_TOOL_NAMES
-
-
-def test_web_fetch_target_gated_web_search_exempt() -> None:
-    # web_fetch extracts the url host (target-gated)...
-    assert NETWORK_TARGET_EXTRACTORS["web_fetch"]({"url": "https://t.test/x"}) == ["t.test"]
-    # ...web_search is OSINT: no host extracted (target-exempt, still audited).
-    assert NETWORK_TARGET_EXTRACTORS["web_search"]({"query": "q"}) == []
 
 
 def test_tools_are_untrusted() -> None:

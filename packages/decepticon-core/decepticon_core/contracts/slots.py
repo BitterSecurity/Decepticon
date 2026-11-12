@@ -28,7 +28,9 @@ class MiddlewareSlot(StrEnum):
     """
 
     ENGAGEMENT_CONTEXT = "engagement-context"
-    ROE_GUARDRAIL = "roe-guardrail"
+    # Execution time window (RoE authorized/blackout windows). Runs right
+    # after ENGAGEMENT_CONTEXT so the hydrated workspace is available.
+    TIME_WINDOW = "time-window"
     HITL_APPROVAL = "hitl-approval"
     UNTRUSTED_OUTPUT = "untrusted-output"
     PROMPT_INJECTION_SHIELD = "prompt-injection-shield"
@@ -56,32 +58,26 @@ class MiddlewareSlot(StrEnum):
     PROMPT_CACHING = "prompt-caching"
     PATCH_TOOL_CALLS = "patch-tool-calls"
 
-    # ── Retained compatibility alias; no removal version is assigned ──
-    # The slot was renamed ``ROE_ENFORCEMENT`` → ``ROE_GUARDRAIL`` when
-    # enforcement became genuinely layered (advisory command-parse +
-    # authoritative sandbox egress); the parser is one guardrail among
-    # several, not *the* enforcement. This alias keeps plugin bundles
-    # that reference ``MiddlewareSlot.ROE_ENFORCEMENT`` resolving to the
-    # same member. As an enum alias it shares ROE_GUARDRAIL's value and
-    # assembly position, and is excluded from iteration — so the slot is
-    # never assembled twice.
-    ROE_ENFORCEMENT = "roe-guardrail"
+    # ── Deprecated aliases of TIME_WINDOW ──
+    # The RoE guardrail slot was replaced: network scope is enforced only by
+    # the OpenShell policy and the slot now hosts TimeWindowMiddleware. The
+    # old member names resolve to TIME_WINDOW so plugin bundles that
+    # reference them keep loading; the "roe-guardrail" string value is gone.
+    ROE_GUARDRAIL = "time-window"
+    ROE_ENFORCEMENT = "time-window"
 
 
 SAFETY_CRITICAL_SLOTS: frozenset[MiddlewareSlot] = frozenset(
     {
-        # EngagementContextMiddleware carries RoE constraints into every
-        # tool call - disabling it lets an agent target out-of-scope
-        # hosts without any guard rail. Replacement is fine if the new
+        # EngagementContextMiddleware carries the engagement scope and
+        # workspace into every model and tool call. Replacement is fine if the new
         # middleware honours the same contract; full disable is the
         # actual hazard.
         MiddlewareSlot.ENGAGEMENT_CONTEXT,
-        # RoEGuardrailMiddleware is the legal/safety gate for every
-        # bash tool call. Disabling it lets the agent attempt commands
-        # against out-of-scope targets without record. Replacement is
-        # fine if the new middleware honours the same contract (target
-        # extraction + RoE evaluation + chained audit log).
-        MiddlewareSlot.ROE_GUARDRAIL,
+        # TimeWindowMiddleware stops runs outside the RoE's authorized
+        # time windows. Time windows are not expressible as an OpenShell
+        # network policy, so disabling it removes the only enforcement.
+        MiddlewareSlot.TIME_WINDOW,
         # UntrustedOutputMiddleware structurally separates attacker-
         # influenceable tool output (bash stdout, file reads, KG
         # queries) from authoritative instructions via the
@@ -157,7 +153,6 @@ _BASE_SLOTS: frozenset[MiddlewareSlot] = _TAIL_SLOTS | {
     MiddlewareSlot.SKILLS,
     MiddlewareSlot.FILESYSTEM,
     MiddlewareSlot.UNTRUSTED_OUTPUT,
-    MiddlewareSlot.ROE_GUARDRAIL,
     # Additive / no-op-safe slots every agent gets: structured event
     # logging, the prompt-injection shield (deny-list wrap; coexists
     # with UNTRUSTED_OUTPUT's allow-list via dedup in the shield), and
@@ -173,6 +168,8 @@ _BASE_SLOTS: frozenset[MiddlewareSlot] = _TAIL_SLOTS | {
 # context + sandbox notification.
 _BASH_AGENT_SLOTS: frozenset[MiddlewareSlot] = _BASE_SLOTS | {
     MiddlewareSlot.ENGAGEMENT_CONTEXT,
+    # Target-acting roles run only inside the RoE execution time window.
+    MiddlewareSlot.TIME_WINDOW,
     MiddlewareSlot.SANDBOX_NOTIFICATION,
     MiddlewareSlot.HITL_APPROVAL,
 }
@@ -183,6 +180,7 @@ SLOTS_PER_ROLE: dict[str, frozenset[MiddlewareSlot]] = {
     "decepticon": _BASE_SLOTS
     | {
         MiddlewareSlot.ENGAGEMENT_CONTEXT,
+        MiddlewareSlot.TIME_WINDOW,
         MiddlewareSlot.SUBAGENT,
         MiddlewareSlot.OPPLAN,
         MiddlewareSlot.HITL_APPROVAL,
@@ -196,7 +194,6 @@ SLOTS_PER_ROLE: dict[str, frozenset[MiddlewareSlot]] = {
     "soundwave": _BASE_SLOTS | {MiddlewareSlot.ENGAGEMENT_CONTEXT},
     "blue_cell": frozenset(
         {
-            MiddlewareSlot.ROE_GUARDRAIL,
             MiddlewareSlot.UNTRUSTED_OUTPUT,
             MiddlewareSlot.PROMPT_INJECTION_SHIELD,
             MiddlewareSlot.MODEL_FALLBACK,

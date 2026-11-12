@@ -23,8 +23,8 @@ and
 
 | Control (slot) | Default posture | Knob | How to verify |
 |----------------|-----------------|------|---------------|
-| **RoE guardrail** (`roe-guardrail`) | Gated calls enforce machine rules; missing/invalid configuration is refused. Safety-critical. | `<workspace>/plan/roe.json:machine_enforcement`; legacy `mode` values are ignored | Add a target excluded by the reviewed rules; expect a `[ROE_REFUSED]` `ToolMessage` and an `OUT_OF_SCOPE` row in the [audit ledger](./audit-ledger.md). |
-| **RoE egress guardrail** (network) | OpenShell kernel policy attached at sandbox creation; the admitted policy hash is verified against the compiled RoE hash every turn. | The trusted OpenShell resolver compiles `plan/roe.json:machine_enforcement` into `SandboxPolicy` (`middleware/policy_compiler.py`); backends without OpenShell authority fail loudly and retry. The retired `DECEPTICON_EGRESS_DISABLE=1` flag only logs a warning. | Inspect the `egress_provisioned` audit event (policy hash) and exercise the actual kernel boundary. A parser refusal still does not prove network policy was applied. |
+| **Execution time window** (`time-window`) | Runs end outside the RoE `authorized_windows` or inside `blackout_windows`, before the run starts and before every model call. Safety-critical. | `<workspace>/plan/roe.json:machine_enforcement` windows | Set a window that excludes now; the run ends with `decepticon_time_window_stop` and no model call. See [roe-machine-enforcement](./roe-machine-enforcement.md). |
+| **Network scope** (OpenShell policy) | The only network authority: OpenShell policy compiled from the RoE and attached at sandbox creation; admission rechecked before every execution. | `plan/roe.json:machine_enforcement` scope fields; `DECEPTICON_OPENSHELL_ROE_PORTS` / `_BINARIES` | Exercise an out-of-scope connection from the sandbox and inspect the supervisor `NET:OPEN ... DENIED` record. |
 | **Untrusted-output quarantine** (`untrusted-output`) | Always on, every role. Safety-critical. | None — in `_BASE_SLOTS`; only a plugin with `DECEPTICON_ALLOW_SAFETY_OVERRIDES=1` can replace it. | Read a hostile banner; tool output is wrapped in the `<UNTRUSTED_TOOL_OUTPUT>` envelope. See [prompt-injection-defense](./prompt-injection-defense.md). |
 | **Prompt-injection shield** (`prompt-injection-shield`) | Always on, every role. Safety-critical. | None — in `_BASE_SLOTS`; same override gate as above. | Deny-listed payloads in tool output are wrapped before reaching the next model call. |
 | **HITL approval** (`hitl-approval`) | Off by default — opt-in. Safety-critical when enabled. | `DECEPTICON_HITL__ENABLED` (truthy enables) | Enable it, trigger a `T1003` objective or a `sliver_*` tool; the run pauses for an approval written to `<workspace>/approvals/requests.jsonl`. See [hitl-approval](./hitl-approval.md). |
@@ -66,15 +66,11 @@ a failed credential-chain check blocks the model call. These are different
 failure boundaries; do not describe all budget failures as fail-open or all as
 fail-closed.
 
-### Audit ledger
+### Evidence chain of custody
 
 | Variable | Default | Effect |
 |----------|---------|--------|
-| `DECEPTICON_AUDIT_HMAC_KEY` | unset (`hmac` field empty) | Operator secret that binds the audit chain via HMAC-SHA-256. |
-| `DECEPTICON_ROE_AUDIT_PATH` | `<workspace>/audit/roe-decisions.jsonl` | Pins the ledger to a deterministic path. |
-
-See [audit-ledger](./audit-ledger.md) for the chain format and
-verification.
+| `DECEPTICON_AUDIT_HMAC_KEY` | unset (`hmac` field empty) | Operator secret that binds the evidence chain-of-custody manifest (`seal_evidence` / `verify_evidence`) via HMAC-SHA-256. |
 
 ### HITL
 
@@ -87,7 +83,6 @@ See [hitl-approval](./hitl-approval.md) for the policy and approval flow.
 ## See also
 
 - [RoE Machine Enforcement](./roe-machine-enforcement.md)
-- [Audit Ledger](./audit-ledger.md)
 - [HITL Approval](./hitl-approval.md)
 - [Threat Model](./decepticon-threat-model.md)
 - [Prompt-Injection Defense](./prompt-injection-defense.md)

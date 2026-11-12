@@ -25,12 +25,12 @@ from openshell._proto import openshell_pb2 as pb
 
 from decepticon.backends import openshell_local
 from decepticon.backends.daemon_client import SandboxError
+from decepticon.middleware._roe_rules import load_machine_enforcement as _load_rules_for_workspace
 from decepticon.middleware.policy_compiler import (
     compile_openshell_policy,
     sandbox_binding_digest,
     sandbox_name,
 )
-from decepticon.middleware.roe import _load_rules_for_workspace
 from decepticon.sandbox_server.session_client import MANAGED_START
 
 

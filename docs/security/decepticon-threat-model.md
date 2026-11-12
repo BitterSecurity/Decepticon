@@ -102,7 +102,7 @@ Per-asset analysis.
 | **Spoofing** | Sandbox HTTP daemon has no auth by default | `SANDBOX_TOKEN` env enables Bearer auth; loopback-only deploys are fine without | Partial |
 | **Tampering** | Agent's command rewritten by hostile banner | UntrustedOutputMiddleware + injection detector | Done ([prompt-injection-defense](./prompt-injection-defense.md)) |
 | **Tampering** | Out-of-scope target reached | RoEEnforcementMiddleware refuses + chained audit log | Done ([RoE schema + middleware](../../packages/decepticon-core/decepticon_core/types/roe.py)) |
-| **Repudiation** | Operator denies engagement actions | HMAC-chained audit ledger (`<workspace>/audit/roe-decisions.jsonl`) | Done |
+| **Repudiation** | Operator denies engagement actions | Engagement event log (`events.jsonl`), OpenShell supervisor OCSF records and the HMAC-chained evidence chain-of-custody manifest | Done |
 | **Information disclosure** | One Kali container shared across engagements | Per-engagement sandbox containers (planned, see Tier 3) | Open |
 | **Denial of service** | Tool processes can exhaust resources within their limits | Compose enforces `mem_limit: 4g` and `pids_limit: 4096` for the sandbox | Bounded, not eliminated |
 | **Elevation of privilege** | Sandbox kernel exploit → host | Firecracker microVM per objective (planned, multi-tenant deployments only) | Open |
@@ -178,10 +178,8 @@ detail in the runtime security reference suite:
 
 - [Security Controls](./security-controls.md) — knob/default/verify table
   for every runtime guard, plus the budget, audit, and HITL env vars.
-- [RoE Machine Enforcement](./roe-machine-enforcement.md) — the scope and
-  forbidden-command gate for bash tool calls.
-- [Audit Ledger](./audit-ledger.md) — the HMAC-chained record of RoE
-  decisions and how to verify it.
+- [RoE Machine Enforcement](./roe-machine-enforcement.md) — OpenShell
+  network scope and execution time windows.
 - [HITL Approval](./hitl-approval.md) — the opt-in operator-approval gate
   for high-impact actions.
 
