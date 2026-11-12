@@ -267,3 +267,9 @@ class TestPatchVerify:
         # PoC was never executed
         assert len(sandbox.commands) == 1
         assert "pytest" in sandbox.commands[0]
+
+
+@pytest.fixture(autouse=True)
+def _docker_sandbox_provider(monkeypatch: pytest.MonkeyPatch) -> None:
+    """These tests exercise the plain daemon (docker provider) transport."""
+    monkeypatch.setenv("DECEPTICON_SANDBOX_PROVIDER", "docker")

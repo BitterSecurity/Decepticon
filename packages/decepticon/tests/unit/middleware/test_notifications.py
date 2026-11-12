@@ -4,6 +4,7 @@ import asyncio
 import threading
 from unittest.mock import MagicMock
 
+import pytest
 from langchain_core.messages import AIMessage, HumanMessage
 
 from decepticon.middleware.notifications import (
@@ -329,3 +330,9 @@ def test_parallel_native_notification_hooks_keep_same_named_jobs_separate(monkey
     assert "alpha-output" in first["messages"][0].content
     assert "beta-output" not in first["messages"][0].content
     assert "beta-output" in second["messages"][0].content
+
+
+@pytest.fixture(autouse=True)
+def _docker_sandbox_provider(monkeypatch: pytest.MonkeyPatch) -> None:
+    """These tests exercise the plain daemon (docker provider) transport."""
+    monkeypatch.setenv("DECEPTICON_SANDBOX_PROVIDER", "docker")

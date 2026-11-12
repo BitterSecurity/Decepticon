@@ -53,13 +53,16 @@ class HostRunConfigurable(TypedDict, total=False):
     # Sandbox routing — read by the backend factory and the bash tool so a
     # shared process can route each run to its own engagement sandbox. The
     # host's provider comes from ``DECEPTICON_SANDBOX_PROVIDER`` (default
-    # ``"openshell"``; ``"http"`` is the explicit non-engagement escape hatch).
+    # ``"openshell"``; ``"docker"`` — formerly ``"http"`` — is the plain sandbox
+    # daemon without a network boundary; plugins may register more).
     sandbox_url: str
-    """Base URL of this run's sandbox daemon. Used only on the HTTP transport."""
+    """Base URL of this run's sandbox daemon. Used only by the ``docker`` provider;
+    an OpenShell host refuses runs that pass it."""
     sandbox_token: str
     """Bearer token for ``sandbox_url``. Used only on the HTTP transport."""
     sandbox_provider: str
-    """``"openshell"`` or ``"http"``. A run on an HTTP host may request
+    """``"openshell"`` or ``"docker"`` (``"http"`` is a deprecated alias). A run on a
+    non-OpenShell host may request
     ``"openshell"``, which requires a trusted resolver installed with
     ``configure_openshell_resolver``. On an OpenShell host any other value is
     refused — a run can never downgrade the host's provider."""
