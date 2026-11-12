@@ -255,6 +255,11 @@ def validate(
     ctype = _content_type(resp)
     if _looks_like_json(text, ctype):
         j = _json_ok(text)
+        if j is not None and not 200 <= status <= 299:
+            # A JSON error body (proxy refusal, API error) is never success.
+            r.verdict = Verdict.BLOCKED
+            r.reasons.append(f"status={status}:json_error_body")
+            return r
         if j is True:
             # A 2xx with non-empty parseable JSON is a successful API hit even
             # if tiny. CSS selectors don't apply to JSON, so WEAK_OK is the
