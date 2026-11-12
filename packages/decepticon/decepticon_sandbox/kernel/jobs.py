@@ -1,7 +1,7 @@
 """Background-job tracking — used by the bash tool / SandboxNotificationMiddleware.
 
 Originally lived inline in ``decepticon/backends/docker_sandbox.py``. Moved
-out so the in-container HTTP daemon (``decepticon.sandbox_server``) can
+out so the in-container HTTP daemon (``decepticon_sandbox.server``) can
 import it without pulling in the agent-side ``DockerSandbox`` /
 ``HTTPTransportSandbox`` transport classes — see ``sandbox_kernel/__init__.py``
 for the layering rationale.

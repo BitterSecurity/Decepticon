@@ -14,14 +14,18 @@ except PackageNotFoundError:
 
 __package_name__ = "decepticon"
 
+# Legacy ``decepticon.sandbox_*`` imports resolve to ``decepticon_sandbox``.
+from decepticon import _sandbox_aliases as _sandbox_aliases  # noqa: E402
+
+_sandbox_aliases.install()
+
 # Phase 2 framework boot — register OSS roles with RoleRegistry,
 # materialize the PluginRegistry singleton, and surface the legacy
 # import paths via the compat shim. All idempotent / opt-out via env.
 #
-# The sandbox container ships only a subset of decepticon (sandbox_kernel
-# + sandbox_server + bare __init__.py) without decepticon-core installed,
-# so it must opt out of the full framework boot. The sandbox.Dockerfile
-# sets DECEPTICON_SKIP_BOOT=1 in its ENV so this import doesn't fail.
+# The sandbox runtime lives in the separate ``decepticon_sandbox`` package
+# and never imports this one. DECEPTICON_SKIP_BOOT=1 remains an explicit
+# opt-out for embedders that need the package without the registries.
 if not _os.environ.get("DECEPTICON_SKIP_BOOT"):
     from decepticon import _boot, compat
 

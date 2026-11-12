@@ -32,7 +32,7 @@ from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import Any
 
-from decepticon.sandbox_browser.contract import Artifact, BrowserRequest, BrowserResult
+from decepticon_sandbox.browser.contract import Artifact, BrowserRequest, BrowserResult
 
 NAME = "obscura"
 BINARY_ENV = "DECEPTICON_OBSCURA_BIN"

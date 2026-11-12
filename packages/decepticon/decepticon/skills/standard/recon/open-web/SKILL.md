@@ -6,12 +6,12 @@ metadata:
   subdomain: reconnaissance
   when_to_use: "blocked page, 403/402, WAF, cloudflare, akamai, datadome, captcha, JS-rendered page, open-web OSINT, read public page, reddit, x/twitter, youtube, search the web, third-party intel"
   tags: open-web, osint, web-fetch, web-search, waf-bypass
-  upstream_ref: "adapted from fivetaku/insane-search (MIT) — SKILL.md R1–R7; decepticon/sandbox_web engine"
+  upstream_ref: "adapted from fivetaku/insane-search (MIT) — SKILL.md R1–R7; decepticon_sandbox/web engine"
 ---
 
 # Open-Web Acquisition — web_search / web_fetch
 
-Two tools front the sandbox open-web engine (`decepticon.sandbox_web`):
+Two tools front the sandbox open-web engine (`decepticon_sandbox.web`):
 
 - **`web_search(query, provider="duckduckgo")`** — keyword OSINT over an
   allowlisted search provider. Target-EXEMPT (it hits the provider, not the

@@ -6,7 +6,7 @@ under an enforcing in-scope allowlist or the tool would silently fail. The
 OpenShell kernel policy compiler (``decepticon.middleware.policy_compiler``)
 renders them as a separate allowance section of the sandbox policy.
 
-Mirrors the provider allowlist in ``decepticon.sandbox_web.providers``
+Mirrors the provider allowlist in ``decepticon_sandbox.web.providers``
 (kept as a small literal here to avoid the middleware importing the
 in-sandbox engine). Extend/replace via ``DECEPTICON_OSINT_EGRESS_HOSTS``
 (comma-separated); set it empty to disable.

@@ -12,8 +12,7 @@ import os
 from pathlib import Path
 
 import pytest
-
-from decepticon.sandbox_kernel.daemon import DaemonSandbox
+from decepticon_sandbox.kernel.daemon import DaemonSandbox
 
 pytestmark = pytest.mark.skipif(
     os.name == "nt",

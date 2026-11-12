@@ -107,8 +107,8 @@ rules:
       include:
         - "**/decepticon/middleware/**"
         - "**/decepticon/tools/**"
-        - "**/decepticon/sandbox_kernel/**"
-        - "**/decepticon/sandbox_server/**"
+        - "**/decepticon_sandbox/kernel/**"
+        - "**/decepticon_sandbox/server/**"
         - "**/decepticon/runtime/**"
       exclude:
         - "**/tests/**"

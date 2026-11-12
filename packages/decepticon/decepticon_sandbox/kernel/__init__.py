@@ -11,7 +11,7 @@ contains the tmux session manager, the background-job tracker, and the
       ``SandboxNotificationMiddleware`` mirror pattern works against
       the remote daemon's state.
 
-  ``decepticon.sandbox_server.app`` — sandbox-side, FastAPI daemon.
+  ``decepticon_sandbox.server.app`` — sandbox-side, FastAPI daemon.
       Imports ``DaemonSandbox`` from this package and exposes its
       methods over HTTP. Instantiates ``DaemonSandbox(exec_prefix=[])``
       so tmux is driven by local subprocesses inside the container.
@@ -35,8 +35,8 @@ nothing" boundary intact: the sandbox image ships only
 keeps ``backends`` + everything else.
 """
 
-from decepticon.sandbox_kernel.jobs import BackgroundJob, BackgroundJobTracker
-from decepticon.sandbox_kernel.tmux import (
+from decepticon_sandbox.kernel.jobs import BackgroundJob, BackgroundJobTracker
+from decepticon_sandbox.kernel.tmux import (
     AUTO_BACKGROUND_SECONDS,
     MAX_OUTPUT_CHARS,
     POLL_INTERVAL,

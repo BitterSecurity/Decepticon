@@ -14,10 +14,9 @@ from __future__ import annotations
 from collections.abc import Iterator
 
 import pytest
-
-from decepticon.sandbox_kernel import BackgroundJobTracker, TmuxSessionManager
-from decepticon.sandbox_kernel.base import SandboxBase
-from decepticon.sandbox_kernel.daemon import DaemonSandbox
+from decepticon_sandbox.kernel import BackgroundJobTracker, TmuxSessionManager
+from decepticon_sandbox.kernel.base import SandboxBase
+from decepticon_sandbox.kernel.daemon import DaemonSandbox
 
 
 @pytest.fixture(autouse=True)

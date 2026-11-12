@@ -7,8 +7,7 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
-
-from decepticon.sandbox_kernel import tmux
+from decepticon_sandbox.kernel import tmux
 
 pytestmark = pytest.mark.slow
 
@@ -127,7 +126,7 @@ def test_cancelled_waiter_can_interrupt_and_recover(manager: tmux.TmuxSessionMan
 def test_background_consumer_waits_for_native_generation(
     manager: tmux.TmuxSessionManager, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from decepticon.sandbox_kernel.daemon import DaemonSandbox
+    from decepticon_sandbox.kernel.daemon import DaemonSandbox
 
     sandbox = DaemonSandbox()
     session = manager.session
@@ -154,7 +153,7 @@ def test_background_consumer_waits_for_native_generation(
 def test_auto_background_completion_keeps_generation(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from decepticon.sandbox_kernel.daemon import DaemonSandbox
+    from decepticon_sandbox.kernel.daemon import DaemonSandbox
 
     monkeypatch.setattr(tmux, "AUTO_BACKGROUND_SECONDS", 0.1)
     monkeypatch.setattr(tmux, "POLL_INTERVAL", 0.02)

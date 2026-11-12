@@ -15,8 +15,8 @@ import urllib.request
 
 MAX_MESSAGE_BYTES = 8 * 1024 * 1024
 MANAGED_PACKAGE_ROOT = "/usr/local/lib/decepticon-sandbox"
-MANAGED_BRIDGE = MANAGED_PACKAGE_ROOT + "/decepticon/sandbox_server/session_client.py"
-MANAGED_START = MANAGED_PACKAGE_ROOT + "/decepticon/sandbox_server/managed_start.py"
+MANAGED_BRIDGE = MANAGED_PACKAGE_ROOT + "/decepticon_sandbox/server/session_client.py"
+MANAGED_START = MANAGED_PACKAGE_ROOT + "/decepticon_sandbox/server/managed_start.py"
 MANAGED_LOG = "/tmp/decepticon-session/daemon.log"
 SESSION_PATHS = frozenset(
     {

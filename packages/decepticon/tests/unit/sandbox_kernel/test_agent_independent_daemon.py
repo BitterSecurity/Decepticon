@@ -9,26 +9,25 @@ from pathlib import Path
 
 import httpx
 import pytest
+from decepticon_sandbox.kernel.base import SandboxBase
+from decepticon_sandbox.kernel.daemon import DaemonSandbox
 from deepagents.backends.protocol import ExecuteResponse, FileDownloadResponse, FileUploadResponse
 from fastapi.testclient import TestClient
 
 from decepticon.backends.http_transport import HTTPTransportSandbox
-from decepticon.sandbox_kernel.base import SandboxBase
-from decepticon.sandbox_kernel.daemon import DaemonSandbox
 
 
 def test_fresh_daemon_import_refuses_any_agent_stack_dependency():
     root = Path(__file__).resolve().parents[5]
     code = """
 import importlib.abc,json,os,sys
-os.environ['DECEPTICON_SKIP_BOOT']='1'
 sys.path[:0]=json.loads(sys.argv[1])
 class RefuseAgentStack(importlib.abc.MetaPathFinder):
     def find_spec(self, fullname, path=None, target=None):
         if fullname.split('.')[0] in {'deepagents','langchain','langchain_core','langgraph','langsmith'}:
             raise AssertionError('Execution daemon imports agent stack: '+fullname)
 sys.meta_path.insert(0,RefuseAgentStack())
-import decepticon.sandbox_server.app
+import decepticon_sandbox.server.app
 print('lean-daemon-imported')
 """
     result = subprocess.run(
@@ -63,7 +62,7 @@ def test_legacy_adapter_retains_real_deep_agents_execution_record():
 
 @pytest.mark.skipif(os.name == "nt", reason="Execution daemon uses POSIX commands and paths")
 def test_real_http_transport_preserves_files_and_agent_filesystem_helpers(tmp_path, monkeypatch):
-    app = importlib.import_module("decepticon.sandbox_server.app")
+    app = importlib.import_module("decepticon_sandbox.server.app")
     backend = DaemonSandbox()
     # This wire test owns no tmux sessions and must not reap another task's.
     monkeypatch.setattr(backend, "reap_orphaned_tmux_sessions", lambda: 0)

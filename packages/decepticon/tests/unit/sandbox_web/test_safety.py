@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from decepticon.sandbox_web import safety
+from decepticon_sandbox.web import safety
 
 
 def test_ip_blocked_internal_ranges() -> None:

@@ -1,7 +1,7 @@
 """``web_search`` / ``web_fetch`` agent tools — management-side wrappers.
 
 These are thin wrappers: they dispatch the open-web engine
-(``decepticon.sandbox_web``) **inside the sandbox** over the existing execution
+(``decepticon_sandbox.web``) **inside the sandbox** over the existing execution
 surface (``HTTPTransportSandbox.execute``), so every byte of egress happens in
 ``sandbox-net`` behind the RoE-compiled nftables allowlist. No new transport,
 no side channel — same pattern as the bash tool reaching the sandbox.
@@ -26,11 +26,11 @@ from langchain_core.tools import tool
 
 from decepticon.tools.bash.bash import _workspace_path_from_config, get_sandbox
 
-#: Run as an isolated script from the image's immutable bundle: managed
-#: OpenShell sessions do not inherit the image PYTHONPATH, and ``-I`` keeps
-#: workspace files from shadowing imports.
-ENGINE_SCRIPT = "/usr/local/lib/decepticon-sandbox/decepticon/sandbox_web/__main__.py"
-_ENGINE = f"python3 -I {ENGINE_SCRIPT}"
+#: The sandbox image registers its immutable runtime bundle on sys.path, so the
+#: engine resolves without PYTHONPATH; ``-I`` keeps workspace files from
+#: shadowing imports.
+ENGINE_MODULE = "decepticon_sandbox.web"
+_ENGINE = f"python3 -I -m {ENGINE_MODULE}"
 _FETCH_TIMEOUT = 90
 _SEARCH_TIMEOUT = 60
 

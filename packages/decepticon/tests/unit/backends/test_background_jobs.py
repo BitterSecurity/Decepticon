@@ -5,9 +5,8 @@ import subprocess
 from unittest.mock import patch
 
 import pytest
-
-from decepticon.sandbox_kernel import BackgroundJobTracker, TmuxSessionManager
-from decepticon.sandbox_kernel.daemon import DaemonSandbox
+from decepticon_sandbox.kernel import BackgroundJobTracker, TmuxSessionManager
+from decepticon_sandbox.kernel.daemon import DaemonSandbox
 
 
 def test_register_records_command_and_marker_count():
@@ -155,8 +154,8 @@ def test_auto_background_path_registers_owned_generation() -> None:
         patch.object(mgr, "_capture", return_value="[DCPTN:0:/workspace] "),
         patch.object(mgr, "_send"),
         patch.object(mgr, "_tmux", side_effect=native_state),
-        patch("decepticon.sandbox_kernel.tmux.AUTO_BACKGROUND_SECONDS", 0.0),
-        patch("decepticon.sandbox_kernel.tmux.POLL_INTERVAL", 0.01),
+        patch("decepticon_sandbox.kernel.tmux.AUTO_BACKGROUND_SECONDS", 0.0),
+        patch("decepticon_sandbox.kernel.tmux.POLL_INTERVAL", 0.01),
     ):
         output = asyncio.run(sandbox.execute_tmux_async("sleep 9", session="long", timeout=2))
     job = sandbox._jobs.get("long")

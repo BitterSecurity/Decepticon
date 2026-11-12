@@ -1,6 +1,6 @@
 """Tests for the sandbox HTTP daemon FastAPI app.
 
-The daemon (``decepticon/sandbox_server/app.py``) is a thin transport
+The daemon (``decepticon_sandbox/server/app.py``) is a thin transport
 layer over a ``DaemonSandbox``. These tests exercise the wire surface
 with a mocked backend so no real subprocess / tmux / filesystem IO
 happens — every backend method is stubbed and only the request/response
@@ -24,12 +24,12 @@ from unittest.mock import MagicMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
-# Import the module object explicitly. ``decepticon.sandbox_server.__init__``
+# Import the module object explicitly. ``decepticon_sandbox.server.__init__``
 # binds ``app`` (the FastAPI instance) as a package attribute, so a plain
-# ``import decepticon.sandbox_server.app as app_module`` would resolve
+# ``import decepticon_sandbox.server.app as app_module`` would resolve
 # ``.app`` to that instance rather than the submodule. ``import_module``
 # always returns the module.
-app_module = importlib.import_module("decepticon.sandbox_server.app")
+app_module = importlib.import_module("decepticon_sandbox.server.app")
 app = app_module.app
 
 TOKEN = "s3cr3t-token"  # noqa: S105  — test fixture, not a real credential

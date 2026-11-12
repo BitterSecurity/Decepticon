@@ -1,7 +1,7 @@
 """Typed, provider-neutral agent browser tools.
 
-Each tool sends one :mod:`decepticon.sandbox_browser.contract` action to the
-sandbox runner (``python3 -I <bundle>/decepticon/sandbox_browser/__main__.py call``) over the same
+Each tool sends one :mod:`decepticon_sandbox.browser.contract` action to the
+sandbox runner (``python3 -I -m decepticon_sandbox.browser call``) over the same
 execution surface as the bash tool. The browser itself runs inside the
 engagement sandbox, so the sandbox OpenShell network policy compiled from
 ``plan/roe.json`` enforces every destination it reaches (top-level
@@ -22,21 +22,21 @@ import os
 import shlex
 from typing import Any, Literal
 
+from decepticon_sandbox.browser.contract import BrowserRequest
+from decepticon_sandbox.browser.provider import DEFAULT_PROVIDER
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import BaseTool, StructuredTool
 from pydantic import BaseModel, ConfigDict, Field
 
-from decepticon.sandbox_browser.contract import BrowserRequest
-from decepticon.sandbox_browser.provider import DEFAULT_PROVIDER
 from decepticon.tools.bash.bash import _workspace_path_from_config, get_sandbox
 from decepticon.tools.browser.names import AGENT_BROWSER_TOOL_NAMES
 
 PROVIDER_ENV = "DECEPTICON_BROWSER_PROVIDER"
-#: Runner in the sandbox image's immutable bundle (see containers/sandbox.Dockerfile).
-#: ``-I`` ignores PYTHONPATH/user site and the workspace cwd; the script adds
-#: its own bundle root to ``sys.path``.
-RUNNER_SCRIPT = "/usr/local/lib/decepticon-sandbox/decepticon/sandbox_browser/__main__.py"
-_RUNNER = f"python3 -I {RUNNER_SCRIPT}"
+#: The sandbox image registers its immutable runtime bundle on sys.path, so the
+#: runner resolves without PYTHONPATH; ``-I`` keeps workspace files from
+#: shadowing imports.
+RUNNER_MODULE = "decepticon_sandbox.browser"
+_RUNNER = f"python3 -I -m {RUNNER_MODULE}"
 _BASE_TIMEOUT_S = 90
 
 

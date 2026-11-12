@@ -56,7 +56,7 @@ dependencies = [
     # HTTP
     "httpx>=0.27.0",
     "deepagents>=0.7.32,<0.8",
-    # Open-web engine (decepticon/sandbox_web) — runs inside the sandbox, which
+    # Open-web engine (decepticon_sandbox/web) — runs inside the sandbox, which
     # mounts decepticon as /deps/decepticon, so its pure-Python parse deps ride
     # the main install set (same rationale as the FastAPI/uvicorn note below).
     # The network tier (curl_cffi) is heavier and stays sandbox-image-only; unit
@@ -66,7 +66,7 @@ dependencies = [
     # sandbox container and that `HTTPSandbox` (decepticon/backends/
     # http_sandbox.py) talks to. Carried in the main install set
     # because the sandbox container mounts decepticon as
-    # /deps/decepticon and runs `python -m decepticon.sandbox_server`
+    # /deps/decepticon and runs `python -m decepticon_sandbox.server`
     # as its entrypoint; the agent process imports nothing from these
     # at runtime.
     "fastapi>=0.115.0",
@@ -213,7 +213,7 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 # Source under src/ — PEP 517 src-layout so editable installs don't
 # accidentally import from the workspace root during dev.
-packages = ["decepticon"]
+packages = ["decepticon", "decepticon_sandbox"]
 # Skill markdown trees (standard/shared/plugins) ship as package data and are
 # included by default since they are VCS-tracked. Benchmark skills are
 # XBOW/CTF eval-harness conventions — kept in-repo for `make benchmark` but

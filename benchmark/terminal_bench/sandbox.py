@@ -8,12 +8,11 @@ from pathlib import PurePosixPath
 
 import anyio
 from anyio import from_thread
+from decepticon_sandbox.kernel.jobs import BackgroundJob, BackgroundJobTracker
+from decepticon_sandbox.kernel.tmux import strip_terminal_noise
 from deepagents.backends.protocol import ExecuteResponse, FileUploadResponse
 from harbor.agents.terminus_2.tmux_session import TmuxSession
 from harbor.environments.base import BaseEnvironment
-
-from decepticon.sandbox_kernel.jobs import BackgroundJob, BackgroundJobTracker
-from decepticon.sandbox_kernel.tmux import strip_terminal_noise
 
 
 def _command_with_exit_marker(command: str, marker: str) -> str:

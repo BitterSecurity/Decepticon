@@ -1,6 +1,6 @@
 """Daemon entry point.
 
-Run with `python -m decepticon.sandbox_server` (and that is what the
+Run with `python -m decepticon_sandbox.server` (and that is what the
 sandbox container's Dockerfile invokes when `SANDBOX_DAEMON=1`).
 
 Env:
@@ -18,7 +18,7 @@ import os
 
 import uvicorn
 
-from decepticon.sandbox_server.app import app
+from decepticon_sandbox.server.app import app
 
 
 def main() -> None:

@@ -1,7 +1,7 @@
 """Bash tool for the Decepticon agent.
 
 Thin wrapper around HTTPTransportSandbox.execute_tmux(). All tmux session
-management and PS1 polling logic lives in decepticon/sandbox_kernel/
+management and PS1 polling logic lives in decepticon_sandbox/kernel/
 (tmux.py + base.py), shared with the in-container daemon.
 
 The sandbox instance is injected at agent startup via set_sandbox().
@@ -33,11 +33,11 @@ from collections import OrderedDict
 from functools import partial
 
 from anyio import to_thread
+from decepticon_sandbox.kernel.base import SandboxBase
+from decepticon_sandbox.kernel.tmux import _interpret_exit_code
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 
-from decepticon.sandbox_kernel.base import SandboxBase
-from decepticon.sandbox_kernel.tmux import _interpret_exit_code
 from decepticon.tools.bash.protocol import BashSandboxProtocol
 
 log = logging.getLogger("decepticon.tools.bash.bash")

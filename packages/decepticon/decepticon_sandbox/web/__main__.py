@@ -3,8 +3,8 @@
 The agent tools (``web_search`` / ``web_fetch``) dispatch this over the bash
 execution surface:
 
-    python3 -m decepticon.sandbox_web fetch  <url>   [opts] --json
-    python3 -m decepticon.sandbox_web search <query> [opts] --json
+    python3 -m decepticon_sandbox.web fetch  <url>   [opts] --json
+    python3 -m decepticon_sandbox.web search <query> [opts] --json
 
 It builds the RoE ``scope_check`` from ``<workspace>/plan/roe.json`` (the same
 file the sandbox nftables allowlist is compiled from), runs the engine, and
@@ -22,16 +22,8 @@ import sys
 from pathlib import Path
 from urllib.parse import urlsplit
 
-if not __package__:
-    # Script mode from the immutable sandbox bundle (see tools/web/search.py):
-    # managed OpenShell sessions inherit neither PYTHONPATH nor
-    # DECEPTICON_SKIP_BOOT, and the lean bundle lacks the management-side
-    # boot modules.
-    os.environ.setdefault("DECEPTICON_SKIP_BOOT", "1")
-    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-
-from decepticon.sandbox_web.fetch_chain import ScopeCheck, fetch
-from decepticon.sandbox_web.providers import PROVIDERS, SearchResponse, is_allowed_provider
+from decepticon_sandbox.web.fetch_chain import ScopeCheck, fetch
+from decepticon_sandbox.web.providers import PROVIDERS, SearchResponse, is_allowed_provider
 
 # Content larger than this is written to a scratch file instead of inlined.
 _INLINE_CONTENT_LIMIT = 15_000
@@ -178,7 +170,7 @@ def main(argv: list[str] | None = None) -> int:
     # Common opts live ONLY on the subparsers (not the main parser): putting
     # them on both makes the subparser's default clobber a value given before
     # the subcommand. So all common opts come AFTER the subcommand.
-    parser = argparse.ArgumentParser(prog="decepticon.sandbox_web", description="open-web engine")
+    parser = argparse.ArgumentParser(prog="decepticon_sandbox.web", description="open-web engine")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     pf = sub.add_parser("fetch", help="fetch a URL", parents=[common])

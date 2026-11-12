@@ -16,17 +16,17 @@ from dataclasses import dataclass
 from typing import Any, Protocol
 
 import httpx
+from decepticon_sandbox.server.session_client import (
+    MANAGED_BRIDGE,
+    MAX_MESSAGE_BYTES,
+    SESSION_PATHS,
+)
 
 from decepticon.backends.daemon_client import (
     SandboxDaemonClient,
     SandboxError,
     _mirror_key,
     _normalize_workspace,
-)
-from decepticon.sandbox_server.session_client import (
-    MANAGED_BRIDGE,
-    MAX_MESSAGE_BYTES,
-    SESSION_PATHS,
 )
 
 
