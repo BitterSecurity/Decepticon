@@ -196,25 +196,40 @@ operations, certain packet manipulation) that a user namespace may restrict.
 or deep-privilege techniques may not. Enumerating which tools are affected is a
 verification item below, not an assumption.
 
-### Must verify before implementation (the rootless-nesting risk)
+### Verified on a real host (rootless-nesting risk resolved)
 
-The hard, unproven part is **rootless Docker under nesting**: the gateway runs
+The hard, unproven part was **rootless Docker under nesting**: the gateway runs
 *inside a container* and must create sandbox containers through the rootless
-daemon. Research flags this as the fragile area (user-namespace nesting, cgroup
-v2, the rootless socket store). So the implementation PR must first prove on a
-real host that a containerized gateway driving a rootless Docker daemon actually
-creates a working sandbox, before the compose wiring is trusted.
+daemon. Research flagged this as the fragile area (user-namespace nesting, cgroup
+v2, the rootless socket store). Measured on `ra-trial` (Ubuntu, WSL2 kernel
+6.18, cgroup v2, `subuid/subgid mschoi:100000:65536`, rootless daemon 29.9.2
+installed via `dockerd-rootless-setuptool.sh` alongside RedOps' rootful daemon,
+2026-11-13):
 
-Two things the implementation PR must measure on a real host before the compose
-wiring is trusted:
+1. **Rootless nesting works.** A container that mounts the rootless
+   `docker.sock` created a sibling sandbox container successfully
+   (`sibling-sandbox-created-ok`) — the gateway's docker-out-of-docker pattern
+   works through the rootless daemon. User-namespace nesting, cgroup v2 and the
+   rootless socket store were not a blocker.
+2. **Pentest tooling under rootless is unrestricted at the container level.**
+   - Container processes still run **root inside** (`uid=0`), so `apk`/`apt`/`pip`
+     tool installation is unaffected.
+   - The container's effective capability set is **identical to rootful Docker's
+     default** (both `CapEff=00000000a80425fb`): `CAP_NET_RAW` and
+     `CAP_NET_BIND_SERVICE` present; `CAP_NET_ADMIN`, `CAP_SYS_ADMIN`,
+     `CAP_SYS_PTRACE`, `CAP_SYS_MODULE`, `CAP_SYS_RAWIO` dropped — same as rootful.
+   - Concrete raw-socket op verified: ICMP `ping` works, and `nmap -sS` SYN scan
+     against `scanme.nmap.org` returned real results (`80/tcp open`,
+     `443/tcp filtered`). The canonical "needs raw socket" pentest technique is
+     fine under rootless.
 
-1. **Rootless nesting works.** A containerized gateway driving a rootless Docker
-   daemon actually creates a working sandbox (user-namespace nesting, cgroup v2,
-   the rootless socket store).
-2. **Pentest tooling under rootless.** Which sandbox attack tools are restricted
-   by the user namespace (raw/kernel-level ops) vs fine (`CAP_NET_RAW` scans,
-   `apt`/`pip`). If a needed technique is blocked, decide per-tool: accept, grant
-   a narrow capability, or route that engagement to a `vm`/MicroVM profile.
+   Rootless therefore changes **nothing** at the container capability layer; the
+   difference is purely at the daemon/host boundary (daemon as unprivileged user,
+   user-namespace remap) and the network datapath (slirp4netns). The only
+   techniques lost are host-network-manipulation ones needing `CAP_NET_ADMIN`
+   (iptables/routing/tun-tap) — which rootful Docker also drops by default, so no
+   regression vs the current baseline. If such a technique is ever needed, route
+   that engagement to a `vm`/MicroVM profile.
 
 Known rootless-Docker constraints to document: ports < 1024, some volume mounts,
 and slirp4netns networking (~50–70% of rootful throughput; rootless Docker does
