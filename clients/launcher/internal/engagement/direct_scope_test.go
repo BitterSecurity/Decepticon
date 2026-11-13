@@ -194,7 +194,7 @@ func TestRenderScopePreview_ShowsGeneratedScope(t *testing.T) {
 		}
 	}
 	for _, want := range []string{
-		`Creating engagement "acme-2026"`,
+		`Engagement "acme-2026" scope`,
 		"In scope (2): example.com, \\*.corp.example.com",
 		"Out of scope: secret.corp.example.com",
 		"Red enforces this scope on every tool call.",
