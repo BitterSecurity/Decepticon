@@ -132,36 +132,45 @@ langgraph ──gRPC(SDK)──▶ gateway ──gRPC(compute_driver.proto, UDS)
    [implemented]                   [external driver: gateway never holds docker.sock]
 ```
 
-## Decided: default engine is rootless Docker
+## Decided: dual-engine, Podman rootless recommended
 
-Three separate axes drive the choice; conflating them leads to the wrong answer.
+The compute engine is **selectable** (`compute_driver = docker | podman`), matching
+the existing replaceable-provider philosophy. Both ship; the recommendation and
+the `make dogfood` default differ by whether the operator wants the rootless
+boundary.
 
-| Axis | Problem | Industry answer | Our choice |
-|---|---|---|---|
-| **Adoption** | Most self-hosters have Docker, not Podman (SO 2025: Docker 71% vs Podman 11%) | keep Docker | **Engine = Docker** (no Podman dependency, Compose "just works") |
-| **Socket boundary (A)** | A gateway holding the root `docker.sock` ≈ host root | the only real boundary is a **rootless** engine; a socket proxy only reduces surface, it is not a boundary | **rootless Docker** (daemon as a non-root user; socket is no longer root-equivalent) |
-| **Sandbox isolation (B)** | sandboxes run adversarial pentest code sharing the host kernel | microVM (hardware boundary) or a memory-safe runtime (defense-in-depth) | opt-in: `vm`/MicroVM or `--runtime` swap; not the baseline |
+| Axis | Problem | Our choice |
+|---|---|---|
+| **Adoption** | Most self-hosters have Docker, not Podman (SO 2025: Docker 71% vs Podman 11%) | **Docker stays supported** (rootful default works out of the box, no new dependency) |
+| **Socket boundary (A)** | A gateway holding the root `docker.sock` ≈ host root | the only real boundary is a **rootless** engine; **Podman rootless is the recommended path** — an escape maps to an unprivileged, namespaced UID |
+| **Sandbox isolation (B)** | sandboxes run adversarial pentest code sharing the host kernel | opt-in: `vm`/MicroVM or `--runtime` swap; not the baseline |
 
-**Decision: the default compute engine is Docker, run rootless.** This keeps the
-Docker familiarity and Compose experience OSS users expect, while the rootless
-daemon is the actual fix for (A) — an escape maps to an unprivileged, namespaced
-UID on the host rather than root.
+**Decision (revised after real-host verification): offer both engines; recommend
+Podman rootless for the (A) boundary; keep Docker working.** The earlier
+"rootless Docker as the single default" was dropped because real-host testing
+showed the OpenShell docker driver's supervisor callback is hostile to rootless
+Docker networking (see verification below), whereas Podman rootless is an
+officially-supported OpenShell driver that works with no custom daemon flags.
 
-- **Never** mount the raw root `/var/run/docker.sock`; the gateway uses the
-  rootless user's socket. A socket proxy (GET-limited) may ride on top to shrink
-  the API surface, but it is surface reduction, not the boundary — rootless is.
-- **Hardening opt-ins (documented, not the default):** `podman` rootless for
-  sites that prefer it; the **external compute driver** (all-gRPC, `docker.sock`
-  confined to one process) as the structurally cleanest target if/when a
-  `compute_driver.proto` process is available.
+- **Podman rootless (recommended):** `compute_driver = podman`, user Podman socket,
+  gateway `--userns=keep-id`. Both network edges work natively
+  (`host.containers.internal`); no `/etc/docker` or RootlessKit changes. This is
+  the real fix for (A).
+- **Docker rootful (default-on, works today):** `compute_driver = docker`, the
+  official OpenShell default; what RedOps runs. The gateway holds the host
+  `docker.sock` — threat (A) is accepted and documented, with Podman/vm offered as
+  the hardening upgrade. Lowest-friction for existing Docker users.
+- **Docker rootless (documented, advanced):** possible but requires the gateway on
+  `--network host` **and** the rootless daemon started with
+  `--disable-host-loopback=false` so `langgraph` can reach the gateway. Footnoted,
+  not a first-class path.
 - **Isolation opt-ins for adversarial code (B):** `vm`/MicroVM (OpenShell vm
-  driver), **libkrun/krun** (Podman `--runtime krun`, container UX + KVM
-  boundary), or a memory-safe OCI runtime (**youki**, KVM-free defense-in-depth).
-  These address (B) and are orthogonal to the (A) socket decision.
+  driver), **libkrun/krun** (Podman `--runtime krun`), or **youki**. Orthogonal to
+  the (A) engine decision.
 
 The "sandbox cannot reach the gateway" invariant holds regardless: the gateway is
-on `decepticon-net`, never published to the host, mTLS on its gRPC; only
-`langgraph` may call it.
+reachable only by `langgraph`, never published for the sandboxes to call inbound;
+the supervisor's outbound callback is the one allowed path.
 
 ### Why the OpenShell policy does not replace rootless
 
@@ -235,6 +244,40 @@ Known rootless-Docker constraints to document: ports < 1024, some volume mounts,
 and slirp4netns networking (~50–70% of rootful throughput; rootless Docker does
 not yet use pasta). macOS/WSL2 already run Docker inside a VM, so the rootless
 story differs there and needs its own note.
+
+### Gateway E2E verified for both engines (why Podman is recommended)
+
+Beyond the nesting/capability result above, the full gateway→supervisor chain was
+run on `ra-trial` with the official `ghcr.io/nvidia/openshell/gateway:latest`
+image (gateway 0.1.8), 2026-11-13. Two network edges must both work: the
+supervisor's **outbound callback** to the gateway, and the **control plane**
+(`langgraph`) reaching the gateway.
+
+**Rootless Docker — works only with care.** The docker driver forces the
+supervisor to `network_mode=Host` + `endpoint=http://127.0.0.1:8080`. Observations:
+- A host-net supervisor **cannot** reach a *bridge* gateway (published `127.0.0.1`
+  port, container IP, and bridge gateway IP all refused). The gateway must
+  therefore be on `--network host`; then supervisor→gateway works and a sandbox
+  reaches `Completed` (`ConnectSupervisor` 200).
+- But `langgraph` is a *bridge* container, and rootless Docker runs RootlessKit
+  with `--disable-host-loopback` by default — `host.docker.internal` does not even
+  resolve, so `langgraph` cannot reach the host-net gateway unless the operator
+  restarts the rootless daemon with `--disable-host-loopback=false`. A custom
+  daemon flag every user would need: this is why rootless Docker is advanced-only.
+
+**Podman rootless — both edges work natively.** `compute_driver = podman`, user
+Podman socket, gateway container `--userns=keep-id --user <uid>:<gid>` (so it can
+read the host-owned JWT keys and the socket). Driver came up `rootless=true`,
+`network_backend=netavark`, auto-detected `grpc_endpoint=http://127.0.0.1:8080`:
+- Sandbox created and reached `Completed`; `ConnectSupervisor` → 200.
+- A *bridge* control-plane container reached the gateway via
+  `host.containers.internal:8081` → HTTP 200 (resolved to the host IP; Podman also
+  aliases `host.docker.internal`). **No `--disable-host-loopback` change needed.**
+
+Conclusion: Podman rootless delivers the (A) boundary with the clean networking
+the docker driver lacks under rootless, so it is the recommended rootless path;
+Docker stays supported (rootful default; rootless Docker documented with the
+daemon-flag caveat).
 
 ### Sources
 
