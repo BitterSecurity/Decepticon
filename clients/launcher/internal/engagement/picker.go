@@ -47,10 +47,11 @@ type Choice struct {
 // EngagementEntry pairs a slug with metadata used for picker rendering and
 // downstream assistant selection.
 type EngagementEntry struct {
-	Slug  string
-	Ready bool
-	Scope scopeSummary
-	mtime int64
+	Slug    string
+	Ready   bool
+	Started bool // run has begun → scope locked (draft while false)
+	Scope   scopeSummary
+	mtime   int64
 }
 
 // scopeSummary is what the picker shows per engagement: the first in-scope
@@ -119,6 +120,35 @@ func readMachineScopeFull(data []byte) (inCount, denyCount int, target string, o
 	return inCount, denyCount, target, inCount > 0
 }
 
+// readScopeTargets returns the engagement's in/out scope entries as plain
+// target strings, used to seed the draft-edit form.
+func readScopeTargets(root string) (in, out []string) {
+	data, err := os.ReadFile(filepath.Join(root, "plan", "roe.json"))
+	if err != nil {
+		return nil, nil
+	}
+	var doc struct {
+		MachineEnforcement *struct {
+			InScope    []json.RawMessage `json:"in_scope"`
+			OutOfScope []json.RawMessage `json:"out_of_scope"`
+		} `json:"machine_enforcement"`
+	}
+	if json.Unmarshal(data, &doc) != nil || doc.MachineEnforcement == nil {
+		return nil, nil
+	}
+	for _, raw := range doc.MachineEnforcement.InScope {
+		if t, ok := scopeEntryTarget(raw); ok {
+			in = append(in, t)
+		}
+	}
+	for _, raw := range doc.MachineEnforcement.OutOfScope {
+		if t, ok := scopeEntryTarget(raw); ok {
+			out = append(out, t)
+		}
+	}
+	return in, out
+}
+
 // scopeReady reports whether the engagement has an enforced machine scope.
 // Creation is the authorization — an engagement created with targets carries
 // a "plan/roe.json" machine block and needs no separate approval marker.
@@ -161,7 +191,7 @@ func ScanEngagements(home string) ([]EngagementEntry, error) {
 			continue
 		}
 		scope := readScopeSummary(filepath.Join(root, slug))
-		entry := EngagementEntry{Slug: slug, Ready: scope.Enforced, Scope: scope}
+		entry := EngagementEntry{Slug: slug, Ready: scope.Enforced, Started: IsStarted(filepath.Join(root, slug)), Scope: scope}
 		if entry.Ready {
 			if st, err := os.Stat(filepath.Join(root, slug, "plan", "roe.json")); err == nil {
 				entry.mtime = st.ModTime().Unix()
@@ -221,6 +251,7 @@ type pickerItem struct {
 	slug       string // empty for the "[+] New" sentinel
 	isNew      bool
 	ready      bool
+	started    bool // scope locked (draft when ready && !started)
 	inProgress bool
 	scope      scopeSummary
 }
@@ -239,7 +270,10 @@ func (i pickerItem) Title() string {
 	if i.inProgress {
 		return i.slug + "  (in progress)"
 	}
-	return i.slug
+	if !i.started {
+		return i.slug + "  (draft — scope editable)"
+	}
+	return i.slug + "  (locked)"
 }
 
 func (i pickerItem) Description() string {
@@ -249,8 +283,11 @@ func (i pickerItem) Description() string {
 	if i.inProgress {
 		return "No enforced scope: create with targets or import plan/roe.json"
 	}
-	description := fmt.Sprintf("Red ready · %d in scope · %d denied · %s", i.scope.InCount, i.scope.DenyCount, i.scope.Target)
-	return description
+	state := "draft — edit scope before starting"
+	if i.started {
+		state = "locked — scope immutable (new engagement for a different scope)"
+	}
+	return fmt.Sprintf("Red ready · %d in scope · %d denied · %s · %s", i.scope.InCount, i.scope.DenyCount, i.scope.Target, state)
 }
 
 type pickerKeyMap struct {
@@ -357,6 +394,7 @@ func buildItems(entries []EngagementEntry) []list.Item {
 		items = append(items, pickerItem{
 			slug:       e.Slug,
 			ready:      e.Ready,
+			started:    e.Started,
 			inProgress: !e.Ready,
 			scope:      e.Scope,
 		})
@@ -505,7 +543,34 @@ func Select(home string) (Choice, error) {
 		return createDirectEngagement(home, slug, lists, time.Now())
 	}
 
-	return choiceForEngagement(home, final.chosen.slug), nil
+	slug := final.chosen.slug
+	// A draft (scope present, not yet started) may still be edited; starting
+	// the engagement locks it. Offer the edit before handing off.
+	if scopeReady(home, slug) && !IsStarted(filepath.Join(home, "workspace", slug)) {
+		var edit bool
+		confirm := huh.NewForm(
+			huh.NewGroup(
+				huh.NewConfirm().
+					Title("\""+slug+"\" is a draft — edit its scope before starting?").
+					Description("Starting the engagement locks the scope (a different scope then needs a new engagement). Edit to adjust in/out scope with passive suggestions, or Keep to start as-is.").
+					Affirmative("Edit").
+					Negative("Keep").
+					Value(&edit),
+			),
+		).WithTheme(huh.ThemeFunc(ui.DecepticonTheme))
+		// On non-interactive stdin the confirm errors → keep as-is (safe).
+		if err := confirm.Run(); err == nil && edit {
+			lists, err := promptEditDraftScope(home, slug)
+			if err != nil {
+				return Choice{}, err
+			}
+			if err := writeDraftScope(home, slug, lists, time.Now()); err != nil {
+				return Choice{}, err
+			}
+		}
+	}
+
+	return choiceForEngagement(home, slug), nil
 }
 
 func ResolveExisting(home, slug string) (Choice, error) {
@@ -659,22 +724,33 @@ func promptNewEngagement(home string) (string, scopeLists, error) {
 	if err := validateSlug(home, slug); err != nil {
 		return "", scopeLists{}, err
 	}
+	lists, err := collectScope(slug, targets, outOfScope, "Create")
+	if err != nil {
+		return "", scopeLists{}, err
+	}
+	return slug, lists, nil
+}
+
+// collectScope runs passive discovery + suggestions on the typed targets,
+// normalizes them to the enforced scope lists, and shows a preview/confirm
+// gate. Shared by create and draft-edit; verb is "Create" or "Save".
+func collectScope(slug, targets, outOfScope, verb string) (scopeLists, error) {
 	// The form's validators do not fire when stdin ends mid-form; re-verify the
 	// contract here so an EOF can never yield a scopeless engagement.
 	in, _, err := dedupeScopeTargets(splitScopeTargets([]string{targets}))
 	if err != nil {
-		return "", scopeLists{}, err
+		return scopeLists{}, err
 	}
 	if len(in) == 0 {
-		return "", scopeLists{}, fmt.Errorf("engagement setup cancelled: no in-scope target entered")
+		return scopeLists{}, fmt.Errorf("scope entry cancelled: no in-scope target entered")
 	}
 	if _, _, err := dedupeScopeTargets(splitScopeTargets([]string{outOfScope})); err != nil {
-		return "", scopeLists{}, err
+		return scopeLists{}, err
 	}
 
 	// Passive discovery: CT logs + passive DNS suggest in-scope entries for
 	// the first hostname target. Strictly optional — the network never
-	// blocks creation; a timeout or degradation folds back to the typed
+	// blocks scope entry; a timeout or degradation folds back to the typed
 	// targets (the operator always owns what goes in scope).
 	if zone := discoveryZone(in); zone != "" {
 		ui.Info(fmt.Sprintf("Checking passive scope suggestions (up to %s)...", scopeDiscoveryBudget))
@@ -697,16 +773,20 @@ func promptNewEngagement(home string) (string, scopeLists, error) {
 				targets = strings.TrimSpace(targets + " " + extra)
 			}
 			if in, _, err = dedupeScopeTargets(splitScopeTargets([]string{targets})); err != nil {
-				return "", scopeLists{}, err
+				return scopeLists{}, err
 			}
 		}
 	}
 
 	lists, err := buildScopeLists([]string{targets}, []string{outOfScope})
 	if err != nil {
-		return "", scopeLists{}, err
+		return scopeLists{}, err
 	}
 
+	title := "Create this engagement?"
+	if verb == "Save" {
+		title = "Save scope changes?"
+	}
 	var confirmed bool
 	preview := huh.NewForm(
 		huh.NewGroup(
@@ -714,19 +794,59 @@ func promptNewEngagement(home string) (string, scopeLists, error) {
 				Title("Review the generated scope").
 				Description(renderScopePreview(slug, lists)),
 			huh.NewConfirm().
-				Title("Create this engagement?").
-				Affirmative("Create").
+				Title(title).
+				Affirmative(verb).
 				Negative("Cancel").
 				Value(&confirmed),
 		),
 	).WithTheme(huh.ThemeFunc(ui.DecepticonTheme))
 	if err := preview.Run(); err != nil {
-		return "", scopeLists{}, fmt.Errorf("engagement setup cancelled: %w", err)
+		return scopeLists{}, fmt.Errorf("scope review cancelled: %w", err)
 	}
 	if !confirmed {
-		return "", scopeLists{}, fmt.Errorf("engagement setup cancelled: scope review rejected")
+		return scopeLists{}, fmt.Errorf("scope review rejected")
 	}
-	return slug, lists, nil
+	return lists, nil
+}
+
+// promptEditDraftScope re-collects the scope for a draft engagement, seeding the
+// form with its current in/out targets. Only valid while the engagement is a
+// draft (the caller gates on !IsStarted); the writer refuses once started.
+func promptEditDraftScope(home, slug string) (scopeLists, error) {
+	curIn, curOut := readScopeTargets(filepath.Join(home, "workspace", slug))
+	targets := strings.Join(curIn, " ")
+	outOfScope := strings.Join(curOut, " ")
+	form := huh.NewForm(
+		huh.NewGroup(
+			huh.NewInput().Title("Target scope").
+				Description("In-scope targets — URLs, hostnames, CIDRs, or *.domain globs; commas or spaces separate entries.").
+				Value(&targets).
+				Validate(func(s string) error {
+					in, _, err := dedupeScopeTargets(splitScopeTargets([]string{s}))
+					if err != nil {
+						return err
+					}
+					if len(in) == 0 {
+						return fmt.Errorf("enter at least one in-scope target")
+					}
+					return nil
+				}),
+			huh.NewInput().Title("Out of scope (optional)").
+				Description("Entries the engagement must never touch; they override any in-scope match.").
+				Value(&outOfScope).
+				Validate(func(s string) error {
+					if strings.TrimSpace(s) == "" {
+						return nil
+					}
+					_, _, err := dedupeScopeTargets(splitScopeTargets([]string{s}))
+					return err
+				}),
+		).Title("Edit draft scope — "+slug),
+	).WithTheme(huh.ThemeFunc(ui.DecepticonTheme))
+	if err := form.Run(); err != nil {
+		return scopeLists{}, fmt.Errorf("scope edit cancelled: %w", err)
+	}
+	return collectScope(slug, targets, outOfScope, "Save")
 }
 
 // renderScopePreview renders the normalized scope the engagement will enforce.
@@ -736,7 +856,7 @@ func renderScopePreview(slug string, lists scopeLists) string {
 	escape := strings.NewReplacer("\\", "\\\\", "*", "\\*", "_", "\\_", "`", "\\`")
 	join := func(targets []string) string { return escape.Replace(strings.Join(targets, ", ")) }
 	var b strings.Builder
-	fmt.Fprintf(&b, "Creating engagement %q — this scope is the authorization.\n\n", slug)
+	fmt.Fprintf(&b, "Engagement %q scope — this scope is the authorization.\n\n", slug)
 	fmt.Fprintf(&b, "In scope (%d): %s\n", len(lists.InScope), join(lists.InScope))
 	if len(lists.OutOfScope) > 0 {
 		fmt.Fprintf(&b, "Out of scope: %s\n", join(lists.OutOfScope))
