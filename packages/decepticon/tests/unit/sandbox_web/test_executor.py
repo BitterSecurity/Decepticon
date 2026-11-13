@@ -52,8 +52,8 @@ def test_node_unavailable_returns_unknown(monkeypatch: pytest.MonkeyPatch) -> No
     assert att.error and "node" in att.error.lower()
 
 
-def test_mcp_force_remaps_to_local_and_validates(monkeypatch: pytest.MonkeyPatch) -> None:
-    # A profile may name playwright_mcp in fallback_when_challenge; the sandbox
+def test_legacy_mcp_force_remaps_to_local_and_validates(monkeypatch: pytest.MonkeyPatch) -> None:
+    # A legacy profile may still name playwright_mcp in fallback_when_challenge;
     # remaps it to the local real-Chrome template.
     html = "x" * (SMALL_BODY_THRESHOLD + 50) + "<article id='c'>hi</article>"
     monkeypatch.setattr(executor, "_chrome_channel_available", lambda: True)

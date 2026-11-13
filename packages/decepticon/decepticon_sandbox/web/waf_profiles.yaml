@@ -77,7 +77,6 @@ cloudflare_turnstile:
     - google_search
     - self_root
   fallback_when_challenge:
-    - playwright_mcp       # MCP sufficient; Chromium TLS passes CF baseline
     - playwright_real_chrome
 
 f5_big_ip:
@@ -154,7 +153,6 @@ unknown_challenge:
     - original
     - mobile_subdomain
   fallback_when_challenge:
-    - playwright_mcp
     - playwright_real_chrome
   notes: |
     When detector returns low-confidence results we land here. Broad,

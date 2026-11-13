@@ -120,7 +120,7 @@ class FetchResult:
     # Failure gate (R6): when ok=False these tell the caller it is NOT finished —
     # which escalation routes the engine could not perform itself remain to try.
     untried_routes: list[str] = field(default_factory=list)
-    must_invoke_playwright_mcp: bool = False
+    needs_agent_browser: bool = False
 
     def to_dict(self) -> dict:
         return {
@@ -136,7 +136,7 @@ class FetchResult:
             "grid_exhausted": self.grid_exhausted,
             "stop_reason": self.stop_reason,
             "untried_routes": self.untried_routes,
-            "must_invoke_playwright_mcp": self.must_invoke_playwright_mcp,
+            "needs_agent_browser": self.needs_agent_browser,
         }
 
 
@@ -768,11 +768,11 @@ def _untried_routes(stop_reason, grid_exhausted) -> tuple[list[str], bool]:
     """Failure gate (R6): name the escalation routes the engine itself could not
     perform, so the caller never mistakes give-up for "everything was tried".
 
-    Returns (untried_routes, must_invoke_playwright_mcp).
+    Returns (untried_routes, needs_agent_browser).
     """
     routes: list[str] = []
     # 429 is TRANSIENT, not a wall — exclude it from terminal so the gate still
-    # surfaces backoff/MCP instead of telling the agent to give up (the exact
+    # surfaces backoff/browser instead of telling the agent to give up (the exact
     # premature-failure this hardening exists to prevent).
     rate_limited = stop_reason == Verdict.RATE_LIMITED.value
     # Terminal non-success (404 / auth / paywall) → a real wall; nothing else helps.
@@ -782,26 +782,26 @@ def _untried_routes(stop_reason, grid_exhausted) -> tuple[list[str], bool]:
 
     if rate_limited:
         routes.append(
-            "rate-limited (429) — transient: back off a few seconds then retry; a different TLS family or Playwright MCP often clears it. Do NOT hammer the grid."
+            "rate-limited (429) — transient: back off a few seconds then retry; a different TLS family or the agent browser tools (browser_navigate) often clear it. Do NOT hammer the grid."
         )
     # Budget cut → the curl grid itself was not finished (skip for 429: don't hammer).
     elif stop_reason == "budget" or not grid_exhausted:
         routes.append("generic-grid: NOT exhausted — re-run fetch() with max_attempts=None")
 
-    # A gated page that survived the curl grid → the real browser is the next
-    # escalation, and Playwright MCP must be driven from the AGENT session
-    # (the engine can only spawn local Node Chrome, which Cloudflare-class
-    # challenges often detect). So MCP is, by construction, an untried route here.
-    must_mcp = True
+    # A gated page that survived the curl grid → the agent's own browser
+    # session is the next escalation (the engine's one-shot local Node Chrome
+    # is often detected by Cloudflare-class challenges and keeps no state), so
+    # the agent browser tools are, by construction, an untried route here.
+    needs_agent_browser = True
     routes.append(
-        "playwright_mcp (run from the agent session): browser_navigate → "
-        "browser_network_requests → catch /api,/graphql,*.json internal endpoint → "
-        "re-fetch that API URL with `python3 -m engine`; or browser_snapshot for rendered HTML"
+        "agent browser (browser_* tools): browser_navigate → browser_network_list → "
+        "find an /api, /graphql or *.json endpoint → web_fetch that API URL; "
+        "or browser_snapshot / browser_markdown for the rendered page"
     )
     routes.append(
         "user_hint retry: fetch(url, user_hint={'impersonate_first': 'safari_ios'|'chrome', 'referer_strategy': 'none'}) and/or device_class='mobile'"
     )
-    return routes, must_mcp
+    return routes, needs_agent_browser
 
 
 def _give_up(
@@ -817,7 +817,7 @@ def _give_up(
     stop_reason,
 ) -> FetchResult:
     """Return the most honest failure result, preferring suspect content."""
-    untried, must_mcp = _untried_routes(stop_reason, grid_exhausted)
+    untried, needs_browser = _untried_routes(stop_reason, grid_exhausted)
     if best_suspect is not None:
         s_resp, s_att = best_suspect
         content = getattr(s_resp, "text", "") if s_resp is not None else ""
@@ -834,7 +834,7 @@ def _give_up(
             grid_exhausted=grid_exhausted,
             stop_reason=stop_reason,
             untried_routes=untried,
-            must_invoke_playwright_mcp=must_mcp,
+            needs_agent_browser=needs_browser,
         )
     return FetchResult(
         ok=False,
@@ -851,7 +851,7 @@ def _give_up(
         grid_exhausted=grid_exhausted,
         stop_reason=stop_reason,
         untried_routes=untried,
-        must_invoke_playwright_mcp=must_mcp,
+        needs_agent_browser=needs_browser,
     )
 
 
@@ -918,11 +918,10 @@ _R7_ELIGIBLE_PROFILES = frozenset(
 )
 
 R7_HINT = (
-    "💡 R7 API-first 권장: WAF가 HTML 경로를 차단 중. "
-    "Playwright MCP 사용 → browser_navigate → browser_network_requests "
-    "→ `/api/`·`/graphql`·`\\.json` 필터로 내부 엔드포인트 탐지 → "
-    "해당 URL을 `python3 -m engine <API_URL>`로 재호출. 대부분 API 레이어는 "
-    "WAF 방어가 얕아 curl_cffi만으로 수집됨."
+    "Hint (API-first): a WAF is blocking the HTML route. Open the page with the "
+    "agent browser (browser_navigate), list its traffic with browser_network_list, "
+    "find an /api, /graphql or *.json endpoint and web_fetch that URL — API layers "
+    "are often lightly protected and clear with curl_cffi alone."
 )
 
 
