@@ -15,13 +15,22 @@ Invariants
    that the architecture is built around (see
    ``docs/security/sandbox-isolation.md``).
 
-2. **No service uses host networking.** ``network_mode: host`` bypasses
-   both bridges and defeats the isolation entirely.
+2. **No service uses host networking** except the allowlisted
+   ``HOST_NETWORK_SERVICES``. ``network_mode: host`` bypasses both
+   bridges; the only exception is the OpenShell gateway, which the
+   compute driver requires on host-net so the host-networked sandbox
+   supervisor can reach it at ``127.0.0.1:8080`` (see
+   docs/design/2026-11-13-openshell-gateway-in-compose.md and
+   docs/deploy/openshell-gateway.md).
 
-3. **No service mounts the Docker socket.** The HTTP-only sandbox
-   migration removed ``/var/run/docker.sock`` from the LangGraph
-   service deliberately; reintroducing it would re-open a
-   container-escape path from a compromised orchestrator.
+3. **No service mounts the Docker socket** except the allowlisted
+   ``DOCKER_SOCKET_SERVICES``. The HTTP-only sandbox migration removed
+   ``/var/run/docker.sock`` from the LangGraph service deliberately;
+   reintroducing it on a service that runs *agent code* would re-open a
+   container-escape path. The OpenShell gateway is trusted admission
+   infra (not agent code) and holds the compute socket by design — that
+   is the OpenShell architecture, and threat A is documented in the
+   design doc above.
 
 4. **Every published port binds to 127.0.0.1.** Bare ``PORT:PORT``
    (which docker resolves to ``0.0.0.0``) exposes internal services to
@@ -81,12 +90,31 @@ DUAL_HOMED_SERVICES: frozenset[str] = frozenset(
 # against the host daemon to manage the local Blue Cell sensor.
 # It is a client, not an agent: it executes operator keystrokes, never
 # model-directed commands, so it is not the container-escape surface this
-# guard exists for. Multi-tenant deployments drop the mount via a compose
-# overlay. Adding a service that *does* run agent code here is not a
-# deliberate update — it is the regression this test catches.
+# guard exists for. `openshell-gateway` is the OpenShell admission control
+# plane (profile: openshell): holding the compute socket IS its job — that is
+# how it creates sandbox containers — and it runs no agent code. The socket's
+# privilege (threat A) is addressed by the engine choice (rootless Docker /
+# Podman), documented in docs/deploy/openshell-gateway.md, not by withholding
+# the mount. Multi-tenant deployments drop the mount via a compose overlay.
+# Adding a service that *does* run agent code here is not a deliberate
+# update — it is the regression this test catches.
 DOCKER_SOCKET_SERVICES: frozenset[str] = frozenset(
     {
         "cli",
+        "openshell-gateway",
+    }
+)
+
+# The only services permitted to use ``network_mode: host``. The OpenShell
+# gateway must share the host loopback because the compute driver pins the
+# sandbox supervisor to host networking and dials the gateway at
+# ``127.0.0.1:8080``; a bridge gateway is unreachable from that supervisor
+# (verified on a real host). The control plane reaches it via
+# ``host.docker.internal`` / ``host.containers.internal`` instead. See
+# docs/design/2026-11-13-openshell-gateway-in-compose.md.
+HOST_NETWORK_SERVICES: frozenset[str] = frozenset(
+    {
+        "openshell-gateway",
     }
 )
 
@@ -120,7 +148,7 @@ def _rendered_compose() -> dict:
         # render sees every service. The list mirrors the profiles
         # defined in docker-compose.yml; extend here when a new
         # profile is added.
-        "COMPOSE_PROFILES": "c2-sliver,reversing,cli",
+        "COMPOSE_PROFILES": "c2-sliver,reversing,cli,openshell",
     }
     result = subprocess.run(
         ["docker", "compose", "-f", str(COMPOSE), "config"],
@@ -204,14 +232,33 @@ def test_operational_services_never_on_management_network():
 
 
 def test_no_service_uses_host_networking():
-    """``network_mode: host`` bypasses both bridges entirely."""
+    """``network_mode: host`` bypasses both bridges; only HOST_NETWORK_SERVICES may."""
     services = _rendered_compose()["services"]
-    violations = [name for name, svc in services.items() if svc.get("network_mode") == "host"]
-    assert not violations, (
-        "services with network_mode: host (forbidden): "
-        f"{sorted(violations)}\n"
-        "Fix: attach the service to an explicit bridge network."
+    violations = [
+        name
+        for name, svc in services.items()
+        if svc.get("network_mode") == "host" and name not in HOST_NETWORK_SERVICES
+    ]
+    stale = sorted(
+        name
+        for name in HOST_NETWORK_SERVICES
+        if services.get(name, {}).get("network_mode") != "host"
     )
+    msgs: list[str] = []
+    if violations:
+        msgs.append(
+            "services with network_mode: host (forbidden): "
+            f"{sorted(violations)}\n"
+            "Fix: attach the service to an explicit bridge network, or — if host "
+            "networking is architecturally required — add it to HOST_NETWORK_SERVICES "
+            "with the reason + an ADR/design doc."
+        )
+    if stale:
+        msgs.append(
+            f"HOST_NETWORK_SERVICES lists services that no longer use host networking: {stale}\n"
+            "Fix: drop the stale entry so the allowlist stays honest."
+        )
+    assert not msgs, "\n\n".join(msgs)
 
 
 def test_only_allowlisted_services_mount_docker_socket():
