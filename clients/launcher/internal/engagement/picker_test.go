@@ -341,9 +341,13 @@ func TestChoiceForEngagement_OpensRedWithScopeState(t *testing.T) {
 }
 
 func TestPickerItem_Description_ShowsScopeSummary(t *testing.T) {
-	ready := pickerItem{slug: "alpha", ready: true, scope: scopeSummary{Target: "example.com", InCount: 3, DenyCount: 1, Enforced: true}}
-	if got := ready.Description(); got != "Red ready · 3 in scope · 1 denied · example.com" {
-		t.Fatalf("unexpected ready description: %q", got)
+	draft := pickerItem{slug: "alpha", ready: true, scope: scopeSummary{Target: "example.com", InCount: 3, DenyCount: 1, Enforced: true}}
+	if got := draft.Description(); got != "Red ready · 3 in scope · 1 denied · example.com · draft — edit scope before starting" {
+		t.Fatalf("unexpected draft description: %q", got)
+	}
+	locked := pickerItem{slug: "alpha", ready: true, started: true, scope: scopeSummary{Target: "example.com", InCount: 3, DenyCount: 1, Enforced: true}}
+	if got := locked.Description(); got != "Red ready · 3 in scope · 1 denied · example.com · locked — scope immutable (new engagement for a different scope)" {
+		t.Fatalf("unexpected locked description: %q", got)
 	}
 	progress := pickerItem{slug: "bravo", inProgress: true}
 	if got := progress.Description(); got == "" || got == "Authorized Red scope available" {
