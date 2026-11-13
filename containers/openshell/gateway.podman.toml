@@ -1,0 +1,55 @@
+# OpenShell gateway — Podman compute driver (recommended rootless engine).
+#
+# Used by the `openshell-gateway` compose service when
+# DECEPTICON_COMPUTE_ENGINE=podman. Mounted read-only at
+# /etc/openshell/gateway.toml and loaded via OPENSHELL_GATEWAY_CONFIG.
+#
+# Why recommended: the gateway drives the *user* Podman socket, so a sandbox
+# escape that reaches it maps to an unprivileged, user-namespaced uid rather
+# than host root (threat A boundary). This is an officially-supported OpenShell
+# driver and — verified on a real host — needs no custom daemon flags, unlike
+# rootless Docker. See docs/deploy/openshell-gateway.md.
+#
+# Networking: the compose service runs with network_mode: host and
+# userns_mode: keep-id. The podman driver auto-detects the loopback callback
+# endpoint on Linux, so the supervisor reaches the gateway at 127.0.0.1:8080;
+# the control plane (langgraph, a bridge container) reaches it via
+# host.containers.internal:8080 (no --disable-host-loopback change required).
+#
+# TEMPLATE: `@DATA@` is replaced by `make openshell-up ENGINE=podman` with the
+# user-writable data dir ($OPENSHELL_DATA_DIR, default ~/.decepticon/openshell)
+# and the rendered copy is mounted. Rootless Podman runs the gateway as the host
+# user, so the data dir (and these JWT keys) must be user-owned — that is why the
+# path is templated here instead of the root-owned /var/lib/openshell the Docker
+# engine uses.
+
+[openshell]
+version = 2
+
+[openshell.gateway]
+bind_address        = "0.0.0.0:8080"
+health_bind_address = "0.0.0.0:8081"
+log_level           = "info"
+compute_driver      = "podman"
+disable_tls         = true
+
+[openshell.gateway.auth]
+allow_unauthenticated_users = true
+
+[openshell.gateway.gateway_jwt]
+signing_key_path = "@DATA@/tls/jwt/signing.pem"
+public_key_path  = "@DATA@/tls/jwt/public.pem"
+kid_path         = "@DATA@/tls/jwt/kid"
+gateway_id       = "decepticon-gateway"
+
+[openshell.drivers.podman]
+default_image         = "ghcr.io/bittersecurity/decepticon-sandbox:latest"
+sandbox_runtime_image = "ghcr.io/nvidia/openshell/sandbox:latest"
+supervisor_image      = "ghcr.io/nvidia/openshell/supervisor:latest"
+image_pull_policy     = "if_not_present"
+# Empty -> the driver auto-selects loopback on Linux using the gateway port.
+grpc_endpoint         = ""
+ssh_socket_path       = "/run/openshell/ssh.sock"
+# Podman bridge network the driver manages for sandbox resources.
+network_name          = "decepticon-openshell"
+app_armor_profile     = "Unconfined"

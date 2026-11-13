@@ -1,0 +1,55 @@
+# OpenShell gateway — Docker compute driver (default-supported engine).
+#
+# Used by the `openshell-gateway` compose service when
+# DECEPTICON_COMPUTE_ENGINE=docker (the default). Mounted read-only at
+# /etc/openshell/gateway.toml and loaded via OPENSHELL_GATEWAY_CONFIG.
+#
+# Threat model: with the Docker driver the gateway holds the host Docker
+# socket. On a *rootful* daemon that socket is host-root-equivalent (threat A
+# accepted + documented); run the daemon rootless, or switch to the Podman
+# engine (gateway.podman.toml), for the unprivileged boundary. See
+# docs/deploy/openshell-gateway.md.
+#
+# Networking: the compose service runs with network_mode: host so the docker
+# driver's host-networked supervisor can reach the gateway at 127.0.0.1:8080
+# (the supervisor callback is hardcoded to host loopback). The control plane
+# (langgraph, a bridge container) reaches it via host.docker.internal:8080.
+# Bind 0.0.0.0 so both the host-loopback supervisor and the bridge-side
+# langgraph can connect; keep the host firewalled (local-dev posture, same as
+# the upstream disable_tls default). Production: enable mTLS and restrict.
+
+[openshell]
+version = 2
+
+[openshell.gateway]
+bind_address        = "0.0.0.0:8080"
+health_bind_address = "0.0.0.0:8081"
+log_level           = "info"
+compute_driver      = "docker"
+disable_tls         = true
+
+# Loopback-reachable, unauthenticated *user* calls (local dev). Supervisors
+# still authenticate with the JWT keys below. Enable mTLS for any non-local
+# deployment — see docs/deploy/openshell-gateway.md.
+[openshell.gateway.auth]
+allow_unauthenticated_users = true
+
+# Written by the openshell-gateway-init service (generate-certs).
+[openshell.gateway.gateway_jwt]
+signing_key_path = "/var/lib/openshell/tls/jwt/signing.pem"
+public_key_path  = "/var/lib/openshell/tls/jwt/public.pem"
+kid_path         = "/var/lib/openshell/tls/jwt/kid"
+gateway_id       = "decepticon-gateway"
+
+[openshell.drivers.docker]
+# Fallback image for `sandbox create` without an explicit image. Decepticon's
+# admission resolver sets the real per-engagement image (the Kali sandbox with
+# Obscura) via SandboxSpec.template.image, so this is only a safety default.
+default_image         = "ghcr.io/bittersecurity/decepticon-sandbox:latest"
+sandbox_runtime_image = "ghcr.io/nvidia/openshell/sandbox:latest"
+supervisor_image      = "ghcr.io/nvidia/openshell/supervisor:latest"
+image_pull_policy     = "if_not_present"
+sandbox_label         = "decepticon"
+# Supervisor-compatible Docker default. Set RuntimeDefault/Localhost only when
+# the daemon host has AppArmor available.
+app_armor_profile     = "Unconfined"

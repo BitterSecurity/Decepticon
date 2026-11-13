@@ -293,6 +293,81 @@ services:
     logging: *default-logging
 
 
+  # ── OpenShell gateway (profile: openshell) ──────────────────────────
+  # Stands up the standing OpenShell gateway so the default sandbox provider
+  # (openshell, #1178) can admit engagements out of the box. Without it,
+  # `docker compose` / `make dogfood` never brings up a gateway and the
+  # openshell resolver stays unbound. See docs/deploy/openshell-gateway.md.
+  #
+  # One service definition, both engines, selected by env (default = Docker):
+  #   DECEPTICON_COMPUTE_ENGINE=docker  (default; gateway holds the Docker
+  #     socket — rootful is threat A, run the daemon rootless or use podman)
+  #   DECEPTICON_COMPUTE_ENGINE=podman  (recommended rootless boundary)
+  # The engine-specific env (OPENSHELL_* below) is set by
+  # `make openshell-up ENGINE=...` or the launcher; the Docker defaults here
+  # make the plain `--profile openshell` path work unchanged.
+  #
+  # Data dir /var/lib/openshell is bind-mounted at the SAME absolute path on
+  # host and container: the gateway extracts the supervisor binary there and
+  # passes that path to the compute daemon as a host-side bind source, so the
+  # two paths must match (named volumes can't satisfy this).
+  openshell-gateway-init:
+    image: ghcr.io/nvidia/openshell/gateway:${OPENSHELL_GATEWAY_TAG:-latest}
+    container_name: decepticon${DECEPTICON_STACK_NAME:+-${DECEPTICON_STACK_NAME}}-openshell-init
+    # One-shot: generate the sandbox JWT signing keys (idempotent; kept if present).
+    command: ["generate-certs", "--output-dir", "${OPENSHELL_DATA_DIR:-/var/lib/openshell}/tls"]
+    user: "${OPENSHELL_GATEWAY_USER:-0}"
+    userns_mode: "${OPENSHELL_GATEWAY_USERNS:-host}"
+    environment:
+      HOME: ${OPENSHELL_DATA_DIR:-/var/lib/openshell}
+    volumes:
+      - type: bind
+        source: ${OPENSHELL_DATA_DIR:-/var/lib/openshell}
+        target: ${OPENSHELL_DATA_DIR:-/var/lib/openshell}
+        bind:
+          create_host_path: true
+    restart: "no"
+    profiles:
+      - openshell
+
+  openshell-gateway:
+    image: ghcr.io/nvidia/openshell/gateway:${OPENSHELL_GATEWAY_TAG:-latest}
+    container_name: decepticon${DECEPTICON_STACK_NAME:+-${DECEPTICON_STACK_NAME}}-openshell-gateway
+    depends_on:
+      openshell-gateway-init:
+        condition: service_completed_successfully
+    command: ["--config", "/etc/openshell/gateway.toml"]
+    # host networking is required: the compute driver pins the sandbox
+    # supervisor to host-net and reaches the gateway at 127.0.0.1:8080, so the
+    # gateway must share the host loopback. The control plane reaches it via
+    # host.docker.internal / host.containers.internal (see langgraph below).
+    network_mode: host
+    user: "${OPENSHELL_GATEWAY_USER:-0}"
+    userns_mode: "${OPENSHELL_GATEWAY_USERNS:-host}"
+    environment:
+      OPENSHELL_GATEWAY_CONFIG: /etc/openshell/gateway.toml
+      # DB URL cannot live in the TOML (upstream blocks it to keep credential
+      # DSNs out of VCS); a plain SQLite path carries no secret.
+      OPENSHELL_DB_URL: "sqlite:${OPENSHELL_DATA_DIR:-/var/lib/openshell}/gateway.db?mode=rwc"
+      # Podman driver only; harmless/empty for the Docker driver.
+      OPENSHELL_PODMAN_SOCKET: "${OPENSHELL_PODMAN_SOCKET:-}"
+      XDG_DATA_HOME: ${OPENSHELL_DATA_DIR:-/var/lib/openshell}
+      HOME: ${OPENSHELL_DATA_DIR:-/var/lib/openshell}
+    volumes:
+      - type: bind
+        source: ${OPENSHELL_DATA_DIR:-/var/lib/openshell}
+        target: ${OPENSHELL_DATA_DIR:-/var/lib/openshell}
+      # Compute socket — Docker (/var/run/docker.sock) or the user Podman
+      # socket; same path host↔container so bind sources resolve.
+      - ${OPENSHELL_COMPUTE_SOCK:-/var/run/docker.sock}:${OPENSHELL_COMPUTE_SOCK:-/var/run/docker.sock}
+      # Engine-specific gateway.toml (docker default; podman via env).
+      - ${OPENSHELL_GATEWAY_TOML:-./containers/openshell/gateway.docker.toml}:/etc/openshell/gateway.toml:ro
+    restart: unless-stopped
+    logging: *default-logging
+    profiles:
+      - openshell
+
+
   rea-mcp:
     build:
       context: .
@@ -349,6 +424,12 @@ services:
         # (defaults to 0.0.0 sentinel) while the tag is still ":dev".
         VERSION: ${VERSION:-0.0.0}
     container_name: decepticon${DECEPTICON_STACK_NAME:+-${DECEPTICON_STACK_NAME}}-langgraph
+    # Resolve the host-net OpenShell gateway from this bridge container. Docker
+    # maps host.docker.internal → host-gateway; Podman also aliases
+    # host.containers.internal to the same, so DECEPTICON_OPENSHELL_ENDPOINT
+    # works for both engines. Harmless when the openshell profile is off.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "127.0.0.1:${LANGGRAPH_PORT:-2024}:2024"
     env_file: .env
@@ -361,6 +442,14 @@ services:
       # 9999 is the FastAPI daemon baked into the sandbox image (see
       # ``containers/sandbox-entrypoint.sh`` — daemon mode is the default).
       - SANDBOX_URL=http://sandbox:9999
+      # OpenShell admission endpoint (host:port, no scheme — the SDK's
+      # SandboxClient takes host:port and runs plaintext when the gateway has
+      # disable_tls). Empty by default so a stack without the `openshell`
+      # profile falls back to the graceful unbound resolver instead of dialling
+      # a missing gateway. With `--profile openshell`, point it at the host-net
+      # gateway — host.docker.internal:8080 works for both engines (Podman
+      # aliases host.docker.internal). `make openshell-up` sets it.
+      - DECEPTICON_OPENSHELL_ENDPOINT=${DECEPTICON_OPENSHELL_ENDPOINT:-}
       # Engagement browser provider run inside the sandbox by the agent
       # browser_* tools (docs/design/browser-providers.md). `none` removes
       # the tools; a host/plugin that ships browser_* tools replaces them.
