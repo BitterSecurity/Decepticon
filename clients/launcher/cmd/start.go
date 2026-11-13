@@ -13,12 +13,14 @@ import (
 	"path/filepath"
 	"runtime"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/BitterSecurity/Decepticon/clients/launcher/cmd/infracontrol"
 	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/compose"
 	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/config"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/inventory"
 	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/engagement"
 	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/health"
 	opsinternal "github.com/BitterSecurity/Decepticon/clients/launcher/internal/infracontrol"
@@ -330,7 +332,10 @@ func runStartMode(cmd *cobra.Command, args []string, existingEngagement string, 
 	ui.Info("[3/5] Engagement · select a workspace")
 	var choice engagement.Choice
 	if existingEngagement == "" {
-		choice, err = engagement.Select(home)
+		// Pass the stack-postgres DSN so the picker can reuse the asset
+		// inventory (best-effort — unavailable on a first run before the
+		// stack is up; the picker opens it and falls back to live discovery).
+		choice, err = engagement.Select(home, inventoryDSN(env))
 	} else {
 		choice, err = engagement.ResolveExistingAt(home, existingEngagement, os.Getenv("DECEPTICON_DESKTOP_WORKSPACE"))
 	}
@@ -557,6 +562,20 @@ func runStartMode(cmd *cobra.Command, args []string, existingEngagement string, 
 
 // Interactive sessions consume the API from the CLI container. Service-only
 // launches serve host clients and must continue to verify the published route.
+// inventoryDSN builds the stack-postgres connection string for the asset
+// inventory from the engagement env. Postgres is published on 127.0.0.1 by the
+// compose `postgres` service (user decepticon, db litellm).
+func inventoryDSN(env map[string]string) string {
+	port := 5432
+	if p := strings.TrimSpace(config.Get(env, "POSTGRES_PORT", "")); p != "" {
+		if n, err := strconv.Atoi(p); err == nil && n > 0 {
+			port = n
+		}
+	}
+	pass := config.Get(env, "POSTGRES_PASSWORD", "decepticon")
+	return inventory.DSN("127.0.0.1", port, "decepticon", pass, "litellm")
+}
+
 func waitForStartupServices(ctx context.Context, c *compose.Compose, env map[string]string, existingEngagement string) error {
 	probe := c.ProbeCLI
 	if existingEngagement != "" {

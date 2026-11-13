@@ -1,6 +1,7 @@
 package engagement
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -17,6 +18,7 @@ import (
 	"charm.land/huh/v2"
 	"charm.land/lipgloss/v2"
 
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/inventory"
 	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/ui"
 )
 
@@ -516,7 +518,18 @@ func (m pickerModel) View() tea.View {
 }
 
 // Select runs the engagement picker.
-func Select(home string) (Choice, error) {
+func Select(home, inventoryDSN string) (Choice, error) {
+	// Open the asset inventory best-effort: on a first run (stack not up yet)
+	// Open fails and inv stays nil, which every inventory method no-ops on, so
+	// the wizard falls back to live discovery only.
+	var inv *inventory.Store
+	if inventoryDSN != "" {
+		if s, err := inventory.Open(context.Background(), inventoryDSN); err == nil {
+			inv = s
+			defer inv.Close()
+		}
+	}
+
 	all, err := ScanEngagements(home)
 	if err != nil {
 		ui.Warning("Could not scan engagements: " + err.Error())
@@ -537,7 +550,7 @@ func Select(home string) (Choice, error) {
 	}
 
 	if final.chosen.isNew {
-		slug, lists, opts, err := promptNewEngagement(home)
+		slug, lists, opts, err := promptNewEngagement(home, inv)
 		if err != nil {
 			return Choice{}, err
 		}
@@ -561,7 +574,7 @@ func Select(home string) (Choice, error) {
 		).WithTheme(huh.ThemeFunc(ui.DecepticonTheme))
 		// On non-interactive stdin the confirm errors → keep as-is (safe).
 		if err := confirm.Run(); err == nil && edit {
-			lists, opts, err := promptEditDraftScope(home, slug)
+			lists, opts, err := promptEditDraftScope(home, slug, inv)
 			if err != nil {
 				return Choice{}, err
 			}
@@ -682,7 +695,7 @@ func promptScopeSuggestions(recommendations []string) (accepted []string, additi
 	return selected, additional, nil
 }
 
-func promptNewEngagement(home string) (string, scopeLists, scopeOptions, error) {
+func promptNewEngagement(home string, inv *inventory.Store) (string, scopeLists, scopeOptions, error) {
 	var slug, targets, outOfScope string
 	form := huh.NewForm(
 		huh.NewGroup(
@@ -725,7 +738,7 @@ func promptNewEngagement(home string) (string, scopeLists, scopeOptions, error) 
 	if err := validateSlug(home, slug); err != nil {
 		return "", scopeLists{}, scopeOptions{}, err
 	}
-	lists, opts, err := collectScope(slug, targets, outOfScope, "Create", scopeOptions{})
+	lists, opts, err := collectScope(slug, targets, outOfScope, "Create", scopeOptions{}, inv)
 	if err != nil {
 		return "", scopeLists{}, scopeOptions{}, err
 	}
@@ -736,7 +749,7 @@ func promptNewEngagement(home string) (string, scopeLists, scopeOptions, error) 
 // normalizes them to the enforced scope lists, collects the optional enforced
 // RoE controls (seeded for edit), and shows a preview/confirm gate. Shared by
 // create and draft-edit; verb is "Create" or "Save".
-func collectScope(slug, targets, outOfScope, verb string, seed scopeOptions) (scopeLists, scopeOptions, error) {
+func collectScope(slug, targets, outOfScope, verb string, seed scopeOptions, inv *inventory.Store) (scopeLists, scopeOptions, error) {
 	// The form's validators do not fire when stdin ends mid-form; re-verify the
 	// contract here so an EOF can never yield a scopeless engagement.
 	in, _, err := dedupeScopeTargets(splitScopeTargets([]string{targets}))
@@ -755,17 +768,27 @@ func collectScope(slug, targets, outOfScope, verb string, seed scopeOptions) (sc
 	// blocks scope entry; a timeout or degradation folds back to the typed
 	// targets (the operator always owns what goes in scope).
 	if zone := discoveryZone(in); zone != "" {
+		// Reuse prior lookups for this zone from the asset inventory
+		// (best-effort; inv may be nil when the stack isn't up).
+		remembered, _ := inv.Lookup(context.Background(), zone)
+		if len(remembered) > 0 {
+			ui.Info(fmt.Sprintf("Reusing %d remembered asset(s) for %s from the inventory.", len(remembered), zone))
+		}
 		ui.Info(fmt.Sprintf("Checking passive scope suggestions (up to %s)...", scopeDiscoveryBudget))
 		discovery := DiscoverScope(zone, scopeDiscoveryBudget)
+		// Remember this run's live finds for future engagements (best-effort).
+		_ = inv.Record(context.Background(), zone, "passive", discovery.Recommended)
+		// Recommendations = remembered ∪ live finds (deduped, order preserved).
+		recommendations := mergeRecommendations(remembered, discovery.Recommended)
 		switch {
-		case len(discovery.Recommended) > 0 && len(discovery.Notes) > 0:
+		case len(recommendations) > 0 && len(discovery.Notes) > 0:
 			ui.Info(fmt.Sprintf("Some passive sources did not respond: %s. Review the available suggestions or enter scope manually.", strings.Join(discovery.Notes, "; ")))
-		case len(discovery.Recommended) == 0:
+		case len(recommendations) == 0:
 			ui.Info(fmt.Sprintf("Passive discovery found nothing: %s. Continuing with your typed targets.", strings.Join(discovery.Notes, "; ")))
 		default:
-			ui.Info(fmt.Sprintf("Passive discovery: %d suggestion(s) in the %s zone.", len(discovery.Recommended), zone))
+			ui.Info(fmt.Sprintf("Passive discovery: %d suggestion(s) in the %s zone.", len(recommendations), zone))
 		}
-		if accepted, additional, suggestErr := promptScopeSuggestions(discovery.Recommended); suggestErr == nil {
+		if accepted, additional, suggestErr := promptScopeSuggestions(recommendations); suggestErr == nil {
 			// A cancelled suggestion form counts as "skip suggestions" and
 			// keeps the typed targets — only accepted entries merge in.
 			if len(accepted) > 0 {
@@ -877,7 +900,7 @@ func promptScopeOptions(seed scopeOptions) (scopeOptions, error) {
 // promptEditDraftScope re-collects the scope for a draft engagement, seeding the
 // form with its current in/out targets. Only valid while the engagement is a
 // draft (the caller gates on !IsStarted); the writer refuses once started.
-func promptEditDraftScope(home, slug string) (scopeLists, scopeOptions, error) {
+func promptEditDraftScope(home, slug string, inv *inventory.Store) (scopeLists, scopeOptions, error) {
 	root := filepath.Join(home, "workspace", slug)
 	curIn, curOut := readScopeTargets(root)
 	seed := readScopeOptions(root)
@@ -913,7 +936,25 @@ func promptEditDraftScope(home, slug string) (scopeLists, scopeOptions, error) {
 	if err := form.Run(); err != nil {
 		return scopeLists{}, scopeOptions{}, fmt.Errorf("scope edit cancelled: %w", err)
 	}
-	return collectScope(slug, targets, outOfScope, "Save", seed)
+	return collectScope(slug, targets, outOfScope, "Save", seed, inv)
+}
+
+// mergeRecommendations unions remembered (inventory) and live-discovered scope
+// suggestions, preserving order (remembered first) and dropping duplicates.
+func mergeRecommendations(remembered, live []string) []string {
+	seen := make(map[string]bool, len(remembered)+len(live))
+	out := make([]string, 0, len(remembered)+len(live))
+	for _, group := range [][]string{remembered, live} {
+		for _, h := range group {
+			h = strings.TrimSpace(h)
+			if h == "" || seen[h] {
+				continue
+			}
+			seen[h] = true
+			out = append(out, h)
+		}
+	}
+	return out
 }
 
 // renderScopePreview renders the normalized scope + options the engagement will
