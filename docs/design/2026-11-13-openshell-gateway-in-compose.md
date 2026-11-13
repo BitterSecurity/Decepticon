@@ -132,26 +132,108 @@ langgraph ──gRPC(SDK)──▶ gateway ──gRPC(compute_driver.proto, UDS)
    [implemented]                   [external driver: gateway never holds docker.sock]
 ```
 
-### Recommendation (default open for review)
+## Decided: default engine is rootless Docker
 
-- **Principle:** never mount the raw `/var/run/docker.sock` into the gateway.
-- **Pragmatic default (no new dependency, no custom code):** `docker` driver
-  behind a **socket proxy** (least-privilege Docker API allow-list). Works on the
-  Docker-only hosts Decepticon already targets; the gateway reaches Docker through
-  a restricted endpoint, not the raw socket.
-- **Ideal (structurally cleanest):** the **external compute driver** — all-gRPC,
-  `docker.sock` isolated in one tiny process. Cost: OpenShell does not ship or
-  supervise that process, so whether a ready-made one exists or we implement a
-  `compute_driver.proto` shim is an open question to settle before committing to
-  it as the default.
-- **Alternatives:** `podman` rootless (no socket, adds Podman) and `vm`/MicroVM
-  (strongest isolation, needs KVM).
-- The shipped default is a review decision; this doc recommends socket-proxy
-  `docker` first for turnkey adoption, with the external driver as the target.
+Three separate axes drive the choice; conflating them leads to the wrong answer.
 
-The "sandbox cannot reach the gateway" invariant holds for every option: the
-gateway is on `decepticon-net`, never published to the host, mTLS on its gRPC;
-only `langgraph` may call it.
+| Axis | Problem | Industry answer | Our choice |
+|---|---|---|---|
+| **Adoption** | Most self-hosters have Docker, not Podman (SO 2025: Docker 71% vs Podman 11%) | keep Docker | **Engine = Docker** (no Podman dependency, Compose "just works") |
+| **Socket boundary (A)** | A gateway holding the root `docker.sock` ≈ host root | the only real boundary is a **rootless** engine; a socket proxy only reduces surface, it is not a boundary | **rootless Docker** (daemon as a non-root user; socket is no longer root-equivalent) |
+| **Sandbox isolation (B)** | sandboxes run adversarial pentest code sharing the host kernel | microVM (hardware boundary) or a memory-safe runtime (defense-in-depth) | opt-in: `vm`/MicroVM or `--runtime` swap; not the baseline |
+
+**Decision: the default compute engine is Docker, run rootless.** This keeps the
+Docker familiarity and Compose experience OSS users expect, while the rootless
+daemon is the actual fix for (A) — an escape maps to an unprivileged, namespaced
+UID on the host rather than root.
+
+- **Never** mount the raw root `/var/run/docker.sock`; the gateway uses the
+  rootless user's socket. A socket proxy (GET-limited) may ride on top to shrink
+  the API surface, but it is surface reduction, not the boundary — rootless is.
+- **Hardening opt-ins (documented, not the default):** `podman` rootless for
+  sites that prefer it; the **external compute driver** (all-gRPC, `docker.sock`
+  confined to one process) as the structurally cleanest target if/when a
+  `compute_driver.proto` process is available.
+- **Isolation opt-ins for adversarial code (B):** `vm`/MicroVM (OpenShell vm
+  driver), **libkrun/krun** (Podman `--runtime krun`, container UX + KVM
+  boundary), or a memory-safe OCI runtime (**youki**, KVM-free defense-in-depth).
+  These address (B) and are orthogonal to the (A) socket decision.
+
+The "sandbox cannot reach the gateway" invariant holds regardless: the gateway is
+on `decepticon-net`, never published to the host, mTLS on its gRPC; only
+`langgraph` may call it.
+
+### Why the OpenShell policy does not replace rootless
+
+They protect different layers and neither substitutes for the other:
+
+- The compiled OpenShell policy (`compile_openshell_policy`:
+  `network_policies` / `filesystem_policy` / `landlock` / `process`) governs the
+  **inside** of the sandbox — threat (B). It cannot change who owns the host
+  Docker daemon or its socket.
+- rootless governs the **outside** — threat (A): if the agent escapes the
+  sandbox and reaches the host `docker.sock`, a rootful daemon makes that socket
+  host-root, while a rootless daemon makes it an unprivileged, namespaced user.
+  That difference is decided only by *who runs dockerd*, which no in-sandbox
+  policy can set.
+
+So "just tighten the OpenShell policy" leaves (A) open; rootless is required for
+the post-escape boundary.
+
+### rootless does not make in-sandbox tooling harder
+
+A common worry, addressed explicitly: rootless applies to **the daemon**, not to
+the container's interior. A container started by a rootless daemon still runs as
+**root (uid 0) inside**, so `apt-get` / `pip` installs and ordinary tool use work
+exactly as on rootful Docker — the sandbox image's root-based setup is unchanged.
+What changes is only the host mapping (interior uid 0 → unprivileged host uid).
+
+The real costs are elsewhere and must be measured for a pentest sandbox:
+`slirp4netns` network throughput (~50–70% of rootful), binding ports < 1024,
+some volume mounts, and **genuinely privileged attack techniques** (raw kernel
+operations, certain packet manipulation) that a user namespace may restrict.
+`CAP_NET_RAW`-level work (e.g. `nmap -sS`) generally still works; kernel-module
+or deep-privilege techniques may not. Enumerating which tools are affected is a
+verification item below, not an assumption.
+
+### Must verify before implementation (the rootless-nesting risk)
+
+The hard, unproven part is **rootless Docker under nesting**: the gateway runs
+*inside a container* and must create sandbox containers through the rootless
+daemon. Research flags this as the fragile area (user-namespace nesting, cgroup
+v2, the rootless socket store). So the implementation PR must first prove on a
+real host that a containerized gateway driving a rootless Docker daemon actually
+creates a working sandbox, before the compose wiring is trusted.
+
+Two things the implementation PR must measure on a real host before the compose
+wiring is trusted:
+
+1. **Rootless nesting works.** A containerized gateway driving a rootless Docker
+   daemon actually creates a working sandbox (user-namespace nesting, cgroup v2,
+   the rootless socket store).
+2. **Pentest tooling under rootless.** Which sandbox attack tools are restricted
+   by the user namespace (raw/kernel-level ops) vs fine (`CAP_NET_RAW` scans,
+   `apt`/`pip`). If a needed technique is blocked, decide per-tool: accept, grant
+   a narrow capability, or route that engagement to a `vm`/MicroVM profile.
+
+Known rootless-Docker constraints to document: ports < 1024, some volume mounts,
+and slirp4netns networking (~50–70% of rootful throughput; rootless Docker does
+not yet use pasta). macOS/WSL2 already run Docker inside a VM, so the rootless
+story differs there and needs its own note.
+
+### Sources
+
+- Adoption / perf / nesting (Docker vs Podman): Stack Overflow 2025; Luca Berton
+  "Podman vs Docker 2026" <https://lucaberton.com/blog/podman-vs-docker-2026/>;
+  sanj.dev container runtime showdown 2025
+  <https://sanj.dev/post/container-runtime-showdown-2025/>; Podman socket /
+  nesting <https://www.golinuxcloud.com/podman-docker-socket/>.
+- Socket boundary: Docker rootless <https://docs.docker.com/engine/security/rootless/>;
+  NIST SP 800-190; socket-proxy analysis
+  <https://medium.com/@ZeroCVEClub/is-mounting-the-docker-socket-a-container-security-risk-58813741c865>.
+- Sandbox isolation / Rust runtimes: youki <https://github.com/youki-dev/youki>;
+  libkrun/krun <https://github.com/libkrun/libkrun> and crun `krun.1`; Kata vs
+  Firecracker vs gVisor <https://northflank.com/blog/kata-containers-vs-firecracker-vs-gvisor>.
 
 ## Other open decisions
 
