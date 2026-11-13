@@ -127,7 +127,7 @@ func TestPrepareGatewayPodman(t *testing.T) {
 	if !strings.Contains(toml, `compute_driver      = "podman"`) {
 		t.Errorf("rendered toml missing podman compute_driver")
 	}
-	if !strings.Contains(toml, filepath.Join(dataDir, "tls", "jwt", "signing.pem")) {
+	if !strings.Contains(toml, dataDir+"/tls/jwt/signing.pem") {
 		t.Errorf("rendered toml jwt path not pointed at data dir:\n%s", toml)
 	}
 }
