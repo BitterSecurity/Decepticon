@@ -23,6 +23,7 @@ import (
 	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/health"
 	opsinternal "github.com/BitterSecurity/Decepticon/clients/launcher/internal/infracontrol"
 	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/migrate"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/openshell"
 	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/platform"
 	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/starprompt"
 	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/ui"
@@ -431,10 +432,26 @@ func runStartMode(cmd *cobra.Command, args []string, existingEngagement string, 
 		defer os.Remove(overlay)
 		c.OverlayFile = overlay
 	}
+	// Stand up the OpenShell admission gateway alongside the stack so the
+	// default `openshell` sandbox provider can admit this engagement out of
+	// the box. The compute engine is chosen from the detected container
+	// runtime (podman → rootless, else docker); the exported OPENSHELL_* env
+	// reaches compose via ComposeCommandEnv()'s os.Environ() forwarding.
+	gwProfile, gwLabel, gwErr := openshell.PrepareGateway(home, c.Runtime)
+	if gwErr != nil {
+		return fmt.Errorf("prepare OpenShell gateway: %w; inspect with `decepticon doctor`", gwErr)
+	}
+	ui.Info("Sandbox boundary · OpenShell gateway: " + gwLabel)
+
 	ui.Info("[4/5] Services · starting and waiting for readiness")
-	startServices := func() error { return c.Up(compose.Profiles.CLI) }
+	startServices := func() error { return c.Up(compose.Profiles.CLI, gwProfile) }
 	if existingEngagement != "" && !attachInteractive {
-		startServices = c.UpDesktop
+		startServices = func() error {
+			if err := c.Up(gwProfile); err != nil {
+				return err
+			}
+			return c.UpDesktop()
+		}
 	}
 	if err := startServices(); err != nil {
 		return fmt.Errorf("start services: %w; inspect with `decepticon doctor` and `decepticon logs` (services kept)", err)
