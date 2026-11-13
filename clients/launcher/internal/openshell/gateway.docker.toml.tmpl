@@ -1,0 +1,28 @@
+# OpenShell gateway — Docker compute driver. Rendered by the launcher
+# (internal/openshell): @DATA@ is replaced with the gateway data dir.
+[openshell]
+version = 2
+
+[openshell.gateway]
+bind_address        = "0.0.0.0:8080"
+health_bind_address = "0.0.0.0:8081"
+log_level           = "info"
+compute_driver      = "docker"
+disable_tls         = true
+
+[openshell.gateway.auth]
+allow_unauthenticated_users = true
+
+[openshell.gateway.gateway_jwt]
+signing_key_path = "@DATA@/tls/jwt/signing.pem"
+public_key_path  = "@DATA@/tls/jwt/public.pem"
+kid_path         = "@DATA@/tls/jwt/kid"
+gateway_id       = "decepticon-gateway"
+
+[openshell.drivers.docker]
+default_image         = "ghcr.io/bittersecurity/decepticon-sandbox:latest"
+sandbox_runtime_image = "ghcr.io/nvidia/openshell/sandbox:latest"
+supervisor_image      = "ghcr.io/nvidia/openshell/supervisor:latest"
+image_pull_policy     = "if_not_present"
+sandbox_label         = "decepticon"
+app_armor_profile     = "Unconfined"

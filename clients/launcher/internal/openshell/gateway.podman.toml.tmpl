@@ -1,0 +1,32 @@
+# OpenShell gateway — Podman compute driver (rootless, recommended).
+# Rendered by the launcher (internal/openshell): @DATA@ is replaced with the
+# gateway data dir (user-writable; the gateway runs --userns=keep-id as the
+# host user, so JWT keys must be user-owned).
+[openshell]
+version = 2
+
+[openshell.gateway]
+bind_address        = "0.0.0.0:8080"
+health_bind_address = "0.0.0.0:8081"
+log_level           = "info"
+compute_driver      = "podman"
+disable_tls         = true
+
+[openshell.gateway.auth]
+allow_unauthenticated_users = true
+
+[openshell.gateway.gateway_jwt]
+signing_key_path = "@DATA@/tls/jwt/signing.pem"
+public_key_path  = "@DATA@/tls/jwt/public.pem"
+kid_path         = "@DATA@/tls/jwt/kid"
+gateway_id       = "decepticon-gateway"
+
+[openshell.drivers.podman]
+default_image         = "ghcr.io/bittersecurity/decepticon-sandbox:latest"
+sandbox_runtime_image = "ghcr.io/nvidia/openshell/sandbox:latest"
+supervisor_image      = "ghcr.io/nvidia/openshell/supervisor:latest"
+image_pull_policy     = "if_not_present"
+grpc_endpoint         = ""
+ssh_socket_path       = "/run/openshell/ssh.sock"
+network_name          = "decepticon-openshell"
+app_armor_profile     = "Unconfined"
