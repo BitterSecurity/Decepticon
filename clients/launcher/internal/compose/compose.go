@@ -63,11 +63,17 @@ var Profiles = struct {
 	C2        string
 	AD        string
 	Reversing string
+	OpenShell string
 }{
 	CLI:       "cli",
 	C2:        "c2-sliver",
 	AD:        "ad",
 	Reversing: "reversing",
+	// OpenShell is the standing sandbox-admission gateway. Unlike the
+	// specialist workloads, `decepticon start` activates it alongside
+	// `cli` so the default `openshell` sandbox provider can admit
+	// engagements out of the box (see internal/openshell).
+	OpenShell: "openshell",
 }
 
 // AllProfiles returns every profile flag the launcher should pass
@@ -81,6 +87,7 @@ func AllProfiles() []string {
 		"--profile", Profiles.C2,
 		"--profile", Profiles.AD,
 		"--profile", Profiles.Reversing,
+		"--profile", Profiles.OpenShell,
 	}
 }
 
