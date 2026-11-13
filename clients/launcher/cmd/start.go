@@ -464,6 +464,13 @@ func runStartMode(cmd *cobra.Command, args []string, existingEngagement string, 
 		return fmt.Errorf("service readiness: %w; inspect `decepticon doctor` and `decepticon logs` (services kept)", err)
 	}
 
+	// Entering the live engagement (TUI, desktop, or background) LOCKS the
+	// scope: the RoE is immutable from here on, and a different scope requires
+	// a new engagement. Draft engagements stay editable until this point.
+	if err := engagement.MarkStarted(choice.WorkspacePath); err != nil {
+		ui.Warning("could not write engagement start marker (scope lock): " + err.Error())
+	}
+
 	// The desktop agent service ends here — it serves host clients and has
 	// no terminal. Attach keeps going: its whole point is the interactive
 	// CLI on the existing engagement.
