@@ -159,6 +159,46 @@ smoke:
 	@echo "  Run dogfood:  make dogfood"
 	@echo "  Teardown:     make clean"
 
+# ── OpenShell gateway (standing compute boundary) ────────────────
+## Bring the stack up WITH the standing OpenShell gateway (profile: openshell),
+## so the default `openshell` sandbox provider can admit engagements. Pick the
+## compute engine with ENGINE=:
+##   make openshell-up                 # ENGINE=docker (default; see threat note)
+##   make openshell-up ENGINE=podman   # rootless boundary (recommended)
+## Full guide + trade-offs: docs/deploy/openshell-gateway.md
+ENGINE ?= docker
+.PHONY: openshell-up openshell-down
+openshell-up:
+ifeq ($(ENGINE),podman)
+	@command -v podman >/dev/null 2>&1 || { echo "podman not installed — see docs/deploy/openshell-gateway.md"; exit 1; }
+	@export XDG_RUNTIME_DIR=$${XDG_RUNTIME_DIR:-/run/user/$$(id -u)}; \
+	systemctl --user start podman.socket 2>/dev/null || true; \
+	sock="$${XDG_RUNTIME_DIR}/podman/podman.sock"; \
+	[ -S "$$sock" ] || { echo "podman user socket not found at $$sock (systemctl --user start podman.socket)"; exit 1; }; \
+	data="$${OPENSHELL_DATA_DIR:-$$HOME/.decepticon/openshell}"; \
+	mkdir -p "$$data/tls"; \
+	sed "s#@DATA@#$$data#g" containers/openshell/gateway.podman.toml > "$$data/gateway.toml"; \
+	echo "[openshell] ENGINE=podman  socket=$$sock  data=$$data"; \
+	DOCKER_HOST="unix://$$sock" \
+	OPENSHELL_COMPUTE_SOCK="$$sock" \
+	OPENSHELL_PODMAN_SOCKET="$$sock" \
+	OPENSHELL_GATEWAY_TOML="$$data/gateway.toml" \
+	OPENSHELL_GATEWAY_USER="$$(id -u):$$(id -g)" \
+	OPENSHELL_GATEWAY_USERNS="keep-id" \
+	OPENSHELL_DATA_DIR="$$data" \
+	DECEPTICON_OPENSHELL_ENDPOINT="host.containers.internal:8080" \
+	$(COMPOSE) --profile openshell up -d
+else
+	@echo "[openshell] ENGINE=docker  (gateway holds the Docker socket — run the daemon rootless or use ENGINE=podman; see docs/deploy/openshell-gateway.md)"
+	DECEPTICON_OPENSHELL_ENDPOINT="host.docker.internal:8080" \
+	$(COMPOSE) --profile openshell up -d
+
+endif
+
+## Tear down the openshell-profile stack (keeps the JWT/data dir).
+openshell-down:
+	$(COMPOSE) --profile openshell down --remove-orphans
+
 # ── Development (build the thing being released) ─────────────────
 
 ## Build images and start with hot-reload (source changes auto-sync).
