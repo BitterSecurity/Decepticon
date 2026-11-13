@@ -19,9 +19,12 @@ type directScopeWindow struct {
 // authorization, and the middleware enforces this block unconditionally
 // (post-unification there is no mode field: presence is enforcement).
 type machineScope struct {
-	InScope           []string            `json:"in_scope"`
-	OutOfScope        []string            `json:"out_of_scope"`
-	AuthorizedWindows []directScopeWindow `json:"authorized_windows"`
+	InScope               []string            `json:"in_scope"`
+	OutOfScope            []string            `json:"out_of_scope"`
+	AuthorizedWindows     []directScopeWindow `json:"authorized_windows"`
+	ForbiddenDestinations []string            `json:"forbidden_destinations,omitempty"`
+	AllowCloudMetadata    bool                `json:"allow_cloud_metadata,omitempty"`
+	AllowSensitiveTLDs    bool                `json:"allow_sensitive_tlds,omitempty"`
 }
 
 type machineRoeDocument struct {
@@ -29,17 +32,40 @@ type machineRoeDocument struct {
 	MachineEnforcement machineScope `json:"machine_enforcement"`
 }
 
+// scopeOptions carries the optional, ENFORCED RoE controls the wizard collects
+// beyond the in/out lists. The zero value is the safe default: a 7-day window,
+// no extra forbidden destinations, and cloud-metadata + sensitive TLDs blocked.
+// Only enforced fields are exposed — the runtime treats things like
+// rate-limit/command-pattern keys as "set but not enforced", so the launcher
+// does not offer them.
+type scopeOptions struct {
+	WindowDays            int      // authorized window length in days (<=0 → 7)
+	ForbiddenDestinations []string // extra always-denied destinations
+	AllowCloudMetadata    bool     // allow 169.254.169.254 & friends (default: blocked)
+	AllowSensitiveTLDs    bool     // allow .gov/.mil/.edu/.int (default: blocked)
+}
+
+func (o scopeOptions) windowDays() int {
+	if o.WindowDays <= 0 {
+		return 7
+	}
+	return o.WindowDays
+}
+
 // buildRoeDocument encodes the machine-enforced RoE JSON from the normalized
-// scope lists, stamping a now→now+7d authorized window.
-func buildRoeDocument(slug string, lists scopeLists, now time.Time) ([]byte, error) {
+// scope lists and options, stamping a now→now+N-day authorized window.
+func buildRoeDocument(slug string, lists scopeLists, opts scopeOptions, now time.Time) ([]byte, error) {
 	now = now.UTC()
-	end := now.AddDate(0, 0, 7)
+	end := now.AddDate(0, 0, opts.windowDays())
 	document := machineRoeDocument{
 		EngagementName: slug,
 		MachineEnforcement: machineScope{
-			InScope:           lists.InScope,
-			OutOfScope:        lists.OutOfScope,
-			AuthorizedWindows: []directScopeWindow{{Start: now.Format(time.RFC3339), End: end.Format(time.RFC3339)}},
+			InScope:               lists.InScope,
+			OutOfScope:            lists.OutOfScope,
+			AuthorizedWindows:     []directScopeWindow{{Start: now.Format(time.RFC3339), End: end.Format(time.RFC3339)}},
+			ForbiddenDestinations: opts.ForbiddenDestinations,
+			AllowCloudMetadata:    opts.AllowCloudMetadata,
+			AllowSensitiveTLDs:    opts.AllowSensitiveTLDs,
 		},
 	}
 	raw, err := json.MarshalIndent(document, "", "  ")
@@ -54,14 +80,14 @@ func buildRoeDocument(slug string, lists scopeLists, now time.Time) ([]byte, err
 // scope through the shared normalization contract (see scope_targets.go and
 // the golden vectors) and shows it for review; dropped entries are surfaced
 // in that preview, not re-reported here.
-func createDirectEngagement(home, slug string, lists scopeLists, now time.Time) (Choice, error) {
+func createDirectEngagement(home, slug string, lists scopeLists, opts scopeOptions, now time.Time) (Choice, error) {
 	if err := validateSlug(home, slug); err != nil {
 		return Choice{}, err
 	}
 	if len(lists.InScope) == 0 {
 		return Choice{}, fmt.Errorf("engagement scope requires at least one in-scope target")
 	}
-	raw, err := buildRoeDocument(slug, lists, now)
+	raw, err := buildRoeDocument(slug, lists, opts, now)
 	if err != nil {
 		return Choice{}, err
 	}
@@ -86,7 +112,7 @@ func createDirectEngagement(home, slug string, lists scopeLists, now time.Time) 
 // while the engagement is a draft (not yet started): once started the scope is
 // locked and a different scope requires a new engagement. This is the only
 // overwrite path for roe.json — creation never overwrites.
-func writeDraftScope(home, slug string, lists scopeLists, now time.Time) error {
+func writeDraftScope(home, slug string, lists scopeLists, opts scopeOptions, now time.Time) error {
 	if !slugRe.MatchString(slug) {
 		return fmt.Errorf("invalid engagement name %q", slug)
 	}
@@ -97,7 +123,7 @@ func writeDraftScope(home, slug string, lists scopeLists, now time.Time) error {
 	if IsStarted(root) {
 		return fmt.Errorf("engagement %q has started; its scope is locked — create a new engagement for a different scope", slug)
 	}
-	raw, err := buildRoeDocument(slug, lists, now)
+	raw, err := buildRoeDocument(slug, lists, opts, now)
 	if err != nil {
 		return err
 	}
