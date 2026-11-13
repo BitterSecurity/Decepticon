@@ -20,7 +20,7 @@ func TestCreateDirectEngagement_MachineScopeFromCreationData(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	choice, err := createDirectEngagement(home, "direct-test", lists, time.Date(2026, 10, 18, 1, 0, 0, 0, time.UTC))
+	choice, err := createDirectEngagement(home, "direct-test", lists, scopeOptions{}, time.Date(2026, 10, 18, 1, 0, 0, 0, time.UTC))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,7 +70,7 @@ func TestCreateDirectEngagement_RejectsEmptyScopeWithoutWorkspace(t *testing.T) 
 			if listsErr != nil {
 				err = listsErr
 			} else {
-				_, err = createDirectEngagement(home, "invalid-target", lists, time.Now())
+				_, err = createDirectEngagement(home, "invalid-target", lists, scopeOptions{}, time.Now())
 			}
 			// Then no workspace is created.
 			if err == nil {
@@ -105,7 +105,7 @@ func TestCreateDirectEngagement_PreservesExistingScope(t *testing.T) {
 		t.Fatal(err)
 	}
 	// When another creation uses the same name.
-	_, err = createDirectEngagement(home, "existing-test", mustLists(t, []string{"https://different.example.com"}, nil), time.Now())
+	_, err = createDirectEngagement(home, "existing-test", mustLists(t, []string{"https://different.example.com"}, nil), scopeOptions{}, time.Now())
 	// Then the existing scope remains intact.
 	if err == nil {
 		t.Fatal("reused existing engagement")
@@ -146,7 +146,7 @@ func TestCreateDirectEngagement_GoldenVectors(t *testing.T) {
 		t.Run(tc.Name, func(t *testing.T) {
 			home := t.TempDir()
 			slug := fmt.Sprintf("vector-%02d", i)
-			if _, err := createDirectEngagement(home, slug, mustLists(t, tc.Targets, tc.OutOfScope), time.Now()); err != nil {
+			if _, err := createDirectEngagement(home, slug, mustLists(t, tc.Targets, tc.OutOfScope), scopeOptions{}, time.Now()); err != nil {
 				t.Fatalf("create: %v", err)
 			}
 			raw, err := os.ReadFile(filepath.Join(home, "workspace", slug, "plan", "roe.json"))
@@ -186,7 +186,7 @@ func TestRenderScopePreview_ShowsGeneratedScope(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	preview := renderScopePreview("acme-2026", lists)
+	preview := renderScopePreview("acme-2026", lists, scopeOptions{})
 	rendered := huh.NewNote().Description(preview).WithWidth(120).View()
 	for _, target := range lists.InScope {
 		if !strings.Contains(rendered, target) {
@@ -213,7 +213,7 @@ func TestRenderScopePreview_ReportsDroppedEntries(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	preview := renderScopePreview("acme-2026", lists)
+	preview := renderScopePreview("acme-2026", lists, scopeOptions{})
 	rendered := huh.NewNote().Description(preview).WithWidth(120).View()
 	for _, target := range lists.InScope {
 		if !strings.Contains(rendered, target) {

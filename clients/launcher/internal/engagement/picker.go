@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -536,11 +537,11 @@ func Select(home string) (Choice, error) {
 	}
 
 	if final.chosen.isNew {
-		slug, lists, err := promptNewEngagement(home)
+		slug, lists, opts, err := promptNewEngagement(home)
 		if err != nil {
 			return Choice{}, err
 		}
-		return createDirectEngagement(home, slug, lists, time.Now())
+		return createDirectEngagement(home, slug, lists, opts, time.Now())
 	}
 
 	slug := final.chosen.slug
@@ -560,11 +561,11 @@ func Select(home string) (Choice, error) {
 		).WithTheme(huh.ThemeFunc(ui.DecepticonTheme))
 		// On non-interactive stdin the confirm errors → keep as-is (safe).
 		if err := confirm.Run(); err == nil && edit {
-			lists, err := promptEditDraftScope(home, slug)
+			lists, opts, err := promptEditDraftScope(home, slug)
 			if err != nil {
 				return Choice{}, err
 			}
-			if err := writeDraftScope(home, slug, lists, time.Now()); err != nil {
+			if err := writeDraftScope(home, slug, lists, opts, time.Now()); err != nil {
 				return Choice{}, err
 			}
 		}
@@ -681,7 +682,7 @@ func promptScopeSuggestions(recommendations []string) (accepted []string, additi
 	return selected, additional, nil
 }
 
-func promptNewEngagement(home string) (string, scopeLists, error) {
+func promptNewEngagement(home string) (string, scopeLists, scopeOptions, error) {
 	var slug, targets, outOfScope string
 	form := huh.NewForm(
 		huh.NewGroup(
@@ -719,33 +720,34 @@ func promptNewEngagement(home string) (string, scopeLists, error) {
 		).Title("New engagement"),
 	).WithTheme(huh.ThemeFunc(ui.DecepticonTheme))
 	if err := form.Run(); err != nil {
-		return "", scopeLists{}, fmt.Errorf("engagement setup cancelled: %w", err)
+		return "", scopeLists{}, scopeOptions{}, fmt.Errorf("engagement setup cancelled: %w", err)
 	}
 	if err := validateSlug(home, slug); err != nil {
-		return "", scopeLists{}, err
+		return "", scopeLists{}, scopeOptions{}, err
 	}
-	lists, err := collectScope(slug, targets, outOfScope, "Create")
+	lists, opts, err := collectScope(slug, targets, outOfScope, "Create", scopeOptions{})
 	if err != nil {
-		return "", scopeLists{}, err
+		return "", scopeLists{}, scopeOptions{}, err
 	}
-	return slug, lists, nil
+	return slug, lists, opts, nil
 }
 
 // collectScope runs passive discovery + suggestions on the typed targets,
-// normalizes them to the enforced scope lists, and shows a preview/confirm
-// gate. Shared by create and draft-edit; verb is "Create" or "Save".
-func collectScope(slug, targets, outOfScope, verb string) (scopeLists, error) {
+// normalizes them to the enforced scope lists, collects the optional enforced
+// RoE controls (seeded for edit), and shows a preview/confirm gate. Shared by
+// create and draft-edit; verb is "Create" or "Save".
+func collectScope(slug, targets, outOfScope, verb string, seed scopeOptions) (scopeLists, scopeOptions, error) {
 	// The form's validators do not fire when stdin ends mid-form; re-verify the
 	// contract here so an EOF can never yield a scopeless engagement.
 	in, _, err := dedupeScopeTargets(splitScopeTargets([]string{targets}))
 	if err != nil {
-		return scopeLists{}, err
+		return scopeLists{}, scopeOptions{}, err
 	}
 	if len(in) == 0 {
-		return scopeLists{}, fmt.Errorf("scope entry cancelled: no in-scope target entered")
+		return scopeLists{}, scopeOptions{}, fmt.Errorf("scope entry cancelled: no in-scope target entered")
 	}
 	if _, _, err := dedupeScopeTargets(splitScopeTargets([]string{outOfScope})); err != nil {
-		return scopeLists{}, err
+		return scopeLists{}, scopeOptions{}, err
 	}
 
 	// Passive discovery: CT logs + passive DNS suggest in-scope entries for
@@ -773,14 +775,21 @@ func collectScope(slug, targets, outOfScope, verb string) (scopeLists, error) {
 				targets = strings.TrimSpace(targets + " " + extra)
 			}
 			if in, _, err = dedupeScopeTargets(splitScopeTargets([]string{targets})); err != nil {
-				return scopeLists{}, err
+				return scopeLists{}, scopeOptions{}, err
 			}
 		}
 	}
 
 	lists, err := buildScopeLists([]string{targets}, []string{outOfScope})
 	if err != nil {
-		return scopeLists{}, err
+		return scopeLists{}, scopeOptions{}, err
+	}
+
+	// Optional enforced controls (seeded for edit). Only fields the runtime
+	// actually enforces are offered.
+	opts, err := promptScopeOptions(seed)
+	if err != nil {
+		return scopeLists{}, scopeOptions{}, err
 	}
 
 	title := "Create this engagement?"
@@ -792,7 +801,7 @@ func collectScope(slug, targets, outOfScope, verb string) (scopeLists, error) {
 		huh.NewGroup(
 			huh.NewNote().
 				Title("Review the generated scope").
-				Description(renderScopePreview(slug, lists)),
+				Description(renderScopePreview(slug, lists, opts)),
 			huh.NewConfirm().
 				Title(title).
 				Affirmative(verb).
@@ -801,19 +810,77 @@ func collectScope(slug, targets, outOfScope, verb string) (scopeLists, error) {
 		),
 	).WithTheme(huh.ThemeFunc(ui.DecepticonTheme))
 	if err := preview.Run(); err != nil {
-		return scopeLists{}, fmt.Errorf("scope review cancelled: %w", err)
+		return scopeLists{}, scopeOptions{}, fmt.Errorf("scope review cancelled: %w", err)
 	}
 	if !confirmed {
-		return scopeLists{}, fmt.Errorf("scope review rejected")
+		return scopeLists{}, scopeOptions{}, fmt.Errorf("scope review rejected")
 	}
-	return lists, nil
+	return lists, opts, nil
+}
+
+// promptScopeOptions collects the optional enforced RoE controls: the authorized
+// window length, extra forbidden destinations, and the cloud-metadata /
+// sensitive-TLD allow toggles. Seeded with the current values on edit. A
+// cancelled/EOF form keeps the seed (safe defaults on create).
+func promptScopeOptions(seed scopeOptions) (scopeOptions, error) {
+	windowStr := strconv.Itoa(seed.windowDays())
+	forbidden := strings.Join(seed.ForbiddenDestinations, ", ")
+	allowCloud := seed.AllowCloudMetadata
+	allowTLD := seed.AllowSensitiveTLDs
+	form := huh.NewForm(
+		huh.NewGroup(
+			huh.NewInput().Title("Authorized window (days)").
+				Description("How long the engagement is authorized to run from now. Outside this window the agent pauses.").
+				Value(&windowStr).
+				Validate(func(s string) error {
+					n, err := strconv.Atoi(strings.TrimSpace(s))
+					if err != nil || n <= 0 {
+						return fmt.Errorf("enter a positive number of days")
+					}
+					return nil
+				}),
+			huh.NewInput().Title("Forbidden destinations (optional)").
+				Description("Always-denied hosts/IPs, in addition to the out-of-scope list and the built-in cloud-metadata guard.").
+				Value(&forbidden).
+				Validate(func(s string) error {
+					if strings.TrimSpace(s) == "" {
+						return nil
+					}
+					_, _, err := dedupeScopeTargets(splitScopeTargets([]string{s}))
+					return err
+				}),
+			huh.NewConfirm().Title("Allow cloud-metadata endpoints?").
+				Description("169.254.169.254 and friends. Default: blocked (recommended).").
+				Affirmative("Allow").Negative("Block").Value(&allowCloud),
+			huh.NewConfirm().Title("Allow sensitive TLDs (.gov/.mil/.edu/.int)?").
+				Description("Default: blocked (recommended).").
+				Affirmative("Allow").Negative("Block").Value(&allowTLD),
+		).Title("Scope options (optional)"),
+	).WithTheme(huh.ThemeFunc(ui.DecepticonTheme))
+	if err := form.Run(); err != nil {
+		// EOF/cancel → keep the seed (defaults on create).
+		return seed, nil
+	}
+	days, err := strconv.Atoi(strings.TrimSpace(windowStr))
+	if err != nil || days <= 0 {
+		days = seed.windowDays()
+	}
+	forb, _, _ := dedupeScopeTargets(splitScopeTargets([]string{forbidden}))
+	return scopeOptions{
+		WindowDays:            days,
+		ForbiddenDestinations: forb,
+		AllowCloudMetadata:    allowCloud,
+		AllowSensitiveTLDs:    allowTLD,
+	}, nil
 }
 
 // promptEditDraftScope re-collects the scope for a draft engagement, seeding the
 // form with its current in/out targets. Only valid while the engagement is a
 // draft (the caller gates on !IsStarted); the writer refuses once started.
-func promptEditDraftScope(home, slug string) (scopeLists, error) {
-	curIn, curOut := readScopeTargets(filepath.Join(home, "workspace", slug))
+func promptEditDraftScope(home, slug string) (scopeLists, scopeOptions, error) {
+	root := filepath.Join(home, "workspace", slug)
+	curIn, curOut := readScopeTargets(root)
+	seed := readScopeOptions(root)
 	targets := strings.Join(curIn, " ")
 	outOfScope := strings.Join(curOut, " ")
 	form := huh.NewForm(
@@ -844,13 +911,14 @@ func promptEditDraftScope(home, slug string) (scopeLists, error) {
 		).Title("Edit draft scope — "+slug),
 	).WithTheme(huh.ThemeFunc(ui.DecepticonTheme))
 	if err := form.Run(); err != nil {
-		return scopeLists{}, fmt.Errorf("scope edit cancelled: %w", err)
+		return scopeLists{}, scopeOptions{}, fmt.Errorf("scope edit cancelled: %w", err)
 	}
-	return collectScope(slug, targets, outOfScope, "Save")
+	return collectScope(slug, targets, outOfScope, "Save", seed)
 }
 
-// renderScopePreview renders the normalized scope the engagement will enforce.
-func renderScopePreview(slug string, lists scopeLists) string {
+// renderScopePreview renders the normalized scope + options the engagement will
+// enforce.
+func renderScopePreview(slug string, lists scopeLists, opts scopeOptions) string {
 	// Huh notes interpret *, _ and backticks as formatting. Escape scope
 	// patterns so the operator reviews the exact authorized targets.
 	escape := strings.NewReplacer("\\", "\\\\", "*", "\\*", "_", "\\_", "`", "\\`")
@@ -865,6 +933,57 @@ func renderScopePreview(slug string, lists scopeLists) string {
 		fmt.Fprintf(&b, "Dropped (%d): %s\n", len(lists.Dropped), join(lists.Dropped))
 		fmt.Fprintf(&b, "  (no DNS/IP target can match a dropped entry)\n")
 	}
+	fmt.Fprintf(&b, "Authorized window: %d day(s) from now\n", opts.windowDays())
+	if len(opts.ForbiddenDestinations) > 0 {
+		fmt.Fprintf(&b, "Forbidden destinations: %s\n", join(opts.ForbiddenDestinations))
+	}
+	fmt.Fprintf(&b, "Cloud metadata: %s · Sensitive TLDs: %s\n", allowLabel(opts.AllowCloudMetadata), allowLabel(opts.AllowSensitiveTLDs))
 	b.WriteString("\nRed enforces this scope on every tool call.")
 	return b.String()
+}
+
+func allowLabel(allow bool) string {
+	if allow {
+		return "allowed"
+	}
+	return "blocked"
+}
+
+// readScopeOptions reads the optional enforced controls from an engagement's
+// roe.json to seed the draft-edit form. Missing fields fall back to defaults.
+func readScopeOptions(root string) scopeOptions {
+	data, err := os.ReadFile(filepath.Join(root, "plan", "roe.json"))
+	if err != nil {
+		return scopeOptions{}
+	}
+	var doc struct {
+		MachineEnforcement *struct {
+			AuthorizedWindows []struct {
+				Start string `json:"start"`
+				End   string `json:"end"`
+			} `json:"authorized_windows"`
+			ForbiddenDestinations []string `json:"forbidden_destinations"`
+			AllowCloudMetadata    bool     `json:"allow_cloud_metadata"`
+			AllowSensitiveTLDs    bool     `json:"allow_sensitive_tlds"`
+		} `json:"machine_enforcement"`
+	}
+	if json.Unmarshal(data, &doc) != nil || doc.MachineEnforcement == nil {
+		return scopeOptions{}
+	}
+	m := doc.MachineEnforcement
+	opts := scopeOptions{
+		ForbiddenDestinations: m.ForbiddenDestinations,
+		AllowCloudMetadata:    m.AllowCloudMetadata,
+		AllowSensitiveTLDs:    m.AllowSensitiveTLDs,
+	}
+	if len(m.AuthorizedWindows) > 0 {
+		if start, err1 := time.Parse(time.RFC3339, m.AuthorizedWindows[0].Start); err1 == nil {
+			if end, err2 := time.Parse(time.RFC3339, m.AuthorizedWindows[0].End); err2 == nil {
+				if days := int(end.Sub(start).Hours() / 24); days > 0 {
+					opts.WindowDays = days
+				}
+			}
+		}
+	}
+	return opts
 }

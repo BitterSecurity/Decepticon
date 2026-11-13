@@ -270,7 +270,7 @@ func TestPromptNewEngagement_RejectsEndOfInputBeforeTarget(t *testing.T) {
 	os.Stdin = input
 	t.Cleanup(func() { os.Stdin = previousInput })
 	// When target input ends before the URL is supplied.
-	_, _, err = promptNewEngagement(home)
+	_, _, _, err = promptNewEngagement(home)
 	// Then no unscoped engagement can be submitted.
 	if err == nil {
 		t.Fatal("accepted a name without a target")
@@ -291,7 +291,7 @@ func TestPromptNewEngagement_RejectsEndOfInputBeforeName(t *testing.T) {
 	t.Cleanup(func() { os.Stdin = previousInput })
 
 	// When the form reaches EOF without a name.
-	_, _, err = promptNewEngagement(home)
+	_, _, _, err = promptNewEngagement(home)
 	// Then it must not create an engagement at the workspace root.
 	if err == nil {
 		t.Fatal("accepted EOF without an engagement name")
