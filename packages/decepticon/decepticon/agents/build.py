@@ -518,8 +518,10 @@ def build_tools(
             ``dict[name, tool]`` (preferred — direct override by name)
             or a plain ``list[tool]`` (we infer names via ``.name``
             attribute).
-        overrides: name → replacement tool. Wins over plugin overrides.
-        disabled_tools: tool names to drop from the baseline.
+        overrides: name → replacement tool. Wins over plugin overrides and
+            additive tool contributions with the same name.
+        disabled_tools: tool names to drop from the baseline and additive
+            plugin contributions. Host-policy tool selection stays host-owned.
 
     Returns:
         list of tools ready for ``create_agent(..., tools=...)``.
@@ -569,7 +571,12 @@ def build_tools(
         base.pop(name, None)
     base.update(resolved.tool_replace)
 
-    plugin_tools = list(load_plugin_tools(role=role))
+    # A later additive contribution must not resurrect a disabled tool or
+    # duplicate an explicitly selected replacement with an older schema.
+    suppressed = set(resolved.tool_replace) | resolved.tool_disable
+    plugin_tools = [
+        item for item in load_plugin_tools(role=role) if _tool_name(item) not in suppressed
+    ]
     result = list(_yield_browser_surface(base, plugin_tools).values())
     result.extend(plugin_tools)
     return result
