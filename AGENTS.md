@@ -36,3 +36,10 @@ follow [RELEASE.md](RELEASE.md): classify by compatibility/user impact, verify
 actual WSL product and candidate artifacts, preserve immutable versions and user
 data, and record the actual publication date. A merged PR does not authorize a
 release or require a version bump. SaaS identifiers remain independent.
+
+# Entire and GitHub coding workflow
+
+Keep GitHub as origin and the authority for PRs/releases; use Entire GitHub mirrors
+without detach. Follow [the Entire workflow](docs/operations/entire-github-workflow.md)
+for setup, primary-worktree hook discovery, hook trust, parallel session ownership
+and checkpoint privacy. Use CLI 0.13.4 or later stable and `entire agent-help`.

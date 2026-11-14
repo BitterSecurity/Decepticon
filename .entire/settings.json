@@ -1,0 +1,12 @@
+{
+  "enabled": true,
+  "strategy_options": {
+    "push_sessions": false
+  },
+  "telemetry": false,
+  "checkpoints": {
+    "primary": {
+      "type": "git-refs"
+    }
+  }
+}
