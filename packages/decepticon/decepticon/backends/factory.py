@@ -121,7 +121,26 @@ def _run_config(config: Any = None) -> dict:
     try:
         from langgraph.config import get_config
 
-        return dict(get_config() or {})
+        ambient = dict(get_config() or {})
+        # Graph loaders propagate LangChain's default RunnableConfig into
+        # import executors. Its callbacks/tags are not an execution binding.
+        # Only normalize implicit, scope-free construction context: explicit
+        # configs and every configurable value still reach the trusted resolver.
+        if (
+            not ambient.get("run_id")
+            and ambient.get("configurable", {}) == {}
+            and ambient.keys()
+            <= {
+                "tags",
+                "metadata",
+                "callbacks",
+                "recursion_limit",
+                "configurable",
+                "run_name",
+            }
+        ):
+            return {}
+        return ambient
     except RuntimeError:
         return {}
 

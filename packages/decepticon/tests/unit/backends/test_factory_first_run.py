@@ -72,3 +72,80 @@ def test_unbound_reads_report_empty_workspace():
         backend._request("post", "/execute", json={})
 
     monkeypatch_env.undo()
+
+
+def test_ambient_default_config_does_not_admit_a_session(monkeypatch):
+    from langchain_core.runnables.config import ensure_config, var_child_runnable_config
+
+    monkeypatch.setenv("DECEPTICON_SANDBOX_PROVIDER", "openshell")
+
+    def unexpected(_config):
+        pytest.fail("Graph import must not resolve an execution session")
+
+    factory.configure_openshell_resolver(unexpected)
+    token = var_child_runnable_config.set(ensure_config())
+    try:
+        backend = factory.build_sandbox_backend()
+        assert backend.id == "openshell:unbound"
+        with pytest.raises(RuntimeError, match="run binding is required"):
+            backend.execute("must not run")
+        with pytest.raises(RuntimeError, match="direct HTTP"):
+            backend._http()
+    finally:
+        var_child_runnable_config.reset(token)
+
+
+@pytest.mark.parametrize(
+    "scope",
+    [
+        {"thread_id": "thread-without-authority"},
+        {"native_runtime_grant": "forged-grant"},
+        {"organization_id": "org-without-authority"},
+        {"sandbox_provider": "openshell"},
+    ],
+)
+def test_ambient_execution_config_still_requires_authority(monkeypatch, scope):
+    from langchain_core.runnables.config import ensure_config, var_child_runnable_config
+
+    monkeypatch.setenv("DECEPTICON_SANDBOX_PROVIDER", "openshell")
+
+    def deny(config):
+        assert config["configurable"] == scope
+        raise RuntimeError("Current native session authority is unavailable")
+
+    factory.configure_openshell_resolver(deny)
+    token = var_child_runnable_config.set(ensure_config({"configurable": scope}))
+    try:
+        with pytest.raises(RuntimeError, match="native session authority"):
+            factory.build_sandbox_backend()
+    finally:
+        var_child_runnable_config.reset(token)
+
+
+@pytest.mark.parametrize(
+    "config",
+    [
+        {"configurable": {}},
+        {"run_id": "identified-run", "configurable": {}},
+        {"unknown_execution_field": True, "configurable": {}},
+    ],
+)
+def test_explicit_or_identified_config_is_not_normalized(monkeypatch, config):
+    from langchain_core.runnables.config import var_child_runnable_config
+
+    monkeypatch.setenv("DECEPTICON_SANDBOX_PROVIDER", "openshell")
+
+    def deny(received):
+        assert received == config
+        raise RuntimeError("Current native session authority is unavailable")
+
+    factory.configure_openshell_resolver(deny)
+    token = var_child_runnable_config.set(config)
+    try:
+        with pytest.raises(RuntimeError, match="native session authority"):
+            factory.build_sandbox_backend(config)
+        if set(config) != {"configurable"}:
+            with pytest.raises(RuntimeError, match="native session authority"):
+                factory.build_sandbox_backend()
+    finally:
+        var_child_runnable_config.reset(token)
