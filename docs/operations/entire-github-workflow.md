@@ -66,3 +66,11 @@ This maintenance change does not alter application code or require an app build.
 Sources: https://github.com/entireio/cli/tree/v0.13.4,
 https://github.com/entireio/cli/releases/tag/v0.13.4,
 https://github.com/entireio/cli/blob/v0.13.4/docs/security-and-privacy.md.
+
+Independent fresh clones were also checked: both discover the committed Codex
+hooks at their own root; Git hooks pass doctor; OSS uploads stay disabled.
+Both report seven hook approvals required via Codex `/hooks`. No trusted hashes
+were edited. Each task branch was pushed through the Entire Singapore mirror;
+the GitHub ref API returned the identical commit, proving code forwarding.
+JSON settings, all seven shell command syntaxes and git diff whitespace pass.
+Live session/subagent capture remains pending interactive hook approval.
