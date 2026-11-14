@@ -129,9 +129,14 @@ def _run_config(config: Any = None) -> dict:
         if (
             not ambient.get("run_id")
             and ambient.get("configurable", {}) == {}
-            and ambient.keys() <= {
-                "tags", "metadata", "callbacks", "recursion_limit",
-                "configurable", "run_name",
+            and ambient.keys()
+            <= {
+                "tags",
+                "metadata",
+                "callbacks",
+                "recursion_limit",
+                "configurable",
+                "run_name",
             }
         ):
             return {}

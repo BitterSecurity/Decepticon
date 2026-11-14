@@ -95,12 +95,15 @@ def test_ambient_default_config_does_not_admit_a_session(monkeypatch):
         var_child_runnable_config.reset(token)
 
 
-@pytest.mark.parametrize("scope", [
-    {"thread_id": "thread-without-authority"},
-    {"native_runtime_grant": "forged-grant"},
-    {"organization_id": "org-without-authority"},
-    {"sandbox_provider": "openshell"},
-])
+@pytest.mark.parametrize(
+    "scope",
+    [
+        {"thread_id": "thread-without-authority"},
+        {"native_runtime_grant": "forged-grant"},
+        {"organization_id": "org-without-authority"},
+        {"sandbox_provider": "openshell"},
+    ],
+)
 def test_ambient_execution_config_still_requires_authority(monkeypatch, scope):
     from langchain_core.runnables.config import ensure_config, var_child_runnable_config
 
@@ -119,11 +122,14 @@ def test_ambient_execution_config_still_requires_authority(monkeypatch, scope):
         var_child_runnable_config.reset(token)
 
 
-@pytest.mark.parametrize("config", [
-    {"configurable": {}},
-    {"run_id": "identified-run", "configurable": {}},
-    {"unknown_execution_field": True, "configurable": {}},
-])
+@pytest.mark.parametrize(
+    "config",
+    [
+        {"configurable": {}},
+        {"run_id": "identified-run", "configurable": {}},
+        {"unknown_execution_field": True, "configurable": {}},
+    ],
+)
 def test_explicit_or_identified_config_is_not_normalized(monkeypatch, config):
     from langchain_core.runnables.config import var_child_runnable_config
 
