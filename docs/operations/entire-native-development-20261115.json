@@ -1,0 +1,74 @@
+{
+  "scope": "official local development tooling; no application runtime change",
+  "baseline": "4cecf55b9272e50f97324fd560e8c7daaad7bc1f",
+  "versions": {
+    "cli": "0.13.4",
+    "graph": "0.6.0",
+    "brain": "0.5.1",
+    "official_skills_commit": "11902e22deddf7b867ea1cf958c0220288be4d63"
+  },
+  "brain_initialization": {
+    "state": "ok",
+    "seconds": 65.212460861,
+    "component_states": {
+      "sessions": "ok",
+      "seed": "ok",
+      "history": "ok",
+      "docs": "ok",
+      "semantic": "ok",
+      "patterns": "ok",
+      "entities": "ok",
+      "memory": "ok"
+    },
+    "daemon_installed": false,
+    "daemon_running": false,
+    "backfill": "skipped"
+  },
+  "graph": {
+    "counts": {
+      "files": 2395,
+      "parsed_files": 2393,
+      "symbols": 35907,
+      "relations": 92277,
+      "partial_failures": 2,
+      "completeness_level": "ok"
+    },
+    "diagnostic_categories": {
+      "E_MINIFIED": {
+        "diagnostics": 2,
+        "files": 2,
+        "intentional_skip": true
+      }
+    },
+    "query_results": 5,
+    "result_bytes": 4021,
+    "query_total_ms": 13036,
+    "query_cache_hit": true,
+    "top_source_location_verified": true
+  },
+  "brain_brief": {
+    "likely_files_count": 4
+  },
+  "privacy": {
+    "public_checkpoint_uploads": false,
+    "brain_no_egress": true,
+    "brain_hosted_connected": false,
+    "private_source_and_mirror": null
+  },
+  "live_codex_capture": "pending interactive hook approval and a new repository-scoped session",
+  "trails": {
+    "enabled": true,
+    "planning_trail": 2,
+    "url": "https://entire.com/gh/bittersecurity/-/trails/2",
+    "auto_review_enabled": false
+  },
+  "checks": {
+    "json_and_hook_shell_syntax": "passed",
+    "linked_worktree": "pending"
+  },
+  "limitations": [
+    "No speed/token savings benchmark; query timings are single observed runs.",
+    "Graph parser coverage is incomplete; inspect source and diagnostics.",
+    "No model-driven backfill, hosted review agents, daemon, release or hosted CI."
+  ]
+}
