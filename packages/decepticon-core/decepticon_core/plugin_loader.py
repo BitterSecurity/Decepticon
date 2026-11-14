@@ -259,10 +259,12 @@ class PluginBundle:
         independently.
     disabled_tools
         Tool names (the @tool callable's ``.name`` attribute) to remove
-        from the standard registry for the matching role.
+        from the standard registry and additive plugin contributions for the
+        matching role. Does not replace host-owned policy tool selection.
     replaced_tools
         Tool name → replacement callable. Removes the standard tool of
-        that name and adds the replacement in its place. The replacement
+        that name, suppresses additive contributions with the same name, and
+        adds the replacement in its place. The replacement
         must have a ``.name`` attribute matching the dict key.
     disabled_middleware
         Slot names (MiddlewareSlot values) to skip during assembly.

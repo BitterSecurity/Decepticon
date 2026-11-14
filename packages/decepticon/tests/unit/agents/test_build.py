@@ -332,6 +332,70 @@ def test_build_tools_plugin_replaces_by_name():
     assert baseline["primary"] not in result
 
 
+def test_named_override_replaces_all_additive_contributions_without_losing_other_tools():
+    from langchain_core.tools import tool
+
+    @tool("shared_lookup")
+    def upstream_lookup(identifier: str) -> str:
+        """Look up an upstream identifier."""
+        return "upstream:" + identifier
+
+    @tool("shared_lookup")
+    def host_lookup(id_or_name: str) -> str:
+        """Preserve a host's existing name-or-ID tool contract."""
+        return "host:" + id_or_name
+
+    @tool
+    def unrelated_lookup(identifier: str) -> str:
+        """Keep an unrelated plugin contribution."""
+        return identifier
+
+    bundle = PluginBundle(roles=("recon",), replaced_tools={"shared_lookup": host_lookup})
+    eps = [_FakeEntryPoint("host", "host:bundle", bundle)]
+    with (
+        patch.object(build_module, "entry_points", return_value=eps),
+        patch.object(
+            build_module,
+            "load_plugin_tools",
+            return_value=[upstream_lookup, host_lookup, unrelated_lookup],
+        ),
+    ):
+        result = build_module.build_tools(
+            role="recon", standard_tools={"shared_lookup": upstream_lookup}
+        )
+    assert result == [host_lookup, unrelated_lookup]
+    assert result[0].invoke({"id_or_name": "existing-name"}) == "host:existing-name"
+    assert "id_or_name" in result[0].tool_call_schema.model_json_schema()["properties"]
+
+
+def test_explicit_override_wins_over_bundle_and_additive_tool_with_same_name():
+    plugin_tool = SimpleNamespace(name="lookup", owner="plugin")
+    bundled = SimpleNamespace(name="lookup", owner="bundle")
+    explicit = SimpleNamespace(name="lookup", owner="explicit")
+    bundle = PluginBundle(replaced_tools={"lookup": bundled})
+    with (
+        patch.object(
+            build_module, "entry_points", return_value=[_FakeEntryPoint("host", "x", bundle)]
+        ),
+        patch.object(build_module, "load_plugin_tools", return_value=[plugin_tool]),
+    ):
+        result = build_module.build_tools(role="recon", overrides={"lookup": explicit})
+    assert result == [explicit]
+
+
+def test_disabled_plugin_tool_is_not_added_back_after_baseline_filtering():
+    keep = SimpleNamespace(name="keep")
+    drop = SimpleNamespace(name="drop")
+    with (
+        patch.object(build_module, "entry_points", return_value=[]),
+        patch.object(build_module, "load_plugin_tools", return_value=[drop, keep]),
+    ):
+        result = build_module.build_tools(
+            role="recon", standard_tools={"drop": drop}, disabled_tools={"drop"}
+        )
+    assert result == [keep]
+
+
 # ── Prompt override resolution ───────────────────────────────────────
 
 
