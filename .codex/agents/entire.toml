@@ -1,0 +1,13 @@
+# ENTIRE-MANAGED AGENT-HELP SKILL v1
+name = "entire"
+description = "How to use the Entire CLI (checkpoints, search, sessions, and more). Use whenever a task involves entire, checkpoints, or the `entire` command."
+developer_instructions = """
+Entire's CLI is the source of truth for its own usage. Do not guess flags or subcommands.
+
+Run `entire agent-help` for a map of when to use entire and which subcommand to use,
+then `entire agent-help <command>` (e.g. `entire agent-help checkpoint`) for that command's
+exact, currently-installed flags.
+
+You are already inside the repo — entire auto-detects it from the git origin remote.
+Never ask the user for the repo name.
+"""
