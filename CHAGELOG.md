@@ -15,7 +15,7 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed maintenance: enable Entire Codex session hooks while retaining GitHub code/PR authority; document parallel worktree ownership and checkpoint privacy. No product release. [Setup and verification](docs/operations/entire-github-workflow.md).
+- Proposed maintenance [#1197](https://github.com/BitterSecurity/Decepticon/pull/1197): enable Entire Codex session hooks while retaining GitHub code/PR authority; document parallel worktree ownership and checkpoint privacy. No product release. [Setup and verification](docs/operations/entire-github-workflow.md).
 
 - Proposed [plugin tool composition correction #1196](https://github.com/BitterSecurity/Decepticon/pull/1196): named tool replacements and disables also apply to additive plugin contributions, retaining the selected schema once and preventing a disabled tool from being added back. Preserve unrelated tools, role scoping, explicit-over-bundle precedence, existing safety checks and host-owned policy selection. All three focused regressions fail before the fix; 120 connected cases and the full local Python gate pass after it (6,292 passed, five explicitly unqualified skips; process exit zero), including actual LangChain tool invocation/schema checks. Full Ruff checks pass, and basedpyright reports zero errors with existing warnings. Seven hosted-schema consumer cases also pass against the actual OSS entry point. No public version or deployment change.
 
