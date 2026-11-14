@@ -60,15 +60,27 @@
     "enabled": true,
     "planning_trail": 2,
     "url": "https://entire.com/gh/bittersecurity/-/trails/2",
-    "auto_review_enabled": false
+    "auto_review_enabled": false,
+    "github_pr_auto_created": true,
+    "change_url": "https://entire.com/gh/bittersecurity/-/trails/2/changes/Decepticon/1"
   },
   "checks": {
     "json_and_hook_shell_syntax": "passed",
-    "linked_worktree": "pending"
+    "linked_worktree": {
+      "settings_enabled": true,
+      "shared_graph_cache_hit": true,
+      "graph_results": 2,
+      "graph_query_total_ms": 5812,
+      "brain_repo_key_matches": true,
+      "brain_no_egress": true,
+      "hook_discovery": "/home/catow/GIT/entire/Decepticon/.codex/hooks.json",
+      "checkpoint_push_disabled": true
+    }
   },
   "limitations": [
     "No speed/token savings benchmark; query timings are single observed runs.",
     "Graph parser coverage is incomplete; inspect source and diagnostics.",
     "No model-driven backfill, hosted review agents, daemon, release or hosted CI."
-  ]
+  ],
+  "github_pr": "https://github.com/BitterSecurity/Decepticon/pull/1198"
 }

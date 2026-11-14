@@ -90,3 +90,13 @@ change; no application code is modified.
 - https://github.com/entireio/skills
 
 Setup review is tracked in [Trail 2](https://entire.com/gh/bittersecurity/-/trails/2).
+
+The Trail created [GitHub PR #1198](https://github.com/BitterSecurity/Decepticon/pull/1198)
+automatically when its branch was linked. Source pushes through Entire were
+observed at the same GitHub branch commit. No review protections were changed.
+
+Live capture requires approval of the project hooks in Codex /hooks. Generated
+hook syntax and primary-checkout discovery are checked independently.
+
+Initial Graph coverage intentionally skips 2 minified JSON data files. No
+source parser errors were reported in that baseline.
