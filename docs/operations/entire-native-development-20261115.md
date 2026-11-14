@@ -47,7 +47,11 @@ trigger model extraction, so keep the no-egress setting on for this workflow.
 
 After these project files reach main, fetch main and create a separate task
 branch/worktree from the latest remote commit. Start `codex` with that worktree
-as its cwd. Do not launch a coding session from the home directory and then edit
+as its cwd. On this operator machine, use `codex --profile entire`: a local
+profile in Codex's supported configuration format disables only legacy global Entire handlers for
+that invocation. The original global hooks and their trust hashes remain
+unchanged for existing/default sessions. Other machines without legacy global
+hooks can use their ordinary Codex command. Do not launch a coding session from the home directory and then edit
 unrelated repositories: context ownership and privacy depend on the repo.
 Use a separate session per repository when their visibility differs.
 
@@ -100,3 +104,11 @@ hook syntax and primary-checkout discovery are checked independently.
 
 Initial Graph coverage intentionally skips 2 minified JSON data files. No
 source parser errors were reported in that baseline.
+
+Project hook installation, generated syntax, discovery, local Brain queries,
+Graph queries and linked-worktree cache use pass. Codex still requires approval
+of the seven project hooks through `/hooks` on this machine; no approval hashes
+were copied. Live OSS capture remains unqualified until that user action.
+
+This review supersedes [the earlier setup draft #1197](https://github.com/BitterSecurity/Decepticon/pull/1197);
+its source branch and worktree are preserved, with no claim that it merged.

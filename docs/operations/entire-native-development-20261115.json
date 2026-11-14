@@ -82,5 +82,13 @@
     "Graph parser coverage is incomplete; inspect source and diagnostics.",
     "No model-driven backfill, hosted review agents, daemon, release or hosted CI."
   ],
-  "github_pr": "https://github.com/BitterSecurity/Decepticon/pull/1198"
+  "github_pr": "https://github.com/BitterSecurity/Decepticon/pull/1198",
+  "local_codex_profile": {
+    "name": "entire",
+    "format": "Codex supported standalone config profile",
+    "global_handlers_disabled_only_for_profile": 7,
+    "trust_hashes_modified": false,
+    "original_global_hooks_preserved": true
+  },
+  "supersedes_pr": 1197
 }
