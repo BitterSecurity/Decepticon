@@ -1,5 +1,7 @@
 # Root-published RoE context bootstrap verification
 
+Source: [PR #1200](https://github.com/BitterSecurity/Decepticon/pull/1200); not released.
+
 A trusted host may publish `plan/roe.json` as root-owned `0444` in a root-owned
 sticky planning directory before admitting a workload. `managed_start` previously
 always replaced that file. A real UID1500 bootstrap therefore failed with
