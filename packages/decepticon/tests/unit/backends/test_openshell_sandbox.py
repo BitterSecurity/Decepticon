@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import base64
 import json
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 from types import SimpleNamespace
 from unittest.mock import Mock
@@ -166,6 +168,154 @@ def test_renewal_failure_fails_closed():
             renew_admission=renew,
         )
     session.exec.assert_not_called()
+
+
+def test_acknowledged_successor_preserves_backend_and_background_jobs(admitted):
+    _, session, current = admitted
+    original = current[0]
+    renew = Mock(side_effect=lambda: current[0])
+    backend = OpenShellSandbox(
+        session, admission=original, current_admission=lambda: current[0], renew_admission=renew
+    )
+    backend._jobs.register("main", "sleep 1", 0)
+    jobs = backend._jobs.all_jobs()
+    identity = backend.id
+    current[0] = replace(original, expires_at=original.expires_at + 60)
+    backend.execute("printf first")
+    backend.execute("printf second")
+    renew.assert_called_once_with()
+    assert backend.id == identity
+    assert backend._jobs.all_jobs() == jobs
+    assert backend.current_admission() == current[0]
+    assert session.exec.call_count == 2
+
+
+def test_successor_expiry_without_explicit_callback_is_refused(admitted):
+    backend, session, current = admitted
+    current[0] = replace(current[0], expires_at=current[0].expires_at + 60)
+    with pytest.raises(SandboxError, match="admission"):
+        backend.execute("must not run")
+    session.exec.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        {"binding_id": "foreign-binding"},
+        {"sandbox_id": "foreign-sandbox"},
+        {"workspace": "foreign-workspace"},
+        {"runtime_generation": "replacement"},
+        {"approval_hash": "replacement"},
+        {"effective_policy_hash": "replacement"},
+        {"ready": False},
+        {"expires_at": float("nan")},
+        {"expires_at": float("inf")},
+    ],
+)
+def test_expired_receipt_renewal_cannot_replace_identity_or_policy(admitted, monkeypatch, change):
+    _, session, current = admitted
+    original = current[0]
+    renewed = replace(
+        original,
+        expires_at=original.expires_at + 600,
+        **{key: value for key, value in change.items() if key != "expires_at"},
+    )
+    if "expires_at" in change:
+        renewed = replace(renewed, expires_at=change["expires_at"])
+
+    def renew():
+        current[0] = renewed
+        return renewed
+
+    callback = Mock(side_effect=renew)
+    backend = OpenShellSandbox(
+        session, admission=original, current_admission=lambda: current[0], renew_admission=callback
+    )
+    monkeypatch.setattr(time, "time", lambda: original.expires_at + 1)
+    with pytest.raises(SandboxError, match="renewal is unavailable"):
+        backend.execute("must not run")
+    with pytest.raises(SandboxError, match="admission"):
+        backend.execute("must not replay renewal")
+    assert backend._admission == original
+    callback.assert_called_once_with()
+    session.exec.assert_not_called()
+
+
+def test_unobserved_renewal_does_not_commit_or_replay_and_hides_callback_error(
+    admitted, monkeypatch
+):
+    _, session, current = admitted
+    original = current[0]
+    callback = Mock(side_effect=RuntimeError("synthetic-private-credential"))
+    backend = OpenShellSandbox(
+        session, admission=original, current_admission=lambda: current[0], renew_admission=callback
+    )
+    monkeypatch.setattr(time, "time", lambda: original.expires_at + 1)
+    with pytest.raises(SandboxError, match="unavailable") as error:
+        backend.execute("must not run")
+    assert "private-credential" not in str(error.value)
+    with pytest.raises(SandboxError):
+        backend.execute("must not replay renewal")
+    callback.assert_called_once_with()
+    assert backend._admission == original
+    session.exec.assert_not_called()
+
+
+def test_renewal_requires_an_independent_current_receipt_observation(admitted):
+    _, session, current = admitted
+    original = current[0]
+    successor = replace(original, expires_at=original.expires_at + 60)
+    unobserved = replace(successor, expires_at=successor.expires_at + 60)
+    callback = Mock(return_value=unobserved)
+    backend = OpenShellSandbox(
+        session, admission=original, current_admission=lambda: current[0], renew_admission=callback
+    )
+    current[0] = successor
+    with pytest.raises(SandboxError, match="unavailable"):
+        backend.execute("must not run")
+    assert backend._admission == original
+    callback.assert_called_once_with()
+    session.exec.assert_not_called()
+
+
+def test_parallel_callers_share_one_acknowledged_successor(admitted):
+    _, session, current = admitted
+    original = current[0]
+    entered, release, second_started, second_read = (threading.Event() for _ in range(4))
+
+    def read():
+        if threading.current_thread().name.endswith("_1"):
+            second_read.set()
+        return current[0]
+
+    def renew():
+        entered.set()
+        assert release.wait(2), "Owned renewal fixture was not released"
+        return current[0]
+
+    callback = Mock(side_effect=renew)
+    backend = OpenShellSandbox(
+        session, admission=original, current_admission=read, renew_admission=callback
+    )
+    current[0] = replace(original, expires_at=original.expires_at + 60)
+
+    def second():
+        second_started.set()
+        return backend.execute("printf second")
+
+    with ThreadPoolExecutor(max_workers=2, thread_name_prefix="owned-renewal") as pool:
+        first = pool.submit(backend.execute, "printf first")
+        try:
+            assert entered.wait(2)
+            other = pool.submit(second)
+            assert second_started.wait(2)
+            assert not second_read.wait(0.05)
+        finally:
+            release.set()
+        assert first.result(timeout=2).output == "ok"
+        assert other.result(timeout=2).output == "ok"
+    callback.assert_called_once_with()
+    assert session.exec.call_count == 2
 
 
 def test_session_identity_is_checked_every_call(admitted):
