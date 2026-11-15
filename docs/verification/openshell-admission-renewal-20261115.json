@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "sourceBase": "4cecf55b9272e50f97324fd560e8c7daaad7bc1f",
+  "sourceFiles": {
+    "packages/decepticon/decepticon/backends/openshell_sandbox.py": "700f67ff27daba7d05b875b3eb9b0def5068eea197d003e9c7f2120cb606f520",
+    "packages/decepticon/tests/unit/backends/test_openshell_sandbox.py": "9dbcbb282632c8a2699a1905c93e5ca32dfc9e668f500a00d353c57d3ac9b211"
+  },
+  "uvLockSha256": "5810c6f22ce10679c3dde288d7cce830dae1196de98e2ec1f685ffc7848089b6",
+  "originalMainRegressions": {
+    "failed": 13,
+    "processExitCode": 1
+  },
+  "connected": {
+    "passed": 251,
+    "skipped": 0,
+    "processExitCode": 0,
+    "logSha256": "0cd91371293178a153f07281f7ec3b55ccd04b0f1357423fbc5ccf9fc8532838"
+  },
+  "fullNonLive": {
+    "passed": 6320,
+    "skipped": 9,
+    "processExitCode": 0,
+    "logSha256": "4f2355a06760ab15c1343800173b996440b0f259f40ae201e3d62723794844c0"
+  },
+  "requiredLintPassed": true,
+  "sdk017Passed": true,
+  "released": false,
+  "actualProviderOrKernelPolicyQualified": false,
+  "requiredLint": {
+    "processExitCode": 0,
+    "ruffFormattedFiles": 922,
+    "typedFiles": 889,
+    "errors": 0,
+    "warnings": 924,
+    "logSha256": "5fcbb508eaef7eac3f9030e4a3393a1b747f065814f1b4ab9e4bf9aedb40b04a"
+  },
+  "sdk017": {
+    "sdkWheelSha256": "21de1816fd3dc5627c625782c616816ddb8cf6d40ed2aaf568c8d941fffb65c1",
+    "connectedPassed": 251,
+    "processExitCode": 0,
+    "logSha256": "2dbb6c685317f3ba4040af99bcf432343551384d263c1acf2e91cc556cd16689"
+  }
+}

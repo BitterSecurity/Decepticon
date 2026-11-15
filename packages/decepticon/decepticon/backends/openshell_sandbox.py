@@ -10,9 +10,10 @@ from __future__ import annotations
 import asyncio
 import json
 import math
+import threading
 import time
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any, Protocol
 
 import httpx
@@ -83,6 +84,7 @@ class OpenShellSandbox(SandboxDaemonClient):
         self._current_admission = current_admission
         self._renew_admission = renew_admission
         self._closed = False
+        self._admission_lock = threading.RLock()
         self.check_admission()
 
     @property
@@ -99,12 +101,17 @@ class OpenShellSandbox(SandboxDaemonClient):
         return self._current_admission()
 
     def check_admission(self) -> None:
+        with self._admission_lock:
+            self._check_admission()
+
+    def _check_admission(self) -> None:
         expected = self._admission
-        if self._closed or self._current_admission() != expected:
+        if self._closed:
             raise SandboxError("OpenShell execution admission changed or was revoked")
         if not all(
             (
                 expected.binding_id,
+                expected.sandbox_id,
                 expected.workspace,
                 expected.runtime_generation,
                 expected.approval_hash,
@@ -114,9 +121,31 @@ class OpenShellSandbox(SandboxDaemonClient):
             raise SandboxError("OpenShell execution admission is incomplete")
         if (
             not expected.ready
+            or type(expected.expires_at) not in (int, float)
             or not math.isfinite(expected.expires_at)
-            or time.time() >= expected.expires_at
         ):
+            raise SandboxError("OpenShell execution admission is not ready or has expired")
+        if self._session.id != expected.sandbox_id:
+            raise SandboxError("OpenShell session does not match the admitted sandbox")
+        current = self._current_admission()
+        if current != expected:
+            # The host can acknowledge a successor before this backend's old
+            # interval ends. An expiry change alone is not permission to adopt
+            # it: require the explicit trusted renewal callback as well.
+            if (
+                not isinstance(current, OpenShellAdmission)
+                or replace(current, expires_at=expected.expires_at) != expected
+                or type(current.expires_at) not in (int, float)
+                or not math.isfinite(current.expires_at)
+                or current.expires_at <= expected.expires_at
+                or self._renew_admission is None
+            ):
+                raise SandboxError("OpenShell execution admission changed or was revoked")
+            renewed = self._renew()
+            if renewed is None:
+                raise SandboxError("OpenShell execution admission renewal is unavailable")
+            expected = renewed
+        if time.time() >= expected.expires_at:
             # The runtime identity is unchanged (the equality check above
             # passed); only the receipt TTL ran out — a long-lived daemon
             # hits this on every request after the host's admission window
@@ -136,17 +165,38 @@ class OpenShellSandbox(SandboxDaemonClient):
             raise SandboxError("OpenShell session does not match the admitted sandbox")
 
     def _renew(self) -> OpenShellAdmission | None:
-        """Re-read the receipt through the trusted host; None if unsupported."""
+        """Adopt an observed successor without replacing its execution identity."""
         if self._renew_admission is None:
             return None
-        self._admission = self._renew_admission()
-        return self._admission
+        expected = self._admission
+        try:
+            candidate = self._renew_admission()
+            if (
+                not isinstance(candidate, OpenShellAdmission)
+                or replace(candidate, expires_at=expected.expires_at) != expected
+                or not candidate.ready
+                or type(candidate.expires_at) not in (int, float)
+                or not math.isfinite(candidate.expires_at)
+                or candidate.expires_at <= expected.expires_at
+                or self._session.id != candidate.sandbox_id
+                or self._current_admission() != candidate
+                or time.time() >= candidate.expires_at
+            ):
+                raise SandboxError("OpenShell execution admission renewal is unavailable")
+        except Exception:
+            # Host/transport exceptions can contain credentials. Preserve the
+            # old receipt and never retry an unknown renewal or an execution.
+            self._closed = True
+            raise SandboxError("OpenShell execution admission renewal is unavailable") from None
+        self._admission = candidate
+        return candidate
 
     def _http(self) -> httpx.Client:
         raise SandboxError("Direct daemon HTTP is disabled for OpenShell")
 
     def close(self) -> None:
-        self._closed = True
+        with self._admission_lock:
+            self._closed = True
 
     def _request(self, method: str, path: str, **kwargs: Any) -> httpx.Response:
         self.check_admission()
