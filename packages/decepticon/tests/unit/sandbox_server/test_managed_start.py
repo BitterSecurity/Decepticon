@@ -68,6 +68,44 @@ def test_reconnect_reuses_same_process_and_does_not_truncate_log(managed, prepar
     assert (state / "daemon.log").read_bytes() == b"retained log\n"
 
 
+def test_changed_context_still_restores_the_supplied_approved_bytes(managed, prepared):
+    root, state, content, message, child, spawn = prepared
+    plan = root / "plan"
+    plan.mkdir()
+    path = plan / "roe.json"
+    path.write_bytes(b'{"old":"context"}')
+    path.chmod(0o444)
+    managed.restore_scope(root, content)
+    assert path.read_bytes() == content
+    assert path.stat().st_mode & 0o777 == 0o400
+
+
+def test_matching_writable_context_is_still_resealed_private(managed, prepared):
+    root, state, content, message, child, spawn = prepared
+    plan = root / "plan"
+    plan.mkdir()
+    path = plan / "roe.json"
+    path.write_bytes(content)
+    path.chmod(0o644)
+    before = path.stat().st_ino
+    managed.restore_scope(root, content)
+    assert path.read_bytes() == content
+    assert path.stat().st_mode & 0o777 == 0o400
+    assert path.stat().st_ino != before
+
+
+def test_unreadable_ordinary_context_can_still_be_atomically_restored(managed, prepared):
+    root, state, content, message, child, spawn = prepared
+    plan = root / "plan"
+    plan.mkdir()
+    path = plan / "roe.json"
+    path.write_bytes(content)
+    path.chmod(0o200)
+    managed.restore_scope(root, content)
+    assert path.read_bytes() == content
+    assert path.stat().st_mode & 0o777 == 0o400
+
+
 def test_concurrent_reconnects_start_one_process(managed, prepared):
     root, state, content, message, child, spawn = prepared
     with ThreadPoolExecutor(max_workers=4) as pool:

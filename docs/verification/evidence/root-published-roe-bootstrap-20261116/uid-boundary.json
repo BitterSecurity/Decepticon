@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "sourceBase": "e03451d96ff24452b7f67339226e1419a5eb42db",
+  "scope": "Actual Linux root-owned read-only RoE, sticky directory, real UID1500; fixed-path context compatibility, not Gateway or complete hosted runtime acceptance",
+  "rootUid": 0,
+  "workloadUid": 1500,
+  "sourceHashes": {
+    "baseline": "6b5490e52cec03c22208c9132f4e56be5a7b3297e1eb8192b542f99a06015c24",
+    "candidate": "1d159e139574dfefb1b6ed76d12d520cf3d19059046a76cdb81a815b91a286ed",
+    "tests": "551db0843d50a1038f3a5c1afc0e2397475a897bf687e3517d300aacf7a50530"
+  },
+  "baseline": {
+    "tests": 7,
+    "failures": 2,
+    "errors": 0,
+    "skips": 0,
+    "passed": false
+  },
+  "candidate": {
+    "tests": 7,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "passed": true
+  },
+  "actualProgramSourceAndStepsVerified": true
+}
