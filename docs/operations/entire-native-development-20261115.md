@@ -47,11 +47,11 @@ trigger model extraction, so keep the no-egress setting on for this workflow.
 
 After these project files reach main, fetch main and create a separate task
 branch/worktree from the latest remote commit. Start `codex` with that worktree
-as its cwd. On this operator machine, use `codex --profile entire`: a local
-profile in Codex's supported configuration format disables only legacy global Entire handlers for
-that invocation. The original global hooks and their trust hashes remain
-unchanged for existing/default sessions. Other machines without legacy global
-hooks can use their ordinary Codex command. Do not launch a coding session from the home directory and then edit
+as its cwd and run `codex` normally. No separate profile or launcher is needed.
+The operator's supported Codex hook-state settings disable seven legacy global
+Entire handlers, so only the repository's official hooks record the session.
+Approval hashes, official skills, saved sessions and worktrees are preserved.
+The earlier local `entire` profile has been retired and backed up. Do not launch a coding session from the home directory and then edit
 unrelated repositories: context ownership and privacy depend on the repo.
 Use a separate session per repository when their visibility differs.
 
@@ -112,3 +112,8 @@ were copied. Live OSS capture remains unqualified until that user action.
 
 This review supersedes [the earlier setup draft #1197](https://github.com/BitterSecurity/Decepticon/pull/1197);
 its source branch and worktree are preserved, with no claim that it merged.
+
+The operator now starts plain `codex` with duplicate legacy global handlers
+disabled in the supported user hook settings. No separate profile is needed.
+This does not approve the OSS project's seven hooks; `/hooks` review remains a
+required user action before claiming live OSS capture.

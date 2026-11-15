@@ -88,7 +88,15 @@
     "format": "Codex supported standalone config profile",
     "global_handlers_disabled_only_for_profile": 7,
     "trust_hashes_modified": false,
-    "original_global_hooks_preserved": true
+    "original_global_hooks_preserved": true,
+    "retired": true
   },
-  "supersedes_pr": 1197
+  "supersedes_pr": 1197,
+  "plain_codex_configuration": {
+    "entrypoint": "codex",
+    "legacy_global_handlers_disabled": 7,
+    "approval_hashes_preserved": true,
+    "custom_skill_added": false,
+    "standalone_profile_required": false
+  }
 }

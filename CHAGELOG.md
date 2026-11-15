@@ -15,6 +15,8 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed local-development maintenance: start Codex normally without a separate Entire profile; disable duplicate legacy global handlers while preserving official project hooks, approval hashes and saved records. [Workflow](docs/operations/entire-native-development-20261115.md).
+
 - Proposed maintenance ([PR #1198](https://github.com/BitterSecurity/Decepticon/pull/1198), [Trail 2](https://entire.com/gh/bittersecurity/-/trails/2)): configure official Entire Codex hooks, Graph and local-only Brain with GitHub-backed Trails; preserve repository privacy and protection gates. No application release. Supersedes [draft #1197](https://github.com/BitterSecurity/Decepticon/pull/1197). [Setup and measured evidence](docs/operations/entire-native-development-20261115.md).
 
 - Proposed [plugin tool composition correction #1196](https://github.com/BitterSecurity/Decepticon/pull/1196): named tool replacements and disables also apply to additive plugin contributions, retaining the selected schema once and preventing a disabled tool from being added back. Preserve unrelated tools, role scoping, explicit-over-bundle precedence, existing safety checks and host-owned policy selection. All three focused regressions fail before the fix; 120 connected cases and the full local Python gate pass after it (6,292 passed, five explicitly unqualified skips; process exit zero), including actual LangChain tool invocation/schema checks. Full Ruff checks pass, and basedpyright reports zero errors with existing warnings. Seven hosted-schema consumer cases also pass against the actual OSS entry point. No public version or deployment change.
