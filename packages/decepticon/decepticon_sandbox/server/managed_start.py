@@ -13,6 +13,7 @@ import hashlib
 import json
 import os
 import secrets
+import stat
 import subprocess
 import sys
 from pathlib import Path
@@ -22,8 +23,56 @@ ROOT = Path("/workspace")
 STATE = Path("/tmp/decepticon-session")
 
 
+def _published_scope_matches(plan_fd: int, content: bytes) -> bool:
+    """Retain an identical root-published context without changing its protection."""
+    try:
+        before = os.stat("roe.json", dir_fd=plan_fd, follow_symlinks=False)
+    except FileNotFoundError:
+        return False
+    if (
+        not stat.S_ISREG(before.st_mode)
+        or before.st_uid != 0
+        or stat.S_IMODE(before.st_mode) != 0o444
+        or before.st_nlink != 1
+        or before.st_size != len(content)
+    ):
+        return False
+
+    def identity(info: os.stat_result) -> tuple[int, ...]:
+        return (
+            info.st_dev,
+            info.st_ino,
+            info.st_uid,
+            info.st_mode,
+            info.st_nlink,
+            info.st_size,
+            info.st_mtime_ns,
+            info.st_ctime_ns,
+        )
+
+    fd = os.open("roe.json", os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=plan_fd)
+    try:
+        if identity(before) != identity(os.fstat(fd)):
+            raise ValueError("Published scope changed during verification")
+        actual = bytearray()
+        while len(actual) <= len(content):
+            chunk = os.read(fd, min(64 * 1024, len(content) + 1 - len(actual)))
+            if not chunk:
+                break
+            actual.extend(chunk)
+        if actual != content:
+            return False
+
+        published = os.stat("roe.json", dir_fd=plan_fd, follow_symlinks=False)
+        if identity(before) != identity(os.fstat(fd)) or identity(before) != identity(published):
+            raise ValueError("Published scope changed during verification")
+        return True
+    finally:
+        os.close(fd)
+
+
 def restore_scope(root: Path, content: bytes) -> None:
-    """Only replace the fixed scope file through no-follow directory handles."""
+    """Retain identical protected context or atomically restore the fixed scope."""
     root_fd = os.open(root, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
     try:
         try:
@@ -33,6 +82,8 @@ def restore_scope(root: Path, content: bytes) -> None:
             pass
         plan_fd = os.open("plan", os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=root_fd)
         try:
+            if _published_scope_matches(plan_fd, content):
+                return
             name = ".roe-" + secrets.token_hex(12)
             fd = os.open(
                 name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o400, dir_fd=plan_fd
