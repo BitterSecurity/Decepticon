@@ -1,6 +1,6 @@
 # OpenShell admission successor verification
 
-Source fix; no release or deployment. The public runtime/API signature remains
+Source [PR #1199](https://github.com/BitterSecurity/Decepticon/pull/1199); no release or deployment. The public runtime/API signature remains
 unchanged. A host may already have acknowledged a successor when the next backend
 operation arrives before the old receipt expires. The backend previously refused
 that case even with its explicit trusted renewal callback. The expired-receipt
