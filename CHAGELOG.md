@@ -15,7 +15,7 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed, unreleased local-first Rust architecture and source-backed storage/framework research: define native and Docker deployment options, file/DB ownership, framework maturity gates and a bounded custom-engine fallback, with migration/rollback constraints and local baseline evidence. Design only; no runtime, dependency, version or deployment change. [Design](docs/design/2026-11-16-local-first-rust.md), [research](docs/research/2026-11-16-agent-storage-frameworks.md). PR link will be recorded when opened.
+- Proposed, unreleased [local-first Rust design and research #1202](https://github.com/BitterSecurity/Decepticon/pull/1202): define native and Docker deployment options, file/DB ownership, framework maturity gates and a bounded custom-engine fallback, with migration/rollback constraints and local baseline evidence. Design only; no runtime, dependency, version or deployment change. [Design](docs/design/2026-11-16-local-first-rust.md), [research](docs/research/2026-11-16-agent-storage-frameworks.md).
 
 - Proposed, unreleased [#1201](https://github.com/BitterSecurity/Decepticon/pull/1201): calculate the agent step budget from the latest operator message so follow-up requests can use tools after a long checkpointed conversation. Tool/interrupt continuations keep their current-turn cap. Twelve focused cases, including real offline LangChain/LangGraph checkpoint and interrupt execution, pass; the wider middleware/agent suite passes1,111cases with one explicitly skipped optional Transformers test. No version or package publication is performed.
 
