@@ -1,0 +1,21 @@
+[package]
+name = "agent-case"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.97.1"
+publish = false
+
+[features]
+native-case = ["dep:reqwest"]
+rig-case = ["dep:rig", "dep:rig-core", "dep:tokio"]
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+reqwest = { version = "0.13", default-features = false, features = ["blocking", "json", "rustls"], optional = true }
+rig = { package = "rig-agent", version = "=0.46.0", default-features = false, optional = true }
+rig-core = { version = "=0.46.0", default-features = false, features = ["reqwest", "rustls"], optional = true }
+tokio = { version = "1", features = ["rt", "net", "time"], optional = true }
+
+[profile.release]
+strip = true
