@@ -144,7 +144,11 @@ shared build coordinator. The final invocation was
 `benchmark/agent-runtime/.venv/bin/python tests/agent_runtime_measure.py
 --bin-dir benchmark/agent-runtime/target --trials 3
 --output benchmark/agent-runtime/results.json`, also under the coordinator.
-All recorded source and binary hashes match the measured files. Ruff check and
+All recorded source and binary hashes match the measured files at
+commit `5a85adda9971271e20ccf31d0fbb270d6952bdcf`. Post-measurement review
+adds only an explanatory comment to the sampler exception handler; its parsed
+Python AST is identical. Raw measurement hashes are preserved without rewriting
+the original evidence. Ruff check and
 format, Rust fmt, the frozen uv lock check, focused Basedpyright (zero errors
 and warnings), Markdownlint (zero issues), `git diff --check` and the contributor
 skill audit (329 files, zero violations) passed locally. Existing production

@@ -112,6 +112,8 @@ def line_until(
             for key in ("threads", "fds", "rss_kib"):
                 peaks[key] = max(peaks.get(key, 0), s[key])
         except (FileNotFoundError, ProcessLookupError, KeyError):
+            # The child may exit during /proc sampling; still read its pipe so
+            # protocol errors or EOF remain fatal below, with the deadline intact.
             pass
         if select.select([process.stdout], [], [], 0.01)[0]:
             line = process.stdout.readline()
