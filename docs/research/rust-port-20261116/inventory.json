@@ -1,0 +1,485 @@
+{
+  "revision": "1c0df39549c82f7c76e7d0b1667557f3778438f7",
+  "method": "git archive; physical lines including blanks/comments; named tests excluded from component source groups; submodule contents excluded",
+  "components": {
+    "core": {
+      "files": 36,
+      "physical_lines": 6563
+    },
+    "framework": {
+      "files": 367,
+      "physical_lines": 79310
+    },
+    "sandbox": {
+      "files": 35,
+      "physical_lines": 7778
+    },
+    "sdk": {
+      "files": 6,
+      "physical_lines": 724
+    },
+    "launcher": {
+      "files": 85,
+      "physical_lines": 14240
+    },
+    "cli": {
+      "files": 104,
+      "physical_lines": 9972
+    },
+    "streaming": {
+      "files": 6,
+      "physical_lines": 265
+    },
+    "telemetry_gateway": {
+      "files": 4,
+      "physical_lines": 430
+    },
+    "benchmark": {
+      "files": 43,
+      "physical_lines": 8678
+    },
+    "provider_config": {
+      "files": 13,
+      "physical_lines": 6158
+    }
+  },
+  "language_totals_including_tests": {
+    ".py": {
+      "files": 924,
+      "physical_lines": 191126
+    },
+    ".go": {
+      "files": 144,
+      "physical_lines": 22749
+    },
+    ".ts": {
+      "files": 110,
+      "physical_lines": 9603
+    },
+    ".tsx": {
+      "files": 49,
+      "physical_lines": 5220
+    },
+    ".js": {
+      "files": 4,
+      "physical_lines": 469
+    },
+    ".rs": {
+      "files": 0,
+      "physical_lines": 0
+    },
+    ".sh": {
+      "files": 7,
+      "physical_lines": 974
+    },
+    ".md": {
+      "files": 826,
+      "physical_lines": 99975
+    }
+  },
+  "framework_directory_physical_lines": {
+    "tools": 39759,
+    "middleware": 13452,
+    "agents": 6868,
+    "skillogy": 3929,
+    "llm": 2228,
+    "runtime": 2168,
+    "backends": 1867,
+    "mcp_server": 1819,
+    "cli": 1575,
+    "telemetry": 1511,
+    "core": 816,
+    "artifacts": 584,
+    "skill_audit": 519,
+    "capabilities": 444,
+    "server": 357,
+    "workflows": 317,
+    "diagnostics.py": 256,
+    "_boot.py": 164,
+    "passive_discovery.py": 117,
+    "graph_registry.py": 109,
+    "roe_materialization.py": 91,
+    "skills": 71,
+    "_sandbox_aliases.py": 66,
+    "provision_roe.py": 62,
+    "compat": 58,
+    "plugin_loader.py": 36,
+    "authorization.py": 34,
+    "__init__.py": 33
+  },
+  "framework_direct_framework_imports": {
+    "__future__": 316,
+    "typing": 255,
+    "decepticon": 214,
+    "json": 125,
+    "decepticon_core": 109,
+    "pathlib": 102,
+    "os": 95,
+    "langchain_core": 85,
+    "dataclasses": 81,
+    "re": 67,
+    "logging": 61,
+    "collections": 58,
+    "langchain": 57,
+    "time": 44,
+    "hashlib": 36,
+    "pydantic": 29,
+    "httpx": 24,
+    "langgraph": 23,
+    "asyncio": 22,
+    "threading": 21,
+    "deepagents": 19,
+    "uuid": 19,
+    "datetime": 18,
+    "sys": 18,
+    "urllib": 18,
+    "enum": 16,
+    "argparse": 14,
+    "functools": 12,
+    "typing_extensions": 12,
+    "warnings": 12,
+    "yaml": 11,
+    "importlib": 10,
+    "base64": 9,
+    "math": 9,
+    "models": 8,
+    "anyio": 7,
+    "contextlib": 7,
+    "contextvars": 7,
+    "decepticon_sandbox": 7,
+    "hmac": 7,
+    "subprocess": 7,
+    "mcp": 6,
+    "tempfile": 6,
+    "langgraph_sdk": 5,
+    "socket": 5,
+    "autobot": 4,
+    "posixpath": 4,
+    "requests": 4,
+    "shlex": 4,
+    "stat": 4,
+    "zipfile": 4,
+    "fastapi": 3,
+    "ipaddress": 3,
+    "render": 3,
+    "shutil": 3,
+    "statistics": 3,
+    "defusedxml": 2,
+    "difflib": 2,
+    "io": 2,
+    "langchain_openai": 2,
+    "neo4j": 2,
+    "secrets": 2,
+    "signal": 2,
+    "types": 2,
+    "aiohttp": 1,
+    "ast": 1,
+    "atexit": 1,
+    "binascii": 1,
+    "catalog": 1,
+    "copy": 1,
+    "csv": 1,
+    "ctypes": 1,
+    "evidence_contract": 1,
+    "factory": 1,
+    "fcntl": 1,
+    "google": 1,
+    "graphlib": 1,
+    "http": 1,
+    "http_transport": 1,
+    "jwt": 1,
+    "langchain_anthropic": 1,
+    "langchain_mcp_adapters": 1,
+    "langgraph_api": 1,
+    "langgraph_runtime": 1,
+    "litellm": 1,
+    "msvcrt": 1,
+    "openai": 1,
+    "openshell": 1,
+    "opentelemetry": 1,
+    "platform": 1,
+    "playwright": 1,
+    "registry": 1,
+    "storage": 1,
+    "struct": 1,
+    "typer": 1,
+    "uvicorn": 1,
+    "webbrowser": 1,
+    "xml": 1
+  },
+  "framework_coupled_files": [
+    "packages/decepticon/decepticon/agents/middleware_slots.py",
+    "packages/decepticon/decepticon/agents/plugins/detector.py",
+    "packages/decepticon/decepticon/agents/plugins/exploiter.py",
+    "packages/decepticon/decepticon/agents/plugins/patcher.py",
+    "packages/decepticon/decepticon/agents/plugins/scanner.py",
+    "packages/decepticon/decepticon/agents/plugins/verifier.py",
+    "packages/decepticon/decepticon/agents/plugins/vulnresearch.py",
+    "packages/decepticon/decepticon/agents/standard/ad_operator.py",
+    "packages/decepticon/decepticon/agents/standard/analyst.py",
+    "packages/decepticon/decepticon/agents/standard/autohunt.py",
+    "packages/decepticon/decepticon/agents/standard/cloud_hunter.py",
+    "packages/decepticon/decepticon/agents/standard/contract_auditor.py",
+    "packages/decepticon/decepticon/agents/standard/decepticon.py",
+    "packages/decepticon/decepticon/agents/standard/exploit.py",
+    "packages/decepticon/decepticon/agents/standard/finding_reporter.py",
+    "packages/decepticon/decepticon/agents/standard/forensicator.py",
+    "packages/decepticon/decepticon/agents/standard/ics_operator.py",
+    "packages/decepticon/decepticon/agents/standard/iot_operator.py",
+    "packages/decepticon/decepticon/agents/standard/mobile_operator.py",
+    "packages/decepticon/decepticon/agents/standard/osint_operator.py",
+    "packages/decepticon/decepticon/agents/standard/phisher.py",
+    "packages/decepticon/decepticon/agents/standard/postexploit.py",
+    "packages/decepticon/decepticon/agents/standard/recon.py",
+    "packages/decepticon/decepticon/agents/standard/reverser.py",
+    "packages/decepticon/decepticon/agents/standard/soundwave.py",
+    "packages/decepticon/decepticon/agents/standard/supply_chain_operator.py",
+    "packages/decepticon/decepticon/agents/standard/wireless_operator.py",
+    "packages/decepticon/decepticon/artifacts/storage.py",
+    "packages/decepticon/decepticon/backends/__init__.py",
+    "packages/decepticon/decepticon/backends/daemon_client.py",
+    "packages/decepticon/decepticon/backends/factory.py",
+    "packages/decepticon/decepticon/backends/http_transport.py",
+    "packages/decepticon/decepticon/core/subagent_streaming.py",
+    "packages/decepticon/decepticon/llm/factory.py",
+    "packages/decepticon/decepticon/middleware/artifact_backend.py",
+    "packages/decepticon/decepticon/middleware/artifact_tools.py",
+    "packages/decepticon/decepticon/middleware/budget.py",
+    "packages/decepticon/decepticon/middleware/engagement.py",
+    "packages/decepticon/decepticon/middleware/event_logging.py",
+    "packages/decepticon/decepticon/middleware/filesystem.py",
+    "packages/decepticon/decepticon/middleware/hitl.py",
+    "packages/decepticon/decepticon/middleware/kg.py",
+    "packages/decepticon/decepticon/middleware/kg_internal/state.py",
+    "packages/decepticon/decepticon/middleware/kg_internal/tools.py",
+    "packages/decepticon/decepticon/middleware/model_override.py",
+    "packages/decepticon/decepticon/middleware/notifications.py",
+    "packages/decepticon/decepticon/middleware/operator_steering.py",
+    "packages/decepticon/decepticon/middleware/opplan.py",
+    "packages/decepticon/decepticon/middleware/opplan_dispatch.py",
+    "packages/decepticon/decepticon/middleware/opscontrol_notifications.py",
+    "packages/decepticon/decepticon/middleware/parallel_dispatch.py",
+    "packages/decepticon/decepticon/middleware/prompt_injection_shield.py",
+    "packages/decepticon/decepticon/middleware/proxy_key_override.py",
+    "packages/decepticon/decepticon/middleware/roe.py",
+    "packages/decepticon/decepticon/middleware/run_controls.py",
+    "packages/decepticon/decepticon/middleware/scoped_reporting_io.py",
+    "packages/decepticon/decepticon/middleware/search_evidence.py",
+    "packages/decepticon/decepticon/middleware/search_runtime.py",
+    "packages/decepticon/decepticon/middleware/search_tools.py",
+    "packages/decepticon/decepticon/middleware/skillogy.py",
+    "packages/decepticon/decepticon/middleware/skills.py",
+    "packages/decepticon/decepticon/middleware/step_budget.py",
+    "packages/decepticon/decepticon/middleware/subagent_transcript_state.py",
+    "packages/decepticon/decepticon/middleware/time_window.py",
+    "packages/decepticon/decepticon/middleware/untrusted_output.py",
+    "packages/decepticon/decepticon/middleware/workflow.py",
+    "packages/decepticon/decepticon/runtime/recording.py",
+    "packages/decepticon/decepticon/telemetry/redact.py",
+    "packages/decepticon/decepticon/tools/ad/bh_tools.py",
+    "packages/decepticon/decepticon/tools/ad/tools.py",
+    "packages/decepticon/decepticon/tools/bash/bash.py",
+    "packages/decepticon/decepticon/tools/bash/protocol.py",
+    "packages/decepticon/decepticon/tools/browser/agent_tools.py",
+    "packages/decepticon/decepticon/tools/browser/native_startup.py",
+    "packages/decepticon/decepticon/tools/browser/tools.py",
+    "packages/decepticon/decepticon/tools/c2/havoc.py",
+    "packages/decepticon/decepticon/tools/cloud/tools.py",
+    "packages/decepticon/decepticon/tools/contracts/tools.py",
+    "packages/decepticon/decepticon/tools/defense/blue_cell.py",
+    "packages/decepticon/decepticon/tools/defense/brief.py",
+    "packages/decepticon/decepticon/tools/defense/tools.py",
+    "packages/decepticon/decepticon/tools/evidence/tools.py",
+    "packages/decepticon/decepticon/tools/interaction/ask_user.py",
+    "packages/decepticon/decepticon/tools/interaction/complete_planning.py",
+    "packages/decepticon/decepticon/tools/interaction/steering.py",
+    "packages/decepticon/decepticon/tools/mcp/registry.py",
+    "packages/decepticon/decepticon/tools/mitre.py",
+    "packages/decepticon/decepticon/tools/opplan.py",
+    "packages/decepticon/decepticon/tools/ops/tools.py",
+    "packages/decepticon/decepticon/tools/orchestration/agent_graph.py",
+    "packages/decepticon/decepticon/tools/orchestration/finish_gate.py",
+    "packages/decepticon/decepticon/tools/orchestration/parallel.py",
+    "packages/decepticon/decepticon/tools/orchestration/think.py",
+    "packages/decepticon/decepticon/tools/proxy/tools.py",
+    "packages/decepticon/decepticon/tools/references/tools.py",
+    "packages/decepticon/decepticon/tools/reporting/ci_gate.py",
+    "packages/decepticon/decepticon/tools/reporting/cvss.py",
+    "packages/decepticon/decepticon/tools/reporting/export.py",
+    "packages/decepticon/decepticon/tools/reporting/finding_dedupe.py",
+    "packages/decepticon/decepticon/tools/reporting/finding_epistemics.py",
+    "packages/decepticon/decepticon/tools/reporting/finding_quality.py",
+    "packages/decepticon/decepticon/tools/reporting/sarif_enhanced.py",
+    "packages/decepticon/decepticon/tools/reporting/tools.py",
+    "packages/decepticon/decepticon/tools/reporting/viewer.py",
+    "packages/decepticon/decepticon/tools/research/agent_todo.py",
+    "packages/decepticon/decepticon/tools/research/ai_surface.py",
+    "packages/decepticon/decepticon/tools/research/bounty.py",
+    "packages/decepticon/decepticon/tools/research/coverage_ledger.py",
+    "packages/decepticon/decepticon/tools/research/dedupe.py",
+    "packages/decepticon/decepticon/tools/research/diff_scope.py",
+    "packages/decepticon/decepticon/tools/research/exploit_intel.py",
+    "packages/decepticon/decepticon/tools/research/osint.py",
+    "packages/decepticon/decepticon/tools/research/patch.py",
+    "packages/decepticon/decepticon/tools/research/scanner_tools.py",
+    "packages/decepticon/decepticon/tools/research/secret_scanner.py",
+    "packages/decepticon/decepticon/tools/research/secret_validation.py",
+    "packages/decepticon/decepticon/tools/research/shared_notes.py",
+    "packages/decepticon/decepticon/tools/research/subdomain_takeover.py",
+    "packages/decepticon/decepticon/tools/research/tech_detection.py",
+    "packages/decepticon/decepticon/tools/research/threat_model.py",
+    "packages/decepticon/decepticon/tools/research/tools.py",
+    "packages/decepticon/decepticon/tools/reversing/rea.py",
+    "packages/decepticon/decepticon/tools/reversing/tools.py",
+    "packages/decepticon/decepticon/tools/skills.py",
+    "packages/decepticon/decepticon/tools/verification.py",
+    "packages/decepticon/decepticon/tools/web/search.py",
+    "packages/decepticon/decepticon/tools/web/tools.py",
+    "packages/decepticon/decepticon/tools/web/web_research.py"
+  ],
+  "decorated_framework_tool_declarations": 240,
+  "runtime_skill_documents": 329,
+  "static_langgraph_graphs": [
+    "decepticon",
+    "recon",
+    "autohunt",
+    "soundwave",
+    "exploit",
+    "finding_verifier",
+    "finding_reporter",
+    "postexploit",
+    "analyst",
+    "reverser",
+    "contract_auditor",
+    "cloud_hunter",
+    "ad_operator",
+    "phisher",
+    "mobile_operator",
+    "wireless_operator",
+    "osint_operator",
+    "iot_operator",
+    "ics_operator",
+    "forensicator",
+    "supply_chain_operator"
+  ],
+  "python_lock_entries_including_dev_and_workspace": 195,
+  "locked_dependencies": {
+    "anthropic": "1.17.0",
+    "deepagents": "0.7.32",
+    "fastapi": "0.136.1",
+    "langchain": "1.4.7",
+    "langchain-core": "1.7.0",
+    "langgraph": "1.2.17",
+    "langgraph-api": "0.16.6",
+    "langgraph-checkpoint": "4.3.0",
+    "langgraph-runtime-inmem": "0.36.9",
+    "langgraph-sdk": "0.4.9",
+    "mcp": "1.30.0",
+    "neo4j": "6.2.0",
+    "openai": "2.38.0",
+    "openshell": "0.1.6",
+    "pydantic": "2.13.4"
+  },
+  "largest_component_sources": [
+    {
+      "path": "packages/decepticon/decepticon/tools/research/tools.py",
+      "physical_lines": 2660
+    },
+    {
+      "path": "packages/decepticon/decepticon/llm/factory.py",
+      "physical_lines": 2078
+    },
+    {
+      "path": "packages/decepticon/decepticon/tools/opplan.py",
+      "physical_lines": 1528
+    },
+    {
+      "path": "clients/cli/src/hooks/useAgent.ts",
+      "physical_lines": 1403
+    },
+    {
+      "path": "benchmark/providers/mhbench.py",
+      "physical_lines": 1339
+    },
+    {
+      "path": "config/claude_code_handler.py",
+      "physical_lines": 1262
+    },
+    {
+      "path": "clients/launcher/cmd/onboard.go",
+      "physical_lines": 1247
+    },
+    {
+      "path": "packages/decepticon/decepticon/tools/ad/bloodhound.py",
+      "physical_lines": 1229
+    },
+    {
+      "path": "packages/decepticon/decepticon_sandbox/kernel/tmux.py",
+      "physical_lines": 1211
+    },
+    {
+      "path": "packages/decepticon-core/decepticon_core/types/engagement.py",
+      "physical_lines": 1211
+    },
+    {
+      "path": "config/litellm_dynamic_config.py",
+      "physical_lines": 1165
+    },
+    {
+      "path": "clients/launcher/internal/engagement/picker.go",
+      "physical_lines": 1030
+    },
+    {
+      "path": "packages/decepticon/decepticon/skillogy/server/neo4j_backend.py",
+      "physical_lines": 1022
+    },
+    {
+      "path": "packages/decepticon-core/decepticon_core/types/llm.py",
+      "physical_lines": 986
+    },
+    {
+      "path": "benchmark/harness.py",
+      "physical_lines": 976
+    },
+    {
+      "path": "packages/decepticon/decepticon_sandbox/web/fetch_chain.py",
+      "physical_lines": 938
+    },
+    {
+      "path": "config/codex_chatgpt_handler.py",
+      "physical_lines": 934
+    },
+    {
+      "path": "packages/decepticon/decepticon/tools/network/scanners.py",
+      "physical_lines": 895
+    },
+    {
+      "path": "packages/decepticon/decepticon/tools/network/protocols.py",
+      "physical_lines": 855
+    },
+    {
+      "path": "clients/launcher/internal/config/config.go",
+      "physical_lines": 842
+    },
+    {
+      "path": "clients/launcher/internal/updater/updater.go",
+      "physical_lines": 821
+    },
+    {
+      "path": "packages/decepticon/decepticon/middleware/kg_internal/ingest.py",
+      "physical_lines": 802
+    },
+    {
+      "path": "benchmark/providers/exploitbench.py",
+      "physical_lines": 795
+    },
+    {
+      "path": "clients/launcher/cmd/start.go",
+      "physical_lines": 732
+    },
+    {
+      "path": "packages/decepticon/decepticon/middleware/opplan.py",
+      "physical_lines": 717
+    }
+  ]
+}
