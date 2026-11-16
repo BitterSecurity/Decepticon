@@ -13,7 +13,7 @@ tool-calling or re-reporting until LangGraph kills the run and discards
 everything collected. Stripping ``tools`` is the graceful sibling of the
 runtime cap: the loop ends by the model delivering its result.
 
-The step estimate approximates graph supersteps from the message count
+The step estimate approximates graph supersteps from the current user turn's message count
 (one model round ≈ one message per step in a linear ReAct loop). It is an
 approximation by design — cheap, monotonic, and directionally correct; the
 hard cap stays with the runtime.
@@ -24,7 +24,7 @@ from __future__ import annotations
 from typing import Any
 
 from langchain.agents.middleware import AgentMiddleware
-from langchain_core.messages import SystemMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 from typing_extensions import override
 
 # The LangGraph ``recursion_limit`` config must sit ABOVE the step budget:
@@ -84,7 +84,15 @@ class StepBudgetMiddleware(AgentMiddleware):
     def _budget_state(self, request: Any) -> tuple[str | None, bool]:
         """Return ``(advisory note, hard stop reached)`` for this model call."""
         messages = getattr(request, "state", {}).get("messages") or []
-        steps = len(messages)
+        # Checkpoints retain earlier turns. Those messages must not exhaust a
+        # new operator request before it can do any work. A tool/interrupt
+        # continuation adds no HumanMessage, so it keeps the same budget.
+        # No message content, model claim or tool result can select the boundary.
+        turn_start = next(
+            (i for i in range(len(messages) - 1, -1, -1) if isinstance(messages[i], HumanMessage)),
+            0,
+        )
+        steps = len(messages) - turn_start
         if steps >= self._total:
             return (
                 f"[step budget] HARD STOP REACHED — {steps} of {self._total} steps. "
