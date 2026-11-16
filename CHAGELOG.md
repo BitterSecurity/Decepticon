@@ -15,7 +15,7 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed, unreleased minimal agent runtime experiment: compare a handwritten Rust loop, Rig 0.46.0 and Deep Agents 0.7.32 using the same live model, prompt and echo tool. Nine final cases and 18 live requests pass; record CPU, post-exec peak RSS/PSS snapshots, threads, descriptors, I/O and raw evidence in [the experiment report](benchmark/agent-runtime/README.md). Isolated benchmark dependencies only; no production, deployment, public API or version change. PR link will be recorded when opened.
+- Proposed, unreleased [minimal agent runtime experiment #1203](https://github.com/BitterSecurity/Decepticon/pull/1203): compare a handwritten Rust loop, Rig 0.46.0 and Deep Agents 0.7.32 using the same live model, prompt and echo tool. Nine final cases and 18 live requests pass; record CPU, post-exec peak RSS, PSS snapshots, threads, descriptors, I/O and raw evidence in [the experiment report](benchmark/agent-runtime/README.md). Isolated benchmark dependencies only; no production, deployment, public API or version change.
 
 - Proposed, unreleased [#1201](https://github.com/BitterSecurity/Decepticon/pull/1201): calculate the agent step budget from the latest operator message so follow-up requests can use tools after a long checkpointed conversation. Tool/interrupt continuations keep their current-turn cap. Twelve focused cases, including real offline LangChain/LangGraph checkpoint and interrupt execution, pass; the wider middleware/agent suite passes1,111cases with one explicitly skipped optional Transformers test. No version or package publication is performed.
 
