@@ -28,6 +28,7 @@ in the root [CHAGELOG.md](../CHAGELOG.md).
 | Author business workflows | [Workflow authoring](design/workflow-authoring.md) |
 | Build plugins | [Plugin author guide](plugin-author-guide.md) |
 | Understand runtime design | [Architecture](architecture.md), [architecture decisions](adr/README.md) |
+| Evaluate a local-first Rust port | [Proposed architecture](design/2026-11-16-local-first-rust.md), [storage/framework research](research/2026-11-16-agent-storage-frameworks.md) |
 | Qualify a release | [Release policy](../RELEASE.md), [release evidence](releases/) |
 
 Runtime knowledge lives under
