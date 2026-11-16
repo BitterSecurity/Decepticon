@@ -1,0 +1,29 @@
+{
+  "body": {
+    "input": [
+      {
+        "content": [
+          {
+            "type": "input_text",
+            "text": "Reply with exactly this text: {\"status\":\"ok\",\"items\":[1,2,3,4]}"
+          }
+        ],
+        "role": "user",
+        "type": "message"
+      }
+    ],
+    "model": "gpt-6.1-sol",
+    "reasoning": {
+      "effort": "low"
+    },
+    "store": false,
+    "stream": true,
+    "instructions": "Return exactly the requested text. Do not add markdown or explanations."
+  },
+  "expected": "{\"status\":\"ok\",\"items\":[1,2,3,4]}",
+  "recorded_usage": {
+    "input_tokens": 44,
+    "output_tokens": 19,
+    "total_tokens": 63
+  }
+}

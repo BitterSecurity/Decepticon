@@ -1,0 +1,1760 @@
+{
+  "langchain": {
+    "points": {
+      "1": {
+        "trials": [
+          {
+            "trial": 0,
+            "available": true,
+            "successes": 8,
+            "count": 8,
+            "success_rate": 1.0,
+            "good_rps": 0.5397277050371124,
+            "driver_cpu_fraction": 0.0147564819909762,
+            "fixture_cpu_fraction": 0.0024115872462979883,
+            "latency_ms": {
+              "n": 8,
+              "min": 1848.9625510010228,
+              "median": 1852.9129339985957,
+              "p95": 1856.3133819989162,
+              "p99": 1856.3133819989162,
+              "max": 1856.3133819989162
+            },
+            "cpu_ms_per_attempt": 32.155375,
+            "gateway_cpu_fraction": 0.017355146753357736,
+            "max_sampled_memory_mib": 117.28515625,
+            "service_lifetime_peak_mib": 117.29296875,
+            "max_sampled_socket_mib": 0.00390625,
+            "oom_kills": 0,
+            "throttled_ms": 0.0,
+            "slo_pass": true
+          },
+          {
+            "trial": 1,
+            "available": true,
+            "successes": 8,
+            "count": 8,
+            "success_rate": 1.0,
+            "good_rps": 0.5392577358018289,
+            "driver_cpu_fraction": 0.01197294112856845,
+            "fixture_cpu_fraction": 0.0016770827279982642,
+            "latency_ms": {
+              "n": 8,
+              "min": 1851.2833269996918,
+              "median": 1853.4489134999603,
+              "p95": 1858.3022330021777,
+              "p99": 1858.3022330021777,
+              "max": 1858.3022330021777
+            },
+            "cpu_ms_per_attempt": 34.051625,
+            "gateway_cpu_fraction": 0.018362602197872953,
+            "max_sampled_memory_mib": 122.53125,
+            "service_lifetime_peak_mib": 122.53515625,
+            "max_sampled_socket_mib": 0.0,
+            "oom_kills": 0,
+            "throttled_ms": 0.0,
+            "slo_pass": true
+          },
+          {
+            "trial": 2,
+            "available": true,
+            "successes": 8,
+            "count": 8,
+            "success_rate": 1.0,
+            "good_rps": 0.5397503255315416,
+            "driver_cpu_fraction": 0.0159686834022032,
+            "fixture_cpu_fraction": 0.0020476290850184064,
+            "latency_ms": {
+              "n": 8,
+              "min": 1849.7654810016684,
+              "median": 1853.1038439996337,
+              "p95": 1854.1286530016805,
+              "p99": 1854.1286530016805,
+              "max": 1854.1286530016805
+            },
+            "cpu_ms_per_attempt": 35.172125,
+            "gateway_cpu_fraction": 0.01898416591838607,
+            "max_sampled_memory_mib": 117.328125,
+            "service_lifetime_peak_mib": 117.34375,
+            "max_sampled_socket_mib": 0.0,
+            "oom_kills": 0,
+            "throttled_ms": 0.0,
+            "slo_pass": true
+          }
+        ],
+        "all_trials_pass_slo": true
+      },
+      "4": {
+        "trials": [
+          {
+            "trial": 0,
+            "available": true,
+            "successes": 16,
+            "count": 16,
+            "success_rate": 1.0,
+            "good_rps": 2.1469103693183857,
+            "driver_cpu_fraction": 0.017626537080343885,
+            "fixture_cpu_fraction": 0.0037830429861230243,
+            "latency_ms": {
+              "n": 16,
+              "min": 1852.21441700196,
+              "median": 1856.844218000333,
+              "p95": 1878.0110139996395,
+              "p99": 1878.0110139996395,
+              "max": 1878.0110139996395
+            },
+            "cpu_ms_per_attempt": 20.582375,
+            "gateway_cpu_fraction": 0.0441885143126995,
+            "max_sampled_memory_mib": 117.5546875,
+            "service_lifetime_peak_mib": 117.5859375,
+            "max_sampled_socket_mib": 0.0,
+            "oom_kills": 0,
+            "throttled_ms": 0.0,
+            "slo_pass": true
+          },
+          {
+            "trial": 1,
+            "available": true,
+            "successes": 16,
+            "count": 16,
+            "success_rate": 1.0,
+            "good_rps": 2.148405454612331,
+            "driver_cpu_fraction": 0.015571938677881546,
+            "fixture_cpu_fraction": 0.003397312485227343,
+            "latency_ms": {
+              "n": 16,
+              "min": 1851.604801002395,
+              "median": 1858.0371770003694,
+              "p95": 1866.4878470008262,
+              "p99": 1866.4878470008262,
+              "max": 1866.4878470008262
+            },
+            "cpu_ms_per_attempt": 19.2250625,
+            "gateway_cpu_fraction": 0.04130322914026297,
+            "max_sampled_memory_mib": 122.60546875,
+            "service_lifetime_peak_mib": 122.7734375,
+            "max_sampled_socket_mib": 0.0,
+            "oom_kills": 0,
+            "throttled_ms": 0.0,
+            "slo_pass": true
+          },
+          {
+            "trial": 2,
+            "available": true,
+            "successes": 16,
+            "count": 16,
+            "success_rate": 1.0,
+            "good_rps": 2.1446467811819554,
+            "driver_cpu_fraction": 0.022181590801732924,
+            "fixture_cpu_fraction": 0.004279447757072352,
+            "latency_ms": {
+              "n": 16,
+              "min": 1853.1415420002304,
+              "median": 1861.0296369988646,
+              "p95": 1871.5261629986344,
+              "p99": 1871.5261629986344,
+              "max": 1871.5261629986344
+            },
+            "cpu_ms_per_attempt": 24.01,
+            "gateway_cpu_fraction": 0.051492969216178755,
+            "max_sampled_memory_mib": 117.5859375,
+            "service_lifetime_peak_mib": 117.59765625,
+            "max_sampled_socket_mib": 0.0,
+            "oom_kills": 0,
+            "throttled_ms": 0.0,
+            "slo_pass": true
+          }
+        ],
+        "all_trials_pass_slo": true
+      },
+      "16": {
+        "trials": [
+          {
+            "trial": 0,
+            "available": true,
+            "successes": 32,
+            "count": 32,
+            "success_rate": 1.0,
+            "good_rps": 8.14854708649016,
+            "driver_cpu_fraction": 0.03566740498572542,
+            "fixture_cpu_fraction": 0.00893756096983324,
+            "latency_ms": {
+              "n": 32,
+              "min": 1912.4658069995348,
+              "median": 1952.632274998905,
+              "p95": 1972.4077470018528,
+              "p99": 1972.4217629991472,
+              "max": 1972.4217629991472
+            },
+            "cpu_ms_per_attempt": 17.69971875,
+            "gateway_cpu_fraction": 0.14422699165200775,
+            "max_sampled_memory_mib": 119.171875,
+            "service_lifetime_peak_mib": 119.171875,
+            "max_sampled_socket_mib": 0.08984375,
+            "oom_kills": 0,
+            "throttled_ms": 15.818,
+            "slo_pass": true
+          },
+          {
+            "trial": 1,
+            "available": true,
+            "successes": 32,
+            "count": 32,
+            "success_rate": 1.0,
+            "good_rps": 8.183568231609394,
+            "driver_cpu_fraction": 0.030109309278837978,
+            "fixture_cpu_fraction": 0.0064505119938618495,
+            "latency_ms": {
+              "n": 32,
+              "min": 1888.2786200010742,
+              "median": 1945.8565865006676,
+              "p95": 1966.1507320015517,
+              "p99": 1967.2888509994664,
+              "max": 1967.2888509994664
+            },
+            "cpu_ms_per_attempt": 16.12909375,
+            "gateway_cpu_fraction": 0.1319935392171496,
+            "max_sampled_memory_mib": 124.05859375,
+            "service_lifetime_peak_mib": 124.05859375,
+            "max_sampled_socket_mib": 0.08203125,
+            "oom_kills": 0,
+            "throttled_ms": 6.354,
+            "slo_pass": true
+          },
+          {
+            "trial": 2,
+            "available": true,
+            "successes": 32,
+            "count": 32,
+            "success_rate": 1.0,
+            "good_rps": 8.209099268488169,
+            "driver_cpu_fraction": 0.036818662169752894,
+            "fixture_cpu_fraction": 0.009153146197433012,
+            "latency_ms": {
+              "n": 32,
+              "min": 1896.6032700009237,
+              "median": 1946.5610305014707,
+              "p95": 1949.1237969996291,
+              "p99": 1955.173903999821,
+              "max": 1955.173903999821
+            },
+            "cpu_ms_per_attempt": 16.53025,
+            "gateway_cpu_fraction": 0.13569846318292653,
+            "max_sampled_memory_mib": 118.91796875,
+            "service_lifetime_peak_mib": 118.953125,
+            "max_sampled_socket_mib": 0.015625,
+            "oom_kills": 0,
+            "throttled_ms": 1.981,
+            "slo_pass": true
+          }
+        ],
+        "all_trials_pass_slo": true
+      },
+      "64": {
+        "trials": [
+          {
+            "trial": 0,
+            "available": true,
+            "successes": 128,
+            "count": 128,
+            "success_rate": 1.0,
+            "good_rps": 24.51899907675688,
+            "driver_cpu_fraction": 0.07029555755272596,
+            "fixture_cpu_fraction": 0.02206681681748245,
+            "latency_ms": {
+              "n": 128,
+              "min": 1848.8121699992917,
+              "median": 2515.0895014994603,
+              "p95": 2699.4002729989006,
+              "p99": 2880.883386002097,
+              "max": 2880.960557002254
+            },
+            "cpu_ms_per_attempt": 19.3944296875,
+            "gateway_cpu_fraction": 0.4755320036020388,
+            "max_sampled_memory_mib": 124.79296875,
+            "service_lifetime_peak_mib": 125.01171875,
+            "max_sampled_socket_mib": 0.42578125,
+            "oom_kills": 0,
+            "throttled_ms": 87.694,
+            "slo_pass": true
+          },
+          {
+            "trial": 1,
+            "available": true,
+            "successes": 128,
+            "count": 128,
+            "success_rate": 1.0,
+            "good_rps": 24.743799543720925,
+            "driver_cpu_fraction": 0.06713345318699518,
+            "fixture_cpu_fraction": 0.02072012756283674,
+            "latency_ms": {
+              "n": 128,
+              "min": 1851.1070480017224,
+              "median": 2519.9250060013583,
+              "p95": 2641.7565980009385,
+              "p99": 2960.511126999336,
+              "max": 2960.9881380019942
+            },
+            "cpu_ms_per_attempt": 18.856109375,
+            "gateway_cpu_fraction": 0.46657179054947684,
+            "max_sampled_memory_mib": 130.50390625,
+            "service_lifetime_peak_mib": 130.51953125,
+            "max_sampled_socket_mib": 0.328125,
+            "oom_kills": 0,
+            "throttled_ms": 101.185,
+            "slo_pass": true
+          },
+          {
+            "trial": 2,
+            "available": true,
+            "successes": 128,
+            "count": 128,
+            "success_rate": 1.0,
+            "good_rps": 24.87787351310836,
+            "driver_cpu_fraction": 0.07419532255248791,
+            "fixture_cpu_fraction": 0.021788010525438408,
+            "latency_ms": {
+              "n": 128,
+              "min": 1856.6127730009612,
+              "median": 2487.461965498369,
+              "p95": 2650.5123489987454,
+              "p99": 2737.3441199997615,
+              "max": 2739.7296720009763
+            },
+            "cpu_ms_per_attempt": 18.4565234375,
+            "gateway_cpu_fraction": 0.4591590555698449,
+            "max_sampled_memory_mib": 125.32421875,
+            "service_lifetime_peak_mib": 125.34375,
+            "max_sampled_socket_mib": 0.4140625,
+            "oom_kills": 0,
+            "throttled_ms": 74.523,
+            "slo_pass": true
+          }
+        ],
+        "all_trials_pass_slo": true
+      },
+      "128": {
+        "trials": [
+          {
+            "trial": 0,
+            "available": true,
+            "successes": 256,
+            "count": 256,
+            "success_rate": 1.0,
+            "good_rps": 26.825748055528717,
+            "driver_cpu_fraction": 0.08331250934867376,
+            "fixture_cpu_fraction": 0.03248656969945748,
+            "latency_ms": {
+              "n": 256,
+              "min": 2082.7398629990057,
+              "median": 3970.1962509989244,
+              "p95": 5300.564051998663,
+              "p99": 6291.431419998844,
+              "max": 6561.2344600012875
+            },
+            "cpu_ms_per_attempt": 31.43759765625,
+            "gateway_cpu_fraction": 0.8433370741976425,
+            "max_sampled_memory_mib": 130.93359375,
+            "service_lifetime_peak_mib": 130.9609375,
+            "max_sampled_socket_mib": 0.51953125,
+            "oom_kills": 0,
+            "throttled_ms": 463.154,
+            "slo_pass": false
+          },
+          {
+            "trial": 1,
+            "available": true,
+            "successes": 256,
+            "count": 256,
+            "success_rate": 1.0,
+            "good_rps": 27.924370652025733,
+            "driver_cpu_fraction": 0.07979771586773858,
+            "fixture_cpu_fraction": 0.032738096706780115,
+            "latency_ms": {
+              "n": 256,
+              "min": 2001.3517690022127,
+              "median": 3740.180680000776,
+              "p95": 5064.058077001391,
+              "p99": 5981.184016000043,
+              "max": 6206.383629996708
+            },
+            "cpu_ms_per_attempt": 29.47134375,
+            "gateway_cpu_fraction": 0.822968726488262,
+            "max_sampled_memory_mib": 136.2734375,
+            "service_lifetime_peak_mib": 136.3828125,
+            "max_sampled_socket_mib": 0.33203125,
+            "oom_kills": 0,
+            "throttled_ms": 319.447,
+            "slo_pass": false
+          },
+          {
+            "trial": 2,
+            "available": true,
+            "successes": 256,
+            "count": 256,
+            "success_rate": 1.0,
+            "good_rps": 28.04919330721413,
+            "driver_cpu_fraction": 0.08239719729552887,
+            "fixture_cpu_fraction": 0.031426701529109195,
+            "latency_ms": {
+              "n": 256,
+              "min": 1974.7415630008618,
+              "median": 3921.0697555008664,
+              "p95": 5037.864347999857,
+              "p99": 5606.507681000949,
+              "max": 5879.092049999599
+            },
+            "cpu_ms_per_attempt": 29.359015625,
+            "gateway_cpu_fraction": 0.823496704575145,
+            "max_sampled_memory_mib": 131.3671875,
+            "service_lifetime_peak_mib": 131.3671875,
+            "max_sampled_socket_mib": 0.66015625,
+            "oom_kills": 0,
+            "throttled_ms": 183.159,
+            "slo_pass": false
+          }
+        ],
+        "all_trials_pass_slo": false
+      },
+      "256": {
+        "trials": [
+          {
+            "trial": 0,
+            "available": true,
+            "successes": 512,
+            "count": 512,
+            "success_rate": 1.0,
+            "good_rps": 15.04125604575135,
+            "driver_cpu_fraction": 0.050008599588439485,
+            "fixture_cpu_fraction": 0.022598583793300153,
+            "latency_ms": {
+              "n": 512,
+              "min": 2201.9187529986084,
+              "median": 12767.17654300046,
+              "p95": 32873.4792130017,
+              "p99": 33896.80494700224,
+              "max": 33981.49290400033
+            },
+            "cpu_ms_per_attempt": 64.841912109375,
+            "gateway_cpu_fraction": 0.9753038025332144,
+            "max_sampled_memory_mib": 133.13671875,
+            "service_lifetime_peak_mib": 133.140625,
+            "max_sampled_socket_mib": 0.04296875,
+            "oom_kills": 0,
+            "throttled_ms": 2006.936,
+            "slo_pass": false
+          },
+          {
+            "trial": 1,
+            "available": true,
+            "successes": 512,
+            "count": 512,
+            "success_rate": 1.0,
+            "good_rps": 18.372504673001195,
+            "driver_cpu_fraction": 0.052110783081719694,
+            "fixture_cpu_fraction": 0.025070247721062436,
+            "latency_ms": {
+              "n": 512,
+              "min": 2121.972774999449,
+              "median": 11226.001149501826,
+              "p95": 27047.722192997753,
+              "p99": 27782.260307998513,
+              "max": 27851.435519001825
+            },
+            "cpu_ms_per_attempt": 53.062212890625,
+            "gateway_cpu_fraction": 0.974885754292792,
+            "max_sampled_memory_mib": 138.74609375,
+            "service_lifetime_peak_mib": 138.8671875,
+            "max_sampled_socket_mib": 0.046875,
+            "oom_kills": 0,
+            "throttled_ms": 1657.871,
+            "slo_pass": false
+          },
+          {
+            "trial": 2,
+            "available": true,
+            "successes": 512,
+            "count": 512,
+            "success_rate": 1.0,
+            "good_rps": 13.820708675252057,
+            "driver_cpu_fraction": 0.05026576121309913,
+            "fixture_cpu_fraction": 0.02187373099786557,
+            "latency_ms": {
+              "n": 512,
+              "min": 2303.332646002673,
+              "median": 13884.984107999117,
+              "p95": 35943.67327400323,
+              "p99": 36900.033714999154,
+              "max": 36974.423335999745
+            },
+            "cpu_ms_per_attempt": 70.836318359375,
+            "gateway_cpu_fraction": 0.9790081196723306,
+            "max_sampled_memory_mib": 132.8359375,
+            "service_lifetime_peak_mib": 132.91796875,
+            "max_sampled_socket_mib": 0.51171875,
+            "oom_kills": 0,
+            "throttled_ms": 2248.815,
+            "slo_pass": false
+          }
+        ],
+        "all_trials_pass_slo": false
+      },
+      "512": {
+        "trials": [
+          {
+            "trial": 0,
+            "available": true,
+            "successes": 1024,
+            "count": 1024,
+            "success_rate": 1.0,
+            "good_rps": 13.150701793679108,
+            "driver_cpu_fraction": 0.0431150622781185,
+            "fixture_cpu_fraction": 0.02026941079304849,
+            "latency_ms": {
+              "n": 1024,
+              "min": 2229.656731000432,
+              "median": 23397.930512499443,
+              "p95": 65364.76538900024,
+              "p99": 76921.002477,
+              "max": 77806.53379399882
+            },
+            "cpu_ms_per_attempt": 74.8183037109375,
+            "gateway_cpu_fraction": 0.9839132008114541,
+            "max_sampled_memory_mib": 152.890625,
+            "service_lifetime_peak_mib": 153.140625,
+            "max_sampled_socket_mib": 1.0078125,
+            "oom_kills": 0,
+            "throttled_ms": 4637.025,
+            "slo_pass": false
+          },
+          {
+            "trial": 1,
+            "available": true,
+            "successes": 1024,
+            "count": 1024,
+            "success_rate": 1.0,
+            "good_rps": 17.39854236425009,
+            "driver_cpu_fraction": 0.05821013944807859,
+            "fixture_cpu_fraction": 0.025783228921746077,
+            "latency_ms": {
+              "n": 1024,
+              "min": 2204.6483650010487,
+              "median": 23095.188208500986,
+              "p95": 55478.20269799922,
+              "p99": 58545.46979999941,
+              "max": 58835.310741000285
+            },
+            "cpu_ms_per_attempt": 56.918525390625,
+            "gateway_cpu_fraction": 0.9902993753194336,
+            "max_sampled_memory_mib": 150.85546875,
+            "service_lifetime_peak_mib": 150.85546875,
+            "max_sampled_socket_mib": 1.00390625,
+            "oom_kills": 0,
+            "throttled_ms": 3271.583,
+            "slo_pass": false
+          },
+          {
+            "trial": 2,
+            "available": true,
+            "successes": 1024,
+            "count": 1024,
+            "success_rate": 1.0,
+            "good_rps": 16.694593410511562,
+            "driver_cpu_fraction": 0.04936588270048184,
+            "fixture_cpu_fraction": 0.02353034116772071,
+            "latency_ms": {
+              "n": 1024,
+              "min": 2148.5413759983203,
+              "median": 21363.106895001692,
+              "p95": 55313.60313099867,
+              "p99": 60720.760481999605,
+              "max": 61168.91318499984
+            },
+            "cpu_ms_per_attempt": 58.944169921875,
+            "gateway_cpu_fraction": 0.9840489507658082,
+            "max_sampled_memory_mib": 147.98828125,
+            "service_lifetime_peak_mib": 148.01171875,
+            "max_sampled_socket_mib": 1.0078125,
+            "oom_kills": 0,
+            "throttled_ms": 3534.227,
+            "slo_pass": false
+          }
+        ],
+        "all_trials_pass_slo": false
+      }
+    },
+    "largest_tested_all_trials_passing_concurrency": 64
+  },
+  "python": {
+    "points": {
+      "1": {
+        "trials": [
+          {
+            "trial": 0,
+            "available": true,
+            "successes": 8,
+            "count": 8,
+            "success_rate": 1.0,
+            "good_rps": 0.5413847643095038,
+            "driver_cpu_fraction": 0.011126745605318645,
+            "fixture_cpu_fraction": 0.00167765251420257,
+            "latency_ms": {
+              "n": 8,
+              "min": 1844.9089450004976,
+              "median": 1846.7552519996389,
+              "p95": 1851.0810080006195,
+              "p99": 1851.0810080006195,
+              "max": 1851.0810080006195
+            },
+            "cpu_ms_per_attempt": 17.001625,
+            "gateway_cpu_fraction": 0.009204420743503567,
+            "max_sampled_memory_mib": 25.4609375,
+            "service_lifetime_peak_mib": 25.484375,
+            "max_sampled_socket_mib": 0.0,
+            "oom_kills": 0,
+            "throttled_ms": 0.0,
+            "slo_pass": true
+          },
+          {
+            "trial": 1,
+            "available": true,
+            "successes": 8,
+            "count": 8,
+            "success_rate": 1.0,
+            "good_rps": 0.5408245316313339,
+            "driver_cpu_fraction": 0.01558948825390357,
+            "fixture_cpu_fraction": 0.0024667109644366148,
+            "latency_ms": {
+              "n": 8,
+              "min": 1846.7179620020033,
+              "median": 1848.70962649984,
+              "p95": 1850.590023001132,
+              "p99": 1850.590023001132,
+              "max": 1850.590023001132
+            },
+            "cpu_ms_per_attempt": 22.793375,
+            "gateway_cpu_fraction": 0.012327216358672356,
+            "max_sampled_memory_mib": 25.5390625,
+            "service_lifetime_peak_mib": 25.55078125,
+            "max_sampled_socket_mib": 0.0,
+            "oom_kills": 0,
+            "throttled_ms": 0.0,
+            "slo_pass": true
+          },
+          {
+            "trial": 2,
+            "available": true,
+            "successes": 8,
+            "count": 8,
+            "success_rate": 1.0,
+            "good_rps": 0.5406743629982043,
+            "driver_cpu_fraction": 0.01682001549144354,
+            "fixture_cpu_fraction": 0.0025878890426296436,
+            "latency_ms": {
+              "n": 8,
+              "min": 1846.132458998909,
+              "median": 1849.055689499437,
+              "p95": 1852.2621179981797,
+              "p99": 1852.2621179981797,
+              "max": 1852.2621179981797
+            },
+            "cpu_ms_per_attempt": 24.373375,
+            "gateway_cpu_fraction": 0.013178059002241355,
+            "max_sampled_memory_mib": 25.53125,
+            "service_lifetime_peak_mib": 25.5546875,
+            "max_sampled_socket_mib": 0.0,
+            "oom_kills": 0,
+            "throttled_ms": 0.0,
+            "slo_pass": true
+          }
+        ],
+        "all_trials_pass_slo": true
+      },
+      "4": {
+        "trials": [
+          {
+            "trial": 0,
+            "available": true,
+            "successes": 16,
+            "count": 16,
+            "success_rate": 1.0,
+            "good_rps": 2.161478297593495,
+            "driver_cpu_fraction": 0.017397449719607737,
+            "fixture_cpu_fraction": 0.0037645339487699346,
+            "latency_ms": {
+              "n": 16,
+              "min": 1845.0057899972307,
+              "median": 1848.8303270005417,
+              "p95": 1855.6700209992414,
+              "p99": 1855.6700209992414,
+              "max": 1855.6700209992414
+            },
+            "cpu_ms_per_attempt": 10.1128125,
+            "gateway_cpu_fraction": 0.021858624746382217,
+            "max_sampled_memory_mib": 25.8671875,
+            "service_lifetime_peak_mib": 25.8671875,
+            "max_sampled_socket_mib": 0.0078125,
+            "oom_kills": 0,
+            "throttled_ms": 0.0,
+            "slo_pass": true
+          },
+          {
+            "trial": 1,
+            "available": true,
+            "successes": 16,
+            "count": 16,
+            "success_rate": 1.0,
+            "good_rps": 2.1626847386891357,
+            "driver_cpu_fraction": 0.01641664004921733,
+            "fixture_cpu_fraction": 0.003370714071166801,
+            "latency_ms": {
+              "n": 16,
+              "min": 1846.5009209976415,
+              "median": 1848.2728705021145,
+              "p95": 1850.9978820002289,
+              "p99": 1850.9978820002289,
+              "max": 1850.9978820002289
+            },
+            "cpu_ms_per_attempt": 9.4825625,
+            "gateway_cpu_fraction": 0.0205077932024159,
+            "max_sampled_memory_mib": 25.69921875,
+            "service_lifetime_peak_mib": 25.72265625,
+            "max_sampled_socket_mib": 0.0,
+            "oom_kills": 0,
+            "throttled_ms": 0.0,
+            "slo_pass": true
+          },
+          {
+            "trial": 2,
+            "available": true,
+            "successes": 16,
+            "count": 16,
+            "success_rate": 1.0,
+            "good_rps": 2.160984136994418,
+            "driver_cpu_fraction": 0.01966790930677995,
+            "fixture_cpu_fraction": 0.004110746120994522,
+            "latency_ms": {
+              "n": 16,
+              "min": 1846.2250619995757,
+              "median": 1849.6188315002655,
+              "p95": 1855.8067269987077,
+              "p99": 1855.8067269987077,
+              "max": 1855.8067269987077
+            },
+            "cpu_ms_per_attempt": 10.87725,
+            "gateway_cpu_fraction": 0.02350556470412253,
+            "max_sampled_memory_mib": 25.55859375,
+            "service_lifetime_peak_mib": 25.7890625,
+            "max_sampled_socket_mib": 0.0,
+            "oom_kills": 0,
+            "throttled_ms": 0.0,
+            "slo_pass": true
+          }
+        ],
+        "all_trials_pass_slo": true
+      },
+      "16": {
+        "trials": [
+          {
+            "trial": 0,
+            "available": true,
+            "successes": 32,
+            "count": 32,
+            "success_rate": 1.0,
+            "good_rps": 8.532819061470382,
+            "driver_cpu_fraction": 0.028587595162798532,
+            "fixture_cpu_fraction": 0.007839958686739113,
+            "latency_ms": {
+              "n": 32,
+              "min": 1847.6774449991353,
+              "median": 1866.3917944995774,
+              "p95": 1878.3810070017353,
+              "p99": 1884.1628230002243,
+              "max": 1884.1628230002243
+            },
+            "cpu_ms_per_attempt": 6.8421875,
+            "gateway_cpu_fraction": 0.05838314792215438,
+            "max_sampled_memory_mib": 26.37890625,
+            "service_lifetime_peak_mib": 26.37890625,
+            "max_sampled_socket_mib": 0.03515625,
+            "oom_kills": 0,
+            "throttled_ms": 0.0,
+            "slo_pass": true
+          },
+          {
+            "trial": 1,
+            "available": true,
+            "successes": 32,
+            "count": 32,
+            "success_rate": 1.0,
+            "good_rps": 8.556319836372897,
+            "driver_cpu_fraction": 0.026409759798081966,
+            "fixture_cpu_fraction": 0.007553433855736624,
+            "latency_ms": {
+              "n": 32,
+              "min": 1847.9193589992065,
+              "median": 1859.0497770001093,
+              "p95": 1881.4481450026506,
+              "p99": 1882.8378600010183,
+              "max": 1882.8378600010183
+            },
+            "cpu_ms_per_attempt": 6.80659375,
+            "gateway_cpu_fraction": 0.058239393121256776,
+            "max_sampled_memory_mib": 26.27734375,
+            "service_lifetime_peak_mib": 26.28515625,
+            "max_sampled_socket_mib": 0.01953125,
+            "oom_kills": 0,
+            "throttled_ms": 0.0,
+            "slo_pass": true
+          },
+          {
+            "trial": 2,
+            "available": true,
+            "successes": 32,
+            "count": 32,
+            "success_rate": 1.0,
+            "good_rps": 8.563987931741293,
+            "driver_cpu_fraction": 0.03162617128819204,
+            "fixture_cpu_fraction": 0.007997587179905754,
+            "latency_ms": {
+              "n": 32,
+              "min": 1846.2487180004246,
+              "median": 1858.8289620001888,
+              "p95": 1874.5336179999867,
+              "p99": 1881.546205997438,
+              "max": 1881.546205997438
+            },
+            "cpu_ms_per_attempt": 7.19246875,
+            "gateway_cpu_fraction": 0.06159621557442638,
+            "max_sampled_memory_mib": 26.38671875,
+            "service_lifetime_peak_mib": 26.38671875,
+            "max_sampled_socket_mib": 0.01953125,
+            "oom_kills": 0,
+            "throttled_ms": 0.0,
+            "slo_pass": true
+          }
+        ],
+        "all_trials_pass_slo": true
+      },
+      "64": {
+        "trials": [
+          {
+            "trial": 0,
+            "available": true,
+            "successes": 128,
+            "count": 128,
+            "success_rate": 1.0,
+            "good_rps": 29.407093485039518,
+            "driver_cpu_fraction": 0.06991968737368083,
+            "fixture_cpu_fraction": 0.024594576687629228,
+            "latency_ms": {
+              "n": 128,
+              "min": 1856.9759560014063,
+              "median": 2013.1383104999259,
+              "p95": 2339.5542409998598,
+              "p99": 2398.8587299973005,
+              "max": 2412.3019439975906
+            },
+            "cpu_ms_per_attempt": 9.3860234375,
+            "gateway_cpu_fraction": 0.27601566867933447,
+            "max_sampled_memory_mib": 29.3984375,
+            "service_lifetime_peak_mib": 29.62890625,
+            "max_sampled_socket_mib": 0.234375,
+            "oom_kills": 0,
+            "throttled_ms": 35.069,
+            "slo_pass": true
+          },
+          {
+            "trial": 1,
+            "available": true,
+            "successes": 128,
+            "count": 128,
+            "success_rate": 1.0,
+            "good_rps": 29.500395492109988,
+            "driver_cpu_fraction": 0.06483703053538153,
+            "fixture_cpu_fraction": 0.0212297634843613,
+            "latency_ms": {
+              "n": 128,
+              "min": 1846.8676900010905,
+              "median": 2030.2114659989456,
+              "p95": 2342.487678000907,
+              "p99": 2390.01219200145,
+              "max": 2412.8831720008748
+            },
+            "cpu_ms_per_attempt": 9.0797578125,
+            "gateway_cpu_fraction": 0.26785644644132545,
+            "max_sampled_memory_mib": 29.45703125,
+            "service_lifetime_peak_mib": 29.4765625,
+            "max_sampled_socket_mib": 0.234375,
+            "oom_kills": 0,
+            "throttled_ms": 37.005,
+            "slo_pass": true
+          },
+          {
+            "trial": 2,
+            "available": true,
+            "successes": 128,
+            "count": 128,
+            "success_rate": 1.0,
+            "good_rps": 29.21347260850398,
+            "driver_cpu_fraction": 0.0713652546827676,
+            "fixture_cpu_fraction": 0.024810986310284597,
+            "latency_ms": {
+              "n": 128,
+              "min": 1863.0730520017096,
+              "median": 2029.9567854999623,
+              "p95": 2401.1647990009806,
+              "p99": 2455.0005050004984,
+              "max": 2461.077038999065
+            },
+            "cpu_ms_per_attempt": 9.67875,
+            "gateway_cpu_fraction": 0.2827498980095579,
+            "max_sampled_memory_mib": 29.3984375,
+            "service_lifetime_peak_mib": 29.640625,
+            "max_sampled_socket_mib": 0.20703125,
+            "oom_kills": 0,
+            "throttled_ms": 31.055,
+            "slo_pass": true
+          }
+        ],
+        "all_trials_pass_slo": true
+      },
+      "128": {
+        "trials": [
+          {
+            "trial": 0,
+            "available": true,
+            "successes": 256,
+            "count": 256,
+            "success_rate": 1.0,
+            "good_rps": 43.58035746415227,
+            "driver_cpu_fraction": 0.10684162921353832,
+            "fixture_cpu_fraction": 0.04416543602008405,
+            "latency_ms": {
+              "n": 256,
+              "min": 1843.6409089990775,
+              "median": 2592.6379519987677,
+              "p95": 2979.248497002118,
+              "p99": 3100.62033000213,
+              "max": 3182.8488370010746
+            },
+            "cpu_ms_per_attempt": 13.8797265625,
+            "gateway_cpu_fraction": 0.6048834450984394,
+            "max_sampled_memory_mib": 33.234375,
+            "service_lifetime_peak_mib": 33.2421875,
+            "max_sampled_socket_mib": 0.35546875,
+            "oom_kills": 0,
+            "throttled_ms": 131.684,
+            "slo_pass": true
+          },
+          {
+            "trial": 1,
+            "available": true,
+            "successes": 256,
+            "count": 256,
+            "success_rate": 1.0,
+            "good_rps": 44.98048630978819,
+            "driver_cpu_fraction": 0.11418743759591479,
+            "fixture_cpu_fraction": 0.04561931305705674,
+            "latency_ms": {
+              "n": 256,
+              "min": 1844.6461519997683,
+              "median": 2535.677998997926,
+              "p95": 2913.19392099831,
+              "p99": 2960.9144469977764,
+              "max": 2966.556514998956
+            },
+            "cpu_ms_per_attempt": 13.53962890625,
+            "gateway_cpu_fraction": 0.6090190926571906,
+            "max_sampled_memory_mib": 33.1328125,
+            "service_lifetime_peak_mib": 33.25390625,
+            "max_sampled_socket_mib": 0.24609375,
+            "oom_kills": 0,
+            "throttled_ms": 113.467,
+            "slo_pass": true
+          },
+          {
+            "trial": 2,
+            "available": true,
+            "successes": 256,
+            "count": 256,
+            "success_rate": 1.0,
+            "good_rps": 45.248012308317314,
+            "driver_cpu_fraction": 0.11010358086776172,
+            "fixture_cpu_fraction": 0.04102698095686675,
+            "latency_ms": {
+              "n": 256,
+              "min": 1843.7922989978688,
+              "median": 2562.816786497933,
+              "p95": 2847.2377200014307,
+              "p99": 2917.1436180004093,
+              "max": 2936.5291190006246
+            },
+            "cpu_ms_per_attempt": 13.0925625,
+            "gateway_cpu_fraction": 0.5924124291474137,
+            "max_sampled_memory_mib": 33.4453125,
+            "service_lifetime_peak_mib": 33.48828125,
+            "max_sampled_socket_mib": 0.359375,
+            "oom_kills": 0,
+            "throttled_ms": 125.384,
+            "slo_pass": true
+          }
+        ],
+        "all_trials_pass_slo": true
+      },
+      "256": {
+        "trials": [
+          {
+            "trial": 0,
+            "available": true,
+            "successes": 512,
+            "count": 512,
+            "success_rate": 1.0,
+            "good_rps": 16.23025186541156,
+            "driver_cpu_fraction": 0.042984584635636626,
+            "fixture_cpu_fraction": 0.024998294615002123,
+            "latency_ms": {
+              "n": 512,
+              "min": 2129.647534999094,
+              "median": 11843.588982001165,
+              "p95": 30264.123263998044,
+              "p99": 31477.704395001638,
+              "max": 31529.287985998963
+            },
+            "cpu_ms_per_attempt": 59.410798828125,
+            "gateway_cpu_fraction": 0.9642522285057669,
+            "max_sampled_memory_mib": 36.3828125,
+            "service_lifetime_peak_mib": 36.484375,
+            "max_sampled_socket_mib": 0.046875,
+            "oom_kills": 0,
+            "throttled_ms": 1836.99,
+            "slo_pass": false
+          },
+          {
+            "trial": 1,
+            "available": true,
+            "successes": 512,
+            "count": 512,
+            "success_rate": 1.0,
+            "good_rps": 17.505022604934645,
+            "driver_cpu_fraction": 0.04702105732241491,
+            "fixture_cpu_fraction": 0.026284496941585644,
+            "latency_ms": {
+              "n": 512,
+              "min": 2055.718072999298,
+              "median": 11279.450137499225,
+              "p95": 28339.65568200074,
+              "p99": 29109.272183999565,
+              "max": 29203.162204001273
+            },
+            "cpu_ms_per_attempt": 54.8114609375,
+            "gateway_cpu_fraction": 0.9594758627204297,
+            "max_sampled_memory_mib": 36.546875,
+            "service_lifetime_peak_mib": 36.6875,
+            "max_sampled_socket_mib": 0.05078125,
+            "oom_kills": 0,
+            "throttled_ms": 1382.709,
+            "slo_pass": false
+          },
+          {
+            "trial": 2,
+            "available": true,
+            "successes": 512,
+            "count": 512,
+            "success_rate": 1.0,
+            "good_rps": 19.137447006527154,
+            "driver_cpu_fraction": 0.04732319591295847,
+            "fixture_cpu_fraction": 0.02940801365303679,
+            "latency_ms": {
+              "n": 512,
+              "min": 2037.918759000604,
+              "median": 10293.587292999291,
+              "p95": 25349.238892998983,
+              "p99": 26612.529022000672,
+              "max": 26707.63487699878
+            },
+            "cpu_ms_per_attempt": 50.027697265625,
+            "gateway_cpu_fraction": 0.9574024052794818,
+            "max_sampled_memory_mib": 36.58984375,
+            "service_lifetime_peak_mib": 36.65625,
+            "max_sampled_socket_mib": 0.5078125,
+            "oom_kills": 0,
+            "throttled_ms": 1412.544,
+            "slo_pass": false
+          }
+        ],
+        "all_trials_pass_slo": false
+      },
+      "512": {
+        "trials": [
+          {
+            "trial": 0,
+            "available": true,
+            "successes": 1024,
+            "count": 1024,
+            "success_rate": 1.0,
+            "good_rps": 7.897070010922025,
+            "driver_cpu_fraction": 0.024185052457581017,
+            "fixture_cpu_fraction": 0.010762801932739104,
+            "latency_ms": {
+              "n": 1024,
+              "min": 2286.167763002595,
+              "median": 17408.939955999813,
+              "p95": 117411.76892799922,
+              "p99": 123678.10492699937,
+              "max": 129642.21196400104
+            },
+            "cpu_ms_per_attempt": 125.2355244140625,
+            "gateway_cpu_fraction": 0.9889937041523861,
+            "max_sampled_memory_mib": 53.1640625,
+            "service_lifetime_peak_mib": 53.1640625,
+            "max_sampled_socket_mib": 2.2109375,
+            "oom_kills": 0,
+            "throttled_ms": 7632.585,
+            "slo_pass": false
+          },
+          {
+            "trial": 1,
+            "available": true,
+            "successes": 1024,
+            "count": 1024,
+            "success_rate": 1.0,
+            "good_rps": 19.65261494158142,
+            "driver_cpu_fraction": 0.04326370967583386,
+            "fixture_cpu_fraction": 0.024025757942821347,
+            "latency_ms": {
+              "n": 1024,
+              "min": 2042.4768439988839,
+              "median": 21351.742521499546,
+              "p95": 50371.273356999154,
+              "p99": 51623.63399300011,
+              "max": 52038.561205001315
+            },
+            "cpu_ms_per_attempt": 50.1694375,
+            "gateway_cpu_fraction": 0.9859606370232351,
+            "max_sampled_memory_mib": 47.875,
+            "service_lifetime_peak_mib": 47.8984375,
+            "max_sampled_socket_mib": 1.2578125,
+            "oom_kills": 0,
+            "throttled_ms": 2778.279,
+            "slo_pass": false
+          },
+          {
+            "trial": 2,
+            "available": true,
+            "successes": 1024,
+            "count": 1024,
+            "success_rate": 1.0,
+            "good_rps": 7.889058838527018,
+            "driver_cpu_fraction": 0.023765522771135895,
+            "fixture_cpu_fraction": 0.009762852115428143,
+            "latency_ms": {
+              "n": 1024,
+              "min": 2032.5056340006995,
+              "median": 11105.097327499607,
+              "p95": 114808.05655099903,
+              "p99": 121523.33852499942,
+              "max": 124323.98221699987
+            },
+            "cpu_ms_per_attempt": 125.16726171875,
+            "gateway_cpu_fraction": 0.9874518923565292,
+            "max_sampled_memory_mib": 56.56640625,
+            "service_lifetime_peak_mib": 56.56640625,
+            "max_sampled_socket_mib": 3.640625,
+            "oom_kills": 0,
+            "throttled_ms": 7635.791,
+            "slo_pass": false
+          }
+        ],
+        "all_trials_pass_slo": false
+      }
+    },
+    "largest_tested_all_trials_passing_concurrency": 128
+  },
+  "native": {
+    "points": {
+      "1": {
+        "trials": [
+          {
+            "trial": 0,
+            "available": true,
+            "successes": 8,
+            "count": 8,
+            "success_rate": 1.0,
+            "good_rps": 0.5419534317759818,
+            "driver_cpu_fraction": 0.011589864906137356,
+            "fixture_cpu_fraction": 0.0012800062771431001,
+            "latency_ms": {
+              "n": 8,
+              "min": 1843.659824997303,
+              "median": 1844.7075200001564,
+              "p95": 1848.321114997816,
+              "p99": 1848.321114997816,
+              "max": 1848.321114997816
+            },
+            "cpu_ms_per_attempt": 3.080625,
+            "gateway_cpu_fraction": 0.0016695552907648838,
+            "max_sampled_memory_mib": 1.48046875,
+            "service_lifetime_peak_mib": 1.5,
+            "max_sampled_socket_mib": 0.0,
+            "oom_kills": 0,
+            "throttled_ms": 0.0,
+            "slo_pass": true
+          },
+          {
+            "trial": 1,
+            "available": true,
+            "successes": 8,
+            "count": 8,
+            "success_rate": 1.0,
+            "good_rps": 0.5418843343109033,
+            "driver_cpu_fraction": 0.012341705080165345,
+            "fixture_cpu_fraction": 0.0014386793356269058,
+            "latency_ms": {
+              "n": 8,
+              "min": 1843.5252700001001,
+              "median": 1845.0445805010531,
+              "p95": 1847.021550998761,
+              "p99": 1847.021550998761,
+              "max": 1847.021550998761
+            },
+            "cpu_ms_per_attempt": 4.24775,
+            "gateway_cpu_fraction": 0.0023017891810691395,
+            "max_sampled_memory_mib": 1.3828125,
+            "service_lifetime_peak_mib": 1.5,
+            "max_sampled_socket_mib": 0.0,
+            "oom_kills": 0,
+            "throttled_ms": 0.0,
+            "slo_pass": true
+          },
+          {
+            "trial": 2,
+            "available": true,
+            "successes": 8,
+            "count": 8,
+            "success_rate": 1.0,
+            "good_rps": 0.5411150769321104,
+            "driver_cpu_fraction": 0.016309124884093803,
+            "fixture_cpu_fraction": 0.0024184490378176045,
+            "latency_ms": {
+              "n": 8,
+              "min": 1845.3078540005663,
+              "median": 1848.068121000324,
+              "p95": 1851.1734769999748,
+              "p99": 1851.1734769999748,
+              "max": 1851.1734769999748
+            },
+            "cpu_ms_per_attempt": 4.991,
+            "gateway_cpu_fraction": 0.0027007053489681624,
+            "max_sampled_memory_mib": 1.453125,
+            "service_lifetime_peak_mib": 1.484375,
+            "max_sampled_socket_mib": 0.0078125,
+            "oom_kills": 0,
+            "throttled_ms": 0.0,
+            "slo_pass": true
+          }
+        ],
+        "all_trials_pass_slo": true
+      },
+      "4": {
+        "trials": [
+          {
+            "trial": 0,
+            "available": true,
+            "successes": 16,
+            "count": 16,
+            "success_rate": 1.0,
+            "good_rps": 2.164804396616306,
+            "driver_cpu_fraction": 0.019905745255436008,
+            "fixture_cpu_fraction": 0.004042430983387935,
+            "latency_ms": {
+              "n": 16,
+              "min": 1843.6471189997974,
+              "median": 1844.8798520003038,
+              "p95": 1854.5376069996564,
+              "p99": 1854.5376069996564,
+              "max": 1854.5376069996564
+            },
+            "cpu_ms_per_attempt": 2.561125,
+            "gateway_cpu_fraction": 0.0055443346602839375,
+            "max_sampled_memory_mib": 1.48828125,
+            "service_lifetime_peak_mib": 1.59765625,
+            "max_sampled_socket_mib": 0.0,
+            "oom_kills": 0,
+            "throttled_ms": 0.0,
+            "slo_pass": true
+          },
+          {
+            "trial": 1,
+            "available": true,
+            "successes": 16,
+            "count": 16,
+            "success_rate": 1.0,
+            "good_rps": 2.1678276481865826,
+            "driver_cpu_fraction": 0.015297773451363105,
+            "fixture_cpu_fraction": 0.0030463805848718263,
+            "latency_ms": {
+              "n": 16,
+              "min": 1841.554090999125,
+              "median": 1844.5374870025262,
+              "p95": 1845.919582003262,
+              "p99": 1845.919582003262,
+              "max": 1845.919582003262
+            },
+            "cpu_ms_per_attempt": 1.951875,
+            "gateway_cpu_fraction": 0.0042313285908041854,
+            "max_sampled_memory_mib": 1.4609375,
+            "service_lifetime_peak_mib": 1.5,
+            "max_sampled_socket_mib": 0.0,
+            "oom_kills": 0,
+            "throttled_ms": 0.0,
+            "slo_pass": true
+          },
+          {
+            "trial": 2,
+            "available": true,
+            "successes": 16,
+            "count": 16,
+            "success_rate": 1.0,
+            "good_rps": 2.1639636671788574,
+            "driver_cpu_fraction": 0.020022618337930134,
+            "fixture_cpu_fraction": 0.003761900575163304,
+            "latency_ms": {
+              "n": 16,
+              "min": 1844.4708899987745,
+              "median": 1847.7296915007173,
+              "p95": 1851.0183489997871,
+              "p99": 1851.0183489997871,
+              "max": 1851.0183489997871
+            },
+            "cpu_ms_per_attempt": 2.4046875,
+            "gateway_cpu_fraction": 0.005203656380919159,
+            "max_sampled_memory_mib": 1.48828125,
+            "service_lifetime_peak_mib": 1.4921875,
+            "max_sampled_socket_mib": 0.0,
+            "oom_kills": 0,
+            "throttled_ms": 0.0,
+            "slo_pass": true
+          }
+        ],
+        "all_trials_pass_slo": true
+      },
+      "16": {
+        "trials": [
+          {
+            "trial": 0,
+            "available": true,
+            "successes": 32,
+            "count": 32,
+            "success_rate": 1.0,
+            "good_rps": 8.639798564395857,
+            "driver_cpu_fraction": 0.023332764200111815,
+            "fixture_cpu_fraction": 0.007060720130372061,
+            "latency_ms": {
+              "n": 32,
+              "min": 1844.0607679985987,
+              "median": 1848.4910589995707,
+              "p95": 1851.8673590006074,
+              "p99": 1851.9925360014895,
+              "max": 1851.9925360014895
+            },
+            "cpu_ms_per_attempt": 1.2699375,
+            "gateway_cpu_fraction": 0.010972004189372464,
+            "max_sampled_memory_mib": 1.91796875,
+            "service_lifetime_peak_mib": 2.1328125,
+            "max_sampled_socket_mib": 0.0,
+            "oom_kills": 0,
+            "throttled_ms": 0.0,
+            "slo_pass": true
+          },
+          {
+            "trial": 1,
+            "available": true,
+            "successes": 32,
+            "count": 32,
+            "success_rate": 1.0,
+            "good_rps": 8.656637386686858,
+            "driver_cpu_fraction": 0.02089635031709523,
+            "fixture_cpu_fraction": 0.005541379512297981,
+            "latency_ms": {
+              "n": 32,
+              "min": 1841.4083030002075,
+              "median": 1844.935354500194,
+              "p95": 1848.2816319992708,
+              "p99": 1848.3499130015844,
+              "max": 1848.3499130015844
+            },
+            "cpu_ms_per_attempt": 1.04709375,
+            "gateway_cpu_fraction": 0.009064310903616143,
+            "max_sampled_memory_mib": 1.78515625,
+            "service_lifetime_peak_mib": 2.03515625,
+            "max_sampled_socket_mib": 0.0,
+            "oom_kills": 0,
+            "throttled_ms": 0.0,
+            "slo_pass": true
+          },
+          {
+            "trial": 2,
+            "available": true,
+            "successes": 32,
+            "count": 32,
+            "success_rate": 1.0,
+            "good_rps": 8.637017466682058,
+            "driver_cpu_fraction": 0.027303719374537065,
+            "fixture_cpu_fraction": 0.008683193121313309,
+            "latency_ms": {
+              "n": 32,
+              "min": 1844.7071039990988,
+              "median": 1848.4405745020922,
+              "p95": 1852.3390789996483,
+              "p99": 1852.5230670020392,
+              "max": 1852.5230670020392
+            },
+            "cpu_ms_per_attempt": 1.53478125,
+            "gateway_cpu_fraction": 0.013255932463786124,
+            "max_sampled_memory_mib": 1.9375,
+            "service_lifetime_peak_mib": 2.0234375,
+            "max_sampled_socket_mib": 0.0,
+            "oom_kills": 0,
+            "throttled_ms": 0.0,
+            "slo_pass": true
+          }
+        ],
+        "all_trials_pass_slo": true
+      },
+      "64": {
+        "trials": [
+          {
+            "trial": 0,
+            "available": true,
+            "successes": 128,
+            "count": 128,
+            "success_rate": 1.0,
+            "good_rps": 34.340333429202765,
+            "driver_cpu_fraction": 0.044349103427204585,
+            "fixture_cpu_fraction": 0.01679627506646903,
+            "latency_ms": {
+              "n": 128,
+              "min": 1845.5901950001135,
+              "median": 1849.3627144998754,
+              "p95": 1867.8253609978128,
+              "p99": 1869.384314002673,
+              "max": 1869.5922860024439
+            },
+            "cpu_ms_per_attempt": 0.774515625,
+            "gateway_cpu_fraction": 0.026597124808627373,
+            "max_sampled_memory_mib": 4.39453125,
+            "service_lifetime_peak_mib": 4.68359375,
+            "max_sampled_socket_mib": 0.0,
+            "oom_kills": 0,
+            "throttled_ms": 0.0,
+            "slo_pass": true
+          },
+          {
+            "trial": 1,
+            "available": true,
+            "successes": 128,
+            "count": 128,
+            "success_rate": 1.0,
+            "good_rps": 34.307901662113174,
+            "driver_cpu_fraction": 0.037542577141204576,
+            "fixture_cpu_fraction": 0.012994787830729703,
+            "latency_ms": {
+              "n": 128,
+              "min": 1845.1136390031024,
+              "median": 1849.3800765008928,
+              "p95": 1870.552175998455,
+              "p99": 1870.8849850008846,
+              "max": 1871.1609579986543
+            },
+            "cpu_ms_per_attempt": 0.739703125,
+            "gateway_cpu_fraction": 0.025377662071657807,
+            "max_sampled_memory_mib": 4.0546875,
+            "service_lifetime_peak_mib": 4.578125,
+            "max_sampled_socket_mib": 0.09375,
+            "oom_kills": 0,
+            "throttled_ms": 0.0,
+            "slo_pass": true
+          },
+          {
+            "trial": 2,
+            "available": true,
+            "successes": 128,
+            "count": 128,
+            "success_rate": 1.0,
+            "good_rps": 34.40876714611163,
+            "driver_cpu_fraction": 0.04262281782412865,
+            "fixture_cpu_fraction": 0.016469737039554812,
+            "latency_ms": {
+              "n": 128,
+              "min": 1844.5423419980216,
+              "median": 1851.2255575005838,
+              "p95": 1862.0248480001464,
+              "p99": 1862.3845409965725,
+              "max": 1862.4455380013387
+            },
+            "cpu_ms_per_attempt": 0.78025,
+            "gateway_cpu_fraction": 0.0268474405657536,
+            "max_sampled_memory_mib": 4.39453125,
+            "service_lifetime_peak_mib": 4.68359375,
+            "max_sampled_socket_mib": 0.0,
+            "oom_kills": 0,
+            "throttled_ms": 0.0,
+            "slo_pass": true
+          }
+        ],
+        "all_trials_pass_slo": true
+      },
+      "128": {
+        "trials": [
+          {
+            "trial": 0,
+            "available": true,
+            "successes": 256,
+            "count": 256,
+            "success_rate": 1.0,
+            "good_rps": 68.39793340873618,
+            "driver_cpu_fraction": 0.06592979531757907,
+            "fixture_cpu_fraction": 0.02791445477202876,
+            "latency_ms": {
+              "n": 256,
+              "min": 1848.1090499990387,
+              "median": 1854.6204775011574,
+              "p95": 1876.9090899986622,
+              "p99": 1877.394256000116,
+              "max": 1877.5134669995168
+            },
+            "cpu_ms_per_attempt": 0.62894921875,
+            "gateway_cpu_fraction": 0.04301882678153915,
+            "max_sampled_memory_mib": 7.4296875,
+            "service_lifetime_peak_mib": 7.94921875,
+            "max_sampled_socket_mib": 0.19140625,
+            "oom_kills": 0,
+            "throttled_ms": 0.0,
+            "slo_pass": true
+          },
+          {
+            "trial": 1,
+            "available": true,
+            "successes": 256,
+            "count": 256,
+            "success_rate": 1.0,
+            "good_rps": 68.33114276676106,
+            "driver_cpu_fraction": 0.06100721683525089,
+            "fixture_cpu_fraction": 0.022547585650329147,
+            "latency_ms": {
+              "n": 256,
+              "min": 1844.8539290002373,
+              "median": 1850.3604470006394,
+              "p95": 1870.8536019985331,
+              "p99": 1875.407235998864,
+              "max": 1875.644398998702
+            },
+            "cpu_ms_per_attempt": 0.61135546875,
+            "gateway_cpu_fraction": 0.04177461781639638,
+            "max_sampled_memory_mib": 7.4921875,
+            "service_lifetime_peak_mib": 8.140625,
+            "max_sampled_socket_mib": 0.24609375,
+            "oom_kills": 0,
+            "throttled_ms": 0.0,
+            "slo_pass": true
+          },
+          {
+            "trial": 2,
+            "available": true,
+            "successes": 256,
+            "count": 256,
+            "success_rate": 1.0,
+            "good_rps": 68.28019235368016,
+            "driver_cpu_fraction": 0.06330088653167718,
+            "fixture_cpu_fraction": 0.024172998318458653,
+            "latency_ms": {
+              "n": 256,
+              "min": 1845.869512999343,
+              "median": 1850.927812000009,
+              "p95": 1876.7212310012837,
+              "p99": 1877.6888959982898,
+              "max": 1877.8687919984804
+            },
+            "cpu_ms_per_attempt": 0.65008203125,
+            "gateway_cpu_fraction": 0.044387726139421116,
+            "max_sampled_memory_mib": 7.8984375,
+            "service_lifetime_peak_mib": 8.2109375,
+            "max_sampled_socket_mib": 0.2421875,
+            "oom_kills": 0,
+            "throttled_ms": 0.0,
+            "slo_pass": true
+          }
+        ],
+        "all_trials_pass_slo": true
+      },
+      "256": {
+        "trials": [
+          {
+            "trial": 0,
+            "available": true,
+            "successes": 512,
+            "count": 512,
+            "success_rate": 1.0,
+            "good_rps": 134.99750865258451,
+            "driver_cpu_fraction": 0.10345817570358985,
+            "fixture_cpu_fraction": 0.046426928338626106,
+            "latency_ms": {
+              "n": 512,
+              "min": 1848.8362440002675,
+              "median": 1863.5508859988477,
+              "p95": 1905.3916459997708,
+              "p99": 1908.2105760026025,
+              "max": 1908.7211189980735
+            },
+            "cpu_ms_per_attempt": 0.62951953125,
+            "gateway_cpu_fraction": 0.08498356836689283,
+            "max_sampled_memory_mib": 14.296875,
+            "service_lifetime_peak_mib": 14.59375,
+            "max_sampled_socket_mib": 0.5,
+            "oom_kills": 0,
+            "throttled_ms": 0.0,
+            "slo_pass": true
+          },
+          {
+            "trial": 1,
+            "available": true,
+            "successes": 512,
+            "count": 512,
+            "success_rate": 1.0,
+            "good_rps": 133.85881045574024,
+            "driver_cpu_fraction": 0.09706000932410226,
+            "fixture_cpu_fraction": 0.04637536553561001,
+            "latency_ms": {
+              "n": 512,
+              "min": 1846.8912790012837,
+              "median": 1877.7681934989232,
+              "p95": 1933.1046650004282,
+              "p99": 1935.8644319981977,
+              "max": 1936.1807879977277
+            },
+            "cpu_ms_per_attempt": 0.620548828125,
+            "gateway_cpu_fraction": 0.0830659279625161,
+            "max_sampled_memory_mib": 14.5625,
+            "service_lifetime_peak_mib": 14.828125,
+            "max_sampled_socket_mib": 0.59765625,
+            "oom_kills": 0,
+            "throttled_ms": 0.0,
+            "slo_pass": true
+          },
+          {
+            "trial": 2,
+            "available": true,
+            "successes": 512,
+            "count": 512,
+            "success_rate": 1.0,
+            "good_rps": 135.2167944373231,
+            "driver_cpu_fraction": 0.10148110320561776,
+            "fixture_cpu_fraction": 0.03876013392399255,
+            "latency_ms": {
+              "n": 512,
+              "min": 1846.4159590002964,
+              "median": 1856.6084829999454,
+              "p95": 1900.4960109996318,
+              "p99": 1901.3126860008924,
+              "max": 1902.1234970023215
+            },
+            "cpu_ms_per_attempt": 0.5747734375,
+            "gateway_cpu_fraction": 0.07771902174647108,
+            "max_sampled_memory_mib": 14.46484375,
+            "service_lifetime_peak_mib": 14.71484375,
+            "max_sampled_socket_mib": 0.51953125,
+            "oom_kills": 0,
+            "throttled_ms": 0.0,
+            "slo_pass": true
+          }
+        ],
+        "all_trials_pass_slo": true
+      },
+      "512": {
+        "trials": [
+          {
+            "trial": 0,
+            "available": true,
+            "successes": 1024,
+            "count": 1024,
+            "success_rate": 1.0,
+            "good_rps": 250.5756015821899,
+            "driver_cpu_fraction": 0.17382412303624453,
+            "fixture_cpu_fraction": 0.07288867750396417,
+            "latency_ms": {
+              "n": 1024,
+              "min": 1856.6280419981922,
+              "median": 1981.1792790005711,
+              "p95": 2123.215704999893,
+              "p99": 2131.8776320003963,
+              "max": 2132.630269999936
+            },
+            "cpu_ms_per_attempt": 0.5647509765625,
+            "gateway_cpu_fraction": 0.14151281569627766,
+            "max_sampled_memory_mib": 31.8046875,
+            "service_lifetime_peak_mib": 33.69140625,
+            "max_sampled_socket_mib": 1.51953125,
+            "oom_kills": 0,
+            "throttled_ms": 6.318,
+            "slo_pass": true
+          },
+          {
+            "trial": 1,
+            "available": true,
+            "successes": 1024,
+            "count": 1024,
+            "success_rate": 1.0,
+            "good_rps": 261.3651804723965,
+            "driver_cpu_fraction": 0.17472315302286215,
+            "fixture_cpu_fraction": 0.07134668261457396,
+            "latency_ms": {
+              "n": 1024,
+              "min": 1848.4677619999275,
+              "median": 1859.8856855005579,
+              "p95": 1990.8916329986823,
+              "p99": 2001.8452129988873,
+              "max": 2002.3982400016394
+            },
+            "cpu_ms_per_attempt": 0.5724091796875,
+            "gateway_cpu_fraction": 0.14960782855307989,
+            "max_sampled_memory_mib": 27.2109375,
+            "service_lifetime_peak_mib": 27.921875,
+            "max_sampled_socket_mib": 0.6796875,
+            "oom_kills": 0,
+            "throttled_ms": 0.0,
+            "slo_pass": true
+          },
+          {
+            "trial": 2,
+            "available": true,
+            "successes": 1024,
+            "count": 1024,
+            "success_rate": 1.0,
+            "good_rps": 261.3037018132488,
+            "driver_cpu_fraction": 0.17473506487201254,
+            "fixture_cpu_fraction": 0.07244298675705964,
+            "latency_ms": {
+              "n": 1024,
+              "min": 1846.4199279987952,
+              "median": 1865.42220299998,
+              "p95": 1995.2638690010644,
+              "p99": 1996.2984670019068,
+              "max": 1997.0086489993264
+            },
+            "cpu_ms_per_attempt": 0.565583984375,
+            "gateway_cpu_fraction": 0.14778918880347416,
+            "max_sampled_memory_mib": 28.0546875,
+            "service_lifetime_peak_mib": 28.47265625,
+            "max_sampled_socket_mib": 1.375,
+            "oom_kills": 0,
+            "throttled_ms": 12.273,
+            "slo_pass": true
+          }
+        ],
+        "all_trials_pass_slo": true
+      }
+    },
+    "largest_tested_all_trials_passing_concurrency": 512
+  }
+}
