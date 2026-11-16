@@ -1,0 +1,1038 @@
+{
+  "summary": {
+    "live": {
+      "native": {
+        "wall_ms": {
+          "median": 37430.44631199882,
+          "min": 36506.83112799925,
+          "max": 37945.14251600049
+        },
+        "agent_cpu_ms": {
+          "median": 99.44037,
+          "min": 49.37225,
+          "max": 102.71711099999999
+        },
+        "import_cpu_ms": {
+          "median": 5.459604,
+          "min": 2.891001,
+          "max": 8.327435000000001
+        },
+        "setup_cpu_ms": {
+          "median": 28.248091000000002,
+          "min": 14.685116,
+          "max": 29.294579999999996
+        },
+        "active_cpu_ms": {
+          "median": 65.095096,
+          "min": 31.796133,
+          "max": 65.732675
+        },
+        "local_tree_cpu_ms": {
+          "median": 609.948,
+          "min": 130.336,
+          "max": 850.842
+        },
+        "peak_rss_mib": {
+          "median": 7.578125,
+          "min": 7.50390625,
+          "max": 7.6171875
+        },
+        "sampled_threads": {
+          "median": 1,
+          "min": 1,
+          "max": 1
+        },
+        "sampled_fds": {
+          "median": 15,
+          "min": 15,
+          "max": 15
+        },
+        "last_sample_write_bytes": {
+          "median": 1110016,
+          "min": 1110016,
+          "max": 1331200
+        },
+        "checkpoint_bytes": {
+          "median": 249856,
+          "min": 249856,
+          "max": 249856
+        },
+        "model_calls": {
+          "median": 12,
+          "min": 12,
+          "max": 12
+        },
+        "event_count": {
+          "median": 83,
+          "min": 83,
+          "max": 83
+        },
+        "event_log_bytes": {
+          "median": 19378,
+          "min": 19371,
+          "max": 19391
+        },
+        "relay_elapsed_ms": {
+          "median": 35848.71935499723,
+          "min": 34724.988565003514,
+          "max": 36851.17845000059
+        }
+      },
+      "python-native": {
+        "wall_ms": {
+          "median": 40488.56687099942,
+          "min": 38642.27137800117,
+          "max": 41044.55523899924
+        },
+        "agent_cpu_ms": {
+          "median": 1022.160744,
+          "min": 390.397521,
+          "max": 1893.3817510000001
+        },
+        "import_cpu_ms": {
+          "median": 465.787438,
+          "min": 185.396391,
+          "max": 980.72253
+        },
+        "setup_cpu_ms": {
+          "median": 291.834739,
+          "min": 87.124083,
+          "max": 428.198856
+        },
+        "active_cpu_ms": {
+          "median": 264.538567,
+          "min": 117.877047,
+          "max": 484.460365
+        },
+        "local_tree_cpu_ms": {
+          "median": 1343.23,
+          "min": 544.271,
+          "max": 2392.5
+        },
+        "peak_rss_mib": {
+          "median": 35.53515625,
+          "min": 35.48828125,
+          "max": 35.57421875
+        },
+        "sampled_threads": {
+          "median": 1,
+          "min": 1,
+          "max": 1
+        },
+        "sampled_fds": {
+          "median": 12,
+          "min": 12,
+          "max": 15
+        },
+        "last_sample_write_bytes": {
+          "median": 1359872,
+          "min": 1282048,
+          "max": 1359872
+        },
+        "checkpoint_bytes": {
+          "median": 249856,
+          "min": 249856,
+          "max": 249856
+        },
+        "model_calls": {
+          "median": 12,
+          "min": 12,
+          "max": 12
+        },
+        "event_count": {
+          "median": 83,
+          "min": 83,
+          "max": 83
+        },
+        "event_log_bytes": {
+          "median": 19386,
+          "min": 19364,
+          "max": 19393
+        },
+        "relay_elapsed_ms": {
+          "median": 37568.47556899629,
+          "min": 36663.41548600212,
+          "max": 39439.45166499725
+        }
+      },
+      "rig": {
+        "wall_ms": {
+          "median": 38627.854145997844,
+          "min": 38149.824775000525,
+          "max": 39846.11012499954
+        },
+        "agent_cpu_ms": {
+          "median": 152.76104,
+          "min": 141.533752,
+          "max": 255.634682
+        },
+        "import_cpu_ms": {
+          "median": 7.274743000000001,
+          "min": 4.635624,
+          "max": 9.398563
+        },
+        "setup_cpu_ms": {
+          "median": 21.747228,
+          "min": 14.966266000000001,
+          "max": 37.592769000000004
+        },
+        "active_cpu_ms": {
+          "median": 126.378188,
+          "min": 119.292743,
+          "max": 208.64335
+        },
+        "local_tree_cpu_ms": {
+          "median": 533.407,
+          "min": 511.7589999999999,
+          "max": 1444.41
+        },
+        "peak_rss_mib": {
+          "median": 18.81640625,
+          "min": 18.7265625,
+          "max": 18.8515625
+        },
+        "sampled_threads": {
+          "median": 1,
+          "min": 1,
+          "max": 1
+        },
+        "sampled_fds": {
+          "median": 15,
+          "min": 15,
+          "max": 16
+        },
+        "last_sample_write_bytes": {
+          "median": 1630208,
+          "min": 1630208,
+          "max": 1630208
+        },
+        "checkpoint_bytes": {
+          "median": 339968,
+          "min": 339968,
+          "max": 339968
+        },
+        "model_calls": {
+          "median": 12,
+          "min": 12,
+          "max": 12
+        },
+        "event_count": {
+          "median": 85,
+          "min": 85,
+          "max": 85
+        },
+        "event_log_bytes": {
+          "median": 19572,
+          "min": 19558,
+          "max": 19588
+        },
+        "relay_elapsed_ms": {
+          "median": 37035.07728400291,
+          "min": 36217.44447800302,
+          "max": 37499.24577499587
+        }
+      },
+      "langchain": {
+        "wall_ms": {
+          "median": 55191.38902299892,
+          "min": 50413.02648300007,
+          "max": 60442.0815350004
+        },
+        "agent_cpu_ms": {
+          "median": 12551.421989,
+          "min": 10622.340064,
+          "max": 20124.880221
+        },
+        "import_cpu_ms": {
+          "median": 9123.819265,
+          "min": 7554.865651,
+          "max": 14727.398306
+        },
+        "setup_cpu_ms": {
+          "median": 2730.137468,
+          "min": 2380.665975,
+          "max": 4345.602117
+        },
+        "active_cpu_ms": {
+          "median": 697.465256,
+          "min": 686.808438,
+          "max": 1051.879798
+        },
+        "local_tree_cpu_ms": {
+          "median": 13831.284,
+          "min": 11902.592,
+          "max": 21722.89
+        },
+        "peak_rss_mib": {
+          "median": 122.24609375,
+          "min": 122.21875,
+          "max": 122.2578125
+        },
+        "sampled_threads": {
+          "median": 7,
+          "min": 7,
+          "max": 7
+        },
+        "sampled_fds": {
+          "median": 11,
+          "min": 8,
+          "max": 12
+        },
+        "last_sample_write_bytes": {
+          "median": 2031616,
+          "min": 2031616,
+          "max": 2052096
+        },
+        "checkpoint_bytes": {
+          "median": 225280,
+          "min": 225280,
+          "max": 225280
+        },
+        "model_calls": {
+          "median": 12,
+          "min": 12,
+          "max": 12
+        },
+        "event_count": {
+          "median": 78,
+          "min": 78,
+          "max": 78
+        },
+        "event_log_bytes": {
+          "median": 30608,
+          "min": 30600,
+          "max": 30663
+        },
+        "relay_elapsed_ms": {
+          "median": 38283.03336899626,
+          "min": 37643.84732400322,
+          "max": 40778.16867800357
+        }
+      },
+      "deepagents": {
+        "wall_ms": {
+          "median": 52871.900054000434,
+          "min": 50786.82795600071,
+          "max": 57712.814937000076
+        },
+        "agent_cpu_ms": {
+          "median": 12045.091846,
+          "min": 11357.780597,
+          "max": 18091.097951000003
+        },
+        "import_cpu_ms": {
+          "median": 7957.995938,
+          "min": 7260.09891,
+          "max": 12473.355753
+        },
+        "setup_cpu_ms": {
+          "median": 3800.4547439999997,
+          "min": 2780.913713,
+          "max": 4526.645481
+        },
+        "active_cpu_ms": {
+          "median": 984.538192,
+          "min": 618.870946,
+          "max": 1091.096717
+        },
+        "local_tree_cpu_ms": {
+          "median": 13679.074,
+          "min": 12421.844,
+          "max": 19948.109
+        },
+        "peak_rss_mib": {
+          "median": 123.359375,
+          "min": 123.22265625,
+          "max": 123.4375
+        },
+        "sampled_threads": {
+          "median": 7,
+          "min": 7,
+          "max": 7
+        },
+        "sampled_fds": {
+          "median": 12,
+          "min": 8,
+          "max": 12
+        },
+        "last_sample_write_bytes": {
+          "median": 2031616,
+          "min": 2031616,
+          "max": 2052096
+        },
+        "checkpoint_bytes": {
+          "median": 225280,
+          "min": 225280,
+          "max": 225280
+        },
+        "model_calls": {
+          "median": 12,
+          "min": 12,
+          "max": 12
+        },
+        "event_count": {
+          "median": 78,
+          "min": 78,
+          "max": 78
+        },
+        "event_log_bytes": {
+          "median": 30666,
+          "min": 30594,
+          "max": 30668
+        },
+        "relay_elapsed_ms": {
+          "median": 37505.302400999426,
+          "min": 36925.69889299739,
+          "max": 38055.12998899576
+        }
+      }
+    },
+    "replay": {
+      "native": {
+        "wall_ms": {
+          "median": 1460.0251169995317,
+          "min": 1248.6432309997326,
+          "max": 2818.8379350012838
+        },
+        "agent_cpu_ms": {
+          "median": 114.322272,
+          "min": 96.94224500000001,
+          "max": 120.803359
+        },
+        "import_cpu_ms": {
+          "median": 7.437867000000001,
+          "min": 5.577271,
+          "max": 14.889036
+        },
+        "setup_cpu_ms": {
+          "median": 33.404222,
+          "min": 27.443766000000004,
+          "max": 38.066435999999996
+        },
+        "active_cpu_ms": {
+          "median": 66.404255,
+          "min": 62.829679,
+          "max": 78.095281
+        },
+        "local_tree_cpu_ms": {
+          "median": 534.7629999999999,
+          "min": 471.977,
+          "max": 1183.09
+        },
+        "peak_rss_mib": {
+          "median": 7.578125,
+          "min": 7.51171875,
+          "max": 7.609375
+        },
+        "sampled_threads": {
+          "median": 1,
+          "min": 1,
+          "max": 1
+        },
+        "sampled_fds": {
+          "median": 15,
+          "min": 15,
+          "max": 16
+        },
+        "last_sample_write_bytes": {
+          "median": 1359872,
+          "min": 1081344,
+          "max": 1359872
+        },
+        "checkpoint_bytes": {
+          "median": 249856,
+          "min": 249856,
+          "max": 249856
+        },
+        "model_calls": {
+          "median": 12,
+          "min": 12,
+          "max": 12
+        },
+        "event_count": {
+          "median": 83,
+          "min": 83,
+          "max": 83
+        },
+        "event_log_bytes": {
+          "median": 19380,
+          "min": 19374,
+          "max": 19386
+        },
+        "relay_elapsed_ms": {
+          "median": 11.334325001371326,
+          "min": 10.311834999811254,
+          "max": 13.813494997521047
+        }
+      },
+      "python-native": {
+        "wall_ms": {
+          "median": 4182.659324998895,
+          "min": 2723.422840999774,
+          "max": 13344.030330999885
+        },
+        "agent_cpu_ms": {
+          "median": 1930.821818,
+          "min": 1370.605591,
+          "max": 6600.592902
+        },
+        "import_cpu_ms": {
+          "median": 931.702488,
+          "min": 726.335661,
+          "max": 3814.0459610000003
+        },
+        "setup_cpu_ms": {
+          "median": 544.34634,
+          "min": 331.957212,
+          "max": 1763.144744
+        },
+        "active_cpu_ms": {
+          "median": 454.77299,
+          "min": 312.312718,
+          "max": 1023.402197
+        },
+        "local_tree_cpu_ms": {
+          "median": 2495.227,
+          "min": 1873.379,
+          "max": 8260.104
+        },
+        "peak_rss_mib": {
+          "median": 35.55859375,
+          "min": 35.53515625,
+          "max": 35.6015625
+        },
+        "sampled_threads": {
+          "median": 1,
+          "min": 1,
+          "max": 1
+        },
+        "sampled_fds": {
+          "median": 12,
+          "min": 12,
+          "max": 15
+        },
+        "last_sample_write_bytes": {
+          "median": 1359872,
+          "min": 1359872,
+          "max": 1359872
+        },
+        "checkpoint_bytes": {
+          "median": 249856,
+          "min": 249856,
+          "max": 249856
+        },
+        "model_calls": {
+          "median": 12,
+          "min": 12,
+          "max": 12
+        },
+        "event_count": {
+          "median": 83,
+          "min": 83,
+          "max": 83
+        },
+        "event_log_bytes": {
+          "median": 19367,
+          "min": 19365,
+          "max": 19376
+        },
+        "relay_elapsed_ms": {
+          "median": 12.211574998218566,
+          "min": 10.584269997707452,
+          "max": 21.952334998786682
+        }
+      },
+      "rig": {
+        "wall_ms": {
+          "median": 1799.8222330006683,
+          "min": 1493.9690659994085,
+          "max": 5732.0807479991345
+        },
+        "agent_cpu_ms": {
+          "median": 244.048266,
+          "min": 178.1363,
+          "max": 520.028139
+        },
+        "import_cpu_ms": {
+          "median": 11.89813,
+          "min": 6.339947,
+          "max": 22.882679
+        },
+        "setup_cpu_ms": {
+          "median": 34.035548000000006,
+          "min": 26.889561,
+          "max": 47.187287
+        },
+        "active_cpu_ms": {
+          "median": 198.11458800000003,
+          "min": 144.09688599999998,
+          "max": 460.376601
+        },
+        "local_tree_cpu_ms": {
+          "median": 678.439,
+          "min": 564.1019999999999,
+          "max": 1648.3039999999999
+        },
+        "peak_rss_mib": {
+          "median": 18.8046875,
+          "min": 18.71484375,
+          "max": 18.890625
+        },
+        "sampled_threads": {
+          "median": 1,
+          "min": 1,
+          "max": 1
+        },
+        "sampled_fds": {
+          "median": 15,
+          "min": 15,
+          "max": 16
+        },
+        "last_sample_write_bytes": {
+          "median": 1630208,
+          "min": 1572864,
+          "max": 1630208
+        },
+        "checkpoint_bytes": {
+          "median": 339968,
+          "min": 339968,
+          "max": 339968
+        },
+        "model_calls": {
+          "median": 12,
+          "min": 12,
+          "max": 12
+        },
+        "event_count": {
+          "median": 85,
+          "min": 85,
+          "max": 85
+        },
+        "event_log_bytes": {
+          "median": 19562,
+          "min": 19560,
+          "max": 19568
+        },
+        "relay_elapsed_ms": {
+          "median": 10.908841002674308,
+          "min": 9.799957002542214,
+          "max": 15.24500899904524
+        }
+      },
+      "langchain": {
+        "wall_ms": {
+          "median": 20301.823001998855,
+          "min": 13625.233009999647,
+          "max": 77860.0118860013
+        },
+        "agent_cpu_ms": {
+          "median": 17659.092540999998,
+          "min": 11447.475102,
+          "max": 48845.052751
+        },
+        "import_cpu_ms": {
+          "median": 13217.676706,
+          "min": 8415.455157,
+          "max": 33370.686662
+        },
+        "setup_cpu_ms": {
+          "median": 3823.33968,
+          "min": 2175.0976659999997,
+          "max": 11672.310166
+        },
+        "active_cpu_ms": {
+          "median": 1017.505222,
+          "min": 856.9222789999999,
+          "max": 3802.055923
+        },
+        "local_tree_cpu_ms": {
+          "median": 19438.741,
+          "min": 12906.348,
+          "max": 58618.490999999995
+        },
+        "peak_rss_mib": {
+          "median": 122.23828125,
+          "min": 122.19921875,
+          "max": 122.3359375
+        },
+        "sampled_threads": {
+          "median": 7,
+          "min": 7,
+          "max": 7
+        },
+        "sampled_fds": {
+          "median": 12,
+          "min": 8,
+          "max": 12
+        },
+        "last_sample_write_bytes": {
+          "median": 2031616,
+          "min": 2031616,
+          "max": 2031616
+        },
+        "checkpoint_bytes": {
+          "median": 225280,
+          "min": 225280,
+          "max": 225280
+        },
+        "model_calls": {
+          "median": 12,
+          "min": 12,
+          "max": 12
+        },
+        "event_count": {
+          "median": 78,
+          "min": 78,
+          "max": 78
+        },
+        "event_log_bytes": {
+          "median": 30603,
+          "min": 30594,
+          "max": 30614
+        },
+        "relay_elapsed_ms": {
+          "median": 12.982769998416188,
+          "min": 10.032145997683983,
+          "max": 138.1831950020569
+        }
+      },
+      "deepagents": {
+        "wall_ms": {
+          "median": 17287.88137900119,
+          "min": 12138.457587998346,
+          "max": 80402.71653600212
+        },
+        "agent_cpu_ms": {
+          "median": 14665.310166,
+          "min": 10289.221216,
+          "max": 61471.594332
+        },
+        "import_cpu_ms": {
+          "median": 9828.931668000001,
+          "min": 7393.056101,
+          "max": 41123.879218
+        },
+        "setup_cpu_ms": {
+          "median": 3775.833878,
+          "min": 2324.9815909999998,
+          "max": 17580.548776
+        },
+        "active_cpu_ms": {
+          "median": 1060.5446200000001,
+          "min": 571.183524,
+          "max": 2767.166338
+        },
+        "local_tree_cpu_ms": {
+          "median": 16486.559,
+          "min": 11403.743999999999,
+          "max": 65824.53700000001
+        },
+        "peak_rss_mib": {
+          "median": 123.3046875,
+          "min": 123.125,
+          "max": 123.4765625
+        },
+        "sampled_threads": {
+          "median": 7,
+          "min": 7,
+          "max": 7
+        },
+        "sampled_fds": {
+          "median": 11,
+          "min": 8,
+          "max": 12
+        },
+        "last_sample_write_bytes": {
+          "median": 2031616,
+          "min": 2019328,
+          "max": 2039808
+        },
+        "checkpoint_bytes": {
+          "median": 225280,
+          "min": 221184,
+          "max": 225280
+        },
+        "model_calls": {
+          "median": 12,
+          "min": 12,
+          "max": 12
+        },
+        "event_count": {
+          "median": 78,
+          "min": 78,
+          "max": 78
+        },
+        "event_log_bytes": {
+          "median": 30606,
+          "min": 30603,
+          "max": 30611
+        },
+        "relay_elapsed_ms": {
+          "median": 10.970209001243347,
+          "min": 6.079959002818214,
+          "max": 74.07281199994031
+        }
+      }
+    },
+    "paired-replay": {
+      "native": {
+        "wall_ms": {
+          "median": 1217.547165999349,
+          "min": 704.7517959999823,
+          "max": 2240.9281019990885
+        },
+        "agent_cpu_ms": {
+          "median": 76.101268,
+          "min": 48.446375,
+          "max": 158.81226800000002
+        },
+        "import_cpu_ms": {
+          "median": 4.255367,
+          "min": 3.5445219999999997,
+          "max": 8.923591
+        },
+        "setup_cpu_ms": {
+          "median": 22.620244999999997,
+          "min": 13.399448,
+          "max": 43.375213
+        },
+        "active_cpu_ms": {
+          "median": 45.645373,
+          "min": 30.106162,
+          "max": 106.513464
+        },
+        "local_tree_cpu_ms": {
+          "median": 231.25200000000046,
+          "min": 135.49900000000025,
+          "max": 322.7810000000002
+        },
+        "peak_rss_mib": {
+          "median": 7.22265625,
+          "min": 7.0546875,
+          "max": 7.40625
+        },
+        "sampled_threads": {
+          "median": 1,
+          "min": 1,
+          "max": 1
+        },
+        "sampled_fds": {
+          "median": 15,
+          "min": 15,
+          "max": 15
+        },
+        "last_sample_write_bytes": {
+          "median": 1359872,
+          "min": 1019904,
+          "max": 1359872
+        },
+        "checkpoint_bytes": {
+          "median": 249856,
+          "min": 249856,
+          "max": 249856
+        },
+        "model_calls": {
+          "median": 12,
+          "min": 12,
+          "max": 12
+        },
+        "event_count": {
+          "median": 83,
+          "min": 83,
+          "max": 83
+        },
+        "event_log_bytes": {
+          "median": 19379,
+          "min": 19378,
+          "max": 19383
+        },
+        "relay_elapsed_ms": {
+          "median": 5.331243004548014,
+          "min": 4.107565997401252,
+          "max": 15.018790003523463
+        }
+      },
+      "python-native": {
+        "wall_ms": {
+          "median": 1681.8610350019298,
+          "min": 1416.366900999492,
+          "max": 3747.6986090005084
+        },
+        "agent_cpu_ms": {
+          "median": 796.446876,
+          "min": 726.749506,
+          "max": 2083.509251
+        },
+        "import_cpu_ms": {
+          "median": 406.368963,
+          "min": 359.76313400000004,
+          "max": 1046.958024
+        },
+        "setup_cpu_ms": {
+          "median": 208.307005,
+          "min": 198.50053300000002,
+          "max": 604.945256
+        },
+        "active_cpu_ms": {
+          "median": 181.77090800000002,
+          "min": 165.61208499999998,
+          "max": 431.605971
+        },
+        "local_tree_cpu_ms": {
+          "median": 947.951,
+          "min": 848.1160000000007,
+          "max": 2362.274
+        },
+        "peak_rss_mib": {
+          "median": 35.55078125,
+          "min": 35.43359375,
+          "max": 35.65234375
+        },
+        "sampled_threads": {
+          "median": 1,
+          "min": 1,
+          "max": 1
+        },
+        "sampled_fds": {
+          "median": 12,
+          "min": 12,
+          "max": 15
+        },
+        "last_sample_write_bytes": {
+          "median": 1331200,
+          "min": 1282048,
+          "max": 1331200
+        },
+        "checkpoint_bytes": {
+          "median": 249856,
+          "min": 249856,
+          "max": 249856
+        },
+        "model_calls": {
+          "median": 12,
+          "min": 12,
+          "max": 12
+        },
+        "event_count": {
+          "median": 83,
+          "min": 83,
+          "max": 83
+        },
+        "event_log_bytes": {
+          "median": 19366,
+          "min": 19363,
+          "max": 19369
+        },
+        "relay_elapsed_ms": {
+          "median": 9.923437002726132,
+          "min": 6.585482999071246,
+          "max": 17.56209799896169
+        }
+      }
+    }
+  },
+  "paired_ratios": [
+    {
+      "trial": 0,
+      "agent_cpu_ms": 21.09980856569837,
+      "active_cpu_ms": 7.824050424563296,
+      "peak_rss_mib": 4.800105485232067
+    },
+    {
+      "trial": 1,
+      "agent_cpu_ms": 13.11932180831269,
+      "active_cpu_ms": 4.05212594531711,
+      "peak_rss_mib": 4.905895078420768
+    },
+    {
+      "trial": 2,
+      "agent_cpu_ms": 10.465618995993601,
+      "active_cpu_ms": 3.781501259526753,
+      "peak_rss_mib": 5.053709856035438
+    },
+    {
+      "trial": 3,
+      "agent_cpu_ms": 15.3748293654582,
+      "active_cpu_ms": 5.858988229510172,
+      "peak_rss_mib": 4.9226190476190474
+    },
+    {
+      "trial": 4,
+      "agent_cpu_ms": 14.940978028965924,
+      "active_cpu_ms": 5.500936486025684,
+      "peak_rss_mib": 4.8624
+    }
+  ],
+  "checkpoint_proofs": [
+    {
+      "experiment": "replay",
+      "trial": 0,
+      "rows": 23,
+      "identical": true,
+      "sha256": "e229c77916242d97c6162c355de0b1a06d01b35b384f8883d893e9de277d2dcb"
+    },
+    {
+      "experiment": "replay",
+      "trial": 1,
+      "rows": 23,
+      "identical": true,
+      "sha256": "e229c77916242d97c6162c355de0b1a06d01b35b384f8883d893e9de277d2dcb"
+    },
+    {
+      "experiment": "replay",
+      "trial": 2,
+      "rows": 23,
+      "identical": true,
+      "sha256": "e229c77916242d97c6162c355de0b1a06d01b35b384f8883d893e9de277d2dcb"
+    },
+    {
+      "experiment": "replay",
+      "trial": 3,
+      "rows": 23,
+      "identical": true,
+      "sha256": "e229c77916242d97c6162c355de0b1a06d01b35b384f8883d893e9de277d2dcb"
+    },
+    {
+      "experiment": "replay",
+      "trial": 4,
+      "rows": 23,
+      "identical": true,
+      "sha256": "e229c77916242d97c6162c355de0b1a06d01b35b384f8883d893e9de277d2dcb"
+    },
+    {
+      "experiment": "paired",
+      "trial": 0,
+      "rows": 23,
+      "identical": true,
+      "sha256": "e229c77916242d97c6162c355de0b1a06d01b35b384f8883d893e9de277d2dcb"
+    },
+    {
+      "experiment": "paired",
+      "trial": 1,
+      "rows": 23,
+      "identical": true,
+      "sha256": "e229c77916242d97c6162c355de0b1a06d01b35b384f8883d893e9de277d2dcb"
+    },
+    {
+      "experiment": "paired",
+      "trial": 2,
+      "rows": 23,
+      "identical": true,
+      "sha256": "e229c77916242d97c6162c355de0b1a06d01b35b384f8883d893e9de277d2dcb"
+    },
+    {
+      "experiment": "paired",
+      "trial": 3,
+      "rows": 23,
+      "identical": true,
+      "sha256": "e229c77916242d97c6162c355de0b1a06d01b35b384f8883d893e9de277d2dcb"
+    },
+    {
+      "experiment": "paired",
+      "trial": 4,
+      "rows": 23,
+      "identical": true,
+      "sha256": "e229c77916242d97c6162c355de0b1a06d01b35b384f8883d893e9de277d2dcb"
+    }
+  ]
+}
