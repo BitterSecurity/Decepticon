@@ -1,0 +1,1961 @@
+{
+  "started_at": "2026-11-16T13:27:14.042822+00:00",
+  "model": "gpt-6.1-sol",
+  "reasoning_effort": "low",
+  "platform": "Linux-6.18.58.1-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "python": "3.13.7",
+  "cpu": "Intel(R) Core(TM) Ultra 7 155H",
+  "logical_cpus": 18,
+  "load_average_at_start": [
+    3.16650390625,
+    4.19775390625,
+    4.18310546875
+  ],
+  "config": {
+    "model": "gpt-6.1-sol",
+    "system": "Call echo exactly once with the supplied marker. Then reply exactly DONE:<marker>, using the tool result. No other text.",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ]
+    }
+  },
+  "samples": [
+    {
+      "case": "native",
+      "trial": 0,
+      "startup_ms": 1.7826129997047246,
+      "work_ms": 3763.709242999539,
+      "relay_ms": 3749.8353540004246,
+      "ready": {
+        "rss_kib": 3072,
+        "hwm_kib": 3072,
+        "pss_kib": 1575,
+        "threads": 1,
+        "fds": 3,
+        "io": {
+          "rchar": 7890,
+          "wchar": 18,
+          "syscr": 12,
+          "syscw": 1,
+          "read_bytes": 0,
+          "write_bytes": 0,
+          "cancelled_write_bytes": 0
+        }
+      },
+      "done": {
+        "rss_kib": 5572,
+        "hwm_kib": 5572,
+        "pss_kib": 3829,
+        "threads": 1,
+        "fds": 3,
+        "io": {
+          "rchar": 369726,
+          "wchar": 1485,
+          "syscr": 277,
+          "syscw": 7,
+          "read_bytes": 0,
+          "write_bytes": 0,
+          "cancelled_write_bytes": 0
+        }
+      },
+      "sampled_peaks": {
+        "threads": 2,
+        "fds": 7,
+        "rss_kib": 5456
+      },
+      "peak_rss_kib": 5572,
+      "wait4_maxrss_kib": 197636,
+      "user_cpu_ms": 2.68,
+      "system_cpu_ms": 8.041,
+      "voluntary_switches": 11,
+      "involuntary_switches": 1,
+      "minor_faults": 245,
+      "major_faults": 0,
+      "input_blocks": 0,
+      "output_blocks": 0,
+      "result": {
+        "output": "DONE:marker-0",
+        "tool_calls": 1
+      },
+      "requests": [
+        {
+          "status": "ok",
+          "tool_names": [
+            "echo"
+          ],
+          "request_bytes": 466,
+          "tool_definitions": [
+            {
+              "function": {
+                "description": "Return the supplied text.",
+                "name": "echo",
+                "parameters": {
+                  "properties": {
+                    "text": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "text"
+                  ],
+                  "type": "object"
+                }
+              },
+              "type": "function"
+            }
+          ],
+          "system_chars": 120,
+          "system_sha256": "5ef69a14e49fd91db4fc08bdbcf311d0e69b8880afb989393d02ed9ce415ab0f",
+          "request_sha256": "0872ea93074a0043b8fa4379fef31824791c52692add8942ef0a6113f2269b9a",
+          "model": "gpt-6.1-sol",
+          "usage": {
+            "completion_tokens": 19,
+            "prompt_tokens": 74,
+            "total_tokens": 93
+          },
+          "elapsed_ms": 2007.5504180003918
+        },
+        {
+          "status": "ok",
+          "tool_names": [
+            "echo"
+          ],
+          "request_bytes": 757,
+          "tool_definitions": [
+            {
+              "function": {
+                "description": "Return the supplied text.",
+                "name": "echo",
+                "parameters": {
+                  "properties": {
+                    "text": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "text"
+                  ],
+                  "type": "object"
+                }
+              },
+              "type": "function"
+            }
+          ],
+          "system_chars": 120,
+          "system_sha256": "5ef69a14e49fd91db4fc08bdbcf311d0e69b8880afb989393d02ed9ce415ab0f",
+          "request_sha256": "816b674fb34e8801fd9216f4fc122e8c384b20f2d50c4c172086fd6ab457795e",
+          "model": "gpt-6.1-sol",
+          "usage": {
+            "completion_tokens": 9,
+            "prompt_tokens": 110,
+            "total_tokens": 119
+          },
+          "elapsed_ms": 1742.2849360000328
+        }
+      ]
+    },
+    {
+      "case": "rig",
+      "trial": 0,
+      "startup_ms": 3.7353550005718716,
+      "work_ms": 4185.909213000741,
+      "relay_ms": 4152.269376999357,
+      "ready": {
+        "rss_kib": 3948,
+        "hwm_kib": 3948,
+        "pss_kib": 2145,
+        "threads": 1,
+        "fds": 3,
+        "io": {
+          "rchar": 9255,
+          "wchar": 18,
+          "syscr": 14,
+          "syscw": 1,
+          "read_bytes": 0,
+          "write_bytes": 0,
+          "cancelled_write_bytes": 0
+        }
+      },
+      "done": {
+        "rss_kib": 16940,
+        "hwm_kib": 16940,
+        "pss_kib": 15074,
+        "threads": 1,
+        "fds": 3,
+        "io": {
+          "rchar": 371091,
+          "wchar": 1559,
+          "syscr": 279,
+          "syscw": 4,
+          "read_bytes": 0,
+          "write_bytes": 0,
+          "cancelled_write_bytes": 0
+        }
+      },
+      "sampled_peaks": {
+        "threads": 1,
+        "fds": 7,
+        "rss_kib": 16940
+      },
+      "peak_rss_kib": 16940,
+      "wait4_maxrss_kib": 197636,
+      "user_cpu_ms": 24.919,
+      "system_cpu_ms": 12.459,
+      "voluntary_switches": 9,
+      "involuntary_switches": 0,
+      "minor_faults": 2036,
+      "major_faults": 0,
+      "input_blocks": 0,
+      "output_blocks": 0,
+      "result": {
+        "output": "DONE:marker-0",
+        "tool_calls": 1
+      },
+      "requests": [
+        {
+          "status": "ok",
+          "tool_names": [
+            "echo"
+          ],
+          "request_bytes": 477,
+          "tool_definitions": [
+            {
+              "function": {
+                "description": "Return the supplied text.",
+                "name": "echo",
+                "parameters": {
+                  "properties": {
+                    "text": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "text"
+                  ],
+                  "type": "object"
+                }
+              },
+              "type": "function"
+            }
+          ],
+          "system_chars": 120,
+          "system_sha256": "5ef69a14e49fd91db4fc08bdbcf311d0e69b8880afb989393d02ed9ce415ab0f",
+          "request_sha256": "eff9a5650ea9a7ec668c6a10c8322623e43e4fdd036de03889d7e04286d3f20c",
+          "model": "gpt-6.1-sol",
+          "usage": {
+            "completion_tokens": 19,
+            "prompt_tokens": 74,
+            "total_tokens": 93
+          },
+          "elapsed_ms": 2168.4779130000607
+        },
+        {
+          "status": "ok",
+          "tool_names": [
+            "echo"
+          ],
+          "request_bytes": 768,
+          "tool_definitions": [
+            {
+              "function": {
+                "description": "Return the supplied text.",
+                "name": "echo",
+                "parameters": {
+                  "properties": {
+                    "text": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "text"
+                  ],
+                  "type": "object"
+                }
+              },
+              "type": "function"
+            }
+          ],
+          "system_chars": 120,
+          "system_sha256": "5ef69a14e49fd91db4fc08bdbcf311d0e69b8880afb989393d02ed9ce415ab0f",
+          "request_sha256": "91bb7deac4f895dee042a640f095e82960d51445907d65c5cb39bf15bedd76e9",
+          "model": "gpt-6.1-sol",
+          "usage": {
+            "completion_tokens": 9,
+            "prompt_tokens": 110,
+            "total_tokens": 119
+          },
+          "elapsed_ms": 1983.791463999296
+        }
+      ]
+    },
+    {
+      "case": "deepagents",
+      "trial": 0,
+      "startup_ms": 1704.9868800004333,
+      "work_ms": 5062.795403000564,
+      "relay_ms": 4410.799468000732,
+      "ready": {
+        "rss_kib": 105408,
+        "hwm_kib": 105408,
+        "pss_kib": 93966,
+        "threads": 1,
+        "fds": 4,
+        "io": {
+          "rchar": 19648825,
+          "wchar": 18,
+          "syscr": 3758,
+          "syscw": 1,
+          "read_bytes": 3321856,
+          "write_bytes": 0,
+          "cancelled_write_bytes": 0
+        }
+      },
+      "done": {
+        "rss_kib": 126928,
+        "hwm_kib": 126928,
+        "pss_kib": 115198,
+        "threads": 1,
+        "fds": 4,
+        "io": {
+          "rchar": 24787077,
+          "wchar": 70,
+          "syscr": 5305,
+          "syscw": 3,
+          "read_bytes": 5222400,
+          "write_bytes": 0,
+          "cancelled_write_bytes": 0
+        }
+      },
+      "sampled_peaks": {
+        "threads": 2,
+        "fds": 5,
+        "rss_kib": 126928
+      },
+      "peak_rss_kib": 126928,
+      "wait4_maxrss_kib": 197636,
+      "user_cpu_ms": 2593.641,
+      "system_cpu_ms": 289.406,
+      "voluntary_switches": 960,
+      "involuntary_switches": 9,
+      "minor_faults": 35399,
+      "major_faults": 7,
+      "input_blocks": 10200,
+      "output_blocks": 0,
+      "result": {
+        "output": "DONE:marker-0",
+        "tool_calls": 1
+      },
+      "requests": [
+        {
+          "status": "ok",
+          "tool_names": [
+            "echo"
+          ],
+          "request_bytes": 466,
+          "tool_definitions": [
+            {
+              "type": "function",
+              "function": {
+                "name": "echo",
+                "description": "Return the supplied text.",
+                "parameters": {
+                  "type": "object",
+                  "properties": {
+                    "text": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "text"
+                  ]
+                }
+              }
+            }
+          ],
+          "system_chars": 120,
+          "system_sha256": "5ef69a14e49fd91db4fc08bdbcf311d0e69b8880afb989393d02ed9ce415ab0f",
+          "request_sha256": "0872ea93074a0043b8fa4379fef31824791c52692add8942ef0a6113f2269b9a",
+          "model": "gpt-6.1-sol",
+          "usage": {
+            "completion_tokens": 19,
+            "prompt_tokens": 74,
+            "total_tokens": 93
+          },
+          "elapsed_ms": 2139.8279210006876
+        },
+        {
+          "status": "ok",
+          "tool_names": [
+            "echo"
+          ],
+          "request_bytes": 775,
+          "tool_definitions": [
+            {
+              "type": "function",
+              "function": {
+                "name": "echo",
+                "description": "Return the supplied text.",
+                "parameters": {
+                  "type": "object",
+                  "properties": {
+                    "text": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "text"
+                  ]
+                }
+              }
+            }
+          ],
+          "system_chars": 120,
+          "system_sha256": "5ef69a14e49fd91db4fc08bdbcf311d0e69b8880afb989393d02ed9ce415ab0f",
+          "request_sha256": "92cdfcc87a4f6175dd45215d75618203bc553a0a20921083cbd3ece9da5e846a",
+          "model": "gpt-6.1-sol",
+          "usage": {
+            "completion_tokens": 9,
+            "prompt_tokens": 110,
+            "total_tokens": 119
+          },
+          "elapsed_ms": 2270.9715470000447
+        }
+      ]
+    },
+    {
+      "case": "rig",
+      "trial": 1,
+      "startup_ms": 1.8822430001819157,
+      "work_ms": 3993.125181999858,
+      "relay_ms": 3967.7762910005185,
+      "ready": {
+        "rss_kib": 3964,
+        "hwm_kib": 3964,
+        "pss_kib": 2159,
+        "threads": 1,
+        "fds": 3,
+        "io": {
+          "rchar": 9255,
+          "wchar": 18,
+          "syscr": 14,
+          "syscw": 1,
+          "read_bytes": 0,
+          "write_bytes": 0,
+          "cancelled_write_bytes": 0
+        }
+      },
+      "done": {
+        "rss_kib": 17080,
+        "hwm_kib": 17080,
+        "pss_kib": 15213,
+        "threads": 1,
+        "fds": 3,
+        "io": {
+          "rchar": 371091,
+          "wchar": 1559,
+          "syscr": 279,
+          "syscw": 4,
+          "read_bytes": 0,
+          "write_bytes": 0,
+          "cancelled_write_bytes": 0
+        }
+      },
+      "sampled_peaks": {
+        "threads": 1,
+        "fds": 7,
+        "rss_kib": 17080
+      },
+      "peak_rss_kib": 17080,
+      "wait4_maxrss_kib": 197636,
+      "user_cpu_ms": 23.427,
+      "system_cpu_ms": 0.0,
+      "voluntary_switches": 6,
+      "involuntary_switches": 0,
+      "minor_faults": 2042,
+      "major_faults": 0,
+      "input_blocks": 0,
+      "output_blocks": 0,
+      "result": {
+        "output": "DONE:marker-1",
+        "tool_calls": 1
+      },
+      "requests": [
+        {
+          "status": "ok",
+          "tool_names": [
+            "echo"
+          ],
+          "request_bytes": 477,
+          "tool_definitions": [
+            {
+              "function": {
+                "description": "Return the supplied text.",
+                "name": "echo",
+                "parameters": {
+                  "properties": {
+                    "text": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "text"
+                  ],
+                  "type": "object"
+                }
+              },
+              "type": "function"
+            }
+          ],
+          "system_chars": 120,
+          "system_sha256": "5ef69a14e49fd91db4fc08bdbcf311d0e69b8880afb989393d02ed9ce415ab0f",
+          "request_sha256": "3547b62db59d44652d8cfc6891952337a88fe431beda3a9a6a1fc3e7c58a9d79",
+          "model": "gpt-6.1-sol",
+          "usage": {
+            "completion_tokens": 19,
+            "prompt_tokens": 74,
+            "total_tokens": 93
+          },
+          "elapsed_ms": 2139.3235740006276
+        },
+        {
+          "status": "ok",
+          "tool_names": [
+            "echo"
+          ],
+          "request_bytes": 768,
+          "tool_definitions": [
+            {
+              "function": {
+                "description": "Return the supplied text.",
+                "name": "echo",
+                "parameters": {
+                  "properties": {
+                    "text": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "text"
+                  ],
+                  "type": "object"
+                }
+              },
+              "type": "function"
+            }
+          ],
+          "system_chars": 120,
+          "system_sha256": "5ef69a14e49fd91db4fc08bdbcf311d0e69b8880afb989393d02ed9ce415ab0f",
+          "request_sha256": "8fb7e0d2608d4825d06af76aa0f7a83b0c5f86d2a4d4b328050090c337900bf7",
+          "model": "gpt-6.1-sol",
+          "usage": {
+            "completion_tokens": 9,
+            "prompt_tokens": 110,
+            "total_tokens": 119
+          },
+          "elapsed_ms": 1828.452716999891
+        }
+      ]
+    },
+    {
+      "case": "deepagents",
+      "trial": 1,
+      "startup_ms": 1666.669166000247,
+      "work_ms": 6649.398608999945,
+      "relay_ms": 6128.722031000507,
+      "ready": {
+        "rss_kib": 105412,
+        "hwm_kib": 105412,
+        "pss_kib": 93997,
+        "threads": 1,
+        "fds": 4,
+        "io": {
+          "rchar": 19648825,
+          "wchar": 18,
+          "syscr": 3758,
+          "syscw": 1,
+          "read_bytes": 0,
+          "write_bytes": 0,
+          "cancelled_write_bytes": 0
+        }
+      },
+      "done": {
+        "rss_kib": 126928,
+        "hwm_kib": 126928,
+        "pss_kib": 115222,
+        "threads": 1,
+        "fds": 4,
+        "io": {
+          "rchar": 24787077,
+          "wchar": 70,
+          "syscr": 5305,
+          "syscw": 3,
+          "read_bytes": 0,
+          "write_bytes": 0,
+          "cancelled_write_bytes": 0
+        }
+      },
+      "sampled_peaks": {
+        "threads": 1,
+        "fds": 5,
+        "rss_kib": 126928
+      },
+      "peak_rss_kib": 126928,
+      "wait4_maxrss_kib": 197636,
+      "user_cpu_ms": 2593.807,
+      "system_cpu_ms": 193.63,
+      "voluntary_switches": 811,
+      "involuntary_switches": 14,
+      "minor_faults": 35401,
+      "major_faults": 0,
+      "input_blocks": 0,
+      "output_blocks": 0,
+      "result": {
+        "output": "DONE:marker-1",
+        "tool_calls": 1
+      },
+      "requests": [
+        {
+          "status": "ok",
+          "tool_names": [
+            "echo"
+          ],
+          "request_bytes": 466,
+          "tool_definitions": [
+            {
+              "type": "function",
+              "function": {
+                "name": "echo",
+                "description": "Return the supplied text.",
+                "parameters": {
+                  "type": "object",
+                  "properties": {
+                    "text": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "text"
+                  ]
+                }
+              }
+            }
+          ],
+          "system_chars": 120,
+          "system_sha256": "5ef69a14e49fd91db4fc08bdbcf311d0e69b8880afb989393d02ed9ce415ab0f",
+          "request_sha256": "23a32d3045c22d923030ee9320f7f79163ff243ca1b3f25948c7fe4f223c44d4",
+          "model": "gpt-6.1-sol",
+          "usage": {
+            "completion_tokens": 19,
+            "prompt_tokens": 74,
+            "total_tokens": 93
+          },
+          "elapsed_ms": 3228.154891000486
+        },
+        {
+          "status": "ok",
+          "tool_names": [
+            "echo"
+          ],
+          "request_bytes": 775,
+          "tool_definitions": [
+            {
+              "type": "function",
+              "function": {
+                "name": "echo",
+                "description": "Return the supplied text.",
+                "parameters": {
+                  "type": "object",
+                  "properties": {
+                    "text": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "text"
+                  ]
+                }
+              }
+            }
+          ],
+          "system_chars": 120,
+          "system_sha256": "5ef69a14e49fd91db4fc08bdbcf311d0e69b8880afb989393d02ed9ce415ab0f",
+          "request_sha256": "d2079506d3e81bf10196fc5ea0673f88ecd4c135da14636f4a74451da3869bd3",
+          "model": "gpt-6.1-sol",
+          "usage": {
+            "completion_tokens": 9,
+            "prompt_tokens": 110,
+            "total_tokens": 119
+          },
+          "elapsed_ms": 2900.567140000021
+        }
+      ]
+    },
+    {
+      "case": "native",
+      "trial": 1,
+      "startup_ms": 1.224289999299799,
+      "work_ms": 4946.969473999161,
+      "relay_ms": 4939.258323000104,
+      "ready": {
+        "rss_kib": 2992,
+        "hwm_kib": 2992,
+        "pss_kib": 1495,
+        "threads": 1,
+        "fds": 3,
+        "io": {
+          "rchar": 7890,
+          "wchar": 18,
+          "syscr": 12,
+          "syscw": 1,
+          "read_bytes": 0,
+          "write_bytes": 0,
+          "cancelled_write_bytes": 0
+        }
+      },
+      "done": {
+        "rss_kib": 5488,
+        "hwm_kib": 5488,
+        "pss_kib": 3744,
+        "threads": 1,
+        "fds": 3,
+        "io": {
+          "rchar": 369726,
+          "wchar": 1485,
+          "syscr": 277,
+          "syscw": 7,
+          "read_bytes": 0,
+          "write_bytes": 0,
+          "cancelled_write_bytes": 0
+        }
+      },
+      "sampled_peaks": {
+        "threads": 2,
+        "fds": 7,
+        "rss_kib": 5372
+      },
+      "peak_rss_kib": 5488,
+      "wait4_maxrss_kib": 197636,
+      "user_cpu_ms": 3.557,
+      "system_cpu_ms": 3.557,
+      "voluntary_switches": 15,
+      "involuntary_switches": 0,
+      "minor_faults": 239,
+      "major_faults": 0,
+      "input_blocks": 0,
+      "output_blocks": 0,
+      "result": {
+        "output": "DONE:marker-1",
+        "tool_calls": 1
+      },
+      "requests": [
+        {
+          "status": "ok",
+          "tool_names": [
+            "echo"
+          ],
+          "request_bytes": 466,
+          "tool_definitions": [
+            {
+              "function": {
+                "description": "Return the supplied text.",
+                "name": "echo",
+                "parameters": {
+                  "properties": {
+                    "text": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "text"
+                  ],
+                  "type": "object"
+                }
+              },
+              "type": "function"
+            }
+          ],
+          "system_chars": 120,
+          "system_sha256": "5ef69a14e49fd91db4fc08bdbcf311d0e69b8880afb989393d02ed9ce415ab0f",
+          "request_sha256": "23a32d3045c22d923030ee9320f7f79163ff243ca1b3f25948c7fe4f223c44d4",
+          "model": "gpt-6.1-sol",
+          "usage": {
+            "completion_tokens": 19,
+            "prompt_tokens": 74,
+            "total_tokens": 93
+          },
+          "elapsed_ms": 3135.0221420007074
+        },
+        {
+          "status": "ok",
+          "tool_names": [
+            "echo"
+          ],
+          "request_bytes": 757,
+          "tool_definitions": [
+            {
+              "function": {
+                "description": "Return the supplied text.",
+                "name": "echo",
+                "parameters": {
+                  "properties": {
+                    "text": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "text"
+                  ],
+                  "type": "object"
+                }
+              },
+              "type": "function"
+            }
+          ],
+          "system_chars": 120,
+          "system_sha256": "5ef69a14e49fd91db4fc08bdbcf311d0e69b8880afb989393d02ed9ce415ab0f",
+          "request_sha256": "8a9da9f57a6fc0c6a6a238ecbdc378dc4119bc4ae26dff8b996ef666ef333b4e",
+          "model": "gpt-6.1-sol",
+          "usage": {
+            "completion_tokens": 9,
+            "prompt_tokens": 110,
+            "total_tokens": 119
+          },
+          "elapsed_ms": 1804.2361809993963
+        }
+      ]
+    },
+    {
+      "case": "deepagents",
+      "trial": 2,
+      "startup_ms": 1681.022777999715,
+      "work_ms": 4759.714122000332,
+      "relay_ms": 4244.398310999713,
+      "ready": {
+        "rss_kib": 105428,
+        "hwm_kib": 105428,
+        "pss_kib": 94003,
+        "threads": 1,
+        "fds": 4,
+        "io": {
+          "rchar": 19648825,
+          "wchar": 18,
+          "syscr": 3758,
+          "syscw": 1,
+          "read_bytes": 0,
+          "write_bytes": 0,
+          "cancelled_write_bytes": 0
+        }
+      },
+      "done": {
+        "rss_kib": 126980,
+        "hwm_kib": 126980,
+        "pss_kib": 115267,
+        "threads": 1,
+        "fds": 4,
+        "io": {
+          "rchar": 24787077,
+          "wchar": 70,
+          "syscr": 5305,
+          "syscw": 3,
+          "read_bytes": 0,
+          "write_bytes": 0,
+          "cancelled_write_bytes": 0
+        }
+      },
+      "sampled_peaks": {
+        "threads": 1,
+        "fds": 5,
+        "rss_kib": 126980
+      },
+      "peak_rss_kib": 126980,
+      "wait4_maxrss_kib": 197636,
+      "user_cpu_ms": 2759.303,
+      "system_cpu_ms": 287.48799999999994,
+      "voluntary_switches": 899,
+      "involuntary_switches": 12,
+      "minor_faults": 35404,
+      "major_faults": 0,
+      "input_blocks": 0,
+      "output_blocks": 0,
+      "result": {
+        "output": "DONE:marker-2",
+        "tool_calls": 1
+      },
+      "requests": [
+        {
+          "status": "ok",
+          "tool_names": [
+            "echo"
+          ],
+          "request_bytes": 466,
+          "tool_definitions": [
+            {
+              "type": "function",
+              "function": {
+                "name": "echo",
+                "description": "Return the supplied text.",
+                "parameters": {
+                  "type": "object",
+                  "properties": {
+                    "text": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "text"
+                  ]
+                }
+              }
+            }
+          ],
+          "system_chars": 120,
+          "system_sha256": "5ef69a14e49fd91db4fc08bdbcf311d0e69b8880afb989393d02ed9ce415ab0f",
+          "request_sha256": "8a28e3b85904e608eba2a19f997321c2b6a354fe96bb6ea4b9c96ae14377ba91",
+          "model": "gpt-6.1-sol",
+          "usage": {
+            "completion_tokens": 19,
+            "prompt_tokens": 74,
+            "total_tokens": 93
+          },
+          "elapsed_ms": 2191.631679999773
+        },
+        {
+          "status": "ok",
+          "tool_names": [
+            "echo"
+          ],
+          "request_bytes": 775,
+          "tool_definitions": [
+            {
+              "type": "function",
+              "function": {
+                "name": "echo",
+                "description": "Return the supplied text.",
+                "parameters": {
+                  "type": "object",
+                  "properties": {
+                    "text": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "text"
+                  ]
+                }
+              }
+            }
+          ],
+          "system_chars": 120,
+          "system_sha256": "5ef69a14e49fd91db4fc08bdbcf311d0e69b8880afb989393d02ed9ce415ab0f",
+          "request_sha256": "99dd123d91ea8974ee5730abd42c7ba1ae830197aa5290731c1a777ee78b112a",
+          "model": "gpt-6.1-sol",
+          "usage": {
+            "completion_tokens": 9,
+            "prompt_tokens": 110,
+            "total_tokens": 119
+          },
+          "elapsed_ms": 2052.7666309999404
+        }
+      ]
+    },
+    {
+      "case": "native",
+      "trial": 2,
+      "startup_ms": 1.7907629999172059,
+      "work_ms": 4823.586940000496,
+      "relay_ms": 4812.570343000516,
+      "ready": {
+        "rss_kib": 3008,
+        "hwm_kib": 3008,
+        "pss_kib": 1512,
+        "threads": 1,
+        "fds": 3,
+        "io": {
+          "rchar": 7890,
+          "wchar": 18,
+          "syscr": 12,
+          "syscw": 1,
+          "read_bytes": 0,
+          "write_bytes": 0,
+          "cancelled_write_bytes": 0
+        }
+      },
+      "done": {
+        "rss_kib": 5504,
+        "hwm_kib": 5504,
+        "pss_kib": 3761,
+        "threads": 1,
+        "fds": 3,
+        "io": {
+          "rchar": 369726,
+          "wchar": 1485,
+          "syscr": 277,
+          "syscw": 7,
+          "read_bytes": 0,
+          "write_bytes": 0,
+          "cancelled_write_bytes": 0
+        }
+      },
+      "sampled_peaks": {
+        "threads": 2,
+        "fds": 7,
+        "rss_kib": 5388
+      },
+      "peak_rss_kib": 5504,
+      "wait4_maxrss_kib": 197636,
+      "user_cpu_ms": 7.861,
+      "system_cpu_ms": 0.0,
+      "voluntary_switches": 15,
+      "involuntary_switches": 0,
+      "minor_faults": 241,
+      "major_faults": 0,
+      "input_blocks": 0,
+      "output_blocks": 0,
+      "result": {
+        "output": "DONE:marker-2",
+        "tool_calls": 1
+      },
+      "requests": [
+        {
+          "status": "ok",
+          "tool_names": [
+            "echo"
+          ],
+          "request_bytes": 466,
+          "tool_definitions": [
+            {
+              "function": {
+                "description": "Return the supplied text.",
+                "name": "echo",
+                "parameters": {
+                  "properties": {
+                    "text": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "text"
+                  ],
+                  "type": "object"
+                }
+              },
+              "type": "function"
+            }
+          ],
+          "system_chars": 120,
+          "system_sha256": "5ef69a14e49fd91db4fc08bdbcf311d0e69b8880afb989393d02ed9ce415ab0f",
+          "request_sha256": "8a28e3b85904e608eba2a19f997321c2b6a354fe96bb6ea4b9c96ae14377ba91",
+          "model": "gpt-6.1-sol",
+          "usage": {
+            "completion_tokens": 19,
+            "prompt_tokens": 74,
+            "total_tokens": 93
+          },
+          "elapsed_ms": 2466.4542810005514
+        },
+        {
+          "status": "ok",
+          "tool_names": [
+            "echo"
+          ],
+          "request_bytes": 757,
+          "tool_definitions": [
+            {
+              "function": {
+                "description": "Return the supplied text.",
+                "name": "echo",
+                "parameters": {
+                  "properties": {
+                    "text": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "text"
+                  ],
+                  "type": "object"
+                }
+              },
+              "type": "function"
+            }
+          ],
+          "system_chars": 120,
+          "system_sha256": "5ef69a14e49fd91db4fc08bdbcf311d0e69b8880afb989393d02ed9ce415ab0f",
+          "request_sha256": "ed5892c73cb8427a124b38efeee8d739404d30ea1586fd00ee17e85b4a2b9040",
+          "model": "gpt-6.1-sol",
+          "usage": {
+            "completion_tokens": 9,
+            "prompt_tokens": 110,
+            "total_tokens": 119
+          },
+          "elapsed_ms": 2346.1160619999646
+        }
+      ]
+    },
+    {
+      "case": "rig",
+      "trial": 2,
+      "startup_ms": 2.6522770003793994,
+      "work_ms": 5158.7186840006325,
+      "relay_ms": 5131.209623998984,
+      "ready": {
+        "rss_kib": 4016,
+        "hwm_kib": 4016,
+        "pss_kib": 2224,
+        "threads": 1,
+        "fds": 3,
+        "io": {
+          "rchar": 9255,
+          "wchar": 18,
+          "syscr": 14,
+          "syscw": 1,
+          "read_bytes": 0,
+          "write_bytes": 0,
+          "cancelled_write_bytes": 0
+        }
+      },
+      "done": {
+        "rss_kib": 17072,
+        "hwm_kib": 17072,
+        "pss_kib": 15217,
+        "threads": 1,
+        "fds": 3,
+        "io": {
+          "rchar": 371091,
+          "wchar": 1559,
+          "syscr": 279,
+          "syscw": 4,
+          "read_bytes": 0,
+          "write_bytes": 0,
+          "cancelled_write_bytes": 0
+        }
+      },
+      "sampled_peaks": {
+        "threads": 1,
+        "fds": 7,
+        "rss_kib": 17068
+      },
+      "peak_rss_kib": 17072,
+      "wait4_maxrss_kib": 197924,
+      "user_cpu_ms": 19.972,
+      "system_cpu_ms": 7.988,
+      "voluntary_switches": 6,
+      "involuntary_switches": 0,
+      "minor_faults": 2041,
+      "major_faults": 0,
+      "input_blocks": 0,
+      "output_blocks": 0,
+      "result": {
+        "output": "DONE:marker-2",
+        "tool_calls": 1
+      },
+      "requests": [
+        {
+          "status": "ok",
+          "tool_names": [
+            "echo"
+          ],
+          "request_bytes": 477,
+          "tool_definitions": [
+            {
+              "function": {
+                "description": "Return the supplied text.",
+                "name": "echo",
+                "parameters": {
+                  "properties": {
+                    "text": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "text"
+                  ],
+                  "type": "object"
+                }
+              },
+              "type": "function"
+            }
+          ],
+          "system_chars": 120,
+          "system_sha256": "5ef69a14e49fd91db4fc08bdbcf311d0e69b8880afb989393d02ed9ce415ab0f",
+          "request_sha256": "91aa284e886408f7c1f1f496f0d8f1b6a2ac002804ae96720ffb53411ccabc89",
+          "model": "gpt-6.1-sol",
+          "usage": {
+            "completion_tokens": 19,
+            "prompt_tokens": 74,
+            "total_tokens": 93
+          },
+          "elapsed_ms": 3221.7384119994676
+        },
+        {
+          "status": "ok",
+          "tool_names": [
+            "echo"
+          ],
+          "request_bytes": 768,
+          "tool_definitions": [
+            {
+              "function": {
+                "description": "Return the supplied text.",
+                "name": "echo",
+                "parameters": {
+                  "properties": {
+                    "text": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "text"
+                  ],
+                  "type": "object"
+                }
+              },
+              "type": "function"
+            }
+          ],
+          "system_chars": 120,
+          "system_sha256": "5ef69a14e49fd91db4fc08bdbcf311d0e69b8880afb989393d02ed9ce415ab0f",
+          "request_sha256": "9ef1121b2e3c9c0a7299acc712191e33e76406f21ab3b6e409fb95771f3762bf",
+          "model": "gpt-6.1-sol",
+          "usage": {
+            "completion_tokens": 9,
+            "prompt_tokens": 110,
+            "total_tokens": 119
+          },
+          "elapsed_ms": 1909.4712119995165
+        }
+      ]
+    }
+  ],
+  "harness_ready": {
+    "rss_kib": 186560,
+    "hwm_kib": 186560,
+    "pss_kib": 182381,
+    "threads": 2,
+    "fds": 7,
+    "io": {
+      "rchar": 31933516,
+      "wchar": 826,
+      "syscr": 4839,
+      "syscw": 4,
+      "read_bytes": 87236608,
+      "write_bytes": 0,
+      "cancelled_write_bytes": 0
+    }
+  },
+  "rust": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+  "base_commit": "1c0df39549c82f7c76e7d0b1667557f3778438f7",
+  "source_hashes": {
+    "tests/agent_runtime_measure.py": "25b9c076ff221189a5633d227e0552de923a55cff38f3b397b5592fe9eac9473",
+    "benchmark/agent-runtime/deepagents_case.py": "a0b03596ff3ddb78659a5f24c374ddd692b888f8fcb2880bc9e6254e04e4534b",
+    "benchmark/agent-runtime/src/main.rs": "b20d7e446e881e1df60472f32e86550404539b7ef60d0bce1f33422e2d403ba4",
+    "benchmark/agent-runtime/Cargo.toml": "8265d5ef08cd2ca2af6cd6f79e51a5d014d4a891269525b26a7c710fa3dc3729",
+    "benchmark/agent-runtime/pyproject.toml": "642eb59a90eba2df1398b624886cb88f7a35df0a3b20e18088fad16d651758f9",
+    "benchmark/agent-runtime/uv.lock": "f224de9b30697ff2311a9f036580c42bac8c7a593a96af3e51b4ae7f141b3427",
+    "benchmark/agent-runtime/Cargo.lock": "a21b74641dd3fbbc4808d451d12d2df642e398065848216f2f405c8886f254f7"
+  },
+  "binary_bytes": {
+    "native": 5802560,
+    "rig": 11465392
+  },
+  "binary_sha256": {
+    "native": "a6d46bca8ea803a44513622a84485a329413eeb7e990c4c8c321929c00cde935",
+    "rig": "61630fb7c4bb7c1640ac1f1f4dfb57ae92ba12605575442141bab769c881e3cc"
+  },
+  "requests": [
+    {
+      "status": "ok",
+      "tool_names": [
+        "echo"
+      ],
+      "request_bytes": 466,
+      "tool_definitions": [
+        {
+          "function": {
+            "description": "Return the supplied text.",
+            "name": "echo",
+            "parameters": {
+              "properties": {
+                "text": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "text"
+              ],
+              "type": "object"
+            }
+          },
+          "type": "function"
+        }
+      ],
+      "system_chars": 120,
+      "system_sha256": "5ef69a14e49fd91db4fc08bdbcf311d0e69b8880afb989393d02ed9ce415ab0f",
+      "request_sha256": "0872ea93074a0043b8fa4379fef31824791c52692add8942ef0a6113f2269b9a",
+      "model": "gpt-6.1-sol",
+      "usage": {
+        "completion_tokens": 19,
+        "prompt_tokens": 74,
+        "total_tokens": 93
+      },
+      "elapsed_ms": 2007.5504180003918
+    },
+    {
+      "status": "ok",
+      "tool_names": [
+        "echo"
+      ],
+      "request_bytes": 757,
+      "tool_definitions": [
+        {
+          "function": {
+            "description": "Return the supplied text.",
+            "name": "echo",
+            "parameters": {
+              "properties": {
+                "text": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "text"
+              ],
+              "type": "object"
+            }
+          },
+          "type": "function"
+        }
+      ],
+      "system_chars": 120,
+      "system_sha256": "5ef69a14e49fd91db4fc08bdbcf311d0e69b8880afb989393d02ed9ce415ab0f",
+      "request_sha256": "816b674fb34e8801fd9216f4fc122e8c384b20f2d50c4c172086fd6ab457795e",
+      "model": "gpt-6.1-sol",
+      "usage": {
+        "completion_tokens": 9,
+        "prompt_tokens": 110,
+        "total_tokens": 119
+      },
+      "elapsed_ms": 1742.2849360000328
+    },
+    {
+      "status": "ok",
+      "tool_names": [
+        "echo"
+      ],
+      "request_bytes": 477,
+      "tool_definitions": [
+        {
+          "function": {
+            "description": "Return the supplied text.",
+            "name": "echo",
+            "parameters": {
+              "properties": {
+                "text": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "text"
+              ],
+              "type": "object"
+            }
+          },
+          "type": "function"
+        }
+      ],
+      "system_chars": 120,
+      "system_sha256": "5ef69a14e49fd91db4fc08bdbcf311d0e69b8880afb989393d02ed9ce415ab0f",
+      "request_sha256": "eff9a5650ea9a7ec668c6a10c8322623e43e4fdd036de03889d7e04286d3f20c",
+      "model": "gpt-6.1-sol",
+      "usage": {
+        "completion_tokens": 19,
+        "prompt_tokens": 74,
+        "total_tokens": 93
+      },
+      "elapsed_ms": 2168.4779130000607
+    },
+    {
+      "status": "ok",
+      "tool_names": [
+        "echo"
+      ],
+      "request_bytes": 768,
+      "tool_definitions": [
+        {
+          "function": {
+            "description": "Return the supplied text.",
+            "name": "echo",
+            "parameters": {
+              "properties": {
+                "text": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "text"
+              ],
+              "type": "object"
+            }
+          },
+          "type": "function"
+        }
+      ],
+      "system_chars": 120,
+      "system_sha256": "5ef69a14e49fd91db4fc08bdbcf311d0e69b8880afb989393d02ed9ce415ab0f",
+      "request_sha256": "91bb7deac4f895dee042a640f095e82960d51445907d65c5cb39bf15bedd76e9",
+      "model": "gpt-6.1-sol",
+      "usage": {
+        "completion_tokens": 9,
+        "prompt_tokens": 110,
+        "total_tokens": 119
+      },
+      "elapsed_ms": 1983.791463999296
+    },
+    {
+      "status": "ok",
+      "tool_names": [
+        "echo"
+      ],
+      "request_bytes": 466,
+      "tool_definitions": [
+        {
+          "type": "function",
+          "function": {
+            "name": "echo",
+            "description": "Return the supplied text.",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "text"
+              ]
+            }
+          }
+        }
+      ],
+      "system_chars": 120,
+      "system_sha256": "5ef69a14e49fd91db4fc08bdbcf311d0e69b8880afb989393d02ed9ce415ab0f",
+      "request_sha256": "0872ea93074a0043b8fa4379fef31824791c52692add8942ef0a6113f2269b9a",
+      "model": "gpt-6.1-sol",
+      "usage": {
+        "completion_tokens": 19,
+        "prompt_tokens": 74,
+        "total_tokens": 93
+      },
+      "elapsed_ms": 2139.8279210006876
+    },
+    {
+      "status": "ok",
+      "tool_names": [
+        "echo"
+      ],
+      "request_bytes": 775,
+      "tool_definitions": [
+        {
+          "type": "function",
+          "function": {
+            "name": "echo",
+            "description": "Return the supplied text.",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "text"
+              ]
+            }
+          }
+        }
+      ],
+      "system_chars": 120,
+      "system_sha256": "5ef69a14e49fd91db4fc08bdbcf311d0e69b8880afb989393d02ed9ce415ab0f",
+      "request_sha256": "92cdfcc87a4f6175dd45215d75618203bc553a0a20921083cbd3ece9da5e846a",
+      "model": "gpt-6.1-sol",
+      "usage": {
+        "completion_tokens": 9,
+        "prompt_tokens": 110,
+        "total_tokens": 119
+      },
+      "elapsed_ms": 2270.9715470000447
+    },
+    {
+      "status": "ok",
+      "tool_names": [
+        "echo"
+      ],
+      "request_bytes": 477,
+      "tool_definitions": [
+        {
+          "function": {
+            "description": "Return the supplied text.",
+            "name": "echo",
+            "parameters": {
+              "properties": {
+                "text": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "text"
+              ],
+              "type": "object"
+            }
+          },
+          "type": "function"
+        }
+      ],
+      "system_chars": 120,
+      "system_sha256": "5ef69a14e49fd91db4fc08bdbcf311d0e69b8880afb989393d02ed9ce415ab0f",
+      "request_sha256": "3547b62db59d44652d8cfc6891952337a88fe431beda3a9a6a1fc3e7c58a9d79",
+      "model": "gpt-6.1-sol",
+      "usage": {
+        "completion_tokens": 19,
+        "prompt_tokens": 74,
+        "total_tokens": 93
+      },
+      "elapsed_ms": 2139.3235740006276
+    },
+    {
+      "status": "ok",
+      "tool_names": [
+        "echo"
+      ],
+      "request_bytes": 768,
+      "tool_definitions": [
+        {
+          "function": {
+            "description": "Return the supplied text.",
+            "name": "echo",
+            "parameters": {
+              "properties": {
+                "text": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "text"
+              ],
+              "type": "object"
+            }
+          },
+          "type": "function"
+        }
+      ],
+      "system_chars": 120,
+      "system_sha256": "5ef69a14e49fd91db4fc08bdbcf311d0e69b8880afb989393d02ed9ce415ab0f",
+      "request_sha256": "8fb7e0d2608d4825d06af76aa0f7a83b0c5f86d2a4d4b328050090c337900bf7",
+      "model": "gpt-6.1-sol",
+      "usage": {
+        "completion_tokens": 9,
+        "prompt_tokens": 110,
+        "total_tokens": 119
+      },
+      "elapsed_ms": 1828.452716999891
+    },
+    {
+      "status": "ok",
+      "tool_names": [
+        "echo"
+      ],
+      "request_bytes": 466,
+      "tool_definitions": [
+        {
+          "type": "function",
+          "function": {
+            "name": "echo",
+            "description": "Return the supplied text.",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "text"
+              ]
+            }
+          }
+        }
+      ],
+      "system_chars": 120,
+      "system_sha256": "5ef69a14e49fd91db4fc08bdbcf311d0e69b8880afb989393d02ed9ce415ab0f",
+      "request_sha256": "23a32d3045c22d923030ee9320f7f79163ff243ca1b3f25948c7fe4f223c44d4",
+      "model": "gpt-6.1-sol",
+      "usage": {
+        "completion_tokens": 19,
+        "prompt_tokens": 74,
+        "total_tokens": 93
+      },
+      "elapsed_ms": 3228.154891000486
+    },
+    {
+      "status": "ok",
+      "tool_names": [
+        "echo"
+      ],
+      "request_bytes": 775,
+      "tool_definitions": [
+        {
+          "type": "function",
+          "function": {
+            "name": "echo",
+            "description": "Return the supplied text.",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "text"
+              ]
+            }
+          }
+        }
+      ],
+      "system_chars": 120,
+      "system_sha256": "5ef69a14e49fd91db4fc08bdbcf311d0e69b8880afb989393d02ed9ce415ab0f",
+      "request_sha256": "d2079506d3e81bf10196fc5ea0673f88ecd4c135da14636f4a74451da3869bd3",
+      "model": "gpt-6.1-sol",
+      "usage": {
+        "completion_tokens": 9,
+        "prompt_tokens": 110,
+        "total_tokens": 119
+      },
+      "elapsed_ms": 2900.567140000021
+    },
+    {
+      "status": "ok",
+      "tool_names": [
+        "echo"
+      ],
+      "request_bytes": 466,
+      "tool_definitions": [
+        {
+          "function": {
+            "description": "Return the supplied text.",
+            "name": "echo",
+            "parameters": {
+              "properties": {
+                "text": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "text"
+              ],
+              "type": "object"
+            }
+          },
+          "type": "function"
+        }
+      ],
+      "system_chars": 120,
+      "system_sha256": "5ef69a14e49fd91db4fc08bdbcf311d0e69b8880afb989393d02ed9ce415ab0f",
+      "request_sha256": "23a32d3045c22d923030ee9320f7f79163ff243ca1b3f25948c7fe4f223c44d4",
+      "model": "gpt-6.1-sol",
+      "usage": {
+        "completion_tokens": 19,
+        "prompt_tokens": 74,
+        "total_tokens": 93
+      },
+      "elapsed_ms": 3135.0221420007074
+    },
+    {
+      "status": "ok",
+      "tool_names": [
+        "echo"
+      ],
+      "request_bytes": 757,
+      "tool_definitions": [
+        {
+          "function": {
+            "description": "Return the supplied text.",
+            "name": "echo",
+            "parameters": {
+              "properties": {
+                "text": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "text"
+              ],
+              "type": "object"
+            }
+          },
+          "type": "function"
+        }
+      ],
+      "system_chars": 120,
+      "system_sha256": "5ef69a14e49fd91db4fc08bdbcf311d0e69b8880afb989393d02ed9ce415ab0f",
+      "request_sha256": "8a9da9f57a6fc0c6a6a238ecbdc378dc4119bc4ae26dff8b996ef666ef333b4e",
+      "model": "gpt-6.1-sol",
+      "usage": {
+        "completion_tokens": 9,
+        "prompt_tokens": 110,
+        "total_tokens": 119
+      },
+      "elapsed_ms": 1804.2361809993963
+    },
+    {
+      "status": "ok",
+      "tool_names": [
+        "echo"
+      ],
+      "request_bytes": 466,
+      "tool_definitions": [
+        {
+          "type": "function",
+          "function": {
+            "name": "echo",
+            "description": "Return the supplied text.",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "text"
+              ]
+            }
+          }
+        }
+      ],
+      "system_chars": 120,
+      "system_sha256": "5ef69a14e49fd91db4fc08bdbcf311d0e69b8880afb989393d02ed9ce415ab0f",
+      "request_sha256": "8a28e3b85904e608eba2a19f997321c2b6a354fe96bb6ea4b9c96ae14377ba91",
+      "model": "gpt-6.1-sol",
+      "usage": {
+        "completion_tokens": 19,
+        "prompt_tokens": 74,
+        "total_tokens": 93
+      },
+      "elapsed_ms": 2191.631679999773
+    },
+    {
+      "status": "ok",
+      "tool_names": [
+        "echo"
+      ],
+      "request_bytes": 775,
+      "tool_definitions": [
+        {
+          "type": "function",
+          "function": {
+            "name": "echo",
+            "description": "Return the supplied text.",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "text"
+              ]
+            }
+          }
+        }
+      ],
+      "system_chars": 120,
+      "system_sha256": "5ef69a14e49fd91db4fc08bdbcf311d0e69b8880afb989393d02ed9ce415ab0f",
+      "request_sha256": "99dd123d91ea8974ee5730abd42c7ba1ae830197aa5290731c1a777ee78b112a",
+      "model": "gpt-6.1-sol",
+      "usage": {
+        "completion_tokens": 9,
+        "prompt_tokens": 110,
+        "total_tokens": 119
+      },
+      "elapsed_ms": 2052.7666309999404
+    },
+    {
+      "status": "ok",
+      "tool_names": [
+        "echo"
+      ],
+      "request_bytes": 466,
+      "tool_definitions": [
+        {
+          "function": {
+            "description": "Return the supplied text.",
+            "name": "echo",
+            "parameters": {
+              "properties": {
+                "text": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "text"
+              ],
+              "type": "object"
+            }
+          },
+          "type": "function"
+        }
+      ],
+      "system_chars": 120,
+      "system_sha256": "5ef69a14e49fd91db4fc08bdbcf311d0e69b8880afb989393d02ed9ce415ab0f",
+      "request_sha256": "8a28e3b85904e608eba2a19f997321c2b6a354fe96bb6ea4b9c96ae14377ba91",
+      "model": "gpt-6.1-sol",
+      "usage": {
+        "completion_tokens": 19,
+        "prompt_tokens": 74,
+        "total_tokens": 93
+      },
+      "elapsed_ms": 2466.4542810005514
+    },
+    {
+      "status": "ok",
+      "tool_names": [
+        "echo"
+      ],
+      "request_bytes": 757,
+      "tool_definitions": [
+        {
+          "function": {
+            "description": "Return the supplied text.",
+            "name": "echo",
+            "parameters": {
+              "properties": {
+                "text": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "text"
+              ],
+              "type": "object"
+            }
+          },
+          "type": "function"
+        }
+      ],
+      "system_chars": 120,
+      "system_sha256": "5ef69a14e49fd91db4fc08bdbcf311d0e69b8880afb989393d02ed9ce415ab0f",
+      "request_sha256": "ed5892c73cb8427a124b38efeee8d739404d30ea1586fd00ee17e85b4a2b9040",
+      "model": "gpt-6.1-sol",
+      "usage": {
+        "completion_tokens": 9,
+        "prompt_tokens": 110,
+        "total_tokens": 119
+      },
+      "elapsed_ms": 2346.1160619999646
+    },
+    {
+      "status": "ok",
+      "tool_names": [
+        "echo"
+      ],
+      "request_bytes": 477,
+      "tool_definitions": [
+        {
+          "function": {
+            "description": "Return the supplied text.",
+            "name": "echo",
+            "parameters": {
+              "properties": {
+                "text": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "text"
+              ],
+              "type": "object"
+            }
+          },
+          "type": "function"
+        }
+      ],
+      "system_chars": 120,
+      "system_sha256": "5ef69a14e49fd91db4fc08bdbcf311d0e69b8880afb989393d02ed9ce415ab0f",
+      "request_sha256": "91aa284e886408f7c1f1f496f0d8f1b6a2ac002804ae96720ffb53411ccabc89",
+      "model": "gpt-6.1-sol",
+      "usage": {
+        "completion_tokens": 19,
+        "prompt_tokens": 74,
+        "total_tokens": 93
+      },
+      "elapsed_ms": 3221.7384119994676
+    },
+    {
+      "status": "ok",
+      "tool_names": [
+        "echo"
+      ],
+      "request_bytes": 768,
+      "tool_definitions": [
+        {
+          "function": {
+            "description": "Return the supplied text.",
+            "name": "echo",
+            "parameters": {
+              "properties": {
+                "text": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "text"
+              ],
+              "type": "object"
+            }
+          },
+          "type": "function"
+        }
+      ],
+      "system_chars": 120,
+      "system_sha256": "5ef69a14e49fd91db4fc08bdbcf311d0e69b8880afb989393d02ed9ce415ab0f",
+      "request_sha256": "9ef1121b2e3c9c0a7299acc712191e33e76406f21ab3b6e409fb95771f3762bf",
+      "model": "gpt-6.1-sol",
+      "usage": {
+        "completion_tokens": 9,
+        "prompt_tokens": 110,
+        "total_tokens": 119
+      },
+      "elapsed_ms": 1909.4712119995165
+    }
+  ],
+  "completed": true,
+  "harness_done": {
+    "rss_kib": 200632,
+    "hwm_kib": 200632,
+    "pss_kib": 196452,
+    "threads": 1,
+    "fds": 6,
+    "io": {
+      "rchar": 140191705,
+      "wchar": 76306,
+      "syscr": 49236,
+      "syscw": 148,
+      "read_bytes": 92655616,
+      "write_bytes": 4096,
+      "cancelled_write_bytes": 4096
+    }
+  },
+  "harness_cpu_ms": {
+    "user": 2906.148,
+    "system": 4890.012
+  }
+}
