@@ -36,3 +36,7 @@ follow [RELEASE.md](RELEASE.md): classify by compatibility/user impact, verify
 actual WSL product and candidate artifacts, preserve immutable versions and user
 data, and record the actual publication date. A merged PR does not authorize a
 release or require a version bump. SaaS identifiers remain independent.
+
+# Rust HTTP servers
+
+Use Axum when adding or porting Rust HTTP server code.

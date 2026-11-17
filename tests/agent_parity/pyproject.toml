@@ -1,0 +1,22 @@
+[project]
+name = "decepticon-agent-parity-qualification"
+version = "0.0.0"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "deepagents==0.7.32",
+  "langchain==1.4.7",
+  "langchain-core==1.7.0",
+  "langchain-openai==1.2.2",
+  "langgraph==1.2.17",
+  "langgraph-checkpoint-sqlite==3.1.3",
+  "litellm==1.103.3",
+]
+
+[tool.ruff]
+extend = "../../pyproject.toml"
+
+[tool.ruff.lint.per-file-ignores]
+# This isolated framework integration test is outside decepticon-core.
+"case.py" = ["TID251"]
+"layers.py" = ["TID251"]
+"reference.py" = ["TID251"]
