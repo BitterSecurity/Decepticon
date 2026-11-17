@@ -40,3 +40,18 @@ release or require a version bump. SaaS identifiers remain independent.
 # Rust HTTP servers
 
 Use Axum when adding or porting Rust HTTP server code.
+
+<!-- entire-agent:begin -->
+Read .entire/agent-guide.md for this repository's workflow, source inspection, and verification guidance.
+@.entire/agent-guide.md
+<!-- entire-agent:end -->
+
+# Entire development and privacy
+
+Use the official Entire skills and generated agent guide. See
+[setup and qualification](docs/operations/entire-native-development-20261115.md).
+Keep GitHub-backed mirrors and both review gates; do not detach or bypass gates.
+Keep Brain local-only with ENTIRE_BRAIN_NO_EGRESS=1. Before opening or updating
+a PR, update the single root CHAGELOG.md and link it from the PR description.
+Keep checkpoint uploads disabled for public source; do not attach sessions
+containing private work.
