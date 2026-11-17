@@ -1,0 +1,64 @@
+{
+  "observed_unix": 1794851126.1446283,
+  "platform": "Linux-6.18.58.1-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "cpu_model": "Intel(R) Core(TM) Ultra 7 155H",
+  "available_cpus": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17
+  ],
+  "memory_total_kib": 12247344,
+  "shared_host": true,
+  "physical_core_reserved": false,
+  "ramp_thread_affinity_sample": {
+    "observed_unix": 1794851733.5220363,
+    "services": [
+      {
+        "name": "langchain",
+        "threads": [
+          {
+            "Pid": "434101",
+            "Cpus_allowed_list": "17"
+          },
+          {
+            "Pid": "434121",
+            "Cpus_allowed_list": "17"
+          }
+        ]
+      },
+      {
+        "name": "python",
+        "threads": [
+          {
+            "Pid": "434124",
+            "Cpus_allowed_list": "17"
+          }
+        ]
+      },
+      {
+        "name": "native",
+        "threads": [
+          {
+            "Pid": "434145",
+            "Cpus_allowed_list": "17"
+          }
+        ]
+      }
+    ]
+  }
+}
