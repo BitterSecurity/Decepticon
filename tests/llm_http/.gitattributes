@@ -1,0 +1,2 @@
+# SSE event framing requires a final blank line.
+recorded.sse whitespace=-blank-at-eof

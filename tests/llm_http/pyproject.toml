@@ -1,0 +1,12 @@
+[project]
+name = "decepticon-llm-http-comparison"
+version = "0.0.0"
+requires-python = ">=3.13,<3.14"
+dependencies = ["langchain-openai==1.2.2", "langchain-core==1.7.0", "openai==2.54.0", "httpx==0.28.1", "uvicorn==0.40.0", "litellm==1.103.3"]
+
+[tool.ruff]
+extend = "../../pyproject.toml"
+[tool.ruff.lint.per-file-ignores]
+"python_gateway.py" = ["TID251"]
+"run.py" = ["TID251"]
+"scale.py" = ["TID251"]

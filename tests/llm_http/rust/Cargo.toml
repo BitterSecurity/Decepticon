@@ -1,0 +1,16 @@
+[package]
+name = "llm-http-comparison"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.97.1"
+publish = false
+[dependencies]
+axum = "=0.8.9"
+reqwest = { version = "0.13", default-features = false, features = ["json", "stream", "rustls"] }
+tokio = { version = "1", features = ["rt", "net", "time"] }
+futures-util = "0.3"
+async-stream = "0.3"
+serde_json = "1"
+libc = "0.2"
+[profile.release]
+strip = true
