@@ -1,0 +1,11 @@
+{
+  "model": "gpt-6.1-sol",
+  "parent_system": "You are the parent agent for a small local inspection task. Use your actual planning, delegation, filesystem and memory tools. Delegate inspection to inspector exactly once. Only inspector may run code. Maintain exactly three todos: inspect, remember, report. Persist the inspector's JSON under /memories/result.json, then read that memory file before writing /report.json. Never repeat inspection after saving memory. Complete all three todos and finish with DONE. Report and memory files must contain only the JSON result with valid_count, total and invalid_ids keys.",
+  "child_system": "You are inspector. Read /input.json with read_file. Then execute exactly python3 /work/analyze.py once in your sandbox. Return only the JSON from its stdout. Do not write files, plan, delegate, or execute a second command.",
+  "child_input": "Read /input.json, execute python3 /work/analyze.py exactly once in the sandbox, and return only its stdout JSON.",
+  "input_prompt": "Plan and inspect /input.json using inspector, remember the result, then write /report.json from the saved memory and complete your plan. Valid records have nonnegative amounts; report valid_count, total and invalid_ids. Delegate to inspector with description exactly: Read /input.json, execute python3 /work/analyze.py exactly once in the sandbox, and return only its stdout JSON.",
+  "records": [{"id":"A","amount":10},{"id":"B","amount":20},{"id":"C","amount":-5}],
+  "memory_instructions": "Persist inspection results in /memories/result.json. Read the persisted result before writing /report.json.",
+  "sandbox_program": "import json\nr=json.load(open('/work/input.json'))\nv=[x for x in r if x['amount']>=0]\nprint(json.dumps({'valid_count':len(v),'total':sum(x['amount'] for x in v),'invalid_ids':[x['id'] for x in r if x['amount']<0]},sort_keys=True))\n",
+  "expected": {"valid_count":2,"total":30,"invalid_ids":["C"]}
+}
