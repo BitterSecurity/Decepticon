@@ -1,0 +1,36 @@
+{
+  "recordedAt": "2026-11-18T13:17:50.155557+00:00",
+  "kind": "official-entire-public-live-capture",
+  "candidateHead": "d3b751ea677ec633dbafc067cd120ab6fa1753f5",
+  "configuredCloneHead": "45ffa1d858252c846b6c9a74c1ec259bfb300297",
+  "canonicalOssPrimary": "/home/catow/GIT/decepticon_new",
+  "validationClone": "/home/catow/GIT/entire/Decepticon",
+  "actualPublicSession": {
+    "agent": "Codex",
+    "promptPurpose": "Read the public README only",
+    "status": "idle",
+    "turns": 1,
+    "pendingTurns": 0,
+    "checkpoints": 0,
+    "startedAt": "2026-11-18T22:14:21.880205662+09:00",
+    "lastActive": "2026-11-18T22:14:45.09985864+09:00",
+    "source": "actual entire session list --json; observed active then idle after one turn",
+    "sessionEndEventIndependentlyProven": false
+  },
+  "privacy": {
+    "pushSessions": false,
+    "telemetry": false,
+    "brainNoEgress": true,
+    "privateSessionAttached": false,
+    "trustValuesEditedOrExported": false,
+    "transcriptPublished": false
+  },
+  "applicationRuntimeChanged": false,
+  "packageReleasePerformed": false,
+  "productionChanged": false,
+  "limits": [
+    "Read-only session creates no commit checkpoint; commit checkpoint publication is not tested or enabled",
+    "Idle proves the captured turn completed, not that the terminal process exited or every hook event executed",
+    "Existing Brain seed is older than the integrated source; no durable recorded-intent facts inferred from it"
+  ]
+}
