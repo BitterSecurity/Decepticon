@@ -137,3 +137,26 @@ private session is attached to this public repository. Live capture remains
 unqualified until a new public-repository session runs with approved hooks.
 No application test/build, hosted-CI pass, release or performance gain is claimed
 for this configuration-only integration.
+
+## Actual public live capture, 2026-11-18
+
+The earlier approval/capture limitation above is historical. The user completed
+the public README-only Codex request in the configured validation clone. Actual
+`entire session list --json` first showed the new session active, then idle with
+**one captured turn and zero pending turns**. This establishes live capture and
+completion of the read-only turn. Zero checkpoints is expected without a commit.
+It does not establish terminal process exit or execution of every hook event.
+The session-end event and commit checkpoint creation are not independently
+claimed. [Sanitized measured evidence](entire-public-live-capture-20261118.json).
+
+The seven project definitions have trust records with no explicit disabled
+overrides; no trust hashes were changed or exported. All generated configuration
+and hooks are byte-identical between the captured clone and the integrated
+proposed tree. JSON/TOML parsing and shell syntax for every generated command
+are rechecked. Automatic public checkpoint pushing, telemetry and Brain egress
+remain disabled; no private SaaS session or transcript is attached/published.
+
+`/home/catow/GIT/decepticon_new` remains the canonical OSS checkout. The separate
+`/home/catow/GIT/entire/Decepticon` is the configured local-tool validation clone;
+this qualification neither moves the canonical repository nor overwrites its
+existing dirty work. No application code, package version or deployment changes.
