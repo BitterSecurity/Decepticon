@@ -626,7 +626,8 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
             "Commit the complete OPPLAN objective DAG. Omit id for each new node; "
             "the server issues a UUID. Reference a new node by its zero-based position "
             "in objectives from blocked_by, any_of, parent_id, or a fact producer_id. "
-            "Existing nodes retain their IDs. expected_revision must match the "
+            "Existing nodes retain their IDs and omitted fields. Explicit fields replace saved values. "
+            "expected_revision must match the "
             "current plan. Running and terminal objectives cannot be rewritten or removed. "
             "Set workflow_stage on each leaf to its pinned WORKFLOW stage ID. "
             "Use this to create or replan a DAG, then dispatch only ready objectives."
@@ -649,8 +650,14 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
             )
         try:
             old = {row["id"]: Objective.model_validate(row) for row in state.get("objectives", [])}
+            # Restore omitted fields before reference resolution inserts defaults.
+            # Explicit values still reach the immutable-node comparison unchanged.
+            submissions = [
+                {**old[row["id"]].model_dump(mode="json"), **row} if row.get("id") in old else row
+                for row in objectives
+            ]
             objective_rows, fact_rows, issued = _assign_objective_ids(
-                objectives,
+                submissions,
                 facts if facts is not None else state.get("plan_facts", []),
                 set(old),
             )
