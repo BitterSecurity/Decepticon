@@ -15,7 +15,7 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed OPPLAN blocked-closure repair: preserve omitted fields on existing objective submissions so valid plan additions do not appear to rewrite terminal nodes. Explicit terminal edits, stale revisions, workflow/evidence gates, and blocked-closure requirements remain enforced. No storage migration or version bump. Local reproduction, regression coverage, and runtime rollback notes are in [the repair record](docs/operations/opplan-blocked-closure-repair.md).
+- Proposed OPPLAN blocked-closure repair ([#1207](https://github.com/BitterSecurity/Decepticon/pull/1207)): preserve omitted fields on existing objective submissions so valid plan additions do not appear to rewrite terminal nodes. Explicit terminal edits, stale revisions, workflow/evidence gates, and blocked-closure requirements remain enforced. No storage migration or version bump. Local reproduction, regression coverage, and runtime rollback notes are in [the repair record](docs/operations/opplan-blocked-closure-repair.md).
 
 - Live-capture qualification ([#1206](https://github.com/BitterSecurity/Decepticon/pull/1206)) for [#1198](https://github.com/BitterSecurity/Decepticon/pull/1198), unreleased: the public README-only Codex session is actually recorded with one completed turn and zero pending turns. Preserve local-only checkpoint policy, generated hook bytes, trust records and the canonical OSS checkout. No runtime/package/release change; process exit and commit checkpoint creation are not claimed. [Evidence](docs/operations/entire-public-live-capture-20261118.json).
 
