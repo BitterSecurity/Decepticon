@@ -1,0 +1,3 @@
+# Keep Brain context local in Codex subprocesses. Git mirroring is separate.
+[shell_environment_policy.set]
+ENTIRE_BRAIN_NO_EGRESS = "1"
