@@ -26,7 +26,7 @@ preservation, explicit protected edits, and the registered-tool path from plan
 extension through a blocked search receipt. Existing workflow and search tests
 retain the authorization, evidence, revision, and closure checks.
 
-Local verification on 2026-11-18 passed 103 focused tests and Ruff checks. There
+Local verification on 2026-11-18 passed 103 focused suite tests, plus three additional hierarchy-preservation cases, and Ruff checks. There
 were three existing deprecation warnings. No hosted CI success is claimed.
 
 An isolated copy of the affected checkpoint reproduced the rejection in the

@@ -217,3 +217,58 @@ def test_appended_prerequisite_can_close_search_as_blocked(tmp_path: Path, monke
     refused = search["finalize_search"].func(request, runtime())
     assert refused.update["messages"][0].status == "error"
     assert "actual blocked" in refused.update["messages"][0].content
+
+
+@pytest.mark.parametrize("status", ["in-progress", "completed", "cancelled"])
+def test_preserves_saved_dependency_and_parent_fields(tmp_path: Path, status: str):
+    backend = FilesystemBackend(root_dir=tmp_path, virtual_mode=True)
+    base = dict(
+        phase="recon", description="Authorized fixture", acceptance_criteria=["checked"], priority=1
+    )
+    rows = [
+        Objective.model_validate(
+            dict(
+                base,
+                id="parent",
+                title="Parent",
+                status="in-progress" if status == "in-progress" else "completed",
+            )
+        ),
+        Objective.model_validate(dict(base, id="producer", title="Producer", status="completed")),
+        Objective.model_validate(
+            dict(
+                base,
+                id="protected",
+                title="Protected",
+                status=status,
+                parent_id="parent",
+                blocked_by=["producer"],
+                any_of=[["producer"]],
+                notes="Saved evidence review",
+            )
+        ),
+    ]
+    state = dict(
+        objectives=[o.model_dump(mode="json") for o in rows],
+        plan_revision=1,
+        workspace_path="/workspace",
+    )
+    assert (
+        _persist_opplan_to_backend(
+            backend, "/workspace", state["objectives"], "test", "", revision=1
+        )
+        is None
+    )
+    submissions = [dict(base, id=o.id, title=o.title, status=o.status) for o in rows]
+    submissions.append(dict(base, title="New prerequisite"))
+    tool = next(t for t in build_opplan_tools(backend) if t.name == "commit_opplan")
+    result = tool.invoke(
+        dict(
+            type="tool_call",
+            name=tool.name,
+            id="preserve",
+            args=dict(state=state, objectives=submissions, expected_revision=1),
+        )
+    )
+    assert result.update["messages"][0].status != "error", result.update["messages"][0].content
+    assert result.update["objectives"][:-1] == state["objectives"]
