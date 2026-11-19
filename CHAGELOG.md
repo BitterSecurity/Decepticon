@@ -15,7 +15,7 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed per-run proxy credential correction ([review branch](https://github.com/BitterSecurity/Decepticon/compare/main...fix/proxy-key-transport-settings-20261120)): preserve selected-model streaming, usage, token limits, retry/timeout settings, vendor protocol subclasses and HTTP transports when binding an engagement key. Refuse dispatch if an explicit key cannot be bound instead of silently using the environment account; requests without a per-run key are unchanged. No package version, publication or deployment. [Verification and compatibility](docs/verification/proxy-key-transport-20261120.md).
+- Proposed per-run proxy credential correction ([#1211](https://github.com/BitterSecurity/Decepticon/pull/1211)): preserve selected-model streaming, usage, token limits, retry/timeout settings, vendor protocol subclasses and HTTP transports when binding an engagement key. Refuse dispatch if an explicit key cannot be bound instead of silently using the environment account; requests without a per-run key are unchanged. No package version, publication or deployment. [Verification and compatibility](docs/verification/proxy-key-transport-20261120.md).
 
 - Proposed CI verification correction ([#1210](https://github.com/BitterSecurity/Decepticon/pull/1210)): require every declared dependency to succeed or intentionally skip before CI OK passes. Reject abandoned, unknown and missing outcomes while preserving existing scope skips and protections. This corrects a false-positive aggregate after a hosted macOS runner could not be assigned; runner availability and actual hosted CI remain separate. [Verification](docs/verification/ci-required-terminal-results-20261120.md).
 
