@@ -1060,6 +1060,112 @@ def test_cheaper_inference_key_only_generated_model_list(tmp_path: Path) -> None
         assert params["api_key"] == "os.environ/CHEAPER_INFERENCE_API_KEY"
 
 
+# ── AbliteratedLLM (OpenAI-compatible, priced per token) ────────────────
+
+
+def test_abliteratedllm_gateway_registered_in_openai_compat_gateways() -> None:
+    base, key_env = OPENAI_COMPAT_GATEWAYS["abliteratedllm"]
+    assert base == "https://api.abliteratedllm.dev/v1"
+    assert key_env == "ABLITERATEDLLM_API_KEY"
+
+
+def test_build_model_entry_routes_abliteratedllm_gateway() -> None:
+    entry = build_model_entry("abliteratedllm/glm-5.3-cyber-abliterated")
+
+    assert entry["model_name"] == "abliteratedllm/glm-5.3-cyber-abliterated"
+    assert entry["litellm_params"] == {
+        "model": "openai/glm-5.3-cyber-abliterated",
+        "api_key": "os.environ/ABLITERATEDLLM_API_KEY",
+        "api_base": "https://api.abliteratedllm.dev/v1",
+    }
+
+
+def test_validate_model_name_accepts_abliteratedllm_models() -> None:
+    validate_model_name("abliteratedllm/glm-5.3-cyber-abliterated")
+    validate_model_name("abliteratedllm/glm-5.3-flash-abliterated")
+
+
+def test_abliteratedllm_tiers_are_registered_with_real_prices() -> None:
+    """Static routes must exist for every tier alias AND carry the published
+    per-token rates. $0 placeholder costs would make LiteLLM /spend/tags
+    report $0 for these routes, so BudgetMiddleware caps could never fire
+    (the Cheaper Inference / Kimi gap). These prices come from the public
+    GET https://api.abliteratedllm.dev/v1/models catalog (2026-11-19).
+    """
+    from decepticon_core.types.llm import METHOD_MODELS, AuthMethod  # noqa: PLC0415
+
+    config = yaml.safe_load((_MODULE_PATH.parent / "litellm.yaml").read_text(encoding="utf-8"))
+    routes = {entry["model_name"]: entry for entry in config["model_list"]}
+
+    expected_costs = {
+        "abliteratedllm/glm-5.3-cyber-abliterated": (9e-07, 1.8e-06, 1.35e-07),
+        "abliteratedllm/glm-5.3-flash-abliterated": (9.77e-08, 3.421e-07, 9.8e-09),
+    }
+    tier_models = set(METHOD_MODELS[AuthMethod.ABLITERATEDLLM_API].values())
+    assert tier_models == set(expected_costs)
+    for model_name, (input_cost, output_cost, cache_cost) in expected_costs.items():
+        assert model_name in routes, f"{model_name} missing from litellm.yaml model_list"
+        params = routes[model_name]["litellm_params"]
+        assert params["model"] == f"openai/{model_name.split('/', 1)[1]}"
+        assert params["api_base"] == "https://api.abliteratedllm.dev/v1"
+        assert params["api_key"] == "os.environ/ABLITERATEDLLM_API_KEY"
+        info = routes[model_name]["model_info"]
+        assert info["input_cost_per_token"] == pytest.approx(input_cost)
+        assert info["output_cost_per_token"] == pytest.approx(output_cost)
+        assert info["cache_read_input_token_cost"] == pytest.approx(cache_cost)
+
+
+def test_abliteratedllm_static_fallback_degrades_cyber_to_flash() -> None:
+    """HIGH falls back to Flash on the same key. MID and LOW already resolve
+    to Flash, so no second fallback edge is registered (it would self-loop).
+    """
+    config = yaml.safe_load((_MODULE_PATH.parent / "litellm.yaml").read_text(encoding="utf-8"))
+    registered = {entry["model_name"] for entry in config["model_list"]}
+    fallbacks: dict[str, list[str]] = {}
+    for edge in config["router_settings"]["fallbacks"]:
+        fallbacks.update(edge)
+
+    cyber = "abliteratedllm/glm-5.3-cyber-abliterated"
+    flash = "abliteratedllm/glm-5.3-flash-abliterated"
+    assert fallbacks[cyber] == [flash]
+    assert flash not in fallbacks
+    assert {cyber, flash} <= registered
+
+
+def test_abliteratedllm_key_only_generated_model_list(tmp_path: Path) -> None:
+    """A deployment with ONLY ABLITERATEDLLM_API_KEY resolves the factory's
+    tier aliases, and write_dynamic_config() output registers all of them.
+    """
+    from decepticon.llm.factory import auth_inventory  # noqa: PLC0415
+    from decepticon_core.types.llm import (  # noqa: PLC0415
+        AuthMethod,
+        Credentials,
+        Tier,
+        resolve_chain,
+    )
+
+    api_key = "abliterated-" + "a" * 32
+    config_path = _MODULE_PATH.parent / "litellm.yaml"
+    with patch.dict(os.environ, {"ABLITERATEDLLM_API_KEY": api_key}, clear=True):
+        inventory = auth_inventory()
+        assert inventory.resolved_chain == (AuthMethod.ABLITERATEDLLM_API,)
+        output = write_dynamic_config(config_path, tmp_path / "generated.yaml")
+
+    generated = yaml.safe_load(output.read_text(encoding="utf-8"))
+    routes = {entry["model_name"]: entry["litellm_params"] for entry in generated["model_list"]}
+    credentials = Credentials(methods=list(inventory.resolved_chain))
+    for tier, expected in (
+        (Tier.HIGH, "abliteratedllm/glm-5.3-cyber-abliterated"),
+        (Tier.MID, "abliteratedllm/glm-5.3-flash-abliterated"),
+        (Tier.LOW, "abliteratedllm/glm-5.3-flash-abliterated"),
+    ):
+        assert resolve_chain(tier, credentials) == [expected]
+        params = routes[expected]
+        assert params["model"] == f"openai/{expected.split('/', 1)[1]}"
+        assert params["api_base"] == "https://api.abliteratedllm.dev/v1"
+        assert params["api_key"] == "os.environ/ABLITERATEDLLM_API_KEY"
+
+
 # ── Generic OpenAI-compatible gateway (opt-in, #989) ────────────────────
 
 

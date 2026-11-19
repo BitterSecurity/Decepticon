@@ -256,6 +256,7 @@ class TestGatewayChains:
         AuthMethod.QIANFAN_API,
         AuthMethod.CLOUDFLARE_GATEWAY_API,
         AuthMethod.CHEAPER_INFERENCE_API,
+        AuthMethod.ABLITERATEDLLM_API,
     )
 
     def test_opencode_high_resolves_to_prefixed_alias(self):
@@ -287,11 +288,20 @@ class TestGatewayChains:
             AuthMethod.QIANFAN_API: "qianfan/",
             AuthMethod.CLOUDFLARE_GATEWAY_API: "cfgateway/",
             AuthMethod.CHEAPER_INFERENCE_API: "cheaperinference/",
+            AuthMethod.ABLITERATEDLLM_API: "abliteratedllm/",
         }
         for method, prefix in expected_prefix.items():
             creds = Credentials(methods=[method])
             chain = resolve_chain(Tier.HIGH, creds)
             assert chain[0].startswith(prefix), (method, chain)
+
+    def test_abliteratedllm_tiers_resolve_cyber_high_and_flash_mid_low(self):
+        # HIGH is the full-size cyber build; MID and LOW share the cheaper
+        # Flash build rather than aliasing an unknown third model.
+        creds = Credentials(methods=[AuthMethod.ABLITERATEDLLM_API])
+        assert resolve_chain(Tier.HIGH, creds) == ["abliteratedllm/glm-5.3-cyber-abliterated"]
+        assert resolve_chain(Tier.MID, creds) == ["abliteratedllm/glm-5.3-flash-abliterated"]
+        assert resolve_chain(Tier.LOW, creds) == ["abliteratedllm/glm-5.3-flash-abliterated"]
 
     def test_gateway_falls_back_to_next_method(self):
         # A gateway primary with a vendor-API fallback resolves both, in order.

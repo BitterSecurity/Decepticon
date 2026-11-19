@@ -170,6 +170,10 @@ const SUPPORTED_MODELS: Record<string, string[]> = {
     "cfgateway/anthropic/claude-sonnet-4-6",
     "cfgateway/anthropic/claude-haiku-4-5",
   ],
+  "AbliteratedLLM": [
+    "abliteratedllm/glm-5.3-cyber-abliterated",
+    "abliteratedllm/glm-5.3-flash-abliterated",
+  ],
   // Local
   "Ollama (local)": ["ollama_chat/qwen3-coder:30b"],
   "Ollama Cloud": ["ollama_chat/<your OLLAMA_CLOUD_MODEL>"],

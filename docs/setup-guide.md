@@ -325,7 +325,16 @@ default fallback chain; pick a specific route at runtime with `/model`
 | Baidu Qianfan (ERNIE) | `QIANFAN_API_KEY` | [console.bce.baidu.com/qianfan](https://console.bce.baidu.com/qianfan) |
 | Cloudflare AI Gateway | `CLOUDFLARE_AI_GATEWAY_API_KEY` + `CLOUDFLARE_AI_GATEWAY_API_BASE` | [dash.cloudflare.com](https://dash.cloudflare.com) |
 | Cheaper Inference | `CHEAPER_INFERENCE_API_KEY` | [cheaperinference.com](https://cheaperinference.com) |
+| AbliteratedLLM | `ABLITERATEDLLM_API_KEY` | [abliteratedllm.dev](https://abliteratedllm.dev) |
 | Generic OpenAI-compatible gateway (opt-in) | `OPENAI_COMPAT_GATEWAY_API_KEY` + `OPENAI_COMPAT_GATEWAY_API_BASE` + `OPENAI_COMPAT_GATEWAY_MODEL` | any OpenAI-compatible `/v1` endpoint |
+
+AbliteratedLLM serves GLM-5.3 weights edited to remove refusals, for
+authorized security testing. HIGH uses
+`abliteratedllm/glm-5.3-cyber-abliterated`; MID and LOW share
+`abliteratedllm/glm-5.3-flash-abliterated`. Both routes use the provider's
+published per-token prices
+([models](https://abliteratedllm.dev/docs/models)), not $0 placeholders, so
+`DECEPTICON_BUDGET__*` caps stay measurable for them.
 
 > Cloudflare's base URL is per-account — set it to your gateway's
 > OpenAI-compat `…/compat` path. Qianfan model ids drift; override per

@@ -77,6 +77,19 @@ def test_gateway_key_activates_method(clean_env):
     assert AuthMethod.OPENCODE_API in inv.resolved_chain
 
 
+def test_abliteratedllm_key_activates_method(clean_env):
+    # ABLITERATEDLLM_API_KEY is detected like any other gateway key: no
+    # key-prefix hint is pinned for this provider, so the generic
+    # non-placeholder / minimum-length checks apply.
+    clean_env.setenv("ABLITERATEDLLM_API_KEY", "abliterated-" + "a" * 32)
+    inv = factory.auth_inventory()
+    abliteratedllm = next(s for s in inv.statuses if s.method == AuthMethod.ABLITERATEDLLM_API)
+    assert abliteratedllm.configured
+    assert abliteratedllm.active
+    assert abliteratedllm.kind == "api"
+    assert AuthMethod.ABLITERATEDLLM_API in inv.resolved_chain
+
+
 def test_placeholder_key_is_not_configured(clean_env):
     clean_env.setenv("ANTHROPIC_API_KEY", "your-anthropic-key-here")
     inv = factory.auth_inventory()

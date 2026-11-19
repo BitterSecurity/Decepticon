@@ -322,6 +322,7 @@ _DEFAULT_AUTH_PRIORITY: tuple[AuthMethod, ...] = (
     AuthMethod.QIANFAN_API,
     AuthMethod.CLOUDFLARE_GATEWAY_API,
     AuthMethod.CHEAPER_INFERENCE_API,
+    AuthMethod.ABLITERATEDLLM_API,
     AuthMethod.OPENAI_COMPAT_GATEWAY_API,
     AuthMethod.OLLAMA_LOCAL,
     AuthMethod.OLLAMA_CLOUD,
@@ -376,6 +377,10 @@ _API_METHOD_ENV: dict[AuthMethod, str] = {
     AuthMethod.QIANFAN_API: "QIANFAN_API_KEY",
     AuthMethod.CLOUDFLARE_GATEWAY_API: "CLOUDFLARE_AI_GATEWAY_API_KEY",
     AuthMethod.CHEAPER_INFERENCE_API: "CHEAPER_INFERENCE_API_KEY",
+    # AbliteratedLLM's base URL is fixed (https://api.abliteratedllm.dev/v1).
+    # No key-prefix hint: the provider's key format is not pinned here, so the
+    # generic non-placeholder / minimum-length checks apply.
+    AuthMethod.ABLITERATEDLLM_API: "ABLITERATEDLLM_API_KEY",
 }
 
 _OAUTH_METHOD_ENV: dict[AuthMethod, str] = {
@@ -867,6 +872,7 @@ _METHOD_LABEL: dict[AuthMethod, str] = {
     AuthMethod.QIANFAN_API: "Baidu Qianfan (ERNIE) — API key",
     AuthMethod.CLOUDFLARE_GATEWAY_API: "Cloudflare AI Gateway — API key + base URL",
     AuthMethod.CHEAPER_INFERENCE_API: "Cheaper Inference — API key",
+    AuthMethod.ABLITERATEDLLM_API: "AbliteratedLLM — API key",
     AuthMethod.OPENAI_COMPAT_GATEWAY_API: "OpenAI-compatible gateway — base URL + key (opt-in)",
     AuthMethod.COPILOT_OAUTH: "GitHub Copilot — Pro subscription",
     AuthMethod.GROK_OAUTH: "xAI SuperGrok — X Premium+",

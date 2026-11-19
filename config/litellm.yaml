@@ -852,6 +852,35 @@ model_list:
     model_info:
       input_cost_per_token: 0
       output_cost_per_token: 0
+  - model_name: abliteratedllm/glm-5.3-cyber-abliterated
+    litellm_params:
+      model: openai/glm-5.3-cyber-abliterated
+      api_base: https://api.abliteratedllm.dev/v1
+      api_key: os.environ/ABLITERATEDLLM_API_KEY
+    model_info:
+      input_cost_per_token: 9.0e-07
+      output_cost_per_token: 1.8e-06
+      cache_read_input_token_cost: 1.35e-07
+      max_input_tokens: 1048576
+      max_output_tokens: 131072
+      supports_reasoning: true
+      supports_function_calling: true
+      pricing_source: https://api.abliteratedllm.dev/v1/models
+      pricing_checked_at: '2026-11-19'
+  - model_name: abliteratedllm/glm-5.3-flash-abliterated
+    litellm_params:
+      model: openai/glm-5.3-flash-abliterated
+      api_base: https://api.abliteratedllm.dev/v1
+      api_key: os.environ/ABLITERATEDLLM_API_KEY
+    model_info:
+      input_cost_per_token: 9.77e-08
+      output_cost_per_token: 3.421e-07
+      cache_read_input_token_cost: 9.8e-09
+      max_input_tokens: 1048576
+      max_output_tokens: 131072
+      supports_reasoning: true
+      pricing_source: https://api.abliteratedllm.dev/v1/models
+      pricing_checked_at: '2026-11-19'
   - model_name: openai/gpt-6.1-terra
     litellm_params:
       model: openai/gpt-6.1-terra
@@ -1059,6 +1088,8 @@ router_settings:
         - cfgateway/anthropic/claude-sonnet-4-6
     - cfgateway/anthropic/claude-sonnet-4-6:
         - cfgateway/anthropic/claude-haiku-4-5
+    - abliteratedllm/glm-5.3-cyber-abliterated:
+        - abliteratedllm/glm-5.3-flash-abliterated
   routing_strategy: simple-shuffle
   num_retries: 5
   timeout: 300

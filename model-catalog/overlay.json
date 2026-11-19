@@ -69,6 +69,9 @@
         },
         "cheaperinference": {
           "api_key": "os.environ/CHEAPER_INFERENCE_API_KEY"
+        },
+        "abliteratedllm": {
+          "api_key": "os.environ/ABLITERATEDLLM_API_KEY"
         }
       },
       "exclude": [
@@ -638,6 +641,14 @@
         {
           "id": "cheaperinference/gpt-5.4-mini",
           "patch": {}
+        },
+        {
+          "id": "abliteratedllm/glm-5.3-cyber-abliterated",
+          "patch": {}
+        },
+        {
+          "id": "abliteratedllm/glm-5.3-flash-abliterated",
+          "patch": {}
         }
       ],
       "settings": {
@@ -860,6 +871,11 @@
             {
               "cfgateway/anthropic/claude-sonnet-4-6": [
                 "cfgateway/anthropic/claude-haiku-4-5"
+              ]
+            },
+            {
+              "abliteratedllm/glm-5.3-cyber-abliterated": [
+                "abliteratedllm/glm-5.3-flash-abliterated"
               ]
             }
           ],

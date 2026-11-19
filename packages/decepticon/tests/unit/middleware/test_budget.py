@@ -219,6 +219,27 @@ def test_budget_allows_normally_billed_credential(monkeypatch):
     mw._enforce(_Req())
 
 
+def test_budget_allows_priced_abliteratedllm_credential(monkeypatch):
+    # AbliteratedLLM routes carry published per-token prices in
+    # config/litellm.yaml, so the method must NOT be treated as
+    # spend-untracked: a configured cap stays enforceable.
+    monkeypatch.setenv("DECEPTICON_AUTH_PRIORITY", "abliteratedllm_api")
+    monkeypatch.setenv("ABLITERATEDLLM_API_KEY", "abliterated-" + "a" * 32)
+    queries = []
+    mw = BudgetEnforcementMiddleware(
+        engagement_cap_usd=10.0,
+        per_agent_cap_usd=0.0,
+        spend_provider=lambda key: queries.append(key) or 0.0,
+    )
+
+    class _Req:
+        state = {"engagement_name": "test"}
+        runtime = None
+
+    mw._enforce(_Req())
+    assert queries == ["engagement:test"]
+
+
 def test_budget_disabled_allows_unpriced_credential(monkeypatch):
     monkeypatch.setenv("DECEPTICON_AUTH_PRIORITY", "cheaper_inference_api")
     monkeypatch.setenv("CHEAPER_INFERENCE_API_KEY", "ci_live_" + "a" * 24)

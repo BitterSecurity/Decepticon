@@ -66,6 +66,7 @@ collide in the model_list.
   qianfan_api      qianfan/ernie-4.5-turbo-128k  qianfan/ernie-4.5-turbo-32k   qianfan/ernie-speed-pro-128k
   cloudflare_gw    cfgateway/anthropic/…opus     cfgateway/anthropic/…sonnet   cfgateway/anthropic/…haiku
   cheaper_inf      cheaperinference/…sonnet-5    cheaperinference/gpt-5.4      cheaperinference/gpt-5.4-mini
+  abliteratedllm   abliteratedllm/glm-5.3-cyber  abliteratedllm/glm-5.3-flash  abliteratedllm/glm-5.3-flash
   openai_compat_gw compat/<OPENAI_COMPAT_GATEWAY_MODEL_*>   (env-driven; DEFAULT OFF)
 
 Code-heavy override
@@ -167,6 +168,7 @@ class AuthMethod(StrEnum):
     QIANFAN_API = "qianfan_api"  # Baidu Qianfan (ERNIE) v2 OpenAI-compatible
     CLOUDFLARE_GATEWAY_API = "cloudflare_gateway_api"  # Cloudflare AI Gateway
     CHEAPER_INFERENCE_API = "cheaper_inference_api"  # Cheaper Inference (cheaperinference.com)
+    ABLITERATEDLLM_API = "abliteratedllm_api"  # AbliteratedLLM (abliteratedllm.dev)
     # Generic opt-in OpenAI-compatible gateway (env-driven base URL + key + model).
     # DEFAULT OFF — no vendor endpoint is hardcoded. See #989.
     OPENAI_COMPAT_GATEWAY_API = "openai_compat_gateway_api"
@@ -530,6 +532,16 @@ METHOD_MODELS: dict[AuthMethod, dict[Tier, str]] = {
         Tier.HIGH: "cheaperinference/claude-sonnet-5",
         Tier.MID: "cheaperinference/gpt-5.4",
         Tier.LOW: "cheaperinference/gpt-5.4-mini",
+    },
+    AuthMethod.ABLITERATEDLLM_API: {
+        # AbliteratedLLM serves GLM-5.3 weights edited to remove refusals, for
+        # authorized security testing. HIGH uses the full-size cyber build; MID
+        # and LOW share Flash because it fits both tool-heavy execution and
+        # high-throughput roles, and the catalog has no cheaper third model.
+        # Per-token rates live in model-catalog/catalog.json, not duplicated here.
+        Tier.HIGH: "abliteratedllm/glm-5.3-cyber-abliterated",
+        Tier.MID: "abliteratedllm/glm-5.3-flash-abliterated",
+        Tier.LOW: "abliteratedllm/glm-5.3-flash-abliterated",
     },
 }
 

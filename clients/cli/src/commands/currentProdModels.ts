@@ -329,6 +329,10 @@ export const CURRENT_PROD_MODELS: Record<string, string[]> = {
     "cheaperinference/gpt-5.4",
     "cheaperinference/gpt-5.4-mini"
   ],
+  "Shared catalog / abliteratedllm": [
+    "abliteratedllm/glm-5.3-cyber-abliterated",
+    "abliteratedllm/glm-5.3-flash-abliterated"
+  ],
   "Shared catalog / openrouter": [
     "openrouter/openai/gpt-5.6-sol",
     "openrouter/openai/gpt-5.6-terra",

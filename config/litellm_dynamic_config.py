@@ -219,6 +219,12 @@ OPENAI_COMPAT_GATEWAYS: dict[str, tuple[str, str]] = {
     # Cheaper Inference (api.cheaperinference.com). One key gives access to
     # models from several labs; fixed OpenAI-compatible endpoint.
     "cheaperinference": ("https://api.cheaperinference.com/v1", "CHEAPER_INFERENCE_API_KEY"),
+    # AbliteratedLLM (api.abliteratedllm.dev). GLM-5.3 builds with the
+    # refusal direction removed, intended for authorized security testing.
+    # Per-token prices are published on the provider's rate card and
+    # mirrored in model-catalog/catalog.json, so these routes stay out of
+    # middleware/budget.py's _SPEND_UNTRACKED_METHODS.
+    "abliteratedllm": ("https://api.abliteratedllm.dev/v1", "ABLITERATEDLLM_API_KEY"),
     # Generic opt-in OpenAI-compatible gateway. BOTH api_base and api_key
     # come from the environment — no vendor URL is hardcoded. Unset env
     # vars leave this gateway disabled (DEFAULT OFF). Operators point
