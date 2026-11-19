@@ -1,0 +1,33 @@
+version = 1
+intent = "Require every declared CI dependency to succeed or intentionally skip; reject abandoned, unknown and missing results without weakening scope skips or repository protections."
+
+[[gates]]
+id = "ci-aggregate-lint"
+kind = "static"
+argv = [".venv/bin/ruff", "check", "tests/ci/test_ci_aggregate.py"]
+timeout_seconds = 30
+
+[[gates]]
+id = "ci-aggregate-format"
+kind = "static"
+argv = [".venv/bin/ruff", "format", "--check", "tests/ci/test_ci_aggregate.py"]
+timeout_seconds = 30
+
+[[gates]]
+id = "ci-aggregate-behavior"
+kind = "behavior"
+argv = ["python3", "tests/ci/test_ci_aggregate.py"]
+timeout_seconds = 30
+
+[gates.regression]
+argv = ["python3", "tests/ci/test_ci_aggregate.py", "--historical"]
+expected_exit = 1
+
+[[flows]]
+id = "required-ci-terminal-results"
+behavior = "The real workflow shell accepts successful and scoped-out jobs while refusing every other observed or future result."
+gate = "ci-aggregate-behavior"
+entrypoints = [".github/workflows/ci.yml jobs.ci-ok"]
+preconditions = ["Bash and jq installed", "Historical immutable source available locally"]
+actions = ["Execute actual workflow shell with 22 dependency-result fixtures", "Run identical assertions against the real historical shell"]
+expected = ["success and skipped remain accepted", "abandoned and all other non-success outcomes fail", "Missing or malformed results fail", "Infrastructure errors cannot establish a historical regression"]
