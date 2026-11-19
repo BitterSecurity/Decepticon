@@ -15,7 +15,7 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed [verification note](https://github.com/BitterSecurity/Decepticon/compare/main...feat/rust-anything-migration-20261120) on the rust-anything streaming text experiment. Recorded parity held for 231 cases, while the Node native binding was slower in the local microbenchmark. See the [measured results](docs/verification/rust-anything-streaming-text-20261120.md).
+- Proposed [PR #1209](https://github.com/BitterSecurity/Decepticon/pull/1209) on the rust-anything streaming text experiment. Recorded parity held for 231 cases, while the Node native binding was slower in the local microbenchmark. See the [measured results](docs/verification/rust-anything-streaming-text-20261120.md).
 
 - Live-capture qualification ([#1206](https://github.com/BitterSecurity/Decepticon/pull/1206)) for [#1198](https://github.com/BitterSecurity/Decepticon/pull/1198), unreleased: the public README-only Codex session is actually recorded with one completed turn and zero pending turns. Preserve local-only checkpoint policy, generated hook bytes, trust records and the canonical OSS checkout. No runtime/package/release change; process exit and commit checkpoint creation are not claimed. [Evidence](docs/operations/entire-public-live-capture-20261118.json).
 
