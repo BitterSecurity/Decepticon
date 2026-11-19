@@ -15,6 +15,8 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed [verification note](https://github.com/BitterSecurity/Decepticon/compare/main...feat/rust-anything-migration-20261120) on the rust-anything streaming text experiment. Recorded parity held for 231 cases, while the Node native binding was slower in the local microbenchmark. See the [measured results](docs/verification/rust-anything-streaming-text-20261120.md).
+
 - Live-capture qualification ([#1206](https://github.com/BitterSecurity/Decepticon/pull/1206)) for [#1198](https://github.com/BitterSecurity/Decepticon/pull/1198), unreleased: the public README-only Codex session is actually recorded with one completed turn and zero pending turns. Preserve local-only checkpoint policy, generated hook bytes, trust records and the canonical OSS checkout. No runtime/package/release change; process exit and commit checkpoint creation are not claimed. [Evidence](docs/operations/entire-public-live-capture-20261118.json).
 
 - Integration review for [#1198](https://github.com/BitterSecurity/Decepticon/pull/1198), unreleased: preserve latest-main history and the Axum instruction while integrating the official local development configuration. All 11 proposed files, seven hook shell commands and JSON/TOML settings are reviewed; automatic checkpoint pushing and telemetry remain disabled, Brain no-egress remains configured, and generated hooks are unchanged. Actual CLI still reports seven project hooks awaiting interactive approval; live public-repository capture is not qualified. No application runtime, release or trust-hash change. [Review and limitations](docs/operations/entire-native-development-20261115.md#integration-review-2026-11-17).
