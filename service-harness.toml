@@ -1,5 +1,5 @@
 version = 1
-intent = "Require every declared CI dependency to succeed or intentionally skip; reject abandoned, unknown and missing results without weakening scope skips or repository protections."
+intent = "Preserve selected-model transport and protocol settings when binding per-run proxy credentials; retain required CI terminal-result verification."
 
 [[gates]]
 id = "ci-aggregate-lint"
@@ -31,3 +31,40 @@ entrypoints = [".github/workflows/ci.yml jobs.ci-ok"]
 preconditions = ["Bash and jq installed", "Historical immutable source available locally"]
 actions = ["Execute actual workflow shell with 22 dependency-result fixtures", "Run identical assertions against the real historical shell"]
 expected = ["success and skipped remain accepted", "abandoned and all other non-success outcomes fail", "Missing or malformed results fail", "Infrastructure errors cannot establish a historical regression"]
+
+[[gates]]
+id = "proxy-key-static"
+kind = "static"
+argv = [".venv/bin/ruff", "check", "packages/decepticon/decepticon/middleware/proxy_key_override.py", "packages/decepticon/tests/unit/middleware/test_proxy_key_transport.py", "tests/ci/verify_proxy_key_transport.py"]
+timeout_seconds = 30
+
+[[gates]]
+id = "proxy-key-format"
+kind = "static"
+argv = [".venv/bin/ruff", "format", "--check", "packages/decepticon/decepticon/middleware/proxy_key_override.py", "packages/decepticon/tests/unit/middleware/test_proxy_key_transport.py", "tests/ci/verify_proxy_key_transport.py"]
+timeout_seconds = 30
+
+[[gates]]
+id = "proxy-key-types"
+kind = "static"
+argv = ["python3", "tests/ci/verify_proxy_key_transport.py", "--types"]
+timeout_seconds = 120
+
+[[gates]]
+id = "proxy-key-transport"
+kind = "behavior"
+argv = ["python3", "tests/ci/verify_proxy_key_transport.py"]
+timeout_seconds = 240
+
+[gates.regression]
+argv = ["python3", "tests/ci/verify_proxy_key_transport.py", "--historical"]
+expected_exit = 1
+
+[[flows]]
+id = "per-run-proxy-authentication"
+behavior = "Changing tenant credentials preserves the selected model's wire protocol and never falls back to environment credentials on binding failure."
+gate = "proxy-key-transport"
+entrypoints = ["ProxyKeyOverrideMiddleware.wrap_model_call", "ProxyKeyOverrideMiddleware.awrap_model_call", "ChatOpenAI.invoke and ainvoke"]
+preconditions = ["Locked repository dev environment available", "All three imports resolve to this task worktree", "Loopback sockets available", "Immutable baseline commit 28b97543 available locally"]
+actions = ["Execute real loopback HTTP and SSE completions", "Check two vendor tool-bound turns", "Assert sync and async credential-binding rejection", "Run connected model selection and factory suites", "Reproduce all six assertions against the immutable old middleware in memory"]
+expected = ["Current proxy key authenticates every request", "Streaming, usage, callbacks, token limits and selected retry/timeout settings are retained", "Concrete model protocol and custom HTTP transports are retained", "Explicit credential binding failure dispatches no model and logs no exception details", "No-key single-tenant behavior remains unchanged"]

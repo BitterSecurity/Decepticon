@@ -101,32 +101,37 @@ def _read_proxy_key(request: Any) -> str:
 
 
 def _rekey_model(original: BaseChatModel, api_key: str) -> BaseChatModel:
-    """Rebuild ``original`` against the LiteLLM proxy, authenticating with
-    ``api_key`` instead of the env master key.
+    """Bind fresh proxy clients while retaining the selected model's protocol.
 
-    Rebuild rather than ``model_copy`` because the OpenAI client binds the API
-    key at ``__init__`` — a shallow copy would keep the old client (old key).
-    Model id, base url, timeout, retries, and the temperature gate mirror the
-    baked-in primary (same as ``model_override._build_proxied_llm``) so
-    streaming / tool calling / fallback semantics are unchanged; only the
-    Authorization key differs.
+    The OpenAI clients capture credentials at construction, so a shallow model
+    copy would retain the previous key. Revalidate the original concrete class
+    with all its configuration, including fields excluded from serialization
+    (custom HTTP transports, callbacks and streaming timeouts). Only the bound
+    OpenAI clients must be recreated. Never send a virtual key to an arbitrary
+    model URL: the destination remains the configured proxy.
     """
+    if not isinstance(original, ChatOpenAI):
+        raise TypeError("per-run proxy credentials require an OpenAI-compatible proxy model")
     proxy = LLMFactory._resolve_proxy_config()
-    model_id = getattr(original, "model_name", None) or getattr(original, "model", None)
-    if not model_id:
-        raise ValueError("cannot resolve model id from current model for re-key")
-    kwargs: dict[str, Any] = {
-        "model": model_id,
-        "base_url": proxy.url,
-        "api_key": SecretStr(api_key),
-        "timeout": proxy.timeout,
-        "max_retries": proxy.max_retries,
+    bound_clients = {"client", "async_client", "root_client", "root_async_client"}
+    kwargs = {
+        name: getattr(original, name)
+        for name in type(original).model_fields
+        if name not in bound_clients
     }
-    if not _model_drops_temperature(str(model_id)):
-        temperature = getattr(original, "temperature", None)
-        if temperature is not None:
-            kwargs["temperature"] = temperature
-    return ChatOpenAI(**kwargs)
+    kwargs["openai_api_base"] = proxy.url
+    kwargs["openai_api_key"] = SecretStr(api_key)
+    # Default headers can override the client's new Authorization header. Keep
+    # provider BYOK and tracing headers, but replace proxy authentication only.
+    if original.default_headers is not None:
+        kwargs["default_headers"] = {
+            name: api_key if name.lower() == "x-litellm-api-key" else value
+            for name, value in original.default_headers.items()
+            if name.lower() != "authorization"
+        }
+    if _model_drops_temperature(original.model_name):
+        kwargs["temperature"] = None
+    return type(original).model_validate(kwargs)
 
 
 class ProxyKeyOverrideMiddleware(AgentMiddleware):
@@ -149,9 +154,13 @@ class ProxyKeyOverrideMiddleware(AgentMiddleware):
             return handler(request)
         try:
             new_llm = _rekey_model(request.model, key)
-        except Exception as exc:
-            log.warning("proxy_key_override failed to bind: %s", exc)
-            return handler(request)
+        except Exception:
+            log.warning(
+                "proxy_key_override refused dispatch: per-run proxy credential binding failed"
+            )
+            raise RuntimeError(
+                "Failed to bind per-run proxy credential; model dispatch refused"
+            ) from None
         log.info("proxy_key_override active (per-run virtual key)")
         return handler(request.override(model=new_llm))
 
@@ -162,9 +171,13 @@ class ProxyKeyOverrideMiddleware(AgentMiddleware):
             return await handler(request)
         try:
             new_llm = _rekey_model(request.model, key)
-        except Exception as exc:
-            log.warning("proxy_key_override failed to bind: %s", exc)
-            return await handler(request)
+        except Exception:
+            log.warning(
+                "proxy_key_override refused dispatch: per-run proxy credential binding failed"
+            )
+            raise RuntimeError(
+                "Failed to bind per-run proxy credential; model dispatch refused"
+            ) from None
         log.info("proxy_key_override active (per-run virtual key)")
         return await handler(request.override(model=new_llm))
 
