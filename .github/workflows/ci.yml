@@ -621,7 +621,9 @@ jobs:
   #
   # Semantics: `skipped` is a PASS (the path-gated lanes legitimately
   # skip when their scope is untouched — see the `changes` job);
-  # `failure` and `cancelled` are FAILs. `coverage-report` is excluded
+  # Only `success` and `skipped` are accepted. Missing, unfinished or unknown
+  # outcomes (including an unassigned runner's `abandoned`) fail closed.
+  # `coverage-report` is excluded
   # by design: it is the informational, non-blocking lane.
   ci-ok:
     name: CI OK (required status)
@@ -640,13 +642,18 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Verify no needed job failed or was cancelled
+      - name: Verify needed jobs succeeded or were intentionally skipped
         env:
           RESULTS: ${{ toJSON(needs) }}
         run: |
           echo "$RESULTS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
-          bad=$(echo "$RESULTS" | jq -r '[to_entries[] | select(.value.result == "failure" or .value.result == "cancelled")] | length')
+          bad=$(echo "$RESULTS" | jq -er '
+            if type != "object" or length == 0 then
+              error("Expected a nonempty GitHub needs result object")
+            else
+              [to_entries[] | select(.value.result != "success" and .value.result != "skipped")] | length
+            end')
           if [ "$bad" != "0" ]; then
-            echo "::error::$bad required job(s) failed or were cancelled."
+            echo "::error::$bad required job(s) did not succeed or intentionally skip."
             exit 1
           fi

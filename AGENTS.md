@@ -41,6 +41,12 @@ release or require a version bump. SaaS identifiers remain independent.
 
 Use Axum when adding or porting Rust HTTP server code.
 
+# Required CI results
+
+| Rule | Enforcement |
+|---|---|
+| CI aggregation accepts only success or intentional skipped results; incomplete, unknown and missing results fail. | Actual workflow Bash exercised by tests/ci/test_ci_aggregate.py, including the historical abandoned-run reproduction. |
+
 <!-- entire-agent:begin -->
 Read .entire/agent-guide.md for this repository's workflow, source inspection, and verification guidance.
 @.entire/agent-guide.md
